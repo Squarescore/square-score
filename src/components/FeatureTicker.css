@@ -1,0 +1,52 @@
+.ticker-wrap {
+    width: 100%;
+    overflow: hidden;
+    background-color: rgba(239, 239, 239, 0.8);
+    padding: 20px 0;
+    backdrop-filter: blur(5px);
+    margin: 140px 0;
+  }
+  
+  .ticker-header {
+    text-align: center;
+    color: black;
+    font-size: 40px;
+    font-family: 'Radio Canada', sans-serif;
+    margin-bottom: 50px;
+  }
+  
+  .ticker {
+    display: flex;
+    width: 100%;
+    padding: 0px 0px 20px;
+    overflow: hidden;
+  }
+  
+  .ticker-move {
+    display: flex;
+    animation: ticker 160s linear infinite;
+  }
+  
+  .ticker__item {
+    flex-shrink: 0;
+    padding: 0 2rem;
+    font-family: 'Radio Canada', sans-serif;
+    font-size: 24px;
+    font-weight: bold;
+    color: #696969;
+    white-space: nowrap;
+  }
+  
+  @keyframes ticker {
+    0% {
+      transform: translateX(-100%);
+    }
+    100% {
+      transform: translateX(0);
+    }
+  }
+  
+  /* Pause animation on hover */
+  .ticker:hover .ticker-move {
+    animation-play-state: paused;
+  }
