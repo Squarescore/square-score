@@ -1,163 +1,199 @@
-// Importing React and necessary hooks
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 
-// Define the TestPage component
 const TestPage = () => {
-  // Component's return statement
+  const [score, setScore] = useState(0);
+  const [streak, setStreak] = useState(0);
+  const [nextDifficulty, setNextDifficulty] = useState('Medium');
+  const [pointsConfig, setPointsConfig] = useState({
+    Hard: { correct: 4, incorrect: -1 },
+    Medium: { correct: 2.5, incorrect: -2 },
+    Easy: { correct: 1.5, incorrect: -4 },
+  });
+  const [streakMultiplier, setStreakMultiplier] = useState(1);
+  const [answers, setAnswers] = useState(Array(40).fill(null));
+  const [difficulties, setDifficulties] = useState(Array(40).fill(undefined));
+  const [answerHistory, setAnswerHistory] = useState([]);
+  const [streakSaverThreshold, setStreakSaverThreshold] = useState(6);
+  const [streakSaverCount, setStreakSaverCount] = useState(0);
+  useEffect(() => {
+    recalculateScore();
+  }, [pointsConfig, streakMultiplier, streakSaverThreshold]);
+
+  const recalculateScore = () => {
+    let newScore = 0;
+    let currentStreak = 0;
+    let currentStreakSaverCount = 0;
+
+    answerHistory.forEach(({ isCorrect, difficulty }, index) => {
+      if (isCorrect) {
+        currentStreak++;
+        currentStreakSaverCount = 0;
+        const streakBonus = (currentStreak - 1) * streakMultiplier;
+        newScore += pointsConfig[difficulty].correct + streakBonus;
+      } else {
+        if (currentStreak >= streakSaverThreshold && currentStreakSaverCount < 1) {
+          currentStreak = Math.floor(currentStreak / 2) + 1;
+          currentStreakSaverCount++;
+        } else {
+          currentStreak = 0;
+          currentStreakSaverCount = 0;
+        }
+        newScore += pointsConfig[difficulty].incorrect;
+      }
+    });
+
+    setScore(newScore);
+    setStreak(currentStreak);
+    setStreakSaverCount(currentStreakSaverCount);
+  };
+  const handleAnswer = (index, isCorrect) => {
+    const newAnswers = [...answers];
+    newAnswers[index] = isCorrect;
+    setAnswers(newAnswers);
+  
+    const newDifficulties = [...difficulties];
+    newDifficulties[index] = nextDifficulty;
+    setDifficulties(newDifficulties);
+  
+    // Remove the previous answer for this index if it exists
+    const newAnswerHistory = answerHistory.filter(answer => answer.index !== index);
+    // Add the new answer
+    newAnswerHistory.push({ index, isCorrect, difficulty: nextDifficulty });
+    setAnswerHistory(newAnswerHistory);
+  
+    recalculateScore();
+    updateNextDifficulty(newAnswerHistory);
+  };
+  
+  const updateNextDifficulty = (history) => {
+    const lastAnswer = history[history.length - 1];
+    if (lastAnswer) {
+      if (lastAnswer.isCorrect) {
+        setNextDifficulty(prevDifficulty => 
+          prevDifficulty === 'Hard' ? 'Hard' : 
+          prevDifficulty === 'Medium' ? 'Hard' : 'Medium'
+        );
+      } else {
+        setNextDifficulty(prevDifficulty => 
+          prevDifficulty === 'Easy' ? 'Easy' : 
+          prevDifficulty === 'Medium' ? 'Easy' : 'Medium'
+        );
+      }
+    }
+  };
+  
+
+  const handleStreakSaverThresholdChange = (value) => {
+    setStreakSaverThreshold(parseInt(value, 10));
+  };
+
+
+  const handlePointsConfigChange = (difficulty, type, value) => {
+    setPointsConfig(prevConfig => ({
+      ...prevConfig,
+      [difficulty]: { ...prevConfig[difficulty], [type]: parseFloat(value) },
+    }));
+  };
+
+  const handleStreakMultiplierChange = (value) => {
+    setStreakMultiplier(parseFloat(value));
+  };
+  const resetSimulation = () => {
+    setScore(0);
+    setStreak(0);
+    setNextDifficulty('Medium');
+    setAnswers(Array(40).fill(null));
+    setDifficulties(Array(40).fill(undefined));
+    setAnswerHistory([]);
+    setStreakSaverCount(0);
+
+  };
   return (
     <div style={{ paddingBottom: '80px', marginLeft: '-3px', marginRight: '-3px', display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', width: '100%' }}>
-    <button
-      
-      style={{
-        backgroundColor: '#0E19FF',
-        textShadow: '2px 2px 4px rgba(0, 0, 0, 0.2)',
-        padding: '10px',
-        width: '140px',
-        fontSize: '25px',
-        position: 'fixed',
-        right: '60px',
-        top: '20px',
-        borderColor: 'transparent',
-        cursor: 'pointer',
-        borderRadius: '15px',
-        fontFamily: "'Radio Canada', sans-serif",
-        color: 'white',
-        fontWeight: 'bold',
-        zIndex: '100',
-        transition: 'transform 0.3s ease'
-      }}
-      onMouseEnter={(e) => e.target.style.transform = 'scale(1.01)'}
-      onMouseLeave={(e) => e.target.style.transform = 'scale(1)'}
-    >
-      Submit
-    </button>
-   
-    <div
-      style={{
-        color: 'grey' ,
-        left: '100px',
-        top: '10px',
-        fontSize: '44px',
-        fontWeight: 'bold',
-        width: '120px',
-        zIndex: '100',
-        fontFamily: "'Radio Canada', sans-serif",
-        position: 'fixed',
-        padding: '5px',
-        borderRadius: '5px',
-      }}
-    >
-    
-      10:10
-      <button
-      
-        style={{
-          position: 'absolute',
-          top: '0px',
-          left: '-70px',
-          backgroundColor: 'transparent',
-          border: 'none',
-          color: 'black',
-          fontWeight: 'bold',
-          cursor: 'pointer',
-        }}
-      >
-         <img style={{ width: '60px', opacity: '90%' }} src='/hidecon.png' />
-      </button>
-    </div>
- 
-    <header
-      style={{
-        backgroundColor: 'white', position: 'fixed',
-        borderRadius: '10px',
-        color: 'white',
-        height: '90px',
-        display: 'flex',
-        borderBottom: '5px solid lightgrey',
-        marginTop: '0px',
-        marginBottom: '40px',
-        alignItems: 'center',
-        justifyContent: 'center',
-        width: '100%',
-      }}
-    >
-      <img style={{ width: '390px', marginLeft: '20px', marginTop: '-20px' }} src="/SquareScore.png" alt="logo" />
-    </header>
-   
-      <button
-    
-        style={{
-          backgroundColor: 'transparent',
-          color: 'grey',
-          padding: '10px',
-          width: '200px',
-          background: 'lightgrey',
-          textAlign: 'center',
-          fontSize: '20px',
-          position: 'fixed',
-          left: '0px',
-          top: '90px',
-          borderColor: 'transparent',
-          cursor: 'pointer',
-          borderBottomRightRadius: '15px',
-          fontFamily: "'Radio Canada', sans-serif",
-          fontWeight: 'bold',
-          zIndex: '100',
-          transition: 'transform 0.3s ease'
-        }}
-        onMouseEnter={(e) => e.target.style.transform = 'scale(1.01)'}
-        onMouseLeave={(e) => e.target.style.transform = 'scale(1)'}
-      >
-        Save & Exit
-      </button>
-   
+      {/* ... (previous code for header, buttons, etc.) */}
+
       <div style={{ width: '1000px', marginLeft: 'auto', marginRight: 'auto', marginTop: '150px', position: 'relative' }}>
-        <div style={{
-          backgroundColor: 'white', width: '700px', color: 'black', border: '10px solid #EAB3FD',
-          textAlign: 'center', fontWeight: 'bold', padding: '40px', borderRadius: '30px', fontSize: '30px', position: 'relative',
-          marginLeft: 'auto', marginRight: 'auto', marginTop: '40px', fontFamily: "'Radio Canada', sans-serif", userSelect: 'none'
-        }}>
-          question itself goes here
-          <h3 style={{
-            width: 'auto',
-            top: '0px',
-            marginTop: '-43px',
-            left: '50%',
-            transform: 'translateX(-50%)',
-            position: 'absolute',
-            backgroundColor: '#FCD3FF',
-            borderRadius: '20px',
-            color: '#E01FFF',
-            border: '10px solid white',
-            fontSize: '34px',
-            padding: '10px 20px',
-            whiteSpace: 'nowrap'
-          }}>
-            AssignmentName
-          </h3>
-        </div>
-   
-    
+        <h2>Scoring Configuration</h2>
+        {Object.entries(pointsConfig).map(([difficulty, points]) => (
+          <div key={difficulty}>
+            <h3>{difficulty}</h3>
+            <label>
+              Correct:
+              <input
+                type="number"
+                value={points.correct}
+                onChange={(e) => handlePointsConfigChange(difficulty, 'correct', e.target.value)}
+              />
+            </label>
+            <label>
+              Incorrect:
+              <input
+                type="number"
+                value={points.incorrect}
+                onChange={(e) => handlePointsConfigChange(difficulty, 'incorrect', e.target.value)}
+              />
+            </label>
+          </div>
+        ))}
+
+<h3>Streak Saver Threshold</h3>
+        <input
+          type="number"
+          value={streakSaverThreshold}
+          onChange={(e) => handleStreakSaverThresholdChange(e.target.value)}
+        />
+        <h3>Streak Multiplier</h3>
+        <input
+          type="number"
+          value={streakMultiplier}
+          onChange={(e) => handleStreakMultiplierChange(e.target.value)}
+        />
+
+        <h2>Current Score: {score}</h2>
+        <h3>Current Streak: {streak}</h3>
+        <h3>Next Question Difficulty: {nextDifficulty}</h3>
+
+        <button 
+          onClick={resetSimulation}
+          style={{
+           
+          }}
+        >
+          Reset Simulation
+        </button>
+        <h2>Answers</h2>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '10px' }}>
+  {answers.map((answer, index) => (
+    <div key={index}>
+      <span>{index + 1}. </span>
+      
+      <label style={{ color: answer === true ? 'green' : 'inherit' }}>
+        <input
+          type="checkbox"
+          checked={answer === true}
+          onChange={() => handleAnswer(index, true)}
+          style={{ accentColor: answer === true ? 'green' : 'inherit' }}
+        />
+        ✔
+      </label>
+      <label style={{ color: answer === false ? 'red' : 'inherit' }}>
+        <input
+          type="checkbox"
+          checked={answer === false}
+          onChange={() => handleAnswer(index, false)}
+          style={{ accentColor: answer === false ? 'red' : 'inherit' }}
+        />
+        X
+      </label>
+      <span style={{ color: answer === false ? 'red' : answer === true ? 'green': 'grey' }}>
+        ({difficulties[index] || 'Undefined'})
+      </span>
+    </div>
+  ))}
+</div>
       </div>
-    
-  </div>
-);
+    </div>
+  );
 }
 
-// Define some basic styles
-const styles = {
-  container: {
-    padding: '20px',
-    textAlign: 'center',
-  },
-  title: {
-    fontSize: '2em',
-    marginBottom: '20px',
-  },
-  paragraph: {
-    fontSize: '1.2em',
-  },
-};
-
-// Export the TestPage component
 export default TestPage;

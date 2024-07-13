@@ -7,7 +7,7 @@ import Navbar from './Navbar';
 import Footer from './Footer';
 import { deleteDoc } from 'firebase/firestore';
 
-const TeacherClassHome = () => {
+const TeacherClassHome = ({ currentPage }) => {
   const navigate = useNavigate();
   const { classId } = useParams(); // Extract classId from the URL
   const [className, setClassName] = useState(''); // State to store the class name
@@ -15,7 +15,21 @@ const TeacherClassHome = () => {
   const [recentAverage, setRecentAverage] = useState('N/A');
   const [overallAverage, setOverallAverage] = useState('N/A');
   const [classChoice, setClassChoice] = useState('');
-  const handleDeleteClass = async () => {
+  const [classChoiceStyle, setClassChoiceStyle] = useState({});
+
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const periodStyles = {
+    1: { background: '#A3F2ED', color: '#1CC7BC' },
+        2: { background: '#F8CFFF', color: '#E01FFF' },
+        3: { background: '#FFCEB2', color: '#FD772C' },
+        4: { background: '#FFECA9', color: '#F0BC6E' },
+        5: { background: '#AEF2A3', color: '#4BD682' },
+        6: { background: '#BAA9FF', color: '#8364FF' },
+        7: { background: '#8296FF', color: '#3D44EA' },
+        8: { background: '#FF8E8E', color: '#D23F3F' }
+  };
+  
+  const handleDeleteClass = () => {
     if (!classId) {
       console.error("Invalid classId");
       return;
@@ -26,41 +40,151 @@ const TeacherClassHome = () => {
       return;
     }
   
-    if (window.confirm("Are you sure you want to delete this class?")) {
-      try {
-        const classDocRef = doc(db, 'classes', classId);
-        await deleteDoc(classDocRef);
-        navigate('/teacherhome'); // Redirect after successful deletion
-      } catch (error) {
-        console.error("Error deleting class:", error);
-      }
+    setShowDeleteConfirm(true);
+  };
+  const confirmDeleteClass = async () => {
+    try {
+      const classDocRef = doc(db, 'classes', classId);
+      await deleteDoc(classDocRef);
+      setShowDeleteConfirm(false);
+      navigate('/teacherhome');
+    } catch (error) {
+      console.error("Error deleting class:", error);
     }
   };
-  
-  useEffect(() => {
-    // Fetch the class data from Firestore
-    const fetchClassData = async () => {
-      const classDocRef = doc(db, 'classes', classId);
-      const classDoc = await getDoc(classDocRef);
+  const RetroConfirm = ({ onConfirm, onCancel, className }) => (
+    <div style={{
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      width: '100%',
+      height: '100%',
+      backdropFilter: 'blur(5px)',
+      background: 'rgba(255,255,255,0.8)',
+      zIndex: 100
+    }}>
+      <div style={{
+        position: 'fixed',
+        top: '50%',
+        left: '50%',
+        borderRadius: '30px',
+        backdropFilter: 'blur(5px)',
+        transform: 'translate(-50%, -50%)',
+        width: '500px',
+        backgroundColor: 'rgb(255,255,255,.001)',
+        border: '0px solid transparent',
+        boxShadow: '0px 4px 4px 0px rgba(0, 0, 0, 0.25)',
+        fontFamily: 'Arial, sans-serif',
+        zIndex: 100000
+      }}>
+        <div style={{
+          backgroundColor: '#FF6B6B',
+          color: '#980000',
+          fontFamily: '"Rajdhani", sans-serif',
+          border: '10px solid #980000', 
+          borderTopRightRadius: '30px',
+          borderTopLeftRadius: '30px',
+          opacity: '80%',
+          textAlign: 'center',
+          fontSize: '40px',
+          padding: '12px 4px',
+          fontWeight: 'bold'
+        }}>
+          Confirm Deletion
+        </div>
+        <div style={{ padding: '20px', textAlign: 'center', fontWeight: 'bold', fontFamily: '"Radio Canada", sans-serif', fontSize: '30px' }}>
+          Are you sure you want to delete  {classChoice} - {className}?<br />
+          This action cannot be undone.
+        </div>
+        <div style={{ 
+          display: 'flex', 
+          justifyContent: 'center', 
+          padding: '10px'
+        }}>
+          <button 
+            onClick={onConfirm}
+            style={{
+              width: '200px',
+              marginRight: '10px',
+              height: '40PX',
+              lineHeight: '10PX',
+              padding: '5px 5px',
+              fontWeight: 'bold',
+              fontSize: '24px',
+              borderRadius: '10px',
+              color: '#980000',
+              fontFamily: '"Rajdhani", sans-serif',
+              border: '0px solid lightgrey',
+              backgroundColor: 'white',
+              cursor: 'pointer',
+              transition: '.3s'
+            }}
+            onMouseEnter={(e) => { e.target.style.boxShadow = '0px 4px 4px 0px rgba(0, 0, 0, 0.25)'; }}
+            onMouseLeave={(e) => { e.target.style.boxShadow = 'none'; }} 
+          >
+            Delete
+          </button>
+          <button 
+            onClick={onCancel}
+            style={{
+              width: '200px',
+              marginRight: '10px',
+              height: '40PX',
+              lineHeight: '10PX',
+              padding: '5px 5px',
+              fontWeight: 'bold',
+              fontSize: '24px',
+              borderRadius: '10px',
+              color: '#009006',
+              marginBottom: '10px',
+              fontFamily: '"Rajdhani", sans-serif',
+              border: '0px solid lightgrey',
+              backgroundColor: 'white',
+              cursor: 'pointer',
+              transition: '.3s'
+            }}
+            onMouseEnter={(e) => { e.target.style.boxShadow = '0px 4px 4px 0px rgba(0, 0, 0, 0.25)'; }}
+            onMouseLeave={(e) => { e.target.style.boxShadow = 'none'; }} 
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 
-      if (classDoc.exists()) {
-        setClassName(classDoc.data().className);
-        setClassTheme(classDoc.data().theme);
-        setClassChoice(classDoc.data().classChoice);
-        // Fetch the averages
-        setRecentAverage(classDoc.data().mostRecentAssignmentAverage || 'N/A');
-        setOverallAverage(classDoc.data().overallClassAverage || 'N/A');
-      }
-    };
-
-    fetchClassData();
-  }, [classId]); // Re-run the effect whenever classId changes
+  console.log('Current classChoice:', classChoice);
+console.log('Current classChoiceStyle:', classChoiceStyle);
+   // Re-run the effect whenever classId changes
 
   const handleBack = () => {
     navigate('/teacherhome');
   };
 
-
+  useEffect(() => {
+    const fetchClassData = async () => {
+      const classDocRef = doc(db, 'classes', classId);
+      const classDoc = await getDoc(classDocRef);
+  
+      if (classDoc.exists()) {
+        const data = classDoc.data();
+        console.log('Fetched class data:', data);
+        
+        setClassName(data.classChoice); // This is the full class name
+        setClassChoice(data.className); // This is the period
+        setRecentAverage(data.mostRecentAssignmentAverage || 'N/A');
+        setOverallAverage(data.overallClassAverage || 'N/A');
+  
+        // Use the color and background directly from the class data
+        setClassChoiceStyle({
+          background: data.background,
+          color: data.color
+        });
+      }
+    };
+  
+    fetchClassData();
+  }, [classId]);
 
   const getGradientStyle = (type, index) => {
     if (!classTheme) return {};
@@ -113,9 +237,15 @@ backgroundColor: 'rgb(50,50,50)',
   return (
     <div style={{  display: 'flex', flexDirection: 'column', backgroundColor: 'white'}}>
 
-      <Navbar userType="teacher" />
+      <Navbar userType="teacher" currentPage={currentPage}  />
      
-
+{showDeleteConfirm && (
+  <RetroConfirm 
+    onConfirm={confirmDeleteClass}
+    onCancel={() => setShowDeleteConfirm(false)}
+    className={className}
+  />
+)}
       <main style={{ flexGrow: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', marginTop: '60px' }}>
      <div  style={{ flexGrow: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', marginTop: '20px', width: '1200px'}}>
 
@@ -124,14 +254,14 @@ backgroundColor: 'rgb(50,50,50)',
       <div
           
           style={{ 
-            width: '873px', zIndex: '1',
+            width: '700px', zIndex: '1',
             height: '374px',
            position: 'relative',
             marginBottom: '50px', 
             marginTop: '75px',
-            border: '10px solid #627BFF',
+            border: '15px solid #F4F4F4',
             backgroundColor: 'white',
-            borderRadius:'30px',
+            borderRadius:'50px',
             fontFamily: "'Radio Canada', sans-serif",
       
             textAlign: 'center', 
@@ -148,11 +278,12 @@ backgroundColor: 'rgb(50,50,50)',
    
     >
 <h1 style={{fontSize: '36px',
-  height: '50px',
-  marginLeft: 'auto',
-  marginRight: 'auto',
+  height: '60px',
+ 
   fontFamily: "'Radio Canada', sans-serif",
-  marginTop: '-30px',
+  marginTop: '-0px',
+  marginLeft:"-15px",
+  marginRight:"-15px",
   textAlign: 'center',
   marginBottom: '-27px',
   zIndex: '20',
@@ -161,14 +292,34 @@ backgroundColor: 'rgb(50,50,50)',
   fontWeight: 'lighter',
   backgroundColor: 'transparent',
   alignItems: 'center',
-  lineHeight: '1',
+  lineHeight: '60px',
   display: 'flex',
   justifyContent: 'center'
 }}>
-  <h1 style={{ width: 'fit-content', backgroundColor: 'white', fontSize: '35px', fontWeight: 'normal', paddingLeft: '30px', paddingRight: '30px', fontFamily: "'Radio Canada', sans-serif", marginLeft: '0px', textShadow: 'none' }}>{classChoice}</h1>
-</h1>
+<h1 style={{
+  width: '873px',
+  border: '15px solid ', 
+  borderColor:  classChoiceStyle.color || 'grey',
+  height: ' 60px',  
+  fontWeight: 'bold',
+  borderTopLeftRadius: '50px', 
+  borderTopRightRadius: '50px', 
+  backgroundColor: classChoiceStyle.background || 'white', 
+  color: classChoiceStyle.color || 'grey',
+  fontSize: '35px', 
+  paddingLeft: '30px', 
+  paddingRight: '30px', 
+  fontFamily: "'Radio Canada', sans-serif", 
+  marginLeft: '0px', 
+  overflow: 'hidden',
+  textOverflow: 'ellipsis',
+  whiteSpace: 'nowrap',
+  textShadow: 'none' 
+}}>
+  {className}
+</h1></h1>
 
-  <h1 style={{color: 'black', textAlign: 'center', textShadow: 'none', marginTop: '136px', fontSize: '90px', fontWeight: 'bold' }}>{className}</h1>
+  <h1 style={{ textAlign: 'center', textShadow: 'none', marginTop: '106px', fontSize: '120px', fontWeight: 'bold', color: 'grey',fontFamily: "'Rajdhani', sans-serif", }}>{classChoice}</h1>
 
 </div>
       <div style={{width: '50%', display: 'flex', justifyContent: 'space-between', marginTop: '75px', marginBottom: '-20px'}}>

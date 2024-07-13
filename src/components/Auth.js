@@ -174,10 +174,10 @@ const Auth = () => {
             </div>
             <div style={{ width: '280px', display: 'flex', position: 'fixed', right: '20px' }}>
               <Link to="/signup" style={{
-                height: '0px', marginTop: '10px', lineHeight: '2px', borderRadius: '10px',
+                height: '0px', marginTop: '20px', lineHeight: '2px', borderRadius: '10px',
                 fontWeight: 'bold', background: '#F4C10A', border: '8px solid #F4C10A',
                 textDecoration: 'none', color: 'white', width: '80px', marginLeft: '30px',
-                padding: '15px', textAlign: 'center', transition: '.2s',
+                padding: '10px', textAlign: 'center', transition: '.2s',
                 fontFamily: "'Radio Canada', sans-serif", fontSize: '18px'
               }}
               onMouseEnter={(e) => {
@@ -189,10 +189,10 @@ const Auth = () => {
                 e.target.style.boxShadow = 'none';
               }}>Sign up</Link>
               <Link to="/login" style={{
-                height: '0px', marginTop: '10px', lineHeight: '2px', borderRadius: '10px',
+                height: '0px', marginTop: '20px', lineHeight: '2px', borderRadius: '10px',
                 fontWeight: 'bold', background: '#627BFF', border: '8px solid #627BFF',
                 textDecoration: 'none', color: 'white', width: '50px', marginLeft: '30px',
-                padding: '15px', textAlign: 'center', transition: '.2s',
+                padding: '10px', textAlign: 'center', transition: '.2s',
                 fontFamily: "'Radio Canada', sans-serif", fontSize: '18px'
               }}
               onMouseEnter={(e) => {

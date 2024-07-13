@@ -6,7 +6,7 @@ import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { serverTimestamp } from 'firebase/firestore';
 import { useRef } from 'react';
 import Navbar from './Navbar';
-const TeacherUploads = () => {
+const TeacherUploads = ({ currentPage }) => {
   const { classId } = useParams();
   const [link, setLink] = useState('');
   const [linkName, setLinkName] = useState('');

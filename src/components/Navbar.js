@@ -1,14 +1,15 @@
 import { Link } from "react-router-dom";
 import React, { useState, useEffect } from "react";
-import { useParams } from "react-router-dom";
-import { auth, db } from "./firebase"; // Ensure these imports point to your Firebase setup
+import { useParams, useNavigate } from "react-router-dom";
+import { auth, db } from "./firebase";
 import { doc, getDoc, collection, query, where, getDocs } from "firebase/firestore";
-import { useNavigate } from "react-router-dom";
-import { signOut } from "firebase/auth"; // Import signOut function from Firebase Auth
+import { signOut } from "firebase/auth";
+import { useLocation } from 'react-router-dom';
 
 const Navbar = ({ userType, currentPage, firstName, lastName }) => {
     const { classId } = useParams();
     const navigate = useNavigate();
+    const location = useLocation();
     const [showDropdown, setShowDropdown] = useState(false);
     const [userInitials, setUserInitials] = useState("");
     const [currentClass, setCurrentClass] = useState('');
@@ -16,8 +17,28 @@ const Navbar = ({ userType, currentPage, firstName, lastName }) => {
     const [classes, setClasses] = useState([]);
     const [navbarBg, setNavbarBg] = useState('rgba(255,255,255,0.7)');
     const [classChoice, setClassChoice] = useState('');
+    const [isClassNameLoaded, setIsClassNameLoaded] = useState(false);
+    const [isLoading, setIsLoading] = useState(true);
+    const [isDropdownActive, setIsDropdownActive] = useState(false);
+    const [backgroundOpacity, setBackgroundOpacity] = useState(0);
+    const [dropdownVisible, setDropdownVisible] = useState(false);
+    const getCurrentPage = () => {
+        const path = location.pathname;
+        if (path.includes('/drafts')) return 'Resources';
+        if (path.includes('/teacherassignmenthome')) return 'Create';
+        if (path.includes('/createassignment')) return 'Create';
+        if (path.includes('/MCQ')) return 'Create';
+        if (path.includes('/TeacherResults')) return 'Grades';
+        
+        if (path.includes('/TeacherStudentResults')) return 'Grades';
+        if (path.includes('/MCQA')) return 'Create';
+        if (path.includes('/TeacherGradesHome')) return 'Grades';
+        if (path.includes('/participants')) return 'Participants';
+        return 'Home'; // default to Home for the main class page
+    };
     useEffect(() => {
         const fetchClasses = async () => {
+            setIsLoading(true);
             let classQuery;
             if (userType === 'teacher') {
                 const teacherUID = auth.currentUser.uid;
@@ -26,17 +47,20 @@ const Navbar = ({ userType, currentPage, firstName, lastName }) => {
                 const studentUID = auth.currentUser.uid;
                 classQuery = query(collection(db, 'classes'), where('students', 'array-contains', studentUID));
             }
-
+    
             const classesSnapshot = await getDocs(classQuery);
             const classesData = classesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             setClasses(classesData);
             const currentClassData = classesData.find(cls => cls.id === classId);
+    
             if (currentClassData) {
                 setCurrentClass(currentClassData.className);
                 setClassChoice(currentClassData.classChoice);
+                setIsClassNameLoaded(true);
             }
+            setIsLoading(false);
         };
-
+    
         if (classId) {
             fetchClasses();
         }
@@ -51,12 +75,42 @@ const Navbar = ({ userType, currentPage, firstName, lastName }) => {
         }
     };
 
-    const handleClassDropdownClick = (e) => {
-        e.stopPropagation(); // Prevents click event from propagating to parent elements
+    const toggleClassDropdown = (e) => {
+        e.stopPropagation();
+        setShowClassDropdown(!showClassDropdown);
+        setIsDropdownActive(!isDropdownActive);
+        setBackgroundOpacity(isDropdownActive ? 0 : 0.5);
+        setDropdownVisible(!dropdownVisible);
+    };
+
+
+    useEffect(() => {
+        const handleScroll = () => {
+            if (window.scrollY > 0 && !isDropdownActive) {
+                setNavbarBg('rgba(250, 250, 250, 0.7)');
+            } else if (isDropdownActive) {
+                setNavbarBg('rgb(255, 255, 255)');
+            } else {
+                setNavbarBg('rgba(255, 255, 255, 0.7)');
+            }
+        };
+
+        window.addEventListener('scroll', handleScroll);
+        return () => {
+            window.removeEventListener('scroll', handleScroll);
+        };
+    }, [isDropdownActive]);
+
+    const handleBackgroundHover = () => {
+        if (isDropdownActive) {
+            setShowClassDropdown(false);
+            setIsDropdownActive(false);
+            setBackgroundOpacity(0);
+        }
     };
 
     const teacherLinkRoutes = {
-        'Home': `/class/${classId}`,
+        
         'Resources': `/class/${classId}/drafts`,
         'Create': `/class/${classId}/teacherassignmenthome`,
         'Grades': `/class/${classId}/TeacherGradesHome`,
@@ -73,7 +127,7 @@ const Navbar = ({ userType, currentPage, firstName, lastName }) => {
     useEffect(() => {
         const fetchUserData = async () => {
             try {
-                const uid = auth.currentUser.uid; // Get current user's UID
+                const uid = auth.currentUser.uid;
                 const userDoc = await getDoc(doc(db, userType === 'teacher' ? 'teachers' : 'students', uid));
                 if (userDoc.exists()) {
                     const userData = userDoc.data();
@@ -114,9 +168,27 @@ const Navbar = ({ userType, currentPage, firstName, lastName }) => {
         navigate(-1);
     };
 
+    const periodStyles = {
+        1: { background: '#A3F2ED', color: '#1CC7BC' },
+        2: { background: '#F8CFFF', color: '#E01FFF' },
+        3: { background: '#FFCEB2', color: '#FD772C' },
+        4: { background: '#FFECA9', color: '#F0BC6E' },
+        5: { background: '#AEF2A3', color: '#4BD682' },
+        6: { background: '#BAA9FF', color: '#8364FF' },
+        7: { background: '#8296FF', color: '#3D44EA' },
+        8: { background: '#FF8E8E', color: '#D23F3F' }
+    };
+
+    const getPeriodNumber = (className) => {
+        const match = className.match(/Period (\d)/);
+        return match ? parseInt(match[1]) : null;
+    };
+
     const homeRoute = userType === 'teacher' ? '/teacherhome' : '/studenthome';
-    const homeIcon = "https://cdn-icons-png.flaticon.com/512/1946/1946488.png"; // URL of the home icon image
+    const homeIcon = "/home.png";
     const logoUrl = "/logo.png";
+
+ 
 
     useEffect(() => {
         const handleScroll = () => {
@@ -141,8 +213,7 @@ const Navbar = ({ userType, currentPage, firstName, lastName }) => {
             transition: 'background-color 0.3s ease',
             backdropFilter: 'blur(7px)',
         }}>
-
-            <button 
+             <button 
                 onClick={handleBack} 
                 style={{position: 'fixed', top: '10px', left: '0px', fontFamily: "'Radio Canada', sans-serif", textDecoration: 'none', color: 'black', border: '0px solid lightgrey', height: '47px', width: '47px', borderRadius:'10px', backgroundColor: 'transparent', marginLeft:'20px', marginRight: '20px', cursor: 'pointer' }}>
                 <img src="https://static.thenounproject.com/png/1875804-200.png" style={{width: '30px', opacity: '30%'}}/>
@@ -150,63 +221,204 @@ const Navbar = ({ userType, currentPage, firstName, lastName }) => {
 
             <div style={{ width: '1200px', marginLeft: 'auto', marginRight: 'auto', display: 'flex', alignItems: 'center' , }}>
                 <Link to={homeRoute}>
-                    <img src='/logo.png' alt="Logo" style={{ width: '40px', height: 'auto', marginLeft: '0px', marginRight: '40px' }} />
+                <img src={homeIcon} alt="Home" style={{ width: '25px', marginTop: '-4px',  marginRight: '30px',opacity: '80%' }} />
                 </Link>
-                <div
-                    onMouseEnter={() => setShowClassDropdown(true)}
-                    onMouseLeave={() => setShowClassDropdown(false)}
-                    style={{
-                        fontSize: '22px', color: 'rgb(50,50,50)', padding: '10px', width: '100px',
-                        fontFamily: "'Rajdhani', sans-serif",  fontWeight: 'BOLD',backgroundColor: 'rgba(220, 220, 202, 0.2)',
-                        backdropFilter: 'blur(5px)', textAlign: "center", marginRight: '20px', borderRadius: '7px', cursor: 'pointer', position: 'relative'
-                    }}
-                >
-                    {currentClass || ''}
-                    {showClassDropdown && (
-                        <div onClick={handleClassDropdownClick} style={{
-                            position: 'absolute', top: '100%', fontFamily: "'Rajdhani', sans-serif",
-                            width: '120px', backgroundColor: 'white', fontWeight: 'bold', left: '0px', marginTop: '-7px',
-                            backdropFilter: 'blur(7px)', opacity: showClassDropdown ? 1 : 0,
-                            borderBottomRightRadius: '7px', borderBottomLeftRadius: '7px', zIndex: 10,
-                            fontSize: '22px', color: 'grey', overflow: 'hidden',
-                            maxHeight: showClassDropdown ? '200px' : '0', transition: 'max-height 0.3s ease-out, opacity 0.3s ease-out'
-                        }}>
-                            {classes
-                                .filter(cls => cls.id !== classId)
-                                .sort((a, b) => a.className.localeCompare(b.className)) 
-                                .map((cls, index) => (
+                {!isLoading ? (
+    <div style={{ display: 'flex', alignItems: 'center', marginRight: '20px' }}>
+        <div
+            style={{
+                height: '38px',
+                width: '30px',
+                opacity: '50%',
+                marginRight: '-5px',
+                borderBottomLeftRadius: '7px',
+                borderTopLeftRadius: '7px',
+                ...(periodStyles[getPeriodNumber(currentClass)] || periodStyles[1])
+            }}
+        >
+            <div 
+                onClick={toggleClassDropdown}
+                style={{
+                    cursor: 'pointer',
+                    transform: showClassDropdown ? 'rotate(180deg)' : 'rotate(0deg)',
+                    userSelect:'none',
+                    marginTop: '10px',
+                    marginLeft: '5px',
+                    transition: 'transform .5s ease',
+                    width: '15px', height: '15px',
+                    ...(periodStyles[getPeriodNumber(currentClass)] || periodStyles[1])
+                }}
+            >
+                ▼
+            </div>
+        </div>
+        <Link
+            to={userType === 'teacher' ? `/class/${classId}` : `/studentclasshome/${classId}`}
+            style={{
+                fontSize: '22px',
+                padding: '5px',
+                width: '100px',
+                paddingRight: '15px',
+                fontFamily: "'Rajdhani', sans-serif",
+                fontWeight: 'BOLD',
+                textAlign: "center",
+                borderRadius: '7px',
+                textDecoration: 'none',
+                ...(periodStyles[getPeriodNumber(currentClass)] || periodStyles[1])
+            }}
+        >
+            {currentClass || ''}
+        </Link>
+    </div>
+) : (
+    <div style={{ width: '130px', height: '38px', backgroundColor: '#transparent', borderRadius: '7px' }}></div>
+)}
+       {showClassDropdown && (
+    <div 
+        style={{
+            position: 'fixed',
+            top: '70px',
+            left: '0',
+            width: '100%',
+            backgroundColor: 'white',
+            boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+            zIndex: 999,
+            display: 'flex',
+            justifyContent: 'center',
+            padding: '20px 0',
+            opacity: isDropdownActive ? 1 : 0,
+            transition: 'opacity 0.3s ease, transform 0.5s cubic-bezier(0, 1, 0.5, 1)',
+            overflow: 'hidden',
+            transform: dropdownVisible ? 'translateY(0)' : 'translateY(-100%)',
+            maxHeight: dropdownVisible ? '80vh' : '0',
+        }}
+    >           <div style={{
+                        display: 'flex',
+                        flexWrap: 'wrap',
+                        justifyContent: 'flex-start',
+                        width: '1200px',
+                        marginLeft: 'auto', marginRight: 'auto'
+                    }}>
+                        {classes
+                            .filter(cls => cls.id !== classId)
+                            .sort((a, b) => a.className.localeCompare(b.className))
+                            .map((cls) => {
+                                const periodNumber = getPeriodNumber(cls.className);
+                                const periodStyle = periodStyles[periodNumber] || { background: '#F4F4F4', color: 'grey' };
+                                
+                                return (
                                     <div
                                         key={cls.id}
                                         onClick={(e) => handleClassChange(cls.id, e)}
                                         style={{
-                                            fontSize: '22px', cursor: 'pointer', backgroundColor: `rgba(${230 - (index * 20)}, ${230 - (index * 20)}, ${230 - (index * 20)}, 0.8)`,
-                                            padding: '5px 20px', borderBottom: '1px solid #ddd', transition: 'background-color 0.2s',
-                                            '&:hover': { backgroundColor: 'lightgrey' }
+                                            width: '280px',
+                                            height: '140px',
+
+                                            margin: '15px',
+                                            marginLeft: '30px',
+                                            marginRight: '30px',
+                                            
+                                            marginBottom: '20px',
+                                            cursor: 'pointer',
+                                            position: 'relative',
                                         }}
                                     >
-                                        {cls.className}
-                                    </div>
-                                ))
-                            }
-                        </div>
-                    )}
+                                        <div style={{
+                                            width: '268px',
+                                            height: '30px',
+                                            border: `6px solid ${periodStyle.color}`,
+                                            backgroundColor: periodStyle.background,
+                                            color: periodStyle.color,
+                                            borderTopLeftRadius: '15px',
+                                            borderTopRightRadius: '15px',
+                                            fontFamily: "'Radio Canada', sans-serif",
+                                            fontWeight: 'bold',
+                                            fontSize: '16px',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            overflow: 'hidden',
+                                            textOverflow: 'ellipsis',
+                                            whiteSpace: 'nowrap',
+                                        }}>
+                                            {cls.classChoice}
+                                        </div>
+                                        <div style={{
+                                            width: '268px',
+                                            height: '90px',
+                                            border: '6px solid #F4F4F4',
+                                            borderTop: 'none',
+                                            borderBottomLeftRadius: '15px',
+                                            borderBottomRightRadius: '15px',
+                                            backgroundColor: 'white',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            fontFamily: "'Rajdhani', sans-serif",
+                                            fontWeight: 'bold',
+                                            fontSize: '40px',
+                                            color: 'grey',
+                                            transition: '.6s'
+                                        }}
+                                             onMouseEnter={(e) => {
+                  
+                    e.target.style.boxShadow = '0px 4px 4px 0px rgba(0, 0, 0, 0.25)';
+                   
+                  }}
+                  onMouseLeave={(e) => {
                     
-                </div>
+                    e.target.style.boxShadow = 'none';
+                   
+                  }}>
 
+                                          <p style={{marginTop: '40px'}}> {cls.className}</p> 
+                                        </div>
+                                    </div>
+                                );
+                            })
+                        }
+                        <div style={{height: '60px', width: '100%', background: 'white'}}></div>
+                    </div>
+                </div>
+            )}              
+              <div
+            style={{
+                position: 'fixed',
+                top: '70px',
+                left: 0,
+                width: '100%',
+                height: 'calc(100vh - 70px)',
+                backgroundColor: `rgba(0, 0, 0, ${backgroundOpacity})`,
+                transition: 'background-color 0.3s ease, backdrop-filter 0.3s ease',
+                backdropFilter: isDropdownActive ? 'blur(5px)' : 'blur(0px)',
+                zIndex: 998,
+                pointerEvents: isDropdownActive ? 'auto' : 'none',
+                opacity: dropdownVisible ? 1 : 0,
+            }}
+            onMouseEnter={handleBackgroundHover}
+        />
+  
+
+           
                 {userType === 'teacher' ? (
-                    <div style={{ display: 'flex', justifyContent: 'start', flex: 0.85, gap: '18%', fontSize: '15px', fontFamily: "'Radio Canada', sans-serif", textDecoration: 'none', marginTop: '10px' }}>
-                        {Object.entries(linkRoutes).map(([linkText, route], index) => (
-                            <Link
-                                key={index}
-                                to={route}
-                                style={{ textDecoration: currentPage === linkText ? 'underline' : 'none', color: 'black' }}
-                            >
-                                {linkText === 'Home' ? <img src={homeIcon} alt="Home" style={{ width: '20px', marginTop: '-4px',  marginRight: '-190px',opacity: '90%' }} /> : linkText}
-                            </Link>
-                        ))}
+                    <div style={{ display: 'flex', justifyContent: 'start', flex: 0.85, gap: '18%', fontSize: '15px', fontFamily: "'Radio Canada', sans-serif", textDecoration: 'none', marginTop: '10px', marginLeft: '30px' }}>
+                         {Object.entries(linkRoutes).map(([linkText, route], index) => (
+            <Link
+                key={index}
+                to={route}
+                style={{ 
+                    fontWeight: getCurrentPage() === linkText ? 'bold' : 'normal', 
+                    textDecoration: 'none',
+                    color: 'black', 
+                    marginTop: '-5px' 
+                }}
+            >
+                {linkText}
+            </Link>
+        ))}
                     </div>
                 ) : (
-                    <div style={{ flex: 0.85, display: 'flex', justifyContent: 'center', fontSize: '40px', fontFamily: "'Rajdhani', sans-serif", color: 'grey', marginTop: '10px', fontWeight: 'bold' }}>
+                    <div style={{ flex: 0.85, display: 'flex', justifyContent: 'center', fontSize: '30px', fontFamily: "'Rajdhani', sans-serif", color: 'grey', marginTop: '0px', fontWeight: 'bold' }}>
                         {classChoice}
                     </div>
                 )}
@@ -238,7 +450,9 @@ const Navbar = ({ userType, currentPage, firstName, lastName }) => {
                         )}
                     </div>
                 </div>
+                
             </div>
+            
         </div>
     );
 };

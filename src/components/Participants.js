@@ -64,6 +64,12 @@ const Participants = () => {
     };
   
     fetchClass();
+
+    // Set up interval to fetch join requests every 6 seconds
+    const intervalId = setInterval(fetchClass, 6000);
+
+    // Clean up interval on component unmount
+    return () => clearInterval(intervalId);
   }, [classId]);
   
 
@@ -176,14 +182,14 @@ const Participants = () => {
   </div>
   
   <div style={{border: '15px solid #FFECA8', padding: '5px', zIndex: 100, boxShadow: ' 0px 4px 4px 0px rgba(0, 0, 0, 0.25)', width: '350px', fontFamily: "'Radio Canada', sans-serif", position: 'fixed', top: '-190px', right: '-120px', backgroundColor: 'white', textAlign: 'center', borderRadius: '30px', height: '350px', }}>
-    <h2 style={{  fontSize: '50px', fontWeight: 'bold', color: 'black',marginRight: '80px' ,  fontFamily: "'Radio Canada', sans-serif",}}>
-      <h1 style={{fontSize: '24px', marginBottom: '-2px', marginTop: '240px', color: 'grey', textDecoration: 'underline', }}>Class Code</h1>  
+    <h2 style={{  fontSize: '50px', fontWeight: 'bold', color: 'black',marginRight: '80px' ,  fontFamily: "'Rajdhani', sans-serif",}}>
+      <h1 style={{fontSize: '24px', marginBottom: '-2px', marginTop: '240px', color: 'grey', textDecoration: 'underline', fontFamily: "'Radio Canada', sans-serif"}}>Class Code</h1>  
       {currentClass.classCode}
     </h2>
   </div>
 
   <div style={{width: '750px', display: 'flex', marginLeft: 'auto', marginRight: 'auto', marginTop: '0px', height: '150px'}}>
-    <h1 style={{ fontSize: '60px', marginTop: '30px', width: '100%',  marginRight: '20px',fontFamily: "'Radio Canada', sans-serif", }}>Participants</h1>
+    <h1 style={{ fontSize: '60px', marginTop: '30px', width: '100%',  marginRight: '20px',fontFamily: "'Rajdhani', sans-serif", }}>Participants</h1>
     <div className="tooltip">
       <button 
         onClick={toggleEditMode}

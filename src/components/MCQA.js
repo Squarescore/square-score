@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { doc, getDoc, setDoc, writeBatch, arrayUnion, collection } from 'firebase/firestore';
+import { doc, getDoc, setDoc, writeBatch, arrayUnion } from 'firebase/firestore';
 import { db } from './firebase'; // Ensure the path is correct
 import Navbar from './Navbar';
 import SelectStudents from './SelectStudents';
 import CustomDateTimePicker from './CustomDateTimePicker';
 import 'react-datepicker/dist/react-datepicker.css';
-import Select from 'react-select';
 import PreviewAMCQ from './previewAMCQ';
 import axios from 'axios';
 
@@ -72,17 +71,22 @@ const MCQA = () => {
   const [generatedQuestions, setGeneratedQuestions] = useState([]);
   const [generating, setGenerating] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [progressText, setProgressText] = useState('');
   const { classId, assignmentId } = useParams();
   const navigate = useNavigate();
+
   const toggleAdditionalInstructions = () => {
     setShowAdditionalInstructions(!showAdditionalInstructions);
     if (showAdditionalInstructions) {
       setAdditionalInstructions('');
     }
   };
+
   const handlePrevious = () => {
     navigate(-1);
   };
+
   const isReadyToPublish = () => {
     return (
       assignmentName !== '' &&
@@ -90,6 +94,7 @@ const MCQA = () => {
       generatedQuestions.length > 0
     );
   };
+
   // Fetch class name effect
   useEffect(() => {
     const fetchClassName = async () => {
@@ -116,6 +121,27 @@ const MCQA = () => {
     }
   }, [selectedOptions]);
 
+  const ProgressBar = ({ progress, text }) => (
+    <div style={{ width: '300px', marginLeft: '20px' }}>
+      <div style={{
+        height: '20px',
+        backgroundColor: '#e0e0e0',
+        borderRadius: '10px',
+        overflow: 'hidden'
+      }}>
+        <div style={{
+          width: `${progress}%`,
+          height: '100%',
+          backgroundColor: '#020CFF',
+          transition: 'width 0.5s ease-in-out'
+        }}></div>
+      </div>
+      <div style={{ textAlign: 'center', marginTop: '5px', fontSize: '14px', color: '#666' }}>
+        {text}
+      </div>
+    </div>
+  );
+
   const assignToStudents = async (assignmentId) => {
     const selectedStudentIds = Array.from(selectedStudents);
     const batch = writeBatch(db);
@@ -128,14 +154,16 @@ const MCQA = () => {
     await batch.commit();
   };
 
- 
   const generateQuestions = async () => {
     const baseUrl = 'https://us-central1-square-score-ai.cloudfunctions.net';
     
     try {
       setGenerating(true);
+      setProgress(0);
+      setProgressText('Generating initial questions...');
   
-      // Generate questions
+      // Step 1: Generate initial questions
+      const startTime = Date.now();
       const response = await axios.post(`${baseUrl}/GenerateAMCQstep1`, {
         sourceText,
         selectedOptions,
@@ -144,11 +172,9 @@ const MCQA = () => {
       
       let questions;
       try {
-        // Check if the response is already an array
         if (Array.isArray(response.data)) {
           questions = response.data;
         } else {
-          // If it's not an array, try to parse it as JSON
           questions = JSON.parse(response.data);
         }
       } catch (parseError) {
@@ -158,6 +184,22 @@ const MCQA = () => {
       }
       
       setGeneratedQuestions(questions);
+      setProgress(25);
+      setProgressText('25% complete');
+  
+      // Ensure at least 5 seconds have passed for the first step
+      const elapsedTime = Date.now() - startTime;
+      if (elapsedTime < 5000) {
+        await new Promise(resolve => setTimeout(resolve, 5000 - elapsedTime));
+      }
+  
+      // Step 2: Generate additional questions three times
+      for (let i = 0; i < 3; i++) {
+        await generateAdditionalQuestions();
+        setProgress((i + 2) * 25);
+        setProgressText(`${(i + 2) * 25}% complete`);
+      }
+  
       setShowPreview(true);
     } catch (error) {
       console.error('Error generating questions:', error);
@@ -165,11 +207,54 @@ const MCQA = () => {
         console.error('Response data:', error.response.data);
         console.error('Response status:', error.response.status);
       }
-      // Handle the error (e.g., show an error message to the user)
     } finally {
       setGenerating(false);
+      setProgress(100);
+      setProgressText('Generation complete!');
     }
-  }
+  };
+
+  const generateAdditionalQuestions = async () => {
+    const baseUrl = 'https://us-central1-square-score-ai.cloudfunctions.net';
+    
+    try {
+      const startTime = Date.now();
+      const response = await axios.post(`${baseUrl}/GenerateAMCQstep2`, {
+        sourceText,
+        selectedOptions,
+        additionalInstructions,
+        previousQuestions: generatedQuestions
+      });
+      
+      let newQuestions;
+      try {
+        if (Array.isArray(response.data)) {
+          newQuestions = response.data;
+        } else {
+          newQuestions = JSON.parse(response.data);
+        }
+      } catch (parseError) {
+        console.error('Error parsing response:', parseError);
+        console.log('Raw response data:', response.data);
+        throw new Error('Failed to parse response from API call');
+      }
+      
+      setGeneratedQuestions(prevQuestions => [...prevQuestions, ...newQuestions]);
+      
+      // Ensure at least 5 seconds have passed
+      const elapsedTime = Date.now() - startTime;
+      if (elapsedTime < 5000) {
+        await new Promise(resolve => setTimeout(resolve, 5000 - elapsedTime));
+      }
+    } catch (error) {
+      console.error('Error generating additional questions:', error);
+      if (error.response) {
+        console.error('Response data:', error.response.data);
+        console.error('Response status:', error.response.status);
+      }
+    }
+  };
+
   const handleGenerateQuestions = () => {
     if (generatedQuestions.length > 0) {
       setShowPreview(true);
@@ -178,14 +263,33 @@ const MCQA = () => {
     }
   };
 
-
-
   const handleSaveQuestions = () => {
     setGeneratedQuestions(generatedQuestions);
-   
   };
 
-  // Update saveAssignment function
+  const calculateScore = (difficulty, isCorrect, streak) => {
+    let score = 0;
+    switch (difficulty) {
+      case 'hard':
+        score = isCorrect ? 3 : -1;
+        break;
+      case 'medium':
+        score = isCorrect ? 2 : -2;
+        break;
+      case 'easy':
+        score = isCorrect ? 1 : -1;
+        break;
+      default:
+        break;
+    }
+
+    if (isCorrect) {
+      score += 0.5 * streak;
+    }
+
+    return score;
+  };
+
   const saveAssignment = async () => {
     const assignmentData = {
       classId,
@@ -234,6 +338,7 @@ const MCQA = () => {
       alert(`Error publishing assignment: ${error.message}. Please try again.`);
     }
   };
+
   const isFormValid = () => {
     return assignmentName !== '' && assignDate !== '' && dueDate !== '';
   };
@@ -250,39 +355,39 @@ const MCQA = () => {
       <Navbar userType="teacher" />
       <style>{dropdownContentStyle}{loaderStyle}</style>
       <div style={{ marginTop: '30px', width: '800px', marginLeft: 'auto', marginRight: 'auto', fontFamily: "'Radio Canada', sans-serif" }}>
-      <button
-            onClick={handlePrevious}
-            style={{
-              position: 'fixed',
-              width: '75px',
-              height: '75px',
-              padding: '10px 20px',
-              left: '10%',
-              top: '460px',
-              bottom: '20px',
-              backgroundColor: 'transparent',
-              cursor: 'pointer',
-              border: 'none',
-              fontSize: '30px',
-              color: '#45B434',
-              borderRadius: '10px',
-              fontWeight: 'bold',
-              fontFamily: "'Radio Canada', sans-serif",
-              transition: '.5s',
-              transform: 'scale(1)',
-              opacity: '100%'
-            }}
-            onMouseEnter={(e) => {
-              e.target.style.transform = 'scale(1.04)';
-            }}
-            onMouseLeave={(e) => {
-              e.target.style.transform = 'scale(1)';
-            }}
-          >
-            <img src='/LeftGreenArrow.png' style={{width: '75px', transition: '.5s'}} />
-          </button>
-        <h1 style={{ marginLeft: '40px', fontFamily: "'Radio Canada', sans-serif", color: 'black', fontSize: '110px', display: 'flex' }}>
-          Create (<h1 style={{ fontSize: '110px', marginTop: '10px', marginLeft: '0px', color: '#009006', display: 'flex' }}> MCQ<h1 style={{ fontSize: '110px', marginTop: '-10px', marginLeft: '0px', color: '#FCCA18', display: 'flex' }}>*</h1> </h1>)
+        <button
+          onClick={handlePrevious}
+          style={{
+            position: 'fixed',
+            width: '75px',
+            height: '75px',
+            padding: '10px 20px',
+            left: '10%',
+            top: '460px',
+            bottom: '20px',
+            backgroundColor: 'transparent',
+            cursor: 'pointer',
+            border: 'none',
+            fontSize: '30px',
+            color: '#45B434',
+            borderRadius: '10px',
+            fontWeight: 'bold',
+            fontFamily: "'Radio Canada', sans-serif",
+            transition: '.5s',
+            transform: 'scale(1)',
+            opacity: '100%'
+          }}
+          onMouseEnter={(e) => {
+            e.target.style.transform = 'scale(1.04)';
+          }}
+          onMouseLeave={(e) => {
+            e.target.style.transform = 'scale(1)';
+          }}
+        >
+          <img src='/LeftGreenArrow.png' style={{ width: '75px', transition: '.5s' }} />
+        </button>
+        <h1 style={{ marginLeft: '40px', fontFamily: "'Radio Canada', sans-serif", color: 'black', fontSize: '70px', display: 'flex', marginBottom: '100px' }}>
+          Create - <h1 style={{ fontSize: '70px', marginTop: '0px', marginLeft: '10px', color: '#009006', display: 'flex' }}> MCQ<h1 style={{ fontSize: '70px', marginTop: '-10px', marginLeft: '0px', color: '#FCCA18', display: 'flex' }}>*</h1> </h1>
         </h1>
         <div style={{ width: '100%', height: 'auto', marginTop: '-200px', border: '10px solid transparent', borderRadius: '30px', padding: '20px' }}>
           <div style={{ width: '810px', marginLeft: 'auto', marginRight: 'auto', marginTop: '30px' }}>
@@ -314,7 +419,7 @@ const MCQA = () => {
                   padding: '10px',
                   paddingLeft: '25px',
                   outline: 'none',
-                  border: '3px solid lightgrey',
+                  border: '4px solid #F4F4F4',
                   borderRadius: '10px',
                   fontFamily: "'Radio Canada', sans-serif",
                   fontWeight: 'bold',
@@ -325,7 +430,7 @@ const MCQA = () => {
               />
             </div>
             <div style={{ width: '810px', display: 'flex' }}>
-              <div style={{ marginBottom: '20px', width: '790px', height: '320px', borderRadius: '10px', border: '3px solid lightgrey' }}>
+              <div style={{ marginBottom: '20px', width: '790px', height: '320px', borderRadius: '10px', border: '4px solid #F4F4F4' }}>
                 <div style={{ width: '730px', marginLeft: '20px', height: '80px', borderBottom: '3px solid lightgrey', display: 'flex', position: 'relative', alignItems: 'center', borderRadius: '0px', padding: '10px' }}>
                   <h1 style={{ fontSize: '30px', color: 'black', width: '300px', paddingLeft: '0px' }}>Timer:</h1>
                   {timerOn ? (
@@ -451,7 +556,7 @@ const MCQA = () => {
                 </div>
               </div>
             </div>
-            <div style={{ width: '770px', padding: '10px', border: '3px solid lightgrey', borderRadius: '10px' }}>
+            <div style={{ width: '770px', padding: '10px', border: '4px solid #F4F4F4', borderRadius: '10px' }}>
               <button
                 onClick={() => setTimeDropdownOpen(!timeDropdownOpen)}
                 style={{
@@ -504,7 +609,7 @@ const MCQA = () => {
               </div>
             </div>
 
-            <div style={{ width: '770px', padding: '10px', marginTop: '20px', border: '3px solid lightgrey', borderRadius: '10px', marginBottom: '20px' }}>
+            <div style={{ width: '770px', padding: '10px', marginTop: '20px', border: '4px solid #F4F4F4', borderRadius: '10px', marginBottom: '20px' }}>
               <button
                 onClick={() => setStudentsDropdownOpen(!studentsDropdownOpen)}
                 style={{
@@ -541,16 +646,16 @@ const MCQA = () => {
               </div>
             </div>
             {showPreview && generatedQuestions && generatedQuestions.length > 0 && (
-     <div style={{width: '100%', position: 'absolute', zIndex: 100000, background: 'white', top: '70px', left: '0%'}}>
-     <PreviewAMCQ
-        questions={generatedQuestions}
-        onBack={() => setShowPreview(false)}
-        onSave={handleSaveQuestions}
-      />
-      </div>
-    )}
+              <div style={{ width: '100%', position: 'absolute', zIndex: 100000, background: 'white', top: '70px', left: '0%' }}>
+                <PreviewAMCQ
+                  questions={generatedQuestions}
+                  onBack={() => setShowPreview(false)}
+                  onSave={handleSaveQuestions}
+                />
+              </div>
+            )}
 
-            <div style={{ width: '770px', padding: '10px', marginTop: '20px', border: '3px solid lightgrey', borderRadius: '10px', marginBottom: '20px' }}>
+            <div style={{ width: '770px', padding: '10px', marginTop: '20px', border: '4px solid #F4F4F4', borderRadius: '10px', marginBottom: '20px' }}>
               <button
                 onClick={() => setContentDropdownOpen(!contentDropdownOpen)}
                 style={{
@@ -634,7 +739,7 @@ const MCQA = () => {
                           width: '100%',
                           padding: '10px',
                           fontSize: '16px',
-                          border: '3px solid lightgrey',
+                          border: '4px solid #F4F4F4',
                           borderRadius: '10px'
                         }}
                       />
@@ -649,7 +754,7 @@ const MCQA = () => {
                           width: '715px',
                           padding: '10px',
                           fontSize: '16px',
-                          border: '3px solid lightgrey',
+                          border: '4px solid #F4F4F4',
                           borderRadius: '10px'
                         }}
                       />
@@ -689,7 +794,7 @@ const MCQA = () => {
                           marginTop: '-20px',
                           fontFamily: "'Radio Canada', sans-serif",
                           borderRadius: '10px',
-                          border: '3px solid lightgrey',
+                          border: '4px solid #F4F4F4',
                           outline: 'none'
                         }}
                         type='text'
@@ -704,49 +809,46 @@ const MCQA = () => {
                       (sourceOption === 'youtube' && youtubeLink)
                     ) && Number(questionBank) >= Number(questionStudent) && (
                       <div style={{ display: 'flex', alignItems: 'center', marginTop: '20px' }}>
-                      <button 
-  onClick={handleGenerateQuestions} 
-  disabled={generating}
-  style={{
-    width: '300px',
-    fontWeight: 'bold',
-    height: '50px',
-    padding: '10px',
-    fontSize: '24px',
-    backgroundColor: generating ? 'lightgrey' : generatedQuestions.length > 0 ? '#4CAF50' : '#020CFF',
-    color: 'white',
-    border: 'none',
-    borderRadius: '10px',
-    cursor: generating ? 'default' : 'pointer',
-    transition: 'box-shadow 0.3s ease, background-color 0.3s ease',
-    boxShadow: generating ? 'none' : '0 4px 6px rgba(0, 0, 0, 0.1)',
-  }}
-  onMouseEnter={(e) => {
-    if (!generating) {
-      e.target.style.boxShadow = '0 6px 8px rgba(0, 0, 0, 0.2)';
-    }
-  }}
-  onMouseLeave={(e) => {
-    if (!generating) {
-      e.target.style.boxShadow = '0 4px 6px rgba(0, 0, 0, 0.1)';
-    }
-  }}
->
-  {generating ? 'Generating...' : generatedQuestions.length > 0 ? 'Preview Questions' : 'Generate Questions'}
-</button>
+                        <button
+                          onClick={handleGenerateQuestions}
+                          disabled={generating}
+                          style={{
+                            width: '300px',
+                            fontWeight: 'bold',
+                            height: '50px',
+                            padding: '10px',
+                            fontSize: '24px',
+                            backgroundColor: generating ? 'lightgrey' : generatedQuestions.length > 0 ? '#4CAF50' : '#020CFF',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '10px',
+                            cursor: generating ? 'default' : 'pointer',
+                            transition: 'box-shadow 0.3s ease, background-color 0.3s ease',
+                            boxShadow: generating ? 'none' : '0 4px 6px rgba(0, 0, 0, 0.1)',
+                          }}
+                          onMouseEnter={(e) => {
+                            if (!generating) {
+                              e.target.style.boxShadow = '0 6px 8px rgba(0, 0, 0, 0.2)';
+                            }
+                          }}
+                          onMouseLeave={(e) => {
+                            if (!generating) {
+                              e.target.style.boxShadow = '0 4px 6px rgba(0, 0, 0, 0.1)';
+                            }
+                          }}
+                        >
+                          {generating ? 'Generating...' : generatedQuestions.length > 0 ? 'Preview Questions' : 'Generate Questions'}
+                        </button>
                         {generating && (
-                          <div className="loader" style={{ marginLeft: '20px' }}></div>
+                          <ProgressBar progress={progress} text={progressText} />
                         )}
                       </div>
                     )}
-              
-                      
-            </div>
                   </div>
                 </div>
               </div>
 
-              <div style={{ width: '770px', padding: '10px', marginTop: '20px', border: '3px solid lightgrey', borderRadius: '10px', marginBottom: '20px' }}>
+              <div style={{ width: '770px', padding: '10px', marginTop: '20px', border: '4px solid #F4F4F4', borderRadius: '10px', marginBottom: '20px' }}>
                 <button
                   onClick={() => setSecurityDropdownOpen(!securityDropdownOpen)}
                   style={{
@@ -795,33 +897,32 @@ const MCQA = () => {
                       />
                     </div>
                   </div>
-                 
                 </div>
               </div>
               {isReadyToPublish() && (
-  <button
-    onClick={saveAssignment}
-    style={{
-      width: '770px',
-      height: '50px',
-      marginTop: '20px',
-      marginBottom: '40px',
-      backgroundColor: '#4CAF50',
-      color: 'white',
-      border: 'none',
-      borderRadius: '10px',
-      fontSize: '20px',
-      fontWeight: 'bold',
-      cursor: 'pointer',
-      transition: 'background-color 0.3s ease',
-    }}
-    onMouseEnter={(e) => e.target.style.backgroundColor = '#45a049'}
-    onMouseLeave={(e) => e.target.style.backgroundColor = '#4CAF50'}
-  >
-    Publish Assignment
-  </button>
-)}
-           
+                <button
+                  onClick={saveAssignment}
+                  style={{
+                    width: '770px',
+                    height: '50px',
+                    marginTop: '20px',
+                    marginBottom: '40px',
+                    backgroundColor: '#4CAF50',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '10px',
+                    fontSize: '20px',
+                    fontWeight: 'bold',
+                    cursor: 'pointer',
+                    transition: 'background-color 0.3s ease',
+                  }}
+                  onMouseEnter={(e) => e.target.style.backgroundColor = '#45a049'}
+                  onMouseLeave={(e) => e.target.style.backgroundColor = '#4CAF50'}
+                >
+                  Publish Assignment
+                </button>
+              )}
+            </div>
           </div>
         </div>
       </div>

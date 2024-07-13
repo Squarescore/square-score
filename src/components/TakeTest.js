@@ -20,6 +20,8 @@ function TakeTests() {
   const [timerStarted, setTimerStarted] = useState(false);
   const studentUid = auth.currentUser.uid;
   const navigate = useNavigate();
+  const [scaleMin, setScaleMin] = useState(0);
+const [scaleMax, setScaleMax] = useState(2);
   const [saveAndExit, setSaveAndExit] = useState(false);
   const [lockdown, setLockdown] = useState(false);
   useEffect(() => {
@@ -38,7 +40,9 @@ function TakeTests() {
           setClassId(assignmentData.classId);
           setSaveAndExit(assignmentData.saveAndExit);
           setLockdown(assignmentData.lockdown || false);
-
+          const scaleMin = assignmentData.scale?.min ? Number(assignmentData.scale.min) : 0;
+          const scaleMax = assignmentData.scale?.max ? Number(assignmentData.scale.max) : 2;
+  
           // Check if there's saved data for the student
           const progressRef = doc(db, 'assignments(progress:saq)', `${assignmentId}_${studentUid}`);
           const savedDataDoc = await getDoc(progressRef);
@@ -64,7 +68,8 @@ function TakeTests() {
 
             const studentQuestionCount = assignmentData.questionCount.student;
             const randomQuestions = getRandomSubset(allQuestions, studentQuestionCount);
-
+            setScaleMin(scaleMin);
+            setScaleMax(scaleMax);
             setQuestions(randomQuestions);
             setAnswers(randomQuestions.map(q => ({ questionId: q.questionId, answer: '' })));
           }
@@ -85,7 +90,39 @@ function TakeTests() {
 
 
 
-
+  useEffect(() => {
+    const initializeAssignment = async () => {
+      try {
+        const studentRef = doc(db, 'students', studentUid);
+        await updateDoc(studentRef, {
+          assignmentsToTake: arrayRemove(assignmentId),
+          assignmentsInProgress: arrayUnion(assignmentId)
+        });
+  
+        // Create initial progress document
+        const progressRef = doc(db, 'assignments(progress:saq)', `${assignmentId}_${studentUid}`);
+        await setDoc(progressRef, {
+          assignmentId,
+          studentUid,
+          questions: questions.map(q => ({
+            questionId: q.questionId,
+            text: q.text,
+            expectedResponse: q.expectedResponse,
+            studentResponse: ''
+          })),
+          timeRemaining: timeLimit,
+          savedAt: serverTimestamp(),
+          status: 'in_progress'
+        });
+      } catch (error) {
+        console.error("Error initializing assignment:", error);
+      }
+    };
+  
+    if (assignmentId && studentUid) {
+      initializeAssignment();
+    }
+  }, [assignmentId, studentUid, questions, timeLimit]);
 
 
 
@@ -153,18 +190,11 @@ function TakeTests() {
   };
 
   const handleLockdownViolation = async () => {
-    if (saveAndExit) {
-      await saveProgress();
-      setAssignmentStatus('open');
-      navigate(`/studentAssignments/${classId}`);
-    } else {
-      await saveProgress();
-      setAssignmentStatus('paused');
-    }
+    await saveProgress('paused');
+    setAssignmentStatus('paused');
+    navigate(`/studentassignments/${classId}?tab=completed`);
   };
-
-
-
+  
 
 
 
@@ -182,15 +212,19 @@ function TakeTests() {
       // Combine grading results with question and student response
       const combinedResults = gradingResults.map((result, index) => ({
         ...result,
+        score: result.score / 2, 
         question: questions[index].text,
         studentResponse: answers[index].answer,
         flagged: false // Initialize flagged state to false for each question
       }));
   
       // Calculate the total score
-      const totalScore = combinedResults.reduce((sum, result) => sum + result.score, 0);
-      const maxScore = questions.length * 2; // Assuming each question is worth 2 points
-      const percentageScore = (totalScore / maxScore) * 100;
+      const rawTotalScore = combinedResults.reduce((sum, result) => sum + result.score, 0);
+      const maxRawScore = questions.length; // This is now 1 point per question, not 2
+  
+      // Apply scaling
+      const scaledScore = ((rawTotalScore / maxRawScore) * (scaleMax - scaleMin)) + scaleMin;
+      const percentageScore = ((scaledScore - scaleMin) / (scaleMax - scaleMin)) * 100;
   
       // Create the grade document
       const gradeDocRef = doc(db, `grades(saq)`, `${assignmentId}_${studentUid}`);
@@ -200,8 +234,11 @@ function TakeTests() {
         assignmentName,
         classId,
         submittedAt: serverTimestamp(),
-        totalScore,
-        maxScore,
+        rawTotalScore, // This is already divided by 2
+        maxRawScore, // This is now the number of questions (1 point each)
+        scaledScore,
+        scaleMin,
+        scaleMax,
         percentageScore,
         questions: combinedResults,
         viewable: false, // Initialize viewable status to false
@@ -273,6 +310,7 @@ function TakeTests() {
       await setDoc(progressRef, {
         assignmentId,
         studentUid,
+        
         questions: questions.map(question => ({
           questionId: question.questionId,
           text: question.text,

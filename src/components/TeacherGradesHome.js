@@ -146,9 +146,9 @@ function TeacherGradesHome() {
           backgroundColor: 'transparent',
           borderRadius: '10px'
         }}>
-          <h1 style={{ color: 'black', fontSize: '60px', fontFamily: "'Radio Canada', sans-serif", marginLeft: '0px' }}>Grades</h1>
+          <h1 style={{ color: 'black', fontSize: '80px', fontFamily: "'Rajdhani', sans-serif", marginLeft: '0px' }}>Grades</h1>
           <div style={{
-            width: '250px', border: '3px solid #D7D7D7', display: 'flex', padding: '20px', borderRadius: '10px', height: '25px', marginLeft: '70px', marginTop: '50px'
+            width: '250px', border: '3px solid #D7D7D7', display: 'flex', padding: '20px', borderRadius: '10px', height: '25px', marginLeft: '70px', marginTop: '75px'
           }}>
             <h1 style={{ position: 'absolute', marginTop: '-50px', fontSize: '26px', padding: '8px', backgroundColor: 'white', fontFamily: "'Radio Canada', sans-serif" }}> Sort By</h1>
             <button
@@ -247,7 +247,7 @@ function TeacherGradesHome() {
       transition: '.3s',
       listStyleType: 'none',
       textAlign: 'left',
-      border: '3px solid lightgrey',
+       border: '3px solid #F4F4F4',
       padding: '10px',
       borderRadius: '10px',
       transform: 'scale(1)',
@@ -331,7 +331,7 @@ function TeacherGradesHome() {
         transition: '.3s',
         listStyleType: 'none',
         textAlign: 'center',
-        border: '3px solid lightgrey',
+         border: '3px solid #F4F4F4',
         padding: '10px',
         borderRadius: '10px',
         transform: 'scale(1)',

@@ -8,8 +8,11 @@ const PreviewAMCQ = ({ questions, onBack, onNext }) => {
     a: { background: '#A3F2ED', color: '#00645E' },
     b: { background: '#AEF2A3', color: '#006428' },
     c: { background: '#F8CFFF', color: '#E01FFF' },
-    d: { background: '#FFECA8', color: '#CE7C00' },
-    e: { background: '#FFD1D1', color: '#FF0000' },
+    d: { background: '#FFECA9', color: '#CE7C00' },
+    e: { background: '#627BFF', color: '#020CFF' },
+    f: { background: '#FF8E8E', color: '#CC0000' },
+g: { background: '#E3BFFF', color: '#8364FF' },
+h: { background: '#9E9E9E', color: '#000000' }
   };
 
   const getChoiceStyle = (choice) => {

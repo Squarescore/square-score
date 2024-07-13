@@ -368,7 +368,7 @@ function CreateAssignment() {
               padding: '10px',
               paddingLeft: '25px',
               outline: 'none',
-              border: '3px solid lightgrey',
+               border: '3px solid #F4F4F4',
               borderRadius: '10px',
               fontFamily: "'Radio Canada', sans-serif",
               fontWeight: 'bold',
@@ -378,7 +378,7 @@ function CreateAssignment() {
             onChange={(e) => setAssignmentName(e.target.value)}
           />
 
-          <div style={{ marginBottom: '20px', width: '790px', height: '320px', borderRadius: '10px', border: '3px solid lightgrey' }}>
+          <div style={{ marginBottom: '20px', width: '790px', height: '320px', borderRadius: '10px',  border: '3px solid #F4F4F4' }}>
             <div style={{ width: '730px', marginLeft: '20px', height: '80px', borderBottom: '3px solid lightgrey', display: 'flex', position: 'relative', alignItems: 'center', borderRadius: '0px', padding: '10px' }}>
               <h1 style={{ fontSize: '30px', color: 'black', width: '300px', paddingLeft: '0px' }}>Timer:</h1>
              
@@ -485,7 +485,7 @@ function CreateAssignment() {
           </div>
 
         {/* Timer Button and Settings */}
-<div style={{ width: '770px', padding: '10px', border: '3px solid lightgrey', borderRadius: '10px' }}>
+<div style={{ width: '770px', padding: '10px',  border: '3px solid #F4F4F4', borderRadius: '10px' }}>
   <button
     onClick={() => setTimeDropdownOpen(!timeDropdownOpen)}
     style={{
@@ -539,7 +539,7 @@ function CreateAssignment() {
 </div>
 
 {/* Select Students */}
-<div style={{ width: '770px', padding: '10px', marginTop: '20px', border: '3px solid lightgrey', borderRadius: '10px', marginBottom: '20px' }}>
+<div style={{ width: '770px', padding: '10px', marginTop: '20px',  border: '3px solid #F4F4F4', borderRadius: '10px', marginBottom: '20px' }}>
   <button
     onClick={() => setStudentsDropdownOpen(!studentsDropdownOpen)}
     style={{
@@ -577,7 +577,7 @@ function CreateAssignment() {
 </div>
 
 {/* Content Dropdown */}
-<div style={{ width: '770px', padding: '10px', marginTop: '20px', border: '3px solid lightgrey', borderRadius: '10px', marginBottom: '20px' }}>
+<div style={{ width: '770px', padding: '10px', marginTop: '20px',  border: '3px solid #F4F4F4', borderRadius: '10px', marginBottom: '20px' }}>
   <button
     onClick={() => setContentDropdownOpen(!contentDropdownOpen)}
     style={{
@@ -614,7 +614,7 @@ function CreateAssignment() {
         placeholder="10"
         value={questionBank}
         onChange={(e) => setQuestionBank(e.target.value)}
-        style={{ width: '60px', fontWeight:'bold',marginBottom: '10px', marginTop: '25px',  marginLeft: 'auto', marginRight: '20px',padding: '10px', fontSize: '30px', border: '3px solid lightgrey', borderRadius: '10px' }}
+        style={{ width: '60px', fontWeight:'bold',marginBottom: '10px', marginTop: '25px',  marginLeft: 'auto', marginRight: '20px',padding: '10px', fontSize: '30px',  border: '3px solid #F4F4F4', borderRadius: '10px' }}
       />
       </div>
       <div style={{display: 'flex', alignItems: 'center', position: 'relative'}}>
@@ -625,7 +625,7 @@ function CreateAssignment() {
         placeholder="5"
         value={questionStudent}
         onChange={(e) => setQuestionStudent(e.target.value)}
-        style={{ width: '60px', fontWeight:'bold',marginBottom: '10px', marginTop: '25px',  marginLeft: 'auto', marginRight: '20px',padding: '10px', fontSize: '30px', border: '3px solid lightgrey', borderRadius: '10px' }}
+        style={{ width: '60px', fontWeight:'bold',marginBottom: '10px', marginTop: '25px',  marginLeft: 'auto', marginRight: '20px',padding: '10px', fontSize: '30px',  border: '3px solid #F4F4F4', borderRadius: '10px' }}
         />
         </div>
 
@@ -685,7 +685,7 @@ function CreateAssignment() {
             width: '100%',
             padding: '10px',
             fontSize: '16px',
-            border: '3px solid lightgrey',
+             border: '3px solid #F4F4F4',
             borderRadius: '10px'
           }}
         />
@@ -700,7 +700,7 @@ function CreateAssignment() {
             width: '715px',
             padding: '10px',
             fontSize: '16px',
-            border: '3px solid lightgrey',
+             border: '3px solid #F4F4F4',
             borderRadius: '10px'
           }}
         />
@@ -740,7 +740,7 @@ function CreateAssignment() {
                           marginTop: '-20px',
                           fontFamily: "'Radio Canada', sans-serif",
                           borderRadius: '10px',
-                          border: '3px solid lightgrey',
+                           border: '3px solid #F4F4F4',
                           outline: 'none'
                         }}
                         type='text'
@@ -818,7 +818,7 @@ function CreateAssignment() {
 </div>
 
 {/* Security Dropdown */}
-<div style={{ width: '770px', padding: '10px', marginTop: '20px', border: '3px solid lightgrey', borderRadius: '10px', marginBottom: '20px' }}>
+<div style={{ width: '770px', padding: '10px', marginTop: '20px',  border: '3px solid #F4F4F4', borderRadius: '10px', marginBottom: '20px' }}>
   <button
     onClick={() => setSecurityDropdownOpen(!securityDropdownOpen)}
     style={{

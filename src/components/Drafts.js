@@ -153,9 +153,9 @@ const Drafts = () => {
 
   return (
     <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', backgroundColor: 'white' }}>
-      <Navbar userType="teacher" />
+      <Navbar userType="teacher"  />
       <div style={{ width: '1000px', marginLeft: 'auto', marginRight: 'auto', height: '100px', marginTop: '80px', backgroundColor: 'transparent', display: 'flex', marginBottom: '60px' }}>
-  <h1 style={{ fontSize: '60px', fontFamily: "'Radio Canada', sans-serif" }}>Resources</h1>
+  <h1 style={{ fontSize: '60px', fontFamily: "'Rajdhani', sans-serif" }}>Resources</h1>
   {!showSearchBar ? (
     <button
       onClick={() => setShowSearchBar(true)}

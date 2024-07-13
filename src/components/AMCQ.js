@@ -259,7 +259,7 @@ const AMCQ = () => {
   
     return (
       <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', backgroundColor: 'white' }}>
-        <Navbar userType="teacher" />
+        <Navbar userType="teacher"  />
         <div style={{ marginTop: '30px', width: '800px', marginLeft: 'auto', marginRight: 'auto', fontFamily: "'Radio Canada', sans-serif" }}>
           <h1 style={{ marginLeft: '40px', fontFamily: "'Radio Canada', sans-serif", color: 'black', fontSize: '110px', display: 'flex' }}>
             Create (<h1 style={{ fontSize: '110px', marginTop: '10px', marginLeft: '0px', color: '#009006', display: 'flex' }}> MCQ<h1 style={{ fontSize: '110px', marginTop: '-10px', marginLeft: '0px', color: '#FCCA18', display: 'flex' }}>*</h1> </h1>)
@@ -294,7 +294,7 @@ const AMCQ = () => {
                     padding: '10px',
                     paddingLeft: '25px',
                     outline: 'none',
-                    border: '3px solid lightgrey',
+                     border: '3px solid #F4F4F4',
                     borderRadius: '10px',
                     fontFamily: "'Radio Canada', sans-serif",
                     fontWeight: 'bold',
@@ -305,7 +305,7 @@ const AMCQ = () => {
                 />
               </div>
               <div style={{ width: '810px', display: 'flex' }}>
-                <div style={{ marginBottom: '20px', width: '790px', height: '320px', borderRadius: '10px', border: '3px solid lightgrey' }}>
+                <div style={{ marginBottom: '20px', width: '790px', height: '320px', borderRadius: '10px',  border: '3px solid #F4F4F4' }}>
                   <div style={{ width: '730px', marginLeft: '20px', height: '80px', borderBottom: '3px solid lightgrey', display: 'flex', position: 'relative', alignItems: 'center', borderRadius: '0px', padding: '10px' }}>
                     <h1 style={{ fontSize: '30px', color: 'black', width: '300px', paddingLeft: '0px' }}>Timer:</h1>
                     {timerOn ? (
@@ -431,7 +431,7 @@ const AMCQ = () => {
                   </div>
                 </div>
               </div>
-              <div style={{ width: '770px', padding: '10px', border: '3px solid lightgrey', borderRadius: '10px' }}>
+              <div style={{ width: '770px', padding: '10px',  border: '3px solid #F4F4F4', borderRadius: '10px' }}>
                 <button
                   onClick={() => setTimeDropdownOpen(!timeDropdownOpen)}
                   style={{
@@ -484,7 +484,7 @@ const AMCQ = () => {
                 </div>
               </div>
   
-              <div style={{ width: '770px', padding: '10px', marginTop: '20px', border: '3px solid lightgrey', borderRadius: '10px', marginBottom: '20px' }}>
+              <div style={{ width: '770px', padding: '10px', marginTop: '20px',  border: '3px solid #F4F4F4', borderRadius: '10px', marginBottom: '20px' }}>
                 <button
                   onClick={() => setStudentsDropdownOpen(!studentsDropdownOpen)}
                   style={{
@@ -521,7 +521,7 @@ const AMCQ = () => {
                 </div>
               </div>
   
-              <div style={{ width: '770px', padding: '10px', marginTop: '20px', border: '3px solid lightgrey', borderRadius: '10px', marginBottom: '20px' }}>
+              <div style={{ width: '770px', padding: '10px', marginTop: '20px',  border: '3px solid #F4F4F4', borderRadius: '10px', marginBottom: '20px' }}>
                 <button
                   onClick={() => setContentDropdownOpen(!contentDropdownOpen)}
                   style={{
@@ -605,7 +605,7 @@ const AMCQ = () => {
                             width: '100%',
                             padding: '10px',
                             fontSize: '16px',
-                            border: '3px solid lightgrey',
+                             border: '3px solid #F4F4F4',
                             borderRadius: '10px'
                           }}
                         />
@@ -620,7 +620,7 @@ const AMCQ = () => {
                             width: '715px',
                             padding: '10px',
                             fontSize: '16px',
-                            border: '3px solid lightgrey',
+                             border: '3px solid #F4F4F4',
                             borderRadius: '10px'
                           }}
                         />
@@ -660,7 +660,7 @@ const AMCQ = () => {
                             marginTop: '-20px',
                             fontFamily: "'Radio Canada', sans-serif",
                             borderRadius: '10px',
-                            border: '3px solid lightgrey',
+                             border: '3px solid #F4F4F4',
                             outline: 'none'
                           }}
                           type='text'
@@ -721,7 +721,7 @@ const AMCQ = () => {
                   </div>
                 </div>
   
-                <div style={{ width: '770px', padding: '10px', marginTop: '20px', border: '3px solid lightgrey', borderRadius: '10px', marginBottom: '20px' }}>
+                <div style={{ width: '770px', padding: '10px', marginTop: '20px',  border: '3px solid #F4F4F4', borderRadius: '10px', marginBottom: '20px' }}>
                   <button
                     onClick={() => setSecurityDropdownOpen(!securityDropdownOpen)}
                     style={{

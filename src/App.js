@@ -26,7 +26,7 @@ import TeacherStudentResults from './components/TeacherStudentResults';
 import SelectStudents from './components/SelectStudents';
 import TeacherResults from './components/TeacherResults';
 import StudentResults from './components/StudentResults';
-import CreateHub from './components/CreateHub';
+
 import { doc, getDoc } from "firebase/firestore"; // Importing from Firestore
 import { db, storage } from './components/firebase';
 import Chat from './components/Chat';
@@ -34,10 +34,7 @@ import MCQ from './components/MCQ';
 import AMCQ from './components/AMCQ';
 import TeacherUploads from './components/TeacherUploads';
 import { signOut } from 'firebase/auth';
-import CreateDBQAssignment from './components/CreateDBQAssignment';
-import DBQTeacherPreview from './components/DBQTeacherPreview';
-import TakeDBQ from './components/TakeDBQ';
-import DBQStudentResults from './components/dbqstudentresults';
+
 import TestPage  from './components/TestPage';
 import TermsOfService from './components/TermsofService';
 import MCQA from './components/MCQA';
@@ -111,51 +108,52 @@ useEffect(() => {
 <Route path="/" element={<Navigate to={userRole === 'student' ? "/studenthome" : "/teacherhome"} />} />
               <Route path="/login" element={<Navigate to={userRole === 'student' ? "/studenthome" : "/teacherhome"} />} />
               <Route path="/signup" element={<Navigate to={userRole === 'student' ? "/studenthome" : "/teacherhome"} />} />
-             
+              <Route path="/termsofservice" element={<TermsOfService />} />
+
+
+
+        <Route path="/class/:classId/teacherassignmenthome" element={<TeacherAssignmentHome currentPage="Grades"/>} />
+        <Route path="/class/:classId/createassignment/:assignmentId" element={<CreateAssignment currentPage="Create"/>} />
+        <Route path="/class/:classId/MCQ/:assignmentId" element={<MCQ currentPage="Create"/>} />
+        <Route path="/class/:classId/AMCQ/:assignmentId" element={<AMCQ currentPage="Create"/>} />
+        <Route path="/class/:classId/MCQA/:assignmentId" element={<MCQA currentPage="Create"/>} />
+        <Route path="/class/:classId/teacherpreview" element={<TeacherPreview currentPage="Create"/>} />
+        <Route path="/class/:classId/selectstudents" element={<SelectStudents currentPage="Create"/>} />
+
+
+        <Route path="/class/:classId/drafts" element={<Drafts currentPage="Resources"/>} />
+
+
+        <Route path="/class/:classId/TeacherGradesHome" element={<TeacherGradesHome currentPage="Grades"/>} />
+        <Route path="/class/:classId/student/:studentUid/grades" element={<TeacherStudentGrades currentPage="Grades"/>} />
+        <Route path="/teacherStudentResults/:assignmentId/:studentUid/:classId" element={<TeacherStudentResults currentPage="Grades"/>} />
+        <Route path="/class/:classId/assignment/:assignmentId/TeacherResults" element={<TeacherResults />} />
+        <Route path="/teacherReview/:classId/:assignmentId" element={<TeacherReview currentPage="Grades"/>} />
+        
+
+        <Route path="/class/:classId/participants" element={<Participants currentPage="Participants"/>} />
+
+
+        <Route path="/class/:classId" element={<TeacherClassHome />} />
+
+        <Route path="/teacherhome" element={<TeacherHome />} />
+
+        <Route path="/createclass" element={<CreateClass />} />
+
+
+
+
+        
             <Route path="/studenthome" element={<StudentHome />} />
             <Route path="/testPage" element={<TestPage />} />
-        <Route path="/teacherhome" element={<TeacherHome />} />
         <Route path="/studentclasshome/:classId" element={<StudentClassHome />} />
-        <Route path="/class/:classId/assignment/:assignmentId/TeacherResults" element={<TeacherResults />} />
-
-        <Route path="/class/:classId/participants" element={<Participants />} />
-        <Route path="/class/:classId" element={<TeacherClassHome />} />
-        <Route path="/class/:classId/teacherassignmenthome" element={<TeacherAssignmentHome />} />
-        <Route path="/class/:classId/createhub" element={<CreateHub />} />
-        <Route path="/class/:classId/createassignment/:assignmentId" element={<CreateAssignment />} />
-        <Route path="/class/:classId/MCQ/:assignmentId" element={<MCQ />} />
-        <Route path="/class/:classId/AMCQ/:assignmentId" element={<AMCQ />} />
-        <Route path="/class/:classId/MCQA/:assignmentId" element={<MCQA />} />
-     
-        <Route path="/class/:classId/teacherpreview" element={<TeacherPreview />} />
-        <Route path="/class/:classId/selectstudents" element={<SelectStudents />} />
-        <Route path="/class/:classId/createdbq" element={<CreateDBQAssignment />} />
-          <Route path="/dbqpreview/:assignmentId" element={<DBQTeacherPreview />} />
-       
-          <Route path="/dbqstudentresults/:dbqId" element={<DBQStudentResults />} />
         <Route path="/studentassignments/:classId" element={<StudentAssignments />} />
-        <Route path="/termsofservice" element={<TermsOfService />} />
         <Route path="/taketests/:assignmentId" element={<TakeTest />} />
         <Route path="/takeAmcq/:assignmentId" element={<TakeAmcq/>} />
-
-        <Route path="/class/:classId/drafts" element={<Drafts />} />
-        <Route path="/class/:classId/TeacherGradesHome" element={<TeacherGradesHome />} />
-        <Route path="/class/:classId/student/:studentUid/grades" element={<TeacherStudentGrades />} />
-        <Route path="/class/:classId/chat" element={<Chat />} />
-         <Route path="/class/:classId/teacheruploads" element={<TeacherUploads />} />
-        <Route path="/teacherReview/:classId/:assignmentId" element={<TeacherReview />} />
-      
-     
-        <Route path="/createclass" element={<CreateClass />} />
         <Route path="/joinclass" element={<JoinClass />} />
-       
-        
-        <Route path="/testcompleted/:gradeDocId/:classId"  element={<TestCompleted />}/>
-        <Route path="/teacherStudentResults/:assignmentId/:studentUid" element={<TeacherStudentResults />} />
-              
-        <Route path="/takedbq/:dbqId" element={<TakeDBQ />} />
+        <Route path="/testcompleted/:gradeDocId/:classId"  element={<TestCompleted />}/>     
         <Route path="/studentgrades/:classId" element={<StudentGrades />} />
-        <Route path="/studentresults/:assignmentId" element={<StudentResults/>} />
+        <Route path="/studentresults/:assignmentId/:studentUid/:classId" element={<StudentResults/>} />
         
         </Routes>
         ) : (

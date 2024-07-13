@@ -149,7 +149,7 @@ function MCQ() {
       marginTop: '-10px',
       marginRight: 'auto',
       width: '250px', // Reduce the width
-      border: '3px solid lightgrey', // Set border to 3px light grey
+       border: '3px solid #F4F4F4', // Set border to 3px light grey
       boxShadow: state.isFocused ? '0 0 0 1px #45B434' : provided.boxShadow, // Add box shadow when focused
       '&:hover': {
         border: '3px solid #45B434' // Change border color on hover
@@ -225,7 +225,7 @@ function MCQ() {
                       height: '60px',
                       fontSize: '45px',
                       padding: '30px',
-                      border: '3px solid lightgrey',
+                       border: '3px solid #F4F4F4',
                       borderRadius: '10px',
                       fontFamily: "'Radio Canada', sans-serif",
                       fontWeight: 'bold',
@@ -236,7 +236,7 @@ function MCQ() {
                   />
                 </div>
                 <div style={{ width: '810px', display: 'flex' }}>
-                  <div style={{ width: '290px', height: '60px', border: '3px solid lightgrey', borderRadius: '10px', marginTop: '25px', display: 'flex', marginRight:'20px' }}>
+                  <div style={{ width: '290px', height: '60px',  border: '3px solid #F4F4F4', borderRadius: '10px', marginTop: '25px', display: 'flex', marginRight:'20px' }}>
                     <h1 style={{ fontSize: '30px', color: 'grey', marginLeft: '30px', marginTop: '10px' }}>Timer</h1>
                     <input
                       style={{ marginTop: '15px', width: '60px', marginLeft: '20px' }}
@@ -254,7 +254,7 @@ function MCQ() {
                           width: '50px',
                           textAlign: 'center',
                           marginTop: '12px',
-                          border: '3px solid lightgrey',
+                           border: '3px solid #F4F4F4',
                           borderRadius: '5px',
                           fontSize: '20px',
                         }}
@@ -277,7 +277,7 @@ function MCQ() {
                       </span>
                     )}
                   </div>
-                  <div style={{ width: '500px', borderRadius: '10px', border: '3px solid lightgrey', display: 'flex', height: '60px', marginTop: '25px' }}>
+                  <div style={{ width: '500px', borderRadius: '10px',  border: '3px solid #F4F4F4', display: 'flex', height: '60px', marginTop: '25px' }}>
                       <label style={{ fontSize: '30px', color: 'grey', marginLeft: '30px', marginRight: '38px', marginTop: '13px', fontFamily: "'Radio Canada', sans-serif", fontWeight: 'bold' }}>Feedback: </label>
                       <div style={{ display: 'flex', justifyContent: 'space-around', width: '300px', marginLeft: '-30px' , alignItems: 'center'}}>
                         <div
@@ -329,7 +329,7 @@ function MCQ() {
                     </div>
                 </div>
                 <div style={{ width: '100%', display: 'flex', marginTop: '20px', }}>
-                  <div style={{ width: '270px', border: '3px solid lightgrey', height: '160px', borderRadius: '10px' }}>
+                  <div style={{ width: '270px',  border: '3px solid #F4F4F4', height: '160px', borderRadius: '10px' }}>
                     <h3 style={{ width: '100%', textAlign: 'center', fontSize: '23px', color: 'grey', marginTop: '15px', marginBottom: '25px' }}>Choices Per Question</h3>
                    
     <Select
@@ -345,14 +345,14 @@ function MCQ() {
   
                   </div>
                   <div style={{ width: '507px', marginLeft: '20px' }}>
-                    <div style={{ width: '507px', borderRadius: '10px', border: '3px solid lightgrey', display: 'flex', height: '66px' }}>
+                    <div style={{ width: '507px', borderRadius: '10px',  border: '3px solid #F4F4F4', display: 'flex', height: '66px' }}>
                       <label style={{ fontSize: '30px', color: 'grey', marginLeft: '20px', marginTop: '13px', fontFamily: "'Radio Canada', sans-serif", fontWeight: 'bold' }}>Assign: </label>
                       <CustomDateTimePicker
                         selected={assignDate}
                         onChange={(date) => setAssignDate(date)}
                       />
                     </div>
-                    <div style={{ width: '507px', borderRadius: '10px', border: '3px solid lightgrey', display: 'flex', height: '66px', marginTop: '22px' }}>
+                    <div style={{ width: '507px', borderRadius: '10px',  border: '3px solid #F4F4F4', display: 'flex', height: '66px', marginTop: '22px' }}>
                       <label style={{ fontSize: '30px', color: 'grey', marginLeft: '20px', marginRight: '38px', marginTop: '13px', fontFamily: "'Radio Canada', sans-serif", fontWeight: 'bold' }}>Due: </label>
                       <CustomDateTimePicker
                         selected={dueDate}
@@ -628,7 +628,7 @@ function MCQ() {
                           marginTop: '-20px',
                           fontFamily: "'Radio Canada', sans-serif",
                           borderRadius: '10px',
-                          border: '3px solid lightgrey',
+                           border: '3px solid #F4F4F4',
                           outline: 'none'
                         }}
                         type='text'
@@ -922,7 +922,7 @@ function MCQ() {
     
       return (
         <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', backgroundColor: 'white' }}>
-          <Navbar userType="teacher" />
+          <Navbar userType="teacher"  />
           <button style={{
             position: 'fixed', top: -70, right: -70, backgroundColor: '#FBD3FF',
             borderRadius: '200px',

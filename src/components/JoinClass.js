@@ -4,7 +4,9 @@ import { doc, getDocs, query, where, updateDoc, collection } from "firebase/fire
 import { Link } from 'react-router-dom';
 import CNavbar from './CJNavbar';
 import { useNavigate } from 'react-router-dom';
-import JNavbar from './JNavbar';
+
+import  {useCallback, useEffect } from 'react';
+import HomeNavbar from './HomeNavbar';
 const JoinClass = () => {
   const [classCode, setClassCode] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
@@ -13,7 +15,6 @@ const JoinClass = () => {
   const navigate = useNavigate();
 
   const handleJoinClass = async (e) => {
-   
     e.preventDefault();
     try {
       const classesRef = collection(db, 'classes');
@@ -37,8 +38,8 @@ const JoinClass = () => {
       const joinRequests = [...existingJoinRequests, studentUID];
       await updateDoc(doc(db, 'classes', classDoc.id), { joinRequests });
 
-      setSuccessMessage('Request to join class sent successfully. You can return home and once the teacher admits you, the class will appear on your home screen.');
-      setShowModal(true); // Show modal on success
+      // Navigate to StudentHome after successful request
+      navigate('/');
     } catch (err) {
       setErrorMessage(err.message);
     }
@@ -52,39 +53,90 @@ const JoinClass = () => {
   const handleBack = () => {
     navigate(-1);
   };
+  const getRandomColorClass = () => {
+    const colors = ['color-1', 'color-2', 'color-3', 'color-4', 'color-5'];
+    return colors[Math.floor(Math.random() * colors.length)];
+  };
+  const generateUniquePositions = useCallback((count, size, margin) => {
+    const positions = [];
+    const documentHeight = document.documentElement.scrollHeight;
+    const documentWidth = window.innerWidth;
+  
+    for (let i = 0; i < count; i++) {
+      let newPos;
+      let attempts = 0;
+      do {
+        newPos = {
+          top: Math.random() * (documentHeight - size) + 'px',
+          left: Math.random() * (documentWidth - size) + 'px',
+        };
+        attempts++;
+      } while (positions.some(pos => {
+        const dx = parseFloat(newPos.left) - parseFloat(pos.left);
+        const dy = parseFloat(newPos.top) - parseFloat(pos.top);
+        return Math.sqrt(dx * dx + dy * dy) < size + margin;
+      }) && attempts < 100);
+  
+      if (attempts < 100) {
+        positions.push(newPos);
+      }
+    }
+  
+    return positions;
+  }, []);
+  const [positions, setPositions] = useState([]);
+  
+  useEffect(() => {
+    setPositions(generateUniquePositions(20, 200, 100));
+  }, [generateUniquePositions]);
+ 
   return (
     <div style={{ 
       
       
-      height: '100vh', display: 'flex', flexDirection: 'column', backgroundColor: 'white'
+      height: '100vh', display: 'flex', flexDirection: 'column', 
       }}>
-     <JNavbar userType="student" />
+          <HomeNavbar userType="student" />
+          {positions.map((pos, index) => (
+      <div
+        key={index}
+        className={`background-div ${getRandomColorClass()}`}
+        style={{
+          top: pos.top,
+          left: pos.left,
+          position: 'absolute',
+          width: '200px',
+          height: '200px',
+        }}
+      />
+    ))}
     <main style={{ flexGrow: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: '200px' }}>
    
     <button 
       onClick={handleBack} 
-      style={{ position: 'absolute',fontFamily: "'Radio Canada', sans-serif",left: '40px', top :'120px', textDecoration: 'none',  color: 'black', backgroundColor: 'white', border: 'none', cursor: 'pointer',  }}>
+      style={{ position: 'fixed',fontFamily: "'Radio Canada', sans-serif",left: '40px', top :'20px', zIndex: '1000',textDecoration: 'none',  color: 'black', backgroundColor: 'transparent', border: 'none', cursor: 'pointer',  }}>
     <img src="https://static.thenounproject.com/png/1875804-200.png" style={{width: '30px', opacity: '50%'}}/>
     </button>
 
-    <form onSubmit={handleJoinClass} style={{ width: '30%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-      <input type="text" placeholder="Class Code" onChange={e => setClassCode(e.target.value)} required 
-      style={{  boxShadow: '1px 2px 5px 1px lightgrey', fontFamily: "'Radio Canada', sans-serif",
-       width: '100%', fontSize: '190%', paddingTop: '10px', paddingBottom: '10px',
-        textAlign: 'center', border: '4px solid white', borderRadius: '10px',
-         outline: 'none', backgroundColor: 'white' }} />
+    <form className="white-background" onSubmit={handleJoinClass} style={{  display: 'flex', flexDirection: 'column', alignItems: 'center', backgroundColor: 'rgb(255,255,255,.8)', backdropFilter: 'blur(5px)', width: '700px', marginTop: '-100PX', }}>
+      <h1 style={{ fontSize: '80px', fontFamily: '"rajdhani", sans-serif'}}>Join Class</h1>
+      <input type="text"  placeholder='Code' onChange={e => setClassCode(e.target.value)} required 
+      style={{  fontFamily: "'rajdhani', sans-serif", fontSize: '100px', borderTopLeftRadius: '20px', borderTopRightRadius: '20px', background: "rgb(200,200,200,.4)",
+       width: '440px',paddingLeft: '60px',paddingRight: '60px', paddingTop: '10px', paddingBottom: '10px', fontWeight: 'bold',
+        textAlign: 'Left', borderColor: 'transparent',borderBottom: '6px solid lightgrey',
+         outline: 'none', }} />
       <button 
             type="submit" 
             disabled={!classCode}
-            style={{ 
-              boxShadow: '10px 5px 20px 2px lightgrey',
+            style={{  boxShadow: ' 0px 4px 4px 0px rgba(0, 0, 0, 0.25)',
            fontFamily: "'Radio Canada', sans-serif",
+           fontWeight: 'bold',
               fontSize: '20px',
              marginTop: '10%',
               width: '70%', 
               padding: '15px 0',
               transform: 'scale(1)',
-              backgroundColor: (!classCode) ? 'grey' : 'black',
+              backgroundColor: (!classCode) ? 'grey' : '#627BFF',
               color: (!classCode) ? 'darkgrey' : 'white',  
               border: 'none', 
               borderRadius: '10px',  

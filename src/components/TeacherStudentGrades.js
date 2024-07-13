@@ -38,7 +38,7 @@ function TeacherStudentGrades() {
   }, [studentUid, classId]);
 
   const navigateToResults = (assignmentId) => {
-    navigate(`/studentresults/${assignmentId}`);
+    navigate(`/teacherStudentResults/${assignmentId}/${studentUid}/${classId}`);
   };
 
   const getLetterGrade = (percentage) => {
@@ -106,125 +106,144 @@ function TeacherStudentGrades() {
               No grades available for this student.
             </div>
           )}
-          {filteredGrades.map(grade => {
-            const percentage = Math.round(grade.percentageScore);
-            const letterGrade = getLetterGrade(percentage);
-            return (
-              <li key={grade.id} style={{
-                fontSize: '40px',
-                color: 'black',
-                backgroundColor: 'white',
-                fontFamily: "'Radio Canada', sans-serif",
-                transition: '.4s',
-                border: grade.viewable ? '3px solid #54AAA4' : '3px solid lightgrey',
-                listStyleType: 'none',
-                textAlign: 'center',
-                marginTop: '20px',
-                height: '69px',
-                marginLeft: 'auto',
-                marginRight: 'auto',
-                padding: '10px',
-                borderRadius: '10px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                position: 'relative',
-                borderTopRightRadius: grade.viewable ? '0px' : '10px',
-                borderBottomRightRadius: grade.viewable ? '0px' : '10px',
-              }}>
-                <div style={{ display: 'flex' }}>
-                  {grade.viewable && 
-                  <button style={{
-                    fontWeight: 'bold',
-                    position: 'absolute', 
-                    right: '-57px', 
-                    top: '50%', 
-                    width: '60px',
-                    cursor: 'pointer',
-                    height: '94px',
-                    padding: '10px 20px 10px 20px',
-                    display: 'flex',
-                    transform: 'translateY(-50%)', 
-                    color: 'white',
-                    backgroundColor: '#A3F2ED',
-                    border: '3px solid #54AAA4',
-                    borderRadius: '10px',
-                    marginBottom: '5px',
-                    borderTopLeftRadius: '0px',
-                    borderBottomLeftRadius: '0px',
-                    fontFamily: "'Radio Canada', sans-serif",
-                    alignItems: 'center', 
-                    justifyContent: 'center' 
-                  }} onClick={() => navigateToResults(grade.assignmentId)}>
-                    <img style={{ width: '30px', cursor: 'pointer', transform: 'scale(1)', transition: '.3s' }}
-                      onMouseEnter={(e) => { e.target.style.transform = 'scale(1.06)'; }}
-                      onMouseLeave={(e) => { e.target.style.transform = 'scale(1)'; }} 
-                      src='/gradesarrow.png'/>
-                  </button>}
-                  <div style={{ marginLeft: '10px', width: '300px', textAlign: 'left' }}>
-                    <h1 style={{ color: 'black', fontSize: '25px', marginLeft: '=5px' }}>
-                      {grade.assignmentName}
-                    </h1>  
-                    <div style={{ display: 'flex', position: 'relative', alignItems: 'center', marginTop: '-30px' }}>
-                      <p style={{
-                        fontWeight: 'bold',
-                        width: '23px',
-                        textAlign: 'center',
-                        fontSize: '22px',
-                        backgroundColor: '#566DFF',
-                        height: '23px',
-                        border: '4px solid #003BD4',
-                        lineHeight: '23px',
-                        color: 'white',
-                        borderRadius: '7px',
-                        fontFamily: "'Radio Canada', sans-serif"
-                      }}>
-                        {letterGrade}
-                      </p>
-                      <h1 style={{ color: 'grey', fontSize: '24px', marginLeft: '40px' }}>
-                        {percentage}%
-                      </h1>
-                      <span style={{
-                        fontSize: '20px',
-                        marginLeft: '40px',
-                        fontFamily: "'Radio Canada', sans-serif",
-                        fontWeight: 'bold',
-                        marginRight: '-10px',
-                        color: grade.viewable ? '#54AAA4' : '#009006'
-                      }}>
-                        {grade.viewable ? 'Reviewable' : 'Completed'}
-                      </span>
-                    </div>
-                  </div>
-                  <div style={{ width: '300px', position: 'relative', alignItems: 'center', height: '70px', marginTop: '6px', marginLeft: '30px' }}>
-                    <span style={{
-                      position: 'absolute',
-                      right: '10px',
-                      bottom: '-8px',
-                      fontWeight: 'bold',
-                      width: '60px',
-                      marginTop: '0px',
-                      fontSize: '25px',
-                      fontFamily: "'Radio Canada', sans-serif",
-                      color: '#020CFF',
-                    }}>
-                      SAQ
-                    </span>
-                    <h1 style={{ color: 'grey', fontSize: '20px', textAlign: 'left', fontWeight: 'normal' }}>
-                      Completed: {grade.submittedAt ? new Date(grade.submittedAt.toDate()).toLocaleString(undefined, {
-                        year: 'numeric',
-                        month: 'numeric',
-                        day: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit',
-                        hour12: true
-                      }) : 'N/A'}
-                    </h1>
-                  </div>
-                </div>
-              </li>
-            );
-          })}
+         {filteredGrades.map(grade => {
+  const percentage = Math.round(grade.percentageScore);
+  const letterGrade = getLetterGrade(percentage);
+  return (
+    <li key={grade.id} 
+      style={{
+        fontSize: '40px',
+        color: 'black',
+        backgroundColor: 'white',
+        fontFamily: "'Radio Canada', sans-serif",
+        transition: '.4s',
+         border: '3px solid #F4F4F4',
+        listStyleType: 'none',
+        textAlign: 'center',
+        marginTop: '20px',
+        height: '69px',
+        marginLeft: 'auto',
+        marginRight: 'auto',
+        padding: '10px',
+        borderRadius: '10px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        position: 'relative',
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.borderColor = '#54AAA4';
+        e.currentTarget.style.borderTopRightRadius = '0px';
+        e.currentTarget.style.borderBottomRightRadius = '0px';
+        const arrowButton = e.currentTarget.querySelector('.arrow-button');
+        if (arrowButton) arrowButton.style.opacity = '1';
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.borderColor = 'lightgrey';
+        e.currentTarget.style.borderTopRightRadius = '10px';
+        e.currentTarget.style.borderBottomRightRadius = '10px';
+        const arrowButton = e.currentTarget.querySelector('.arrow-button');
+        if (arrowButton) arrowButton.style.opacity = '0';
+      }}
+    >
+      <div style={{ display: 'flex', width: '100%' }}>
+        <button 
+          className="arrow-button"
+          style={{
+            fontWeight: 'bold',
+            position: 'absolute', 
+            right: '-57px', 
+            top: '50%', 
+            width: '60px',
+            cursor: 'pointer',
+            height: '94px',
+            padding: '10px 20px 10px 20px',
+            display: 'flex',
+            transform: 'translateY(-50%)', 
+            color: 'white',
+            backgroundColor: '#A3F2ED',
+            border: '3px solid #54AAA4',
+            borderRadius: '10px',
+            marginBottom: '5px',
+            borderTopLeftRadius: '0px',
+            borderBottomLeftRadius: '0px',
+            fontFamily: "'Radio Canada', sans-serif",
+            alignItems: 'center', 
+            justifyContent: 'center',
+            opacity: 0,
+            transition: 'opacity 0.3s'
+          }} 
+          onClick={() => navigateToResults(grade.assignmentId)}
+        >
+          <img 
+            style={{ 
+              width: '30px', 
+              cursor: 'pointer', 
+              transform: 'scale(1)', 
+              transition: '.3s' 
+            }}
+            onMouseEnter={(e) => { e.target.style.transform = 'scale(1.06)'; }}
+            onMouseLeave={(e) => { e.target.style.transform = 'scale(1)'; }} 
+            src='/gradesarrow.png'
+            alt="View grades"
+          />
+        </button>
+        
+        {/* Rest of the content */}
+        <div style={{ marginLeft: '10px', width: '300px', textAlign: 'left' }}>
+          <h1 style={{ color: 'black', fontSize: '25px', marginLeft: '5px' }}>
+            {grade.assignmentName}
+          </h1>  
+          <div style={{ display: 'flex', position: 'relative', alignItems: 'center', marginTop: '-30px' }}>
+            <p style={{
+              fontWeight: 'bold',
+              width: '23px',
+              textAlign: 'center',
+              fontSize: '22px',
+              backgroundColor: '#566DFF',
+              height: '23px',
+              border: '4px solid #003BD4',
+              lineHeight: '23px',
+              color: 'white',
+              borderRadius: '7px',
+              fontFamily: "'Radio Canada', sans-serif"
+            }}>
+              {letterGrade}
+            </p>
+            <h1 style={{ color: 'grey', fontSize: '24px', marginLeft: '40px' }}>
+              {percentage}%
+            </h1>
+          </div>
+        </div>
+        <div style={{ width: '300px', position: 'relative', alignItems: 'center', height: '70px', marginTop: '6px', marginLeft: '30px' }}>
+          <span style={{
+            position: 'absolute',
+            right: '10px',
+            bottom: '-8px',
+            fontWeight: 'bold',
+            width: '60px',
+            marginTop: '0px',
+            fontSize: '25px',
+            fontFamily: "'Radio Canada', sans-serif",
+            color: '#020CFF',
+          }}>
+            SAQ
+          </span>
+          <h1 style={{ color: 'grey', fontSize: '20px', textAlign: 'left', fontWeight: 'normal' }}>
+            Completed: {grade.submittedAt ? new Date(grade.submittedAt.toDate()).toLocaleString(undefined, {
+              year: 'numeric',
+              month: 'numeric',
+              day: 'numeric',
+              hour: '2-digit',
+              minute: '2-digit',
+              hour12: true
+            }) : 'N/A'}
+          </h1>
+        </div>
+      </div>
+    </li>
+  );
+})}
         </ul>
       </div>
     </div>

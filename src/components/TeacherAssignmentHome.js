@@ -87,7 +87,7 @@ const TeacherAssignmentHome = () => {
     <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', backgroundColor: 'white' }}>
       <Navbar userType="teacher" />
       <div style={{width: '1000px', marginLeft: 'auto', marginRight: 'auto'}}>
-        <h1 style={{marginLeft: '100px', marginTop: '100px', color: 'black', fontSize: '60px', display: 'flex'}}>
+        <h1 style={{marginLeft: '100px', marginTop: '100px', color: 'black', fontSize: '60px', display: 'flex', fontFamily: '"Rajdhani", sans-serif'}}>
           Create <h1 style={{fontSize: '30px', marginLeft: '30px', color: 'grey'}}>Step 1 - Format</h1>
         </h1>
         <div style={{ display: 'flex', marginTop: '10px', justifyContent: 'space-evenly', flexDirection: 'column', width: '800px', height: '550px', border: '10px solid lightgrey', 

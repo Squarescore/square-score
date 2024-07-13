@@ -22,7 +22,8 @@ const TeacherResults = () => {
   const chunkSize = 10; // Limit to 10 based on Firebase's 'in' query limit
   const [allViewable, setAllViewable] = useState(false); // New state for the global viewable switch
   const [hoveredStudent, setHoveredStudent] = useState(null);
-
+  const [assignmentStatuses, setAssignmentStatuses] = useState({});
+  const [hoveredStatus, setHoveredStatus] = useState(null);
   const openResetModal = (student) => {
     setResetStudent(student);
   }
@@ -82,6 +83,35 @@ const TeacherResults = () => {
       // Optionally, revert the local state change here
     }
   };
+  const togglePauseAssignment = async (studentUid) => {
+    if (assignmentStatuses[studentUid] !== 'Paused') return;
+  
+    setResetStatus(prev => ({ ...prev, [studentUid]: 'updating' }));
+  
+    try {
+      const studentRef = doc(db, 'students', studentUid);
+      const progressRef = doc(db, 'assignments(progress:saq)', `${assignmentId}_${studentUid}`);
+      const progressDoc = await getDoc(progressRef);
+  
+      if (progressDoc.exists()) {
+        await updateDoc(progressRef, { status: 'In Progress' });
+        await updateDoc(studentRef, {
+          assignmentsInProgress: arrayUnion(assignmentId)
+        });
+  
+        setAssignmentStatuses(prev => ({ ...prev, [studentUid]: 'In Progress' }));
+        setResetStatus(prev => ({ ...prev, [studentUid]: 'success' }));
+      } else {
+        console.error("Progress document does not exist");
+        setResetStatus(prev => ({ ...prev, [studentUid]: 'failed' }));
+      }
+    } catch (error) {
+      console.error("Error unpausing assignment:", error);
+      setResetStatus(prev => ({ ...prev, [studentUid]: 'failed' }));
+    } finally {
+      setTimeout(() => setResetStatus(prev => ({ ...prev, [studentUid]: '' })), 1000);
+    }
+  };
   useEffect(() => {
     const fetchAssignmentName = async () => {
       try {
@@ -128,6 +158,7 @@ const TeacherResults = () => {
             fetchedGrades[gradeData.studentUid] = {
               totalScore: gradeData.totalScore,
               maxScore: gradeData.maxScore,
+              submittedAt: gradeData.submittedAt,
               percentageScore: gradeData.percentageScore,
               viewable: gradeData.viewable || false,
               questions: gradeData.questions ? gradeData.questions.map(q => ({
@@ -375,7 +406,31 @@ const TeacherResults = () => {
   const handleBack = () => {
     navigate(-1);
   };
-
+  useEffect(() => {
+    const fetchAssignmentStatus = async () => {
+      const statusPromises = students.map(async (student) => {
+        const progressRef = doc(db, 'assignments(progress:saq)', `${assignmentId}_${student.uid}`);
+        const progressDoc = await getDoc(progressRef);
+        const gradeRef = doc(db, 'grades(saq)', `${assignmentId}_${student.uid}`);
+        const gradeDoc = await getDoc(gradeRef);
+  
+        let status = 'not_started';
+        if (gradeDoc.exists()) {
+          status = 'completed';
+        } else if (progressDoc.exists()) {
+          status = progressDoc.data().status === 'paused' ? 'Paused' : 'In Progress';
+        }
+  
+        return { [student.uid]: status };
+      });
+  
+      const statuses = await Promise.all(statusPromises);
+      const combinedStatuses = Object.assign({}, ...statuses);
+      setAssignmentStatuses(combinedStatuses);
+    };
+  
+    fetchAssignmentStatus();
+  }, [students, assignmentId]);
   const goToReview = () => {
     navigate(`/teacherReview/${classId}/${assignmentId}`);
   };
@@ -391,6 +446,20 @@ const TeacherResults = () => {
     if (percentage >= 60) return 'D';
     return 'F';
   };
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'completed':
+        return '#009006'; // Green
+      case 'in_progress':
+        return '#FFD700'; // Yellow
+      case 'not_started':
+        return '#808080'; // Grey
+      case 'paused':
+        return '#FFA500'; // Orange
+      default:
+        return 'lightgrey';
+    }
+  };
   const AssignModal = () => {
     const handleAssign = async () => {
       const batch = writeBatch(db);
@@ -404,7 +473,8 @@ const TeacherResults = () => {
       setIsAssignModalOpen(false);
       setSelectedStudents([]);
     };
-  
+   
+   
     return (
       <div style={{
         position: 'fixed',
@@ -634,7 +704,7 @@ const TeacherResults = () => {
 {isAssignModalOpen && <AssignModal />}
       <div style={{ width: '810px', display: 'flex', justifyContent: 'space-between', marginTop: '20px', alignSelf: 'center', alignItems: 'center', marginLeft: '30px'}}>
        
-        <button onClick={() => setIsAssignModalOpen(true)} style={{width: '450px', fontSize: '20px', height:'50px', borderRadius: '10px', fontWeight: 'bold', border: '3px solid lightgrey', background:' white', cursor: 'pointer',
+        <button onClick={() => setIsAssignModalOpen(true)} style={{width: '450px', fontSize: '20px', height:'50px', borderRadius: '10px', fontWeight: 'bold',  border: '3px solid #F4F4F4', background:' white', cursor: 'pointer',
 
 marginLeft: '10px',
 transition: '.3s',
@@ -652,7 +722,7 @@ onMouseLeave={(e) => {
 
 }}>Assign to New Students</button>
 
-<div style={{width: '450px', fontSize: '20px', height:'45px', borderRadius: '10px', fontWeight: 'bold', border: '3px solid lightgrey', background:' white', cursor: 'pointer', display:'flex',
+<div style={{width: '450px', fontSize: '20px', height:'45px', borderRadius: '10px', fontWeight: 'bold',  border: '3px solid #F4F4F4', background:' white', cursor: 'pointer', display:'flex',
 alignItems: 'center',
 marginLeft: '10px',
 transition: '.3s',
@@ -682,7 +752,7 @@ transition: '.3s',
         justifyContent: 'space-between', 
         marginRight: 'auto', 
         marginLeft: 'auto', 
-        border: '3px solid lightgrey', 
+         border: '3px solid #F4F4F4', 
         backgroundColor: 'white', 
         borderRadius: '10px', 
         padding: '10px', 
@@ -732,8 +802,33 @@ transition: '.3s',
             </div>
             <div style={{ color: 'lightgrey', width: '400px', display: 'flex'}}>
               <div style={{}}>
-              <h1 style={{ fontSize: '22px', fontFamily: "'Radio Canada', sans-serif", fontWeight: 'normal' }}>Completed: 11/05/2024 6:43am</h1>
-              <h1 style={{ fontSize: '22px', fontFamily: "'Radio Canada', sans-serif", fontWeight: 'normal' }}>Due: 11/15/2024 8:43am</h1>
+              <h1 style={{ fontSize: '22px', fontFamily: "'Radio Canada', sans-serif", fontWeight: 'normal' }}>
+          Completed: {grades[student.uid] && grades[student.uid].submittedAt ? 
+            new Date(grades[student.uid].submittedAt.toDate()).toLocaleString(undefined, {
+              year: 'numeric',
+              month: 'numeric',
+              day: 'numeric',
+              hour: '2-digit',
+              minute: '2-digit',
+              hour12: true
+            }) : 'Not completed'}
+        </h1>
+        <h1 style={{ 
+  fontSize: '22px', 
+  fontFamily: "'Radio Canada', sans-serif", 
+  fontWeight: 'bold',
+  color: getStatusColor(assignmentStatuses[student.uid]),
+  textTransform: assignmentStatuses[student.uid] === 'Completed' ? 'uppercase' : 'capitalize',
+  cursor: assignmentStatuses[student.uid] === 'Paused' ? 'pointer' : 'default'
+}}
+onMouseEnter={() => assignmentStatuses[student.uid] === 'Paused' && setHoveredStatus(student.uid)}
+onMouseLeave={() => setHoveredStatus(null)}
+onClick={() => assignmentStatuses[student.uid] === 'Paused' && togglePauseAssignment(student.uid)}
+>
+  {hoveredStatus === student.uid && assignmentStatuses[student.uid] === 'Paused' 
+    ? 'Unpause' 
+    : assignmentStatuses[student.uid]}
+</h1>
               </div>
           <h1 style={{fontSize: '20px',position: 'absolute', right: '15px', bottom: '0px', color: '#003BD4', fontWeight: 'bold', fontFamily: "'Radio Canada', sans-serif"}}>SAQ</h1>
             </div>
@@ -764,7 +859,7 @@ transition: '.3s',
                 }}
                 onClick={(e) => {
                   e.stopPropagation();
-                  navigate(`/teacherStudentResults/${assignmentId}/${student.uid}`);
+                  navigate(`/teacherStudentResults/${assignmentId}/${student.uid}/${classId}`);
                 }}
               >
                 <img 

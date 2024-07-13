@@ -1,7 +1,10 @@
 const functions = require('firebase-functions');
 const { Anthropic } = require('@anthropic-ai/sdk');
 const cors = require('cors')({origin: true});
+const { getYouTubeInfo } = require('./youtubeInfo');
 
+
+exports.getYouTubeInfo = getYouTubeInfo;
 exports.dummyFunction = functions.https.onRequest((req, res) => {
     return cors(req, res, async () => {
         if (req.method !== "POST") {
@@ -28,7 +31,17 @@ exports.dummyFunction = functions.https.onRequest((req, res) => {
 
 Provide the output as a valid JSON array where each object has "question" and "expectedResponse" fields. The entire response should be parseable as JSON. Here's the exact format to use:
 
-[
+  [
+    {
+      "question": "string",
+      "expectedResponse": "string"
+    },
+    {
+      "question": "string",
+      "expectedResponse": "string"
+    },
+    ...
+  ]
  
 
 Generate questions and their expected responses based on this source: ${sourceText}
@@ -89,7 +102,7 @@ exports.GenerateAMCQstep1 = functions.https.onRequest((req, res) => {
 
         try {
             let prompt = `Generate 10 multiple choice questions based on the provided source. Each question should have a number of choices randomly selected from ${selectedOptions.join(', ')}. Only 1 answer per question should be correct. Each choice should have a 1-2 sentence explanation that explains why it is correct or incorrect, this is an example of a good 
-            explanation:The sinking of the Lusitania occurred in 1915, about a year after World War I had already begun, while this event was significant in drawing the United States closer to entering the war, it was not the trigger that started the conflict in Europe in 1914, this in reference to this question:Which event is generally considered to mark the beginning of World War I? where student answered A) The sinking of the Lusitania(Do not base your questions around this example, rather base questions on provided source) . Each question should be assigned a difficulty (Easy, Medium, Hard) based on specificity and question complexity.
+            explanation:The sinking of the Lusitania occurred in 1915, about a year after World War I had already begun, while this event was significant in drawing the United States closer to entering the war, it was not the trigger that started the conflict in Europe in 1914, this in reference to this question:Which event is generally considered to mark the beginning of World War I? where student answered A) The sinking of the Lusitania(Do not base your questions around this example, rather base questions on provided source) . Each question should be assigned a difficulty (Easy, Medium, Hard) based on specificity and question complexity   include 3 easy questions 3 medium questions and 4 hard questions.
 
 Format your response as a valid JSON array of question objects. Each object should have the following structure:
 {
@@ -111,7 +124,7 @@ Use this source: ${sourceText}
 
 ${additionalInstructions ? `Additional instructions: ${additionalInstructions}` : ''}
 
-Remember to only include the JSON array in your response, with no additional text, Remember that you must  add commas between all property-value pairs within each object to make a valid json array,
+Remember to only include the JSON array in your response, with no additional text to avoid errors like  Unexpected token 'H', "Here is a "... is not valid JSON which was caused by this being at the start of a response "Here is a JSON array of 10 multiple choice questions based on the provided source:", Remember that you must  add commas between all property-value pairs within each object to make a valid json array,
 remember that your max output is 4096 tokens so dont try to generate over that as you might get cut off Provide the output as a valid JSON array- with the proper loacation of "s and ,s'`;
 const response = await anthropic.messages.create({
     model: "claude-3-haiku-20240307",
@@ -148,7 +161,7 @@ exports.GenerateAMCQstep2 = functions.https.onRequest((req, res) => {
 
         try {
             let prompt = `Generate 10 multiple choice questions based on the provided source. Each question should have a number of choices randomly selected from ${selectedOptions.join(', ')}. Only 1 answer per question should be correct. Each choice should have a 1-2 sentence explanation that explains why it is correct or incorrect, this is an example of a good 
-            explanation:The sinking of the Lusitania occurred in 1915, about a year after World War I had already begun, while this event was significant in drawing the United States closer to entering the war, it was not the trigger that started the conflict in Europe in 1914, this in reference to this question:Which event is generally considered to mark the beginning of World War I? where student answered A) The sinking of the Lusitania(Do not base your questions around this example, rather base questions on provided source) . Explanations should provide insight, not just point to the answer being incorrect. Each question should be assigned a difficulty (Easy, Medium, Hard) based on specificity and question complexity.
+            explanation:The sinking of the Lusitania occurred in 1915, about a year after World War I had already begun, while this event was significant in drawing the United States closer to entering the war, it was not the trigger that started the conflict in Europe in 1914, this in reference to this question:Which event is generally considered to mark the beginning of World War I? where student answered A) The sinking of the Lusitania(Do not base your questions around this example, rather base questions on provided source) . Explanations should provide insight, not just point to the answer being incorrect. Each question should be assigned a difficulty (Easy, Medium, Hard) based on specificity and question complexity   include 3 easy questions 3 medium questions and 4 hard questions.
 
 Format your response as a valid JSON array of question objects. Each object should have the following structure:
 {
@@ -164,7 +177,7 @@ Format your response as a valid JSON array of question objects. Each object shou
   ...
 }
 
-Include only the JSON array in your response, with no additional text. Ensure all property names and string values are enclosed in double quotes. Use proper JSON formatting, including commas between array elements and object properties, more specifically dont forget the comma between the last choice and the last explanation. Do not exceed 4096 tokens in your response to avoid truncation.
+Include only the JSON array in your response, with no additional text to avoid errors like  Unexpected token 'H', "Here is a "... is not valid JSON which was caused by this being at the start of a response "Here is a JSON array of 10 multiple choice questions based on the provided source:" . Ensure all property names and string values are enclosed in double quotes. Use proper JSON formatting, including commas between array elements and object properties, more specifically dont forget the comma between the last choice and the last explanation. Do not exceed 4096 tokens in your response to avoid truncation.
 
 Use this source: ${sourceText}
 

@@ -4,13 +4,15 @@ import { Link } from 'react-router-dom';
 import { db, auth } from './firebase';
 import { useNavigate, useParams } from 'react-router-dom';
 import Navbar from './Navbar';
-
+import { useLocation } from 'react-router-dom';
 function StudentAssignmentsHome({ studentUid: propStudentUid }) {
   const { classId } = useParams();
   const [assignments, setAssignments] = useState([]);
   const studentUid = propStudentUid || auth.currentUser.uid;
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState('active');
+  const location = useLocation();
+  const [activeTab, setActiveTab] = useState(new URLSearchParams(location.search).get('tab') || 'active');
+
   const [className, setClassName] = useState('');
   const [completedAssignments, setCompletedAssignments] = useState([]);
   const [averageScore, setAverageScore] = useState(null);
@@ -18,7 +20,9 @@ function StudentAssignmentsHome({ studentUid: propStudentUid }) {
   const [classChoice, setClassChoice] = useState('');
   const [showDueDate, setShowDueDate] = useState(true);
   const [hoveredAssignment, setHoveredAssignment] = useState(null);
-
+  const [showConfirm, setShowConfirm] = useState(false);
+const [confirmAssignment, setConfirmAssignment] = useState(null);
+  const studentUID = auth.currentUser.uid;
   useEffect(() => {
     const fetchClassData = async () => {
       const classDocRef = doc(db, 'classes', classId);
@@ -107,36 +111,37 @@ function StudentAssignmentsHome({ studentUid: propStudentUid }) {
 
     fetchCompletedAssignments();
   }, [classId, studentUid]);
-
-  const navigateToTest = (assignmentId, type, assignDate, dueDate) => {
+  
+  const handleBack = () => {
+    navigate(-1);
+  };
+  const navigateToTest = async (assignmentId, type, assignDate, dueDate, assignmentName, saveAndExit) => {
     const now = new Date();
     const assignDateTime = new Date(assignDate);
     const dueDateTime = new Date(dueDate);
-
+  
     if (now < assignDateTime) {
       alert("This assignment is not available yet.");
       return;
     }
-
+  
     if (now > dueDateTime) {
       alert("This assignment is past due.");
       return;
     }
-
-    if (window.confirm("Are you sure you want to enter the test?")) {
-      if (type === 'AMCQ') {
-        navigate(`/TakeAmcq/${assignmentId}`);
-      } else {
-        navigate(`/taketests/${assignmentId}`);
-      }
+  
+    // Check if the assignment is paused
+    const progressRef = doc(db, 'assignments(progress:saq)', `${assignmentId}_${studentUid}`);
+    const progressDoc = await getDoc(progressRef);
+    
+    if (progressDoc.exists() && progressDoc.data().status === 'Paused') {
+      alert("This assignment is currently paused by your teacher.");
+      return;
     }
+  
+    setConfirmAssignment({ id: assignmentId, type, assignmentName, saveAndExit });
+    setShowConfirm(true);
   };
-
-
-  const handleBack = () => {
-    navigate(-1);
-  };
-
   const getAssignmentStyle = (assignDate, dueDate) => {
     const now = new Date();
     const assignDateTime = new Date(assignDate);
@@ -162,7 +167,108 @@ function StudentAssignmentsHome({ studentUid: propStudentUid }) {
       border: '3px solid #AEF2A3',
     };
   };
-
+  const RetroConfirm = ({ onConfirm, onCancel, assignmentName, saveAndExitEnabled }) => (
+    <div style={{
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      width: '100%',
+      height: '100%',
+      backdropFilter: 'blur(5px)',
+      background: 'rgba(255,255,255,0.8)',
+      zIndex: 100
+    }}>
+      <div style={{
+        position: 'fixed',
+        top: '50%',
+        left: '50%',
+        borderRadius: '30px',
+        backdropFilter: 'blur(5px)',
+        transform: 'translate(-50%, -50%)',
+        width: '500px',
+        backgroundColor: 'rgb(255,255,255,.001)',
+        border: '0px solid transparent',
+        boxShadow: '0px 4px 4px 0px rgba(0, 0, 0, 0.25)',
+        fontFamily: 'Arial, sans-serif',
+        zIndex: 100000
+      }}>
+        <div style={{
+          backgroundColor: '#AEF2A3',
+          color: '#009006',
+          fontFamily: '"Rajdhani", sans-serif',
+          border: '10px solid #009006', 
+          borderTopRightRadius: '30px',
+          borderTopLeftRadius: '30px',
+          opacity: '80%',
+          textAlign: 'center',
+          fontSize: '40px',
+          padding: '12px 4px',
+          fontWeight: 'bold'
+        }}>
+          Confirm
+        </div>
+        <div style={{ padding: '20px', textAlign: 'center', fontWeight: 'bold', fontFamily: '"Radio Canada", sans-serif', fontSize: '30px' }}>
+  Are you sure you want to enter {assignmentName}?<br /> 
+  {saveAndExitEnabled 
+    ? "You will be able to exit once you start." 
+    : "You will not be able to exit once you start."}
+</div>
+        <div style={{ 
+          display: 'flex', 
+          justifyContent: 'center', 
+          padding: '10px'
+        }}>
+          <button 
+            onClick={onConfirm}
+            style={{
+              width: '200px',
+              marginRight: '10px',
+              height: '40PX',
+              lineHeight: '10PX',
+              padding: '5px 5px',
+              fontWeight: 'bold',
+              fontSize: '24px',
+              borderRadius: '10px',
+              color: '#009006',
+              fontFamily: '"Rajdhani", sans-serif',
+              border: '0px solid lightgrey',
+              backgroundColor: 'white',
+              cursor: 'pointer',
+              transition: '.3s'
+            }}
+            onMouseEnter={(e) => { e.target.style.boxShadow = '0px 4px 4px 0px rgba(0, 0, 0, 0.25)'; }}
+            onMouseLeave={(e) => { e.target.style.boxShadow = 'none'; }} 
+          >
+            Enter
+          </button>
+          <button 
+            onClick={onCancel}
+            style={{
+              width: '200px',
+              marginRight: '10px',
+              height: '40PX',
+              lineHeight: '10PX',
+              padding: '5px 5px',
+              fontWeight: 'bold',
+              fontSize: '24px',
+              borderRadius: '10px',
+              color: '#980000',
+              marginBottom: '10px',
+              fontFamily: '"Rajdhani", sans-serif',
+              border: '0px solid lightgrey',
+              backgroundColor: 'white',
+              cursor: 'pointer',
+              transition: '.3s'
+            }}
+            onMouseEnter={(e) => { e.target.style.boxShadow = '0px 4px 4px 0px rgba(0, 0, 0, 0.25)'; }}
+            onMouseLeave={(e) => { e.target.style.boxShadow = 'none'; }} 
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+  );
   const filterAssignments = (assignments) => {
     const now = new Date();
     const filtered = {
@@ -199,8 +305,7 @@ function StudentAssignmentsHome({ studentUid: propStudentUid }) {
           textAlign: 'center', 
           marginTop: '20px', 
           height: '69px',
-          marginLeft: 'auto', 
-          marginRight: 'auto', 
+      marginLeft: '-40px',
           padding: '10px', 
           borderRadius: '10px',
           display: 'flex',
@@ -233,13 +338,13 @@ function StudentAssignmentsHome({ studentUid: propStudentUid }) {
               fontFamily: "'Radio Canada', sans-serif",
               alignItems: 'center', 
               justifyContent: 'center' 
-            }} onClick={() => navigate(`/studentresults/${grade.assignmentId}`)}>
+            }} onClick={() => navigate(`/studentresults/${grade.assignmentId}/${studentUID}/${classId}`)}>
               <img style={{width: '30px', cursor: 'pointer', transform: 'scale(1)', transition: '.3s'}}
                 onMouseEnter={(e) => { e.target.style.transform = 'scale(1.06)'; }}
                 onMouseLeave={(e) => { e.target.style.transform = 'scale(1)'; }} 
                 src='/gradesarrow.png'/>
             </button>}
-            <div style={{marginLeft: '10px', width: '300px', textAlign: 'left'}}>
+            <div style={{marginLeft: '10px', width: '800px', textAlign: 'left'}}>
               <h1 style={{color: 'black', fontSize: '25px', marginLeft: '5px'}}>
                 {grade.assignmentName}
               </h1>  
@@ -253,23 +358,7 @@ function StudentAssignmentsHome({ studentUid: propStudentUid }) {
                 <span style={{ fontSize: '20px', marginLeft: '40px',fontFamily: "'Radio Canada', sans-serif", fontWeight: 'bold', marginRight: '-10px', color: grade.viewable ? '#54AAA4' : '#009006' }}>
                   {grade.viewable ? 'Reviewable' : 'Completed'}
                 </span>
-              </div>
-            </div>
-            <div style={{width: '300px', position: 'relative', alignItems: 'center', height: '70px', marginTop: '6px',marginLeft: '30px'}}>
-              <span style={{
-                position: 'absolute',
-                right: '10px',
-                bottom: '-8px',
-                fontWeight: 'bold',
-                width: '60px',
-                marginTop: '0px',
-                fontSize: '25px',
-                fontFamily: "'Radio Canada', sans-serif",
-                color: '#020CFF',
-              }}>
-                SAQ
-              </span>
-              <h1 style={{color: 'grey', fontSize: '20px',textAlign: 'left',fontWeight: 'normal'}}>
+                <h1 style={{color: 'grey', fontSize: '20px',textAlign: 'left',fontWeight: 'normal', marginLeft: '30px'}}>
                 Completed: {grade.submittedAt ? new Date(grade.submittedAt.toDate()).toLocaleString(undefined, {
                   year: 'numeric',
                   month: 'numeric',
@@ -279,7 +368,23 @@ function StudentAssignmentsHome({ studentUid: propStudentUid }) {
                   hour12: true
                 }) : 'N/A'}
               </h1>
+              <span style={{
+                position: 'absolute',
+                right: '50px',
+                bottom: '20px',
+                fontWeight: 'bold',
+                width: '60px',
+                marginTop: '0px',
+                fontSize: '25px',
+                fontFamily: "'Radio Canada', sans-serif",
+                color: '#020CFF',
+              }}>
+                SAQ
+              </span>
+              </div>
             </div>
+       
+            
           </div>
         </li>
       );
@@ -366,7 +471,24 @@ function StudentAssignmentsHome({ studentUid: propStudentUid }) {
             </div>
             {assignment.inProgress && (
               <div style={{ position: 'absolute', top: '15px', left: '20px', backgroundColor: '#FFECA8', paddingLeft: '15px', fontWeight: 'bold', color: '#C69007',paddingRight: '15px',fontFamily: "'Radio Canada', sans-serif", border: '0px solid white' ,fontSize: '20px',borderRadius: '5px' }}>
-                In Progress
+                In Progress     {assignment.status === 'Paused' && (
+            <div style={{ 
+              position: 'absolute', 
+              top: '15px', 
+              left: '20px', 
+              backgroundColor: '#FFA500', 
+              paddingLeft: '15px', 
+              fontWeight: 'bold', 
+              color: 'white',
+              paddingRight: '15px',
+              fontFamily: "'Radio Canada', sans-serif", 
+              border: '0px solid white',
+              fontSize: '20px',
+              borderRadius: '5px' 
+            }}>
+              Paused
+            </div>
+          )}
               </div>
             )}
             <div style={{ marginTop: '20px', position: 'relative', display: 'flex', alignItems: 'center' }}>
@@ -413,8 +535,15 @@ function StudentAssignmentsHome({ studentUid: propStudentUid }) {
               </h1>
             </div>
             <button
-              onClick={() => navigateToTest(assignment.id, format, assignment.assignDate, assignment.dueDate)}
-              style={{
+              onClick={() => navigateToTest(
+                assignment.id, 
+                format, 
+                assignment.assignDate, 
+                assignment.dueDate, 
+                assignment.assignmentName,
+                assignment.saveAndExit
+              )}
+                style={{
                 position: 'absolute',
                 left: '783px',
                 top: '92px',
@@ -459,41 +588,70 @@ function StudentAssignmentsHome({ studentUid: propStudentUid }) {
   return (
     <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', backgroundColor: 'white' }}>
       <Navbar userType="student" />
-      <div style={{ width: '800px', marginRight: 'auto', marginLeft: 'auto', marginTop: '100px' }}>
-        <div style={{ display: 'flex', marginBottom: '20px', width: '800px', position: 'relative', alignItems: 'center' }}>
-          <h1 style={{ fontSize: '60px', fontFamily: "'Radio Canada', sans-serif", textAlign: 'left', margin: '0', flex: '1' }}>
+      {showConfirm && (
+  <RetroConfirm 
+    onConfirm={() => {
+      setShowConfirm(false);
+      if (confirmAssignment.type === 'AMCQ') {
+        navigate(`/TakeAmcq/${confirmAssignment.id}`);
+      } else {
+        navigate(`/taketests/${confirmAssignment.id}`);
+      }
+    }}
+    onCancel={() => setShowConfirm(false)}
+    assignmentName={confirmAssignment ? confirmAssignment.assignmentName : ''}
+    saveAndExit={confirmAssignment ? confirmAssignment.saveAndExit : false}
+  />
+)}
+      <div style={{position: 'fixed', width: '100%', top: '70px', background: 'rgb(245,245,245,.8)', backdropFilter: 'blur(5px)'
+        ,zIndex: '1000'
+      }}>
+      <div style={{ 
+  width: '800px', 
+  height: '40PX',
+  display: 'flex',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+  marginLeft: 'auto', 
+  marginRight: 'auto',
+}}>
+  {['active', 'completed', 'upcoming', 'overdue'].map(tab => (
+    <button
+      key={tab}
+      onClick={() => setActiveTab(tab)}
+      style={{
+        fontSize: '15px',
+        fontFamily: "'Radio Canada', sans-serif",
+        background: 'none',
+        border: 'none',
+        height: '40px',
+        cursor: 'pointer',
+        fontWeight: activeTab === tab ? 'bold' : 'normal',
+        color: activeTab === tab ? '#181818' : '#676767',
+        borderBottom: 'none',
+        paddingBottom: '5px'
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.color = 'black';
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.color = activeTab === tab ? '#181818' : '#676767';
+      }}
+    >
+      {tab.charAt(0).toUpperCase() + tab.slice(1)}
+    </button>
+  ))}
+</div>
+          </div>
+      <div style={{ width: '800px', marginRight: 'auto', marginLeft: 'auto', marginTop: '160px', }}>
+        <div style={{ display: 'flex', marginBottom: '50px', width: '800px', position: 'relative', alignItems: 'center' }}>
+          <h1 style={{ fontSize: '60px', fontFamily: "'Rajdhani', sans-serif", textAlign: 'left', margin: '0', flex: '1' }}>
             Assignments
           </h1>
-          <div style={{ display: 'flex', gap: '24px', marginTop: '10px', marginLeft: '20px' }}>
-            {['active', 'completed', 'upcoming', 'overdue'].map(tab => (
-              <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                style={{
-                  fontSize: '18px',
-                  fontFamily: "'Radio Canada', sans-serif",
-                  background: 'none',
-                  border: 'none',
-                  height: '40px',
-                  cursor: 'pointer',
-                  color: activeTab === tab ? '#020CFF' : '#181818',
-                  borderBottom: activeTab === tab ? '2px solid #020CFF' : 'none',
-                  paddingBottom: '5px'
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.color = 'black';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.color = activeTab === tab ? '#020CFF' : '#181818';
-                }}
-              >
-                {tab.charAt(0).toUpperCase() + tab.slice(1)}
-              </button>
-            ))}
-          </div>
+         
         </div>
         <div style={{ position: 'relative' }}>
-          <ul style={{ listStyleType: 'none', marginTop: '30px' }}>
+          <ul style={{ listStyleType: 'none', marginTop: '-30px' }}>
             {activeTab === 'completed' ? (
               completedAssignments.length === 0 ? (
                 <div style={{ textAlign: 'center', fontSize: '20px', fontFamily: "'Radio Canada', sans-serif", color: 'grey', marginTop: '20px' }}>
