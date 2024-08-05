@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { auth, db } from './firebase';
 import { doc, getDocs, query, where, updateDoc, collection } from "firebase/firestore";
 import { Link } from 'react-router-dom';
-import CNavbar from './CJNavbar';
+
 import { useNavigate } from 'react-router-dom';
 
 import  {useCallback, useEffect } from 'react';
@@ -39,7 +39,7 @@ const JoinClass = () => {
       await updateDoc(doc(db, 'classes', classDoc.id), { joinRequests });
 
       // Navigate to StudentHome after successful request
-      navigate('/');
+      navigate('/studenthome');
     } catch (err) {
       setErrorMessage(err.message);
     }
@@ -48,7 +48,7 @@ const JoinClass = () => {
   // Function to close the modal and optionally navigate home
   const handleCloseModal = () => {
     setShowModal(false);
-    navigate('/'); // Navigate to home or any other route
+    navigate('/studenthome'); // Navigate to home or any other route
   };
   const handleBack = () => {
     navigate(-1);

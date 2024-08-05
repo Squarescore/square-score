@@ -6,7 +6,7 @@ import Navbar from './Navbar';
 import SelectStudents from './SelectStudents';
 import CustomDateTimePicker from './CustomDateTimePicker';
 import 'react-datepicker/dist/react-datepicker.css';
-import PreviewAMCQ from './previewAMCQ';
+import PreviewAMCQ from './PreviewAMCQ';
 import axios from 'axios';
 
 const dropdownContentStyle = `
@@ -57,7 +57,11 @@ const MCQA = () => {
   const [lockdown, setLockdown] = useState(false);
   const [optionsCount, setOptionsCount] = useState(4);
   const [assignDate, setAssignDate] = useState(new Date());
-  const [dueDate, setDueDate] = useState(new Date());
+  const [dueDate, setDueDate] = useState(() => {
+    const date = new Date();
+    date.setHours(date.getHours() + 48);
+    return date;
+  })
   const [sourceOption, setSourceOption] = useState(null);
   const [sourceText, setSourceText] = useState('');
   const [youtubeLink, setYoutubeLink] = useState('');
@@ -71,9 +75,10 @@ const MCQA = () => {
   const [generatedQuestions, setGeneratedQuestions] = useState([]);
   const [generating, setGenerating] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
-  const [progress, setProgress] = useState(0);
-  const [progressText, setProgressText] = useState('');
   const { classId, assignmentId } = useParams();
+  const [progress, setProgress] = useState(0);
+const [progressText, setProgressText] = useState('');
+const [questionCount, setQuestionCount] = useState(0);
   const navigate = useNavigate();
 
   const toggleAdditionalInstructions = () => {
@@ -153,51 +158,65 @@ const MCQA = () => {
     });
     await batch.commit();
   };
-
+  const parseQuestions = (response) => {
+    let data = response.data;
+    if (typeof data === 'string') {
+      // Extract only the JSON array part if there's a preamble
+      const match = data.match(/\[[\s\S]*\]/);
+      if (match) {
+        data = match[0];
+      }
+    }
+    return Array.isArray(data) ? data : JSON.parse(data);
+  };
   const generateQuestions = async () => {
     const baseUrl = 'https://us-central1-square-score-ai.cloudfunctions.net';
     
     try {
       setGenerating(true);
       setProgress(0);
-      setProgressText('Generating initial questions...');
+      setProgressText('0%');
   
-      // Step 1: Generate initial questions
-      const startTime = Date.now();
+      const animateProgress = async (start, end, duration) => {
+        const startTime = Date.now();
+        return new Promise(resolve => {
+          const animate = () => {
+            const elapsedTime = Date.now() - startTime;
+            const progress = Math.min(end, start + ((elapsedTime / duration) * (end - start)));
+            setProgress(progress);
+            setProgressText(`${Math.round(progress)}%`);
+  
+            if (progress < end && generating) {
+              requestAnimationFrame(animate);
+            } else {
+              resolve();
+            }
+          };
+          requestAnimationFrame(animate);
+        });
+      };
+  
+      // Animate to 24% over 20 seconds
+      await animateProgress(0, 24, 20000);
+  
+      // Generate initial questions
       const response = await axios.post(`${baseUrl}/GenerateAMCQstep1`, {
         sourceText,
         selectedOptions,
         additionalInstructions
       });
       
-      let questions;
-      try {
-        if (Array.isArray(response.data)) {
-          questions = response.data;
-        } else {
-          questions = JSON.parse(response.data);
-        }
-      } catch (parseError) {
-        console.error('Error parsing response:', parseError);
-        console.log('Raw response data:', response.data);
-        throw new Error('Failed to parse response from API call');
-      }
+      let questions = parseQuestions(response);
       
       setGeneratedQuestions(questions);
+      setQuestionCount(questions.length);
       setProgress(25);
-      setProgressText('25% complete');
+      setProgressText('25%');
   
-      // Ensure at least 5 seconds have passed for the first step
-      const elapsedTime = Date.now() - startTime;
-      if (elapsedTime < 5000) {
-        await new Promise(resolve => setTimeout(resolve, 5000 - elapsedTime));
-      }
-  
-      // Step 2: Generate additional questions three times
-      for (let i = 0; i < 3; i++) {
-        await generateAdditionalQuestions();
-        setProgress((i + 2) * 25);
-        setProgressText(`${(i + 2) * 25}% complete`);
+      // Generate additional questions three times
+      for (let i = 1; i <= 3; i++) {
+        await animateProgress(25 * i, 25 * i + 24, 20000);
+        await generateAdditionalQuestions(i + 1);
       }
   
       setShowPreview(true);
@@ -210,15 +229,14 @@ const MCQA = () => {
     } finally {
       setGenerating(false);
       setProgress(100);
-      setProgressText('Generation complete!');
+      setProgressText('100%');
     }
   };
-
-  const generateAdditionalQuestions = async () => {
+  
+  const generateAdditionalQuestions = async (step) => {
     const baseUrl = 'https://us-central1-square-score-ai.cloudfunctions.net';
     
     try {
-      const startTime = Date.now();
       const response = await axios.post(`${baseUrl}/GenerateAMCQstep2`, {
         sourceText,
         selectedOptions,
@@ -226,26 +244,14 @@ const MCQA = () => {
         previousQuestions: generatedQuestions
       });
       
-      let newQuestions;
-      try {
-        if (Array.isArray(response.data)) {
-          newQuestions = response.data;
-        } else {
-          newQuestions = JSON.parse(response.data);
-        }
-      } catch (parseError) {
-        console.error('Error parsing response:', parseError);
-        console.log('Raw response data:', response.data);
-        throw new Error('Failed to parse response from API call');
-      }
+      let newQuestions = parseQuestions(response);
       
       setGeneratedQuestions(prevQuestions => [...prevQuestions, ...newQuestions]);
+      setQuestionCount(prevCount => prevCount + newQuestions.length);
       
-      // Ensure at least 5 seconds have passed
-      const elapsedTime = Date.now() - startTime;
-      if (elapsedTime < 5000) {
-        await new Promise(resolve => setTimeout(resolve, 5000 - elapsedTime));
-      }
+      const newProgress = step * 25;
+      setProgress(newProgress);
+      setProgressText(`${newProgress}%`);
     } catch (error) {
       console.error('Error generating additional questions:', error);
       if (error.response) {
@@ -254,7 +260,6 @@ const MCQA = () => {
       }
     }
   };
-
   const handleGenerateQuestions = () => {
     if (generatedQuestions.length > 0) {
       setShowPreview(true);
@@ -326,9 +331,14 @@ const MCQA = () => {
       await assignToStudents(assignmentId);
       
       console.log("Assignment assigned to students successfully.");
-      
-      alert(`Assignment ${assignmentName} published successfully!`);
-      navigate(`/class/${classId}`);
+      const format = assignmentId.split('+').pop(); // Get the format from the assignment ID
+
+      navigate(`/class/${classId}`, {
+        state: {
+          successMessage: `Success: ${assignmentName} published`,
+          assignmentId: assignmentId,
+          format: format}
+        });
     } catch (error) {
       console.error("Error saving assignment:", error);
       console.error("Error details:", error.message);
@@ -431,7 +441,7 @@ const MCQA = () => {
             </div>
             <div style={{ width: '810px', display: 'flex' }}>
               <div style={{ marginBottom: '20px', width: '790px', height: '320px', borderRadius: '10px', border: '4px solid #F4F4F4' }}>
-                <div style={{ width: '730px', marginLeft: '20px', height: '80px', borderBottom: '3px solid lightgrey', display: 'flex', position: 'relative', alignItems: 'center', borderRadius: '0px', padding: '10px' }}>
+                <div style={{ width: '730px', marginLeft: '20px', height: '80px', borderBottom: '6px solid lightgrey', display: 'flex', position: 'relative', alignItems: 'center', borderRadius: '0px', padding: '10px' }}>
                   <h1 style={{ fontSize: '30px', color: 'black', width: '300px', paddingLeft: '0px' }}>Timer:</h1>
                   {timerOn ? (
                     <div style={{ display: 'flex', alignItems: 'center', position: 'relative', marginLeft: '30px' }}>
@@ -443,7 +453,7 @@ const MCQA = () => {
                           width: '50px',
                           textAlign: 'center',
                           fontWeight: 'bold',
-                          border: '3px solid transparent',
+                          border: '6px solid transparent',
                           outline: 'none',
                           borderRadius: '5px',
                           fontSize: '30px',
@@ -476,7 +486,7 @@ const MCQA = () => {
                     onChange={() => setTimerOn(!timerOn)}
                   />
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', height: '80px', width: '750px', marginLeft: '20px', borderBottom: '3px solid lightgrey', position: 'relative', marginTop: '0px', paddingBottom: '20px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', height: '80px', width: '750px', marginLeft: '20px', borderBottom: '6px solid lightgrey', position: 'relative', marginTop: '0px', paddingBottom: '20px' }}>
                   <label style={{ fontSize: '30px', color: 'black', marginLeft: '10px', marginRight: '38px', marginTop: '13px', fontFamily: "'Radio Canada', sans-serif", fontWeight: 'bold' }}>Feedback: </label>
                   <div style={{ display: 'flex', justifyContent: 'space-around', width: '500px', marginLeft: '100px', alignItems: 'center', marginTop: '20px' }}>
                     <div
@@ -520,7 +530,7 @@ const MCQA = () => {
                     </div>
                   </div>
                 </div>
-                <div style={{ width: '750px', height: '80px', border: '3px solid transparent', display: 'flex', position: 'relative', alignItems: 'center', borderRadius: '10px', padding: '10px' }}>
+                <div style={{ width: '750px', height: '80px', border: '6px solid transparent', display: 'flex', position: 'relative', alignItems: 'center', borderRadius: '10px', padding: '10px' }}>
                   <h1 style={{ fontSize: '30px', color: 'black', width: '400px', paddingLeft: '20px' }}>Choices Per Question</h1>
                   <div style={{ marginLeft: 'auto', marginTop: '45px', display: 'flex', position: 'relative', alignItems: 'center' }}>
                     {[2, 3, 4, 5].map((num) => (
@@ -539,7 +549,7 @@ const MCQA = () => {
                           marginLeft: '20px',
                           marginTop: '-45px',
                           backgroundColor: selectedOptions.includes(num) ? optionStyles[num].background : 'white',
-                          border: selectedOptions.includes(num) ? `5px solid ${optionStyles[num].color}` : '3px solid lightgrey',
+                          border: selectedOptions.includes(num) ? `5px solid ${optionStyles[num].color}` : '6px solid lightgrey',
                           borderRadius: '105px',
                           cursor: 'pointer',
                           transition: 'all 0.3s ease',
@@ -847,7 +857,7 @@ const MCQA = () => {
                   </div>
                 </div>
               </div>
-
+              </div>
               <div style={{ width: '770px', padding: '10px', marginTop: '20px', border: '4px solid #F4F4F4', borderRadius: '10px', marginBottom: '20px' }}>
                 <button
                   onClick={() => setSecurityDropdownOpen(!securityDropdownOpen)}
@@ -896,7 +906,7 @@ const MCQA = () => {
                         onChange={() => setLockdown(!lockdown)}
                       />
                     </div>
-                  </div>
+                 
                 </div>
               </div>
               {isReadyToPublish() && (

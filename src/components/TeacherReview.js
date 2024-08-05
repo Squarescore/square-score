@@ -10,18 +10,19 @@ const TeacherReview = () => {
   const [students, setStudents] = useState([]);
   const [currentReview, setCurrentReview] = useState(null);
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [currentReviewIndex, setCurrentReviewIndex] = useState(0); // New state variable
+  const [currentReviewIndex, setCurrentReviewIndex] = useState(0);
   const navigate = useNavigate();
   const [assignmentName, setAssignmentName] = useState('');
-const chunkSize= 10;
+  const chunkSize = 10;
+
   const fetchReviewsNeedingAttention = async () => {
-    const gradesCollection = collection(db, 'grades');
+    const gradesCollection = collection(db, 'grades(saq)');
     const gradesQuery = query(gradesCollection, where('assignmentId', '==', assignmentId));
     const querySnapshot = await getDocs(gradesQuery);
     let reviews = [];
     querySnapshot.forEach((doc) => {
       const gradeData = doc.data();
-      const needsReview = gradeData.gradedAnswers.some(answer => answer.review === true);
+      const needsReview = gradeData.questions.some(question => question.flagged);
       if (needsReview) {
         reviews.push({ id: doc.id, ...gradeData });
       }
@@ -41,10 +42,10 @@ const chunkSize= 10;
 
   useEffect(() => {
     const fetchAssignmentName = async () => {
-      const assignmentRef = doc(db, 'assignments', assignmentId);
+      const assignmentRef = doc(db, 'assignments(saq)', assignmentId);
       const assignmentDoc = await getDoc(assignmentRef);
       if (assignmentDoc.exists()) {
-        setAssignmentName(assignmentDoc.data().name);
+        setAssignmentName(assignmentDoc.data().assignmentName);
       }
     };
 
@@ -63,9 +64,10 @@ const chunkSize= 10;
     fetchAssignmentName();
     fetchClassAndReviews();
   }, [classId, assignmentId]);
+
   useEffect(() => {
     const fetchReviewCount = async () => {
-      const gradesCollection = collection(db, 'grades');
+      const gradesCollection = collection(db, 'grades(saq)');
       let count = 0;
 
       for (let i = 0; i < students.length; i += chunkSize) {
@@ -74,7 +76,7 @@ const chunkSize= 10;
 
         gradesQuery.forEach((doc) => {
           const gradeData = doc.data();
-          count += gradeData.gradedAnswers.filter(answer => answer.review === true).length;
+          count += gradeData.questions.filter(question => question.flagged).length;
         });
       }
 
@@ -96,77 +98,70 @@ const chunkSize= 10;
     }
   }, [students]);
 
-
-
   const handleGradeChange = async (newGrade) => {
-    if (currentReview && currentReview.gradedAnswers && currentReview.gradedAnswers[currentIndex]) {
-      // Update the grade in Firestore for the particular question
+    if (currentReview && currentReview.questions && currentReview.questions[currentIndex]) {
       const updatedReview = { ...currentReview };
-      updatedReview.gradedAnswers[currentIndex].grade = newGrade;
-      updatedReview.gradedAnswers[currentIndex].review = false; // Set review to false
-  
-      // Recalculate the total grade for the student's test
-      const totalGrade = updatedReview.gradedAnswers.reduce((accum, current) => accum + current.grade, 0);
-      updatedReview.grade = totalGrade;
-  
-      const reviewRef = doc(db, 'grades', `${currentReview.studentUid}_${assignmentId}`);
+      updatedReview.questions[currentIndex].score = newGrade;
+      updatedReview.questions[currentIndex].flagged = false;
+
+      const totalScore = updatedReview.questions.reduce((accum, current) => accum + current.score, 0);
+      const maxScore = updatedReview.questions.length * 2; // Assuming max score per question is 2
+      updatedReview.totalScore = totalScore;
+      updatedReview.maxScore = maxScore;
+      updatedReview.percentageScore = (totalScore / maxScore) * 100;
+
+      const reviewRef = doc(db, 'grades(saq)', `${assignmentId}_${currentReview.studentUid}`);
       await updateDoc(reviewRef, updatedReview);
-  
-      // Check if there are more reviews for the current student or move to next student
+
       const nextStudentIndex = students.findIndex(student => student.uid === currentReview.studentUid) + 1;
-      const needsReview = updatedReview.gradedAnswers.some(answer => answer.review === true);
-      if (!needsReview || currentIndex >= currentReview.gradedAnswers.length - 1) {
-        // No more questions to review for this student or all questions reviewed, move to the next student
+      const needsReview = updatedReview.questions.some(question => question.flagged);
+      if (!needsReview || currentIndex >= currentReview.questions.length - 1) {
         if (nextStudentIndex < students.length) {
-          setCurrentReviewIndex(nextStudentIndex); // Update currentReviewIndex
+          setCurrentReviewIndex(nextStudentIndex);
           fetchReviewsNeedingAttention();
         } else {
-          // Reached the end of students, go back to the first student
           setCurrentReviewIndex(0);
           fetchReviewsNeedingAttention();
-        }} else {
-        // Move to the next question for the same student
+        }
+      } else {
         setCurrentIndex(currentIndex + 1);
-          setCurrentReviewIndex(nextStudentIndex);
+        setCurrentReviewIndex(nextStudentIndex);
       }
     }
   };
+
   if (!currentReview) {
     return <div>No reviews available.</div>;
   }
 
-  const currentQuestion = currentReview.gradedAnswers[currentIndex];
+  const currentQuestion = currentReview.questions[currentIndex];
+
   const handleBack = () => {
     if (currentReviewIndex > 0) {
-      setCurrentReviewIndex(currentReviewIndex - 1); // Move to the previous review
+      setCurrentReviewIndex(currentReviewIndex - 1);
       fetchReviewsNeedingAttention();
     } else {
-      navigate(-1); // If at the first review, navigate back
+      navigate(-1);
     }
   };
-  
-
 
   const handleFeedbackChange = (e) => {
     const feedback = e.target.value;
-    
     setCurrentReview(prev => ({
       ...prev,
-      gradedAnswers: [{
-        ...prev.gradedAnswers[currentIndex],  
-        explanation: feedback
-      }]
-    }))
-  }
-  const handleDoneEditing = () => {
-    // Save to Firestore
-    
+      questions: prev.questions.map((q, idx) => 
+        idx === currentIndex ? { ...q, feedback } : q
+      )
+    }));
+  };
+
+  const handleSaveFeedback = async () => {
+    const reviewRef = doc(db, 'grades(saq)', `${assignmentId}_${currentReview.studentUid}`);
+    await updateDoc(reviewRef, {
+      questions: currentReview.questions
+    });
     setEditingFeedback(false);
-  }
-  const handleSaveFeedback = () => {
-    handleDoneEditing();
-  }
-  
+  };
   return (
     <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', backgroundColor: 'white'}}>
       <header style={{     backgroundColor: 'white',
@@ -183,37 +178,35 @@ position: 'relative',
 margin: '1% auto',
 width: '70%'}}> <button 
       onClick={handleBack} 
-      style={{ position: 'absolute',fontFamily: "'Radio Canada', sans-serif",left: '20px', textDecoration: 'none',  color: 'black', backgroundColor: 'white', border: 'none', cursor: 'pointer',  }}>
+      style={{ position: 'absolute',left: '20px', textDecoration: 'none',  color: 'black', backgroundColor: 'white', border: 'none', cursor: 'pointer',  }}>
     <img src="https://static.thenounproject.com/png/1875804-200.png" style={{width: '30px', opacity: '50%'}}/>
     </button>
     
     <h1 style={{ fontWeight: 'normal',
-    color: 'black', fontSize: '60px',   fontFamily: "'Radio Canada', sans-serif", }}>Results</h1>
+    color: 'black', fontSize: '60px',   fontFamily: "'Rajdhani', sans-serif",fontWeight: 'bold' }}>{assignmentName}</h1>
   </header>
 
 
-      <div style={{ padding: '10px', backgroundColor: 'transparent', textAlign: 'center', marginBottom: '20px', color: 'darkgrey' }}>
-      {reviewCount} flagged Responses remain
-    </div>
+     
     <div style={{width: '60%', marginLeft: 'auto', marginRight: 'auto',
-     textAlign: 'center', backgroundColor: 'white', padding: '20px', borderRadius: '20px', boxShadow: '10px 5px 20px 2px lightgrey'}}>
+     textAlign: 'center', backgroundColor: 'white', padding: '0px', borderRadius: '20px', }}>
    
-      <h2 style={{fontSize: '12px', color: 'grey'}}>Reviewing for {students.find(student => student.uid === currentReview.studentUid)?.name}</h2>
-      <div>
+   <h2 style={{fontSize: '12px', color: 'grey'}}>{reviewCount} flagged Responses remain, Reviewing for {students.find(student => student.uid === currentReview.studentUid)?.name}</h2>
+       <div>
 
-      <h4 style={{marginTop: '20px', marginLeft: 'auto', marginRight: 'auto', marginBottom: '-30px', color: 'white', backgroundColor: 'grey',zIndex: '11', position:'relative', borderRadius: '5px', width: '120px', padding: '5px',}}>Question</h4>
-        <div style={{marginLeft: 'auto', marginRight: 'auto', width: '65%',marginBottom: '4%',  backgroundColor: 'black', borderRadius: '5px', color: 'white'}}>
-        
-        <p style={{width: '90%', marginLeft: 'auto', marginRight: 'auto', padding: '20px'}}>{currentQuestion.question}</p>
-        </div>
+       <h4 style={{marginTop: '20px', color:'#E01FFF',marginLeft: 'auto', marginRight: 'auto', marginBottom: '-35px', backgroundColor: 'grey',zIndex: '11', position:'relative', borderRadius: '20px',  background: '#FBD3FF', border: '10px solid white', width: '170px', padding: '0px', fontFamily: "'Radio Canada', sans-serif",fontWeight: 'bold', fontSize: '30px'}}>Question</h4>
+          <div style={{marginLeft: 'auto', marginRight: 'auto', width: '700px',marginBottom: '4%',  backgroundColor: 'white', borderRadius: '30px', color: 'black', border: '7px solid #FBD3FF'}}>
+            <p style={{width: '90%', marginLeft: 'auto', marginRight: 'auto', padding: '20px', fontSize: '30px',
+         fontFamily: "'Radio Canada', sans-serif",fontWeight: 'bold', }}>{currentQuestion.question}</p>
+          </div>
 
-        <h5  style={{marginTop: '20px', marginLeft: 'auto', marginRight: 'auto', marginBottom: '-17px', color: 'black', backgroundColor: 'white',zIndex: '11', position:'relative', borderRadius: '5px', width: '120px', padding: '5px'}}>Student Answer</h5>
-        <div style={{marginLeft: 'auto', marginRight: 'auto', width: '85%', marginBottom: '4%',  backgroundColor: 'white', borderRadius: '5px', border: '4px solid black'}}>
-        
-        <p style={{width: '90%', marginLeft: 'auto', marginRight: 'auto', padding: '20px'}}> {currentQuestion.response || "Not provided"
-}</p>
-        <p style={{color: 'lightgrey'}}>Current Grade: {currentQuestion.grade}</p>
-        </div>
+          <h5 style={{marginTop: '20px', marginLeft: 'auto', marginRight: 'auto', marginBottom: '-35px', color: '#54AAA4', backgroundColor: '#A3F2ED', border: '10px solid white',zIndex: '11', position:'relative', borderRadius: '20px', width: '300px', padding: '0px', fontSize: '30px',
+         fontFamily: "'Radio Canada', sans-serif",fontWeight: 'bold', }}>Student Answer</h5>
+          <div style={{marginLeft: 'auto', marginRight: 'auto', width: '85%', marginBottom: '4%',  backgroundColor: 'white', borderRadius: '20px', border: '7px solid #54AAA4'}}>
+            <p style={{width: '90%', marginLeft: 'auto', marginRight: 'auto', padding: '10px', fontSize: '20px',
+         fontFamily: "'Radio Canada', sans-serif",fontWeight: 'bold', }}>{currentQuestion.studentResponse || "Not provided"}</p>
+            <p style={{color: 'lightgrey'}}>Points given: {currentQuestion.score}</p>
+          </div>
 
 
 
@@ -223,7 +216,8 @@ width: '70%'}}> <button
         marginLeft: 'auto', marginRight: 'auto',
          marginBottom: '-17px', color: 'black', 
          backgroundColor: 'white',
-         
+         fontSize: '20px',
+         fontFamily: "'Radio Canada', sans-serif",fontWeight: 'bold', 
          zIndex: '11', position:'relative',
          borderRadius: '5px', width: '120px', padding: '5px'}}>
 
@@ -237,12 +231,12 @@ width: '70%'}}> <button
         
     
 {editingFeedback ? (
-  <textarea style={{width: '90%', marginLeft: 'auto', marginRight: 'auto', padding: '20px', fontSize: '14px',textAlign: 'center',borderColor: 'transparent'}}
-    value={currentQuestion.explanation}
+  <textarea style={{width: '90%', marginLeft: 'auto', marginRight: 'auto', padding: '10px', fontSize: '14px',textAlign: 'center',borderColor: 'transparent'}}
+  value={currentQuestion.feedback}
     onChange={handleFeedbackChange} 
   />  
 ) : (
-  <p style={{width: '90%', marginLeft: 'auto', marginRight: 'auto', padding: '20px', fontSize: '14px'}}>{currentQuestion.explanation}</p>
+  <p style={{width: '90%', marginLeft: 'auto',fontFamily: "'Radio Canada', sans-serif",fontWeight: 'bold',  marginRight: 'auto', padding: '10px', fontSize: '14px'}}>{currentQuestion.feedback}</p>
 )}
 
         </div>
@@ -253,11 +247,12 @@ marginTop: '20px', cursor: 'pointer'}}>Save</button>
 
 )}
         <button style={{width: '20%', fontSize: '30px',
-         boxShadow: '10px 5px 20px 2px lightgrey',
           borderColor: 'transparent', 
            borderRadius: '20px',transition: '.5s',
            borderWidth: '4px',
            height:'40px',
+           fontWeight: 'bold',
+           fontFamily: "'Radio Canada', sans-serif" ,
            color: 'darkred', 
            borderStyle: 'solid',
         
@@ -277,8 +272,9 @@ marginTop: '20px', cursor: 'pointer'}}>Save</button>
 
 
         <button style={{width: '10%',
-        fontFamily: "'Roboto Mono', sans-serif" ,
-        fontSize: '30px', boxShadow: '2px 2px 10px 1px rgba(0, 0, 0, 0.2)',
+        fontFamily: "'Radio Canada', sans-serif" ,
+        fontWeight: 'bold',
+        fontSize: '30px', 
          borderColor: 'transparent',  height:'60px',color: 'goldenrod',
          transition: '.5s',
            borderWidth: '4px',
@@ -299,9 +295,11 @@ marginTop: '20px', cursor: 'pointer'}}>Save</button>
            >1</button>
 
 
-        <button style={{width: '20%',fontSize: '30px', boxShadow: '10px 5px 20px 2px lightgrey', 
+        <button style={{width: '20%',fontSize: '30px',
         borderColor: 'transparent',
         transition: '.5s',
+        fontWeight: 'bold',
+        fontFamily: "'Radio Canada', sans-serif" ,
            borderWidth: '4px',
         borderStyle: 'solid',  borderRadius: '20px',height:'40px', 
          color: 'darkgreen', backgroundColor: 'lightgreen', }} onClick={() => handleGradeChange(2)}

@@ -9,36 +9,37 @@ import StudentHome from './components/StudentHome';
 import TeacherHome from './components/TeacherHome';
 import StudentClassHome from './components/StudentClassHome';
 import TeacherClassHome from './components/TeacherClassHome';
-import Drafts from './components/Drafts';
+import Drafts from './components/Resources';
 import TeacherAssignmentHome from './components/TeacherAssignmentHome';
-import CreateAssignment from './components/SAQ';
+import CreateAssignment from './components/CreateSAQ';
+import SAQA from './components/CreateASAQ';
 import Participants from './components/Participants';
 import TeacherGradesHome from './components/TeacherGradesHome';
 import TeacherReview from './components/TeacherReview';
-import TeacherPreview from './components/TeacherPreview';
+import TeacherPreview from './components/PreviewSAQ';
 import CreateClass from './components/CreateClass';
 import JoinClass from './components/JoinClass';
 import StudentAssignments from './components/StudentAssignments';
-import TakeTest from './components/TakeTest';
+import TakeTest from './components/TakeSAQ';
 import TestCompleted from './components/TestCompleted';
 import StudentGrades from './components/StudentGrades';
 import TeacherStudentResults from './components/TeacherStudentResults';
 import SelectStudents from './components/SelectStudents';
-import TeacherResults from './components/TeacherResults';
+import TeacherResults from './components/ResultsSAQ';
+import TeacherStudentResultsAMCQ from './components/TeacherStudentResultsAMCQ';
 import StudentResults from './components/StudentResults';
-
+import TeacherResultsAMCQ from './components/ResultsAMCQ';
+import TeacherPreviewASAQ from './components/PreviewASAQ';
 import { doc, getDoc } from "firebase/firestore"; // Importing from Firestore
 import { db, storage } from './components/firebase';
-import Chat from './components/Chat';
-import MCQ from './components/MCQ';
-import AMCQ from './components/AMCQ';
-import TeacherUploads from './components/TeacherUploads';
+import MCQ from './components/CreateMCQ';
 import { signOut } from 'firebase/auth';
 
 import TestPage  from './components/TestPage';
 import TermsOfService from './components/TermsofService';
-import MCQA from './components/MCQA';
+import MCQA from './components/CreateAMCQ';
 import TeacherStudentGrades from './components/TeacherStudentGrades';
+import TakeASAQ from './components/TakeASAQ';
 import TakeAmcq from './components/TakeAmcq';
 function App() {
   const [user, setUser] = useState(null);
@@ -114,10 +115,12 @@ useEffect(() => {
 
         <Route path="/class/:classId/teacherassignmenthome" element={<TeacherAssignmentHome currentPage="Grades"/>} />
         <Route path="/class/:classId/createassignment/:assignmentId" element={<CreateAssignment currentPage="Create"/>} />
+        
+        <Route path="/class/:classId/SAQA/:assignmentId" element={<SAQA currentPage="Create"/>} />
         <Route path="/class/:classId/MCQ/:assignmentId" element={<MCQ currentPage="Create"/>} />
-        <Route path="/class/:classId/AMCQ/:assignmentId" element={<AMCQ currentPage="Create"/>} />
         <Route path="/class/:classId/MCQA/:assignmentId" element={<MCQA currentPage="Create"/>} />
         <Route path="/class/:classId/teacherpreview" element={<TeacherPreview currentPage="Create"/>} />
+        <Route path="/class/:classId/teacherpreviewASAQ" element={<TeacherPreviewASAQ currentPage="Create"/>} />
         <Route path="/class/:classId/selectstudents" element={<SelectStudents currentPage="Create"/>} />
 
 
@@ -127,7 +130,10 @@ useEffect(() => {
         <Route path="/class/:classId/TeacherGradesHome" element={<TeacherGradesHome currentPage="Grades"/>} />
         <Route path="/class/:classId/student/:studentUid/grades" element={<TeacherStudentGrades currentPage="Grades"/>} />
         <Route path="/teacherStudentResults/:assignmentId/:studentUid/:classId" element={<TeacherStudentResults currentPage="Grades"/>} />
+        <Route path="/teacherStudentResultsAMCQ/:assignmentId/:studentUid/:classId" element={<TeacherStudentResultsAMCQ currentPage="Grades"/>} />
+        
         <Route path="/class/:classId/assignment/:assignmentId/TeacherResults" element={<TeacherResults />} />
+        <Route path="/class/:classId/assignment/:assignmentId/TeacherResultsAMCQ" element={<TeacherResultsAMCQ />} />
         <Route path="/teacherReview/:classId/:assignmentId" element={<TeacherReview currentPage="Grades"/>} />
         
 
@@ -149,6 +155,8 @@ useEffect(() => {
         <Route path="/studentclasshome/:classId" element={<StudentClassHome />} />
         <Route path="/studentassignments/:classId" element={<StudentAssignments />} />
         <Route path="/taketests/:assignmentId" element={<TakeTest />} />
+        
+        <Route path="/takeASAQ/:assignmentId" element={<TakeASAQ/>} />
         <Route path="/takeAmcq/:assignmentId" element={<TakeAmcq/>} />
         <Route path="/joinclass" element={<JoinClass />} />
         <Route path="/testcompleted/:gradeDocId/:classId"  element={<TestCompleted />}/>     

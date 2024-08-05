@@ -11,12 +11,16 @@ const SignUp = () => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
-  const [role, setRole] = useState('student'); // Default role
+  const [role, setRole] = useState(''); // Default role
   const [error, setError] = useState(null);
   const navigate = useNavigate(); // Initialize the navigate function
   const [showPopup, setShowPopup] = useState(false); // New state variable
   const [navbarBg, setNavbarBg] = useState('rgba(255,255,255,0.7)');
-
+ 
+  const formatName = (name) => {
+    // Remove spaces, capitalize first letter, lowercase the rest
+    return name.replace(/\s/g, '').charAt(0).toUpperCase() + name.slice(1).toLowerCase();
+  };
   const handleSignUp = async (e) => {
     e.preventDefault();
 
@@ -31,8 +35,8 @@ const SignUp = () => {
 
       const userProfile = {
         email,
-        firstName,
-        lastName,
+        firstName: formatName(firstName),
+        lastName: formatName(lastName),
       };
 
       if (role === 'student') {
@@ -166,6 +170,7 @@ className="white-background" style={{width: '1000px', marginLeft: 'auto', border
         <form onSubmit={handleSignUp}>
           <div style={{ display: 'flex', justifyContent: 'space-between', width: '50%',marginLeft: 'auto',marginBottom: '40px' , marginTop: '-160px'}}>
             <button 
+             type="button"
               onClick={() => toggleRole('student')}
               style={{ 
                 flex: 1, 
@@ -187,6 +192,7 @@ className="white-background" style={{width: '1000px', marginLeft: 'auto', border
               Student
             </button>
             <button 
+             type="button"
               onClick={() => toggleRole('teacher')}
               style={{ 
                 flex: 1, 
@@ -215,12 +221,15 @@ className="white-background" style={{width: '1000px', marginLeft: 'auto', border
                 <input 
                   type="text" 
                   placeholder="First Name" 
+                  
                   value={firstName}
                   onFocus={() => handleInputFocus('firstName')}
                   onBlur={(e) => handleInputBlur('firstName', e.target.value)}
                   onChange={e => {
-                    setFirstName(e.target.value);
-                    e.target.style.borderColor= e.target.value.trim() !== '' ? 'lightgreen' : 'lightgrey';
+                    const formattedName = formatName(e.target.value);
+                    setFirstName(formattedName);
+                    e.target.value = formattedName;
+                    e.target.style.borderColor = formattedName.trim() !== '' ? 'lightgreen' : 'lightgrey';
                   }}
                   style={{ 
                     width: '90%', 
@@ -248,8 +257,10 @@ className="white-background" style={{width: '1000px', marginLeft: 'auto', border
                   onFocus={() => handleInputFocus('lastName')}
                   onBlur={(e) => handleInputBlur('lastName', e.target.value)}
                   onChange={e => {
-                    setLastName(e.target.value);
-                    e.target.style.borderColor= e.target.value.trim() !== '' ? 'lightgreen' : 'lightgrey';
+                    const formattedName = formatName(e.target.value);
+                    setLastName(formattedName);
+                    e.target.value = formattedName;
+                    e.target.style.borderColor = formattedName.trim() !== '' ? 'lightgreen' : 'lightgrey';
                   }}
                   style={{ 
                     width: '100%', 

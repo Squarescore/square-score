@@ -39,10 +39,10 @@ const TeacherAssignmentHome = () => {
   
     if (selectedAssignmentType === 'short-answer') {
       if (isAdaptive) {
-        assignmentId += 'SAQ*';
-        collectionName = 'assignments(saq*)';
-        classFieldName = 'assignment(saq*)';
-        navigationPath = `/class/${classId}/createassignment/${assignmentId}`;
+        assignmentId += 'ASAQ';
+        collectionName = 'assignments(Asaq)';
+        classFieldName = 'assignment(Asaq)';
+        navigationPath = `/class/${classId}/SAQA/${assignmentId}`;
       } else {
         assignmentId += 'SAQ';
         collectionName = 'assignments(saq)';

@@ -372,24 +372,26 @@ const TeacherResults = () => {
 
   useEffect(() => {
     const fetchReviewCount = async () => {
-      const gradesCollection = collection(db, 'grades');
+      const gradesCollection = collection(db, 'grades(saq)');
       let count = 0;
-
+    
       for (let i = 0; i < students.length; i += chunkSize) {
         const studentChunk = students.slice(i, i + chunkSize).map(student => student.uid);
         const gradesQuery = await getDocs(query(gradesCollection, where('studentUid', 'in', studentChunk), where('assignmentId', '==', assignmentId)));
-
+    
         gradesQuery.forEach((doc) => {
           const gradeData = doc.data();
-          count += gradeData.gradedAnswers.filter(answer => answer.review === true).length;
+          count += (gradeData.questions || []).filter(question => question.flagged).length;
         });
       }
-
+    
       setReviewCount(prevCount => {
         console.log("New Review count:", count);
         return count;
       });
     };
+
+   
 
     if (students.length > 0) {
       fetchReviewCount();
@@ -538,7 +540,7 @@ const TeacherResults = () => {
                     width: '48%',
                     margin: '10px 0',
                     padding: '15px',
-                    border: selectedStudents.includes(student.uid) ? '3px solid #54AAA4' : '3px solid #e0e0e0',
+                    border: selectedStudents.includes(student.uid) ? '6px solid #54AAA4' : '6px solid #e0e0e0',
                     borderRadius: '10px',
                     cursor: 'pointer',
                     transition: 'all 0.3s ease',
@@ -704,7 +706,7 @@ const TeacherResults = () => {
 {isAssignModalOpen && <AssignModal />}
       <div style={{ width: '810px', display: 'flex', justifyContent: 'space-between', marginTop: '20px', alignSelf: 'center', alignItems: 'center', marginLeft: '30px'}}>
        
-        <button onClick={() => setIsAssignModalOpen(true)} style={{width: '450px', fontSize: '20px', height:'50px', borderRadius: '10px', fontWeight: 'bold',  border: '3px solid #F4F4F4', background:' white', cursor: 'pointer',
+        <button onClick={() => setIsAssignModalOpen(true)} style={{width: '450px', fontSize: '20px', height:'50px', borderRadius: '10px', fontWeight: 'bold',  border: '6px solid #F4F4F4', background:' white', cursor: 'pointer',
 
 marginLeft: '10px',
 transition: '.3s',
@@ -722,7 +724,7 @@ onMouseLeave={(e) => {
 
 }}>Assign to New Students</button>
 
-<div style={{width: '450px', fontSize: '20px', height:'45px', borderRadius: '10px', fontWeight: 'bold',  border: '3px solid #F4F4F4', background:' white', cursor: 'pointer', display:'flex',
+<div style={{width: '450px', fontSize: '20px', height:'45px', borderRadius: '10px', fontWeight: 'bold',  border: '6px solid #F4F4F4', background:' white', cursor: 'pointer', display:'flex',
 alignItems: 'center',
 marginLeft: '10px',
 transition: '.3s',
@@ -752,7 +754,7 @@ transition: '.3s',
         justifyContent: 'space-between', 
         marginRight: 'auto', 
         marginLeft: 'auto', 
-         border: '3px solid #F4F4F4', 
+         border: '6px solid #F4F4F4', 
         backgroundColor: 'white', 
         borderRadius: '10px', 
         padding: '10px', 
@@ -852,7 +854,7 @@ onClick={() => assignmentStatuses[student.uid] === 'Paused' && togglePauseAssign
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  border: '3px solid #54AAA4',
+                  border: '6px solid #54AAA4',
                   borderBottomRightRadius: '10px',
                   borderTopRightRadius: '10px',
                   cursor: 'pointer',

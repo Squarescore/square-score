@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams, useLocation } from 'react-router-dom';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from './firebase';
 import Navbar from './Navbar';
@@ -9,6 +9,7 @@ import { deleteDoc } from 'firebase/firestore';
 
 const TeacherClassHome = ({ currentPage }) => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { classId } = useParams(); // Extract classId from the URL
   const [className, setClassName] = useState(''); // State to store the class name
   const [classTheme, setClassTheme] = useState(null);
@@ -16,8 +17,84 @@ const TeacherClassHome = ({ currentPage }) => {
   const [overallAverage, setOverallAverage] = useState('N/A');
   const [classChoice, setClassChoice] = useState('');
   const [classChoiceStyle, setClassChoiceStyle] = useState({});
+  const [assignmentFormat, setAssignmentFormat] = useState('');
 
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
+  const [newAssignmentId, setNewAssignmentId] = useState('');
+
+  useEffect(() => {
+    if (location.state?.successMessage) {
+      setSuccessMessage(location.state.successMessage);
+      setNewAssignmentId(location.state.assignmentId);
+      setAssignmentFormat(location.state.format);
+      // Clear the message from location state
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [location, navigate]);
+
+  const handleDismiss = () => {
+    setSuccessMessage('');
+    setNewAssignmentId('');
+    setAssignmentFormat('');
+  };
+  
+  const handleResults = () => {
+    setSuccessMessage('');
+    setNewAssignmentId('');
+    setAssignmentFormat('');
+    
+    // Extract classId and assignmentId from the newAssignmentId
+    const [classId, uid, assignmentId] = newAssignmentId.split('+');
+    const fullAssignmentId = `${classId}+${uid}+${assignmentId}`;
+  
+    switch(assignmentFormat) {
+      case 'AMCQ':
+      case 'MCQ':
+        navigate(`/class/${classId}/assignment/${fullAssignmentId}/TeacherResultsAMCQ`);
+        break;
+      case 'SAQ':
+      case 'ASAQ':
+        navigate(`/class/${classId}/assignment/${fullAssignmentId}/TeacherResults`);
+        break;
+      default:
+        console.error('Unknown assignment format');
+    }
+  };
+
+  const getNotificationStyles = (format) => {
+    switch(format) {
+      case 'AMCQ':
+      case 'MCQ':
+        return {
+          background: '#AEF2A3',
+          border: '#4BD682',
+          color: '#45B434',
+          buttonBg: '#FFECA9',
+          buttonColor: '#CE7C00',
+          buttonBorder: '#CE7C00'
+        };
+      case 'SAQ':
+      case 'ASAQ':
+        return {
+          background: '#9DA6FF',
+          border: '#020CFF',
+          color: '#020CFF',
+          buttonBg: '#627BFF',
+          buttonColor: '#FFFFFF',
+          buttonBorder: '#020CFF'
+        };
+      default:
+        return {
+          background: '#F4F4F4',
+          border: '#CCCCCC',
+          color: '#666666',
+          buttonBg: '#CCCCCC',
+          buttonColor: '#666666',
+          buttonBorder: '#666666'
+        };
+    }
+  };
   const periodStyles = {
     1: { background: '#A3F2ED', color: '#1CC7BC' },
         2: { background: '#F8CFFF', color: '#E01FFF' },
@@ -247,6 +324,75 @@ backgroundColor: 'rgb(50,50,50)',
   />
 )}
       <main style={{ flexGrow: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', marginTop: '60px' }}>
+     
+      {successMessage && (
+          <div style={{
+            position: 'fixed',
+            top: '70px',
+            zIndex: '10000',
+            left: '0',
+            right: '0',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            background: getNotificationStyles(assignmentFormat).border,
+             height: '6px'
+          }}>
+            <div style={{width: '1000px',marginLeft: 'auto', marginRight: 'auto',  }}>
+            <div style={{
+              backgroundColor: getNotificationStyles(assignmentFormat).background,
+              border: `6px solid ${getNotificationStyles(assignmentFormat).border}`,
+              borderBottomLeftRadius: '20px',
+              
+              borderTop: '0px',
+              borderBottomRightRadius: '20px',
+              padding: '0px 20px',
+              height: '40px',
+              display: 'flex',
+              marginRight: 'auto',
+              alignItems: 'center',
+              marginBottom: '20px',
+              whiteSpace: 'nowrap',
+              width: '500px',
+            }}>
+              <p style={{ color: getNotificationStyles(assignmentFormat).color, fontWeight: 'bold', marginRight: '20px' }}>{successMessage}</p>
+              <button
+                onClick={handleResults}
+                style={{
+                  backgroundColor: getNotificationStyles(assignmentFormat).buttonBg,
+                  color: getNotificationStyles(assignmentFormat).buttonColor,
+                  fontSize: '16px',
+                  fontFamily: "'Radio Canada', sans-serif",
+                  fontWeight: 'BOLD',
+                  height: '30px',
+                  border: `6px solid ${getNotificationStyles(assignmentFormat).buttonBorder}`,
+                  borderRadius: '5px',
+                  marginRight: '10px',
+                  cursor: 'pointer'
+                }}
+              >
+                Grades
+              </button>
+              <button
+                onClick={handleDismiss}
+                style={{
+                  backgroundColor: 'white',
+                  color: getNotificationStyles(assignmentFormat).color,
+                  fontSize: '16px',
+                  fontFamily: "'Radio Canada', sans-serif",
+                  fontWeight: 'BOLD',
+                  height: '30px',
+                  border: `6px solid ${getNotificationStyles(assignmentFormat).border}`,
+                  borderRadius: '5px',
+                  cursor: 'pointer'
+                }}
+              >
+                Dismiss
+              </button>
+            </div>
+            </div>
+          </div>
+        )}
      <div  style={{ flexGrow: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', marginTop: '20px', width: '1200px'}}>
 
 

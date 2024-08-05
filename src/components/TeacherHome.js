@@ -137,7 +137,7 @@ const TeacherHome = () => {
           fontFamily: "'Radio Canada', sans-serif",
           fontWeight: 'BOLD',
           height: '30px',
-          border: '3px solid #CE7C00',
+          border: '6px solid #CE7C00',
           borderRadius: '5px',
           marginRight: '10px',
           cursor: 'pointer'
@@ -154,7 +154,7 @@ const TeacherHome = () => {
           fontFamily: "'Radio Canada', sans-serif",
           fontWeight: 'BOLD',
           height: '30px',
-          border: '3px solid #4BD682',
+          border: '6px solid #4BD682',
           borderRadius: '5px',
           cursor: 'pointer'
         }}

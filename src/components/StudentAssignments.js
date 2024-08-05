@@ -68,9 +68,11 @@ const [confirmAssignment, setConfirmAssignment] = useState(null);
             let assignmentDocRef;
             if (assignmentId.endsWith('AMCQ')) {
               assignmentDocRef = doc(db, 'assignments(Amcq)', assignmentId);
+            } else if (assignmentId.endsWith('ASAQ')) {
+              assignmentDocRef = doc(db, 'assignments(Asaq)', assignmentId);
             } else {
               assignmentDocRef = doc(db, 'assignments(saq)', assignmentId);
-            }
+            } 
             const assignmentDoc = await getDoc(assignmentDocRef);
             if (assignmentDoc.exists()) {
               return { 
@@ -149,7 +151,7 @@ const [confirmAssignment, setConfirmAssignment] = useState(null);
 
     if (now < assignDateTime) {
       return {
-        border: '3px solid grey',
+        border: '6px solid grey',
         cursor: 'not-allowed',
         opacity: 0.5
       };
@@ -157,14 +159,14 @@ const [confirmAssignment, setConfirmAssignment] = useState(null);
 
     if (now > dueDateTime) {
       return {
-        border: '3px solid red',
+        border: '6px solid red',
         cursor: 'not-allowed',
         opacity: 0.5
       };
     }
 
     return {
-      border: '3px solid #AEF2A3',
+      border: '6px solid #AEF2A3',
     };
   };
   const RetroConfirm = ({ onConfirm, onCancel, assignmentName, saveAndExitEnabled }) => (
@@ -300,20 +302,20 @@ const [confirmAssignment, setConfirmAssignment] = useState(null);
           backgroundColor: 'white', 
           fontFamily: "'Radio Canada', sans-serif",
           transition: '.4s',
-          border: grade.viewable ? '3px solid #54AAA4' : '3px solid lightgrey',
+          border: grade.viewable ? '6px solid #54AAA4' : '6px solid lightgrey',
           listStyleType: 'none',
           textAlign: 'center', 
           marginTop: '20px', 
           height: '69px',
       marginLeft: '-40px',
           padding: '10px', 
-          borderRadius: '10px',
+          borderRadius: '15px',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
           position: 'relative',
-          borderTopRightRadius: grade.viewable ? '0px' : '10px',
-          borderBottomRightRadius: grade.viewable ? '0px' : '10px',
+          borderTopRightRadius: grade.viewable ? '0px' : '15px',
+          borderBottomRightRadius: grade.viewable ? '0px' : '15px',
         }}>
           <div style={{display: 'flex'}}>
             {grade.viewable && 
@@ -324,14 +326,14 @@ const [confirmAssignment, setConfirmAssignment] = useState(null);
               top: '50%', 
               width: '60px',
               cursor: 'pointer',
-              height: '94px',
+              height: '101px',
               padding: '10px 20px 10px 20px',
               display: 'flex',
               transform: 'translateY(-50%)', 
               color: 'white',
               backgroundColor: '#A3F2ED',
-              border: '3px solid #54AAA4',
-              borderRadius: '10px',
+              border: '6px solid #54AAA4',
+              borderRadius: '15px',
               marginBottom: '5px',
               borderTopLeftRadius: '0px',
               borderBottomLeftRadius: '0px',
@@ -445,7 +447,7 @@ const [confirmAssignment, setConfirmAssignment] = useState(null);
               textAlign: 'center',
               marginTop: '30px',
               padding: '10px',
-              borderRadius: '10px',
+              borderRadius: '15px',
               ...getAssignmentStyle(assignment.assignDate, assignment.dueDate)
             }}
             onMouseEnter={(e) => {
@@ -458,8 +460,8 @@ const [confirmAssignment, setConfirmAssignment] = useState(null);
             }}
             onMouseLeave={(e) => {
               setHoveredAssignment(null);
-              e.currentTarget.style.borderTopRightRadius = '10px';
-              e.currentTarget.style.borderBottomRightRadius = '10px';
+              e.currentTarget.style.borderTopRightRadius = '15px';
+              e.currentTarget.style.borderBottomRightRadius = '15px';
               e.currentTarget.style.borderColor = '#AEF2A3';
             }}
           >
@@ -470,7 +472,7 @@ const [confirmAssignment, setConfirmAssignment] = useState(null);
               </h1>
             </div>
             {assignment.inProgress && (
-              <div style={{ position: 'absolute', top: '15px', left: '20px', backgroundColor: '#FFECA8', paddingLeft: '15px', fontWeight: 'bold', color: '#C69007',paddingRight: '15px',fontFamily: "'Radio Canada', sans-serif", border: '0px solid white' ,fontSize: '20px',borderRadius: '5px' }}>
+              <div style={{ position: 'absolute', top: '15px', left: '20px', backgroundColor: '#FFECA8', paddingLeft: '15px', fontWeight: 'bold', color: '#C69007',paddingRight: '15px',fontFamily: "'Radio Canada', sans-serif", border: '5px solid white' ,fontSize: '20px',borderRadius: '5px' }}>
                 In Progress     {assignment.status === 'Paused' && (
             <div style={{ 
               position: 'absolute', 
@@ -545,22 +547,22 @@ const [confirmAssignment, setConfirmAssignment] = useState(null);
               )}
                 style={{
                 position: 'absolute',
-                left: '783px',
-                top: '92px',
+                left: '785px',
+                top: '96px',
                 transform: 'translateY(-50%)',
                 background: '#AEF2A3',
                 color: 'white',
                 padding: 0,
                 cursor: 'pointer',
-                borderRadius: '0 10px 10px 0',
-                height: '124px',
+                borderRadius: '0 15px 15px 0',
+                height: '132px',
                 width: hoveredAssignment === assignment.id ? '90px' : '3px',
                 opacity: hoveredAssignment === assignment.id ? 1 : 0,
                 transition: 'width .4s ease-in-out, left .4s ease-in-out, opacity 0.3s ease-in-out',
                 fontFamily: "'Radio Canada', sans-serif",
                 fontSize: '20px',
                 fontWeight: 'bold',
-                border: '3px solid #2BB514',
+                border: '6px solid #2BB514',
                 overflow: 'hidden',
                 display: 'flex',
                 justifyContent: 'center',
@@ -594,6 +596,8 @@ const [confirmAssignment, setConfirmAssignment] = useState(null);
       setShowConfirm(false);
       if (confirmAssignment.type === 'AMCQ') {
         navigate(`/TakeAmcq/${confirmAssignment.id}`);
+      } else if (confirmAssignment.type === 'ASAQ') {
+        navigate(`/TakeAsaq/${confirmAssignment.id}`);
       } else {
         navigate(`/taketests/${confirmAssignment.id}`);
       }
@@ -645,7 +649,7 @@ const [confirmAssignment, setConfirmAssignment] = useState(null);
           </div>
       <div style={{ width: '800px', marginRight: 'auto', marginLeft: 'auto', marginTop: '160px', }}>
         <div style={{ display: 'flex', marginBottom: '50px', width: '800px', position: 'relative', alignItems: 'center' }}>
-          <h1 style={{ fontSize: '60px', fontFamily: "'Rajdhani', sans-serif", textAlign: 'left', margin: '0', flex: '1' }}>
+          <h1 style={{ fontSize: '70px', fontFamily: "'Rajdhani', sans-serif", textAlign: 'left', margin: '0', flex: '1' }}>
             Assignments
           </h1>
          

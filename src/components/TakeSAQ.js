@@ -24,6 +24,21 @@ function TakeTests() {
 const [scaleMax, setScaleMax] = useState(2);
   const [saveAndExit, setSaveAndExit] = useState(false);
   const [lockdown, setLockdown] = useState(false);
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+
+  const fetchUserName = async () => {
+    const userRef = doc(db, 'students', auth.currentUser.uid);
+    const userDoc = await getDoc(userRef);
+    if (userDoc.exists()) {
+      setFirstName(userDoc.data().firstName);
+      setLastName(userDoc.data().lastName);
+    }
+  };
+  useEffect(() => {
+    fetchUserName();
+  }, []);
+
   useEffect(() => {
     const fetchAssignmentAndProgress = async () => {
       setLoading(true);
@@ -104,6 +119,8 @@ const [scaleMax, setScaleMax] = useState(2);
         await setDoc(progressRef, {
           assignmentId,
           studentUid,
+          firstName: firstName,
+          lastName: lastName,
           questions: questions.map(q => ({
             questionId: q.questionId,
             text: q.text,
@@ -232,6 +249,8 @@ const [scaleMax, setScaleMax] = useState(2);
         assignmentId,
         studentUid,
         assignmentName,
+        firstName: firstName,
+        lastName: lastName,
         classId,
         submittedAt: serverTimestamp(),
         rawTotalScore, // This is already divided by 2
@@ -511,7 +530,7 @@ const [scaleMax, setScaleMax] = useState(2);
         <button
           onClick={async () => {
             await saveProgress();
-            navigate(`/studentclasshome/${classId}`);
+            navigate(`/studentassignments/${classId}`);
           }}
           style={{
             backgroundColor: 'transparent',

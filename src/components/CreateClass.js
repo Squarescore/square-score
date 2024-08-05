@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { auth, db } from './firebase';
 import { doc, setDoc } from "firebase/firestore";
 import { v4 as uuidv4 } from 'uuid';
-import CJNavbar from './CJNavbar';
+import HomeNavbar from './HomeNavbar';
 import { useNavigate } from 'react-router-dom';
 import  {useCallback, useEffect } from 'react';
 import './BackgroundDivs.css'; // Make sure this file exists in the same directory
@@ -192,7 +192,7 @@ const CreateClass = () => {
 
   return (
     <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', backgroundColor: 'transparent'}}>
-      <CJNavbar userType="teacher" />
+      <HomeNavbar userType="teacher" />
       {positions.map((pos, index) => (
       <div
         key={index}
@@ -295,7 +295,7 @@ const CreateClass = () => {
       fontSize: '30px', 
       borderRadius: '50%',
       backgroundColor: 'white', 
-       border: '3px solid #F4F4F4',  
+       border: '6px solid #F4F4F4',  
       lineHeight: '30px',
       textAlign: 'center',  
       color: 'black',
@@ -346,7 +346,7 @@ const CreateClass = () => {
       top: '117px',
       right: '5px',
       width: '500px',padding: '20px 30px', fontWeight: 'bold', height: '10px', marginTop: '-50px',
-                  border: '3px solid #F4C10A ', paddingRight: '40px', borderRadius: '10px',
+                  border: '6px solid #F4C10A ', paddingRight: '40px', borderRadius: '10px',
                   fontSize: '20px',  fontFamily: "'Radio Canada', sans-serif",
                   
                   outline: 'none', transition: 'all 0.3s ease',

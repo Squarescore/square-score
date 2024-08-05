@@ -20,7 +20,7 @@ function TeacherGradesHome() {
       try {
         const assignmentsCollections = [
           'assignments(saq)',
-          'assignments(saq*)',
+          'assignments(Asaq)',
           'assignments(mcq)',
           'assignments(Amcq)'
         ];
@@ -148,7 +148,7 @@ function TeacherGradesHome() {
         }}>
           <h1 style={{ color: 'black', fontSize: '80px', fontFamily: "'Rajdhani', sans-serif", marginLeft: '0px' }}>Grades</h1>
           <div style={{
-            width: '250px', border: '3px solid #D7D7D7', display: 'flex', padding: '20px', borderRadius: '10px', height: '25px', marginLeft: '70px', marginTop: '75px'
+            width: '250px', border: '6px solid #D7D7D7', display: 'flex', padding: '20px', borderRadius: '10px', height: '25px', marginLeft: '70px', marginTop: '75px'
           }}>
             <h1 style={{ position: 'absolute', marginTop: '-50px', fontSize: '26px', padding: '8px', backgroundColor: 'white', fontFamily: "'Radio Canada', sans-serif" }}> Sort By</h1>
             <button
@@ -227,12 +227,12 @@ function TeacherGradesHome() {
   <li
     key={assignment.id}
     onClick={(e) => {
-      if (!e.target.classList.contains('slider') && !e.target.parentElement.classList.contains('slider')) {
-        if (assignment.type === 'dbq') {
-          navigate(`/class/${classId}/dbq/${assignment.id}/TeacherDBQResults`);
-        } else {
-          navigate(`/class/${classId}/assignment/${assignment.id}/TeacherResults`);
-        }
+      if (assignment.type === 'dbq') {
+        navigate(`/class/${classId}/dbq/${assignment.id}/TeacherDBQResults`);
+      } else if (assignment.type === 'AMCQ') {
+        navigate(`/class/${classId}/assignment/${assignment.id}/TeacherResultsAMCQ`);
+      } else {
+        navigate(`/class/${classId}/assignment/${assignment.id}/TeacherResults`);
       }
     }}
     style={{
@@ -247,7 +247,7 @@ function TeacherGradesHome() {
       transition: '.3s',
       listStyleType: 'none',
       textAlign: 'left',
-       border: '3px solid #F4F4F4',
+       border: '6px solid #F4F4F4',
       padding: '10px',
       borderRadius: '10px',
       transform: 'scale(1)',
@@ -286,7 +286,27 @@ function TeacherGradesHome() {
     >
       {formatDate(assignment.createdDate)}
     </span>
-    <span
+   {assignment.type === 'AMCQ' ? (
+      <>
+        <span style={{ position: 'absolute',
+        right: '10px',
+        top: '50px',
+        cursor: 'pointer',
+        fontWeight: 'bold',
+        width: '60px',
+        marginTop: '0px',
+        fontFamily: "'Radio Canada', sans-serif",color: 'green' }}>MCQ</span>
+        <span style={{ position: 'absolute',
+        right: '-38px',
+        top: '40px',
+        cursor: 'pointer',
+        fontWeight: 'bold',
+        width: '60px',
+        marginTop: '0px',
+        fontFamily: "'Radio Canada', sans-serif",color: 'yellow' }}>*</span>
+      </>
+    ) : (
+      <span
       style={{
         position: 'absolute',
         right: '10px',
@@ -298,9 +318,10 @@ function TeacherGradesHome() {
         fontFamily: "'Radio Canada', sans-serif",
         color: '#020CFF',
       }}
-    >
-      {assignment.type}
-    </span>
+    >  {assignment.type}
+    </span>    )}
+      
+    
     <span
       style={{
         position: 'absolute',
@@ -331,7 +352,7 @@ function TeacherGradesHome() {
         transition: '.3s',
         listStyleType: 'none',
         textAlign: 'center',
-         border: '3px solid #F4F4F4',
+         border: '6px solid #F4F4F4',
         padding: '10px',
         borderRadius: '10px',
         transform: 'scale(1)',

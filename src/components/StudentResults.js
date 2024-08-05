@@ -110,7 +110,7 @@ const [incorrectCount, setIncorrectCount] = useState(0);
                         <h1 style={{ fontSize: '80px', color: 'black', marginTop: '20px' }}> {assignmentName}</h1>
                     </h1>
                 </div>
-                <div style={{ marginBottom: '40px', fontFamily: "'Radio Canada', sans-serif", backgroundColor: 'white', display: 'flex', width: '1000px', height: '70px', marginLeft: 'auto', marginRight: 'auto', borderRadius: '100px',  border: '3px solid #F4F4F4', alignItems: 'center', justifyContent: 'space-around' }}>
+                <div style={{ marginBottom: '40px', fontFamily: "'Radio Canada', sans-serif", backgroundColor: 'white', display: 'flex', width: '1000px', height: '70px', marginLeft: 'auto', marginRight: 'auto', borderRadius: '100px',  border: '6px solid #F4F4F4', alignItems: 'center', justifyContent: 'space-around' }}>
                     <div style={{ fontSize: '40px', fontWeight: 'bold', color: 'black', display: 'flex', alignItems: 'center', marginLeft: '100px', justifyContent: 'space-around' }}>
                         <img style={{ width: '50px', height: '40px' }} src='/greencheck.png' />
                         <h1 style={{ backgroundColor: 'white', borderRadius: '5px', margin: 'auto', marginLeft: '20px', marginTop: '0px', fontSize: '40px', alignItems: 'center', position: 'relative', fontFamily: "'Radio Canada', sans-serif" }}>{correctCount}</h1>

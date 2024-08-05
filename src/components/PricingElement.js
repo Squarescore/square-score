@@ -23,7 +23,7 @@ const PricingElement = () => {
     gridTemplateColumns: '1fr 1fr',
     gap: '20px',
     padding: '20px',
-    border: '3px solid #ccc', // Increased border width
+    border: '6px solid #ccc', // Increased border width
     borderRadius: '30px', // Increased border radius
   };
 

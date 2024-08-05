@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { doc, getDoc, writeBatch, arrayUnion, serverTimestamp } from 'firebase/firestore';
 import { db } from './firebase'; // Ensure the path is correct
-import TeacherPreview from './TeacherPreview';
+import TeacherPreviewASAQ from './PreviewASAQ';
 
 import './SwitchGreen.css';
 import SelectStudents from './SelectStudents';
@@ -44,7 +44,7 @@ const loaderStyle = `
   }
 `;
 
-function CreateAssignment() {
+function SAQA() {
   const [step, setStep] = useState(1);
   const [showPreview, setShowPreview] = useState(false);
   const [className, setClassName] = useState('');
@@ -55,8 +55,7 @@ function CreateAssignment() {
   const [saveAndExit, setSaveAndExit] = useState(true);
   const [generating, setGenerating] = useState(false);
   const [lockdown, setLockdown] = useState(false);
-  const [scaleMin, setScaleMin] = useState('0');
-  const [scaleMax, setScaleMax] = useState('2');
+  
   
   const [contentDropdownOpen, setContentDropdownOpen] = useState(false);
   const [studentsDropdownOpen, setStudentsDropdownOpen] = useState(false);
@@ -65,9 +64,8 @@ function CreateAssignment() {
   const [dueDate, setDueDate] = useState(new Date());
   const [sourceOption, setSourceOption] = useState(null);
   const [sourceText, setSourceText] = useState('');
-  const [youtubeLink, setYoutubeLink] = useState('');
-  const [questionBank, setQuestionBank] = useState('');
-  const [questionStudent, setQuestionStudent] = useState('');
+  const [youtubeLink, setYoutubeLink] = useState('10');
+  const [questionBank, setQuestionBank] = useState('40');
   const [timerOn, setTimerOn] = useState(false);
   const [additionalInstructions, setAdditionalInstructions] = useState(['']);
   const [selectedStudents, setSelectedStudents] = useState(new Set());
@@ -109,7 +107,7 @@ function CreateAssignment() {
   const handleRegenerate = async (newInstructions) => {
     setStep(5); // Move to loading screen
     try {
-      const questions = await dummyFunction(sourceText, questionBank, newInstructions || additionalInstructions);
+      const questions = await GenerateASAQ(sourceText, questionBank, newInstructions || additionalInstructions);
       setGeneratedQuestions(questions);
       setQuestionsGenerated(true);
     } catch (error) {
@@ -151,9 +149,9 @@ function CreateAssignment() {
     return `${dateString.replace(/,/g, '')} ${timeString}`;
   };
 
-  const dummyFunction = async (sourceText, questionCount, additionalInstructions) => {
+  const GenerateASAQ = async (sourceText, questionCount, additionalInstructions) => {
     try {
-      const response = await axios.post('https://us-central1-square-score-ai.cloudfunctions.net/dummyFunction', {
+      const response = await axios.post('https://us-central1-square-score-ai.cloudfunctions.net/GenerateASAQ', {
         sourceText: sourceText,
         questionCount: questionCount
       }, {
@@ -222,14 +220,11 @@ function CreateAssignment() {
       halfCredit,
       assignDate: convertToDateTime(assignDate),
       dueDate: convertToDateTime(dueDate),
-      scale: {
-        min: scaleMin,
-        max: scaleMax,
-      },
+     
       selectedStudents: Array.from(selectedStudents),
       questionCount: {
         bank: questionBank,
-        student: questionStudent,
+        
       },
       createdAt: serverTimestamp(),
       questions: {},
@@ -237,7 +232,7 @@ function CreateAssignment() {
       saveAndExit
     };
   
-    const assignmentRef = doc(db, 'assignments(saq)', assignmentId);
+    const assignmentRef = doc(db, 'assignments(Asaq)', assignmentId);
     
     const batch = writeBatch(db);
   
@@ -256,9 +251,13 @@ function CreateAssignment() {
   
     await assignToStudents();
     console.log('Assignment and questions saved to Firebase:', assignmentData);
-  
-    navigate(`/class/${classId}`);
-    alert(`Success: ${assignmentName} published`);
+    const format = assignmentId.split('+').pop();
+    navigate(`/class/${classId}`, {
+      state: {
+        successMessage: `Success: ${assignmentName} published`,
+        assignmentId: assignmentId
+      }
+    });
   };
   
   const isFormValid = () => {
@@ -298,7 +297,7 @@ function CreateAssignment() {
               >
                 <img style={{width: '60px'}} src='/redcirclex.png'/>
               </button>
-              <TeacherPreview 
+              <TeacherPreviewASAQ
                 questionsWithIds={generatedQuestions}
                 setQuestionsWithIds={setGeneratedQuestions}
               />
@@ -337,7 +336,7 @@ function CreateAssignment() {
             <img src='/LeftGreenArrow.png' style={{width: '75px', transition: '.5s'}} />
           </button>
         <h1 style={{ marginLeft: '40px', fontFamily: "'Radio Canada', sans-serif", color: 'black', fontSize: '60px', display: 'flex' }}>
-          Create (<h1 style={{ fontSize: '50px', marginTop: '10px', marginLeft: '0px', color: '#020CFF' }}> SAQ </h1>)
+          Create (<h1 style={{ fontSize: '50px', marginTop: '10px', marginLeft: '0px', color: '#020CFF' }}> SAQ*</h1>)
         </h1>
         <div style={{ width: '100%', padding: '20px', border: '10px solid transparent', borderRadius: '30px' , marginTop: '-50px'}}>
         {assignmentName && (
@@ -368,7 +367,7 @@ function CreateAssignment() {
               padding: '10px',
               paddingLeft: '25px',
               outline: 'none',
-               border: '3px solid #F4F4F4',
+               border: '6px solid #F4F4F4',
               borderRadius: '10px',
               fontFamily: "'Radio Canada', sans-serif",
               fontWeight: 'bold',
@@ -378,8 +377,8 @@ function CreateAssignment() {
             onChange={(e) => setAssignmentName(e.target.value)}
           />
 
-          <div style={{ marginBottom: '20px', width: '790px', height: '320px', borderRadius: '10px',  border: '3px solid #F4F4F4' }}>
-            <div style={{ width: '730px', marginLeft: '20px', height: '80px', borderBottom: '3px solid lightgrey', display: 'flex', position: 'relative', alignItems: 'center', borderRadius: '0px', padding: '10px' }}>
+          <div style={{ marginBottom: '20px', width: '790px', height: '200px', borderRadius: '10px',  border: '6px solid #F4F4F4' }}>
+            <div style={{ width: '730px', marginLeft: '20px', height: '80px', borderBottom: '6px solid lightgrey', display: 'flex', position: 'relative', alignItems: 'center', borderRadius: '0px', padding: '10px' }}>
               <h1 style={{ fontSize: '30px', color: 'black', width: '300px', paddingLeft: '0px' }}>Timer:</h1>
              
               {timerOn ? (
@@ -392,7 +391,7 @@ function CreateAssignment() {
                       width: '50px',
                       textAlign: 'center',
                       fontWeight: 'bold',
-                      border: '3px solid transparent',
+                      border: '6px solid transparent',
                       outline: 'none',
                       borderRadius: '5px',
                       fontSize: '30px',
@@ -426,7 +425,7 @@ function CreateAssignment() {
               />
             </div>
 
-            <div style={{ width: '730px', marginLeft: '20px', height: '80px', borderBottom: '3px solid lightgrey', display: 'flex', position: 'relative', alignItems: 'center', borderRadius: '0px', padding: '10px' }}>
+            <div style={{ width: '730px', marginLeft: '20px', height: '80px', display: 'flex', position: 'relative', alignItems: 'center', borderRadius: '0px', padding: '10px' }}>
               <h1 style={{ fontSize: '30px', color: 'black', width: '300px', paddingLeft: '0px' }}>Half Credit</h1>
               <input
                 style={{marginLeft: '370px'}}
@@ -436,56 +435,11 @@ function CreateAssignment() {
                 onChange={() => setHalfCredit(!halfCredit)}
               />
             </div>
-            <div style={{ width: '750px', height: '80px', border: '3px solid transparent', display: 'flex', position: 'relative', alignItems: 'center', borderRadius: '10px', padding: '10px' }}>
-              <h1 style={{ fontSize: '30px', color: 'black', width: '300px', paddingLeft: '20px' }}>Scale</h1>
-              <div style={{marginLeft: 'auto', marginTop: '45px'}}>
-                <input
-                  type="number"
-                  placeholder="0"
-                  style={{
-                    width: '50px',
-                    height: '20px',
-                    textAlign: 'center',
-                    fontSize: '30px',
-                    paddingLeft: '17px',
-                    paddingTop: '15px',
-                    paddingBottom: '15px',
-                    borderRadius: '10px',
-                    marginLeft: 'auto',
-                    fontWeight: 'bold',
-                    color: '#CC0000',
-                    border: '4px solid #CC0000'
-                  }}
-                  value={scaleMin}
-                  onChange={(e) => setScaleMin(e.target.value)}
-                />
-                <input
-                  type="number"
-                  placeholder="2"
-                  style={{
-                    width: '50px',
-                    height: '20px',
-                    fontWeight: 'bold',
-                    textAlign: 'center',
-                    fontSize: '30px',
-                    marginLeft: '40px',
-                    paddingLeft: '17px',
-                    paddingTop: '15px',
-                    paddingBottom: '15px',
-                    borderRadius: '10px',
-                    color: '#009006',
-                    border: '4px solid #009006'
-                  }}
-                  value={scaleMax}
-                  onChange={(e) => setScaleMax(e.target.value)}
-                />
-                <h4 style={{ fontSize: '40px', color: 'grey', width: '30px', marginTop: '-55px', marginLeft: '90px' }}>-</h4>
-              </div>
-            </div>
+           
           </div>
 
         {/* Timer Button and Settings */}
-<div style={{ width: '770px', padding: '10px',  border: '3px solid #F4F4F4', borderRadius: '10px' }}>
+<div style={{ width: '770px', padding: '10px',  border: '6px solid #F4F4F4', borderRadius: '10px' }}>
   <button
     onClick={() => setTimeDropdownOpen(!timeDropdownOpen)}
     style={{
@@ -539,7 +493,7 @@ function CreateAssignment() {
 </div>
 
 {/* Select Students */}
-<div style={{ width: '770px', padding: '10px', marginTop: '20px',  border: '3px solid #F4F4F4', borderRadius: '10px', marginBottom: '20px' }}>
+<div style={{ width: '770px', padding: '10px', marginTop: '20px',  border: '6px solid #F4F4F4', borderRadius: '10px', marginBottom: '20px' }}>
   <button
     onClick={() => setStudentsDropdownOpen(!studentsDropdownOpen)}
     style={{
@@ -577,7 +531,7 @@ function CreateAssignment() {
 </div>
 
 {/* Content Dropdown */}
-<div style={{ width: '770px', padding: '10px', marginTop: '20px',  border: '3px solid #F4F4F4', borderRadius: '10px', marginBottom: '20px' }}>
+<div style={{ width: '770px', padding: '10px', marginTop: '20px',  border: '6px solid #F4F4F4', borderRadius: '10px', marginBottom: '20px' }}>
   <button
     onClick={() => setContentDropdownOpen(!contentDropdownOpen)}
     style={{
@@ -606,30 +560,7 @@ function CreateAssignment() {
   <div className={`dropdown-content ${contentDropdownOpen ? 'open' : ''}`}>
     <div style={{ marginTop: '0px' }}>
       {/* Questions Section */}
-      <div style={{width: '730px', background: 'lightgrey', height: '3px', marginLeft: '20px', marginTop: '20px'}}></div>
-      <div style={{display: 'flex', alignItems: 'center', position: 'relative'}}>
-      <h2 style={{ fontSize: '30px', color: 'black', marginBottom: '10px' , marginLeft: '20px'}}>Question Bank</h2>
-      <input
-        type="number"
-        placeholder="10"
-        value={questionBank}
-        onChange={(e) => setQuestionBank(e.target.value)}
-        style={{ width: '60px', fontWeight:'bold',marginBottom: '10px', marginTop: '25px',  marginLeft: 'auto', marginRight: '20px',padding: '10px', fontSize: '30px',  border: '3px solid #F4F4F4', borderRadius: '10px' }}
-      />
-      </div>
-      <div style={{display: 'flex', alignItems: 'center', position: 'relative'}}>
-      <h2 style={{ fontSize: '30px', color: 'black', marginBottom: '10px', marginLeft: '20px' }}>Question Per Student</h2>
-      
-      <input
-        type="number"
-        placeholder="5"
-        value={questionStudent}
-        onChange={(e) => setQuestionStudent(e.target.value)}
-        style={{ width: '60px', fontWeight:'bold',marginBottom: '10px', marginTop: '25px',  marginLeft: 'auto', marginRight: '20px',padding: '10px', fontSize: '30px',  border: '3px solid #F4F4F4', borderRadius: '10px' }}
-        />
-        </div>
-
-        <div style={{width: '730px', background: 'lightgrey', height: '3px', marginLeft: '20px', marginTop: '20px'}}></div>
+    
       {/* Source Section */}
       <div style={{width: '740px', marginLeft: '20px', }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px', marginTop: '30px' }}>
@@ -685,7 +616,7 @@ function CreateAssignment() {
             width: '100%',
             padding: '10px',
             fontSize: '16px',
-             border: '3px solid #F4F4F4',
+             border: '6px solid #F4F4F4',
             borderRadius: '10px'
           }}
         />
@@ -700,7 +631,7 @@ function CreateAssignment() {
             width: '715px',
             padding: '10px',
             fontSize: '16px',
-             border: '3px solid #F4F4F4',
+             border: '6px solid #F4F4F4',
             borderRadius: '10px'
           }}
         />
@@ -740,7 +671,7 @@ function CreateAssignment() {
                           marginTop: '-20px',
                           fontFamily: "'Radio Canada', sans-serif",
                           borderRadius: '10px',
-                           border: '3px solid #F4F4F4',
+                           border: '6px solid #F4F4F4',
                           outline: 'none'
                         }}
                         type='text'
@@ -753,10 +684,12 @@ function CreateAssignment() {
                   
       {/* Generate Questions Button */}
     {/* Generate Questions Button */}
-    {questionBank && questionStudent && sourceOption && (
-  (sourceOption === 'text' && sourceText)  || 
-  (sourceOption === 'youtube' && youtubeLink)
-) && Number(questionBank) >= Number(questionStudent) && (
+  {/* Generate Questions Button */}
+{questionBank && sourceOption && (
+  (sourceOption === 'text' && sourceText) || 
+  (sourceOption === 'youtube' && youtubeLink) || 
+  sourceOption === 'pdf'
+) && (
   <div style={{ display: 'flex', alignItems: 'center', marginTop: '20px' }}>
     <button
       onClick={async () => {
@@ -765,7 +698,7 @@ function CreateAssignment() {
         } else {
           setGenerating(true);
           try {
-            const questions = await dummyFunction(sourceText, questionBank);
+            const questions = await GenerateASAQ(sourceText, questionBank);
             setGeneratedQuestions(questions);
             setShowPreview(true);
           } finally {
@@ -818,7 +751,7 @@ function CreateAssignment() {
 </div>
 
 {/* Security Dropdown */}
-<div style={{ width: '770px', padding: '10px', marginTop: '20px',  border: '3px solid #F4F4F4', borderRadius: '10px', marginBottom: '20px' }}>
+<div style={{ width: '770px', padding: '10px', marginTop: '20px',  border: '6px solid #F4F4F4', borderRadius: '10px', marginBottom: '20px' }}>
   <button
     onClick={() => setSecurityDropdownOpen(!securityDropdownOpen)}
     style={{
@@ -923,4 +856,4 @@ function CreateAssignment() {
   );
 }
 
-export default CreateAssignment;
+export default SAQA;

@@ -38,18 +38,6 @@ const StudentHome = () => {
     8: { background: '#FF8E8E', color: '#D23F3F' }
   };
 
-  useEffect(() => {
-    const fetchClasses = async () => {
-      const classesRef = collection(db, 'classes');
-      const classQuery = query(classesRef, where('students', 'array-contains', studentUID));
-      const classesSnapshot = await getDocs(classQuery);
-      const classesData = classesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      
-      setClasses(classesData);
-    };
-
-    fetchClasses();
-  }, [studentUID]);
 
   const handleLeaveClass = async (classId) => {
     if (window.confirm("Are you sure you want to leave this class?")) {
@@ -82,22 +70,29 @@ const StudentHome = () => {
       const classesRef = collection(db, 'classes');
       const classQuery = query(classesRef, where('students', 'array-contains', studentUID));
       const requestQuery = query(classesRef, where('joinRequests', 'array-contains', studentUID));
-
+  
       const [classesSnapshot, requestsSnapshot] = await Promise.all([
         getDocs(classQuery),
         getDocs(requestQuery)
       ]);
-
-      const classesData = classesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  
+      let classesData = classesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       const requestsData = requestsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       
+      // Sort classes by period number
+      classesData.sort((a, b) => {
+        const periodA = parseInt(a.className.split(' ')[1]);
+        const periodB = parseInt(b.className.split(' ')[1]);
+        return periodA - periodB;
+      });
+  
       setClasses(classesData);
       setPendingRequests(requestsData);
     };
-
+  
     fetchClassesAndRequests();
     const interval = setInterval(fetchClassesAndRequests, 5000); // Fetch every 5 seconds
-
+  
     return () => clearInterval(interval);
   }, [studentUID]);
   return (

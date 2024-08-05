@@ -55,7 +55,7 @@ function SelectStudents({ classId, selectedStudents = new Set(), setSelectedStud
             style={{
               width: 'calc(30% - 10px)',
               padding: '10px',
-              border: `3px solid ${selectedStudents.has(student.uid) ? '#73D87D' : 'lightgrey'}`,
+              border: `6px solid ${selectedStudents.has(student.uid) ? '#73D87D' : 'lightgrey'}`,
               borderRadius: '5px',
               height: '50px',
               alignItems: 'center' ,
