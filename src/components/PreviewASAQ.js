@@ -150,7 +150,7 @@ const TeacherPreviewASAQ = ({ questionsWithIds, setQuestionsWithIds, onRegenerat
         width: '120px',
         fontFamily: "'Radio Canada', sans-serif",
         cursor: 'pointer',
-        height: textareaHeight[index] || 'auto', // Use the stored height
+        height: textareaHeight[index] ? `${parseInt(textareaHeight[index]) + 34}px` : 'auto', // Use the stored height
         minHeight: '56px', // Minimum height for single line
         display: 'flex',
         alignItems: 'center',

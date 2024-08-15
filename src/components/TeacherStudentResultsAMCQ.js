@@ -13,39 +13,65 @@ function TeacherStudentResultsAMCQ() {
     const [incorrectCount, setIncorrectCount] = useState(0);
     const navigate = useNavigate();
     const [hoveredQuestion, setHoveredQuestion] = useState(null);
+    const [allQuestions, setAllQuestions] = useState([]);
+    const [isExpanded, setIsExpanded] = useState(false);
+    const [expandedQuestions, setExpandedQuestions] = useState({});
 
-    useEffect(() => {
-        const fetchResults = async () => {
-            try {
-                const gradeDocRef = doc(db, 'grades(AMCQ)', `${assignmentId}_${studentUid}`);
-                const gradeDoc = await getDoc(gradeDocRef);
+    const PerformanceCircle = ({ isCorrect, onClick }) => (
+        <div
+          onClick={onClick}
+          style={{
+            width: '20px',
+            height: '20px',
+            borderRadius: '50%',
+            backgroundColor: isCorrect ? 'green' : 'red',
+            display: 'inline-block',
+            margin: '5px',
+            cursor: 'pointer',
+          }}
+        />
+      );
+   useEffect(() => {
+  const fetchResults = async () => {
+    try {
+      const gradeDocRef = doc(db, 'grades(AMCQ)', `${assignmentId}_${studentUid}`);
+      const gradeDoc = await getDoc(gradeDocRef);
 
-                if (gradeDoc.exists()) {
-                    const data = gradeDoc.data();
-                    setResults(data);
-                    setAssignmentName(data.assignmentName);
+      if (gradeDoc.exists()) {
+        const data = gradeDoc.data();
+        setResults(data);
+        setAssignmentName(data.assignmentName);
 
-                    // Calculate counts
-                    setCorrectCount(data.correctQuestions.length);
-                    setIncorrectCount(data.incorrectQuestions.length);
+        // Calculate counts
+        setCorrectCount(data.correctQuestions.length);
+        setIncorrectCount(data.incorrectQuestions.length);
 
-                    setStudentName(`${data.firstName} ${data.lastName}`);
+        setStudentName(`${data.firstName} ${data.lastName}`);
 
-                    console.log('Grade Document:', data);
-                } else {
-                    console.log('No grade document found');
-                }
-            } catch (error) {
-                console.error('Error fetching results:', error);
-            }
-        };
+        // Set all questions
+        setAllQuestions([...data.correctQuestions, ...data.incorrectQuestions].sort((a, b) => a.index - b.index));
 
-        fetchResults();
-    }, [assignmentId, studentUid]);
+        console.log('Grade Document:', data);
+      } else {
+        console.log('No grade document found');
+      }
+    } catch (error) {
+      console.error('Error fetching results:', error);
+    }
+  };
+
+  fetchResults();
+}, [assignmentId, studentUid]);
 
     if (!results) {
         return <div>Loading...</div>;
     }
+    const handleCircleClick = (index) => {
+        const element = document.getElementById(`question-${index}`);
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth' });
+        }
+      };
 
     const getLetterGrade = (score) => {
         const percentage = parseInt(score);
@@ -59,135 +85,146 @@ function TeacherStudentResultsAMCQ() {
     const letterGrade = getLetterGrade(results.SquareScore);
 
  
-        const renderQuestion = (question) => {
-            const isCorrect = results.correctQuestions.some(q => q.question === question);
-            const correctQuestion = results.correctQuestions.find(q => q.question === question);
-            const incorrectQuestion = results.incorrectQuestions.find(q => q.question === question);
-        
-            return (
-                <li
-                    key={question}
+    const renderQuestion = (question, index) => {
+        const isCorrect = results.correctQuestions.some(q => q.question === question);
+        const questionData = isCorrect 
+            ? results.correctQuestions.find(q => q.question === question)
+            : results.incorrectQuestions.find(q => q.question === question);
+    
+        const toggleExpanded = () => {
+            setExpandedQuestions(prev => ({
+                ...prev,
+                [index]: !prev[index]
+            }));
+        };
+    
+        const isExpanded = expandedQuestions[index] || false;
+        return (
+            <li
+                id={`question-${index}`}
+                key={question}
+                style={{
+                    fontFamily: "'Radio Canada', sans-serif",
+                    marginBottom: '20px',
+                    border: '3px solid #F4F4F4',
+                    borderRadius: '15px',
+                    padding: '0px 20px',
+                    width: '800px',
+                    marginLeft: 'auto',
+                    marginRight: 'auto',
+                    textAlign: 'left',
+                    listStyleType: 'none',
+                }}
+            >
+                <div style={{ display: 'flex', alignItems: 'center', marginBottom: '10px' }}>
+                    <p style={{
+                        fontWeight: 'bold',
+                        fontSize: '25px',
+                        color: isCorrect ? 'black' : 'red',
+                        marginRight: '10px',
+                        flex: 1,
+                    }}>
+                        {question}
+                    </p>
+                    <img
+                        src={isCorrect ? '/greencheck.png' : '/redx.png'}
+                        alt={isCorrect ? "Correct" : "Incorrect"}
+                        style={{ width: '25px', height: '20px', marginRight: '10px' ,objectFit: 'contain'}}
+                    />
+                   <button 
+                    onClick={toggleExpanded}
                     style={{
-                        position: 'relative',
-                        fontFamily: "'Poppins', sans-serif",
-                        marginBottom: '60px',
-                        marginLeft: 'auto', 
-                        marginRight: 'auto',
-                        width: '800px',
-                        textAlign: 'left'
+                        background: 'none',
+                        border: 'none',
+                        cursor: 'pointer',
+                        fontSize: '20px',
                     }}
                 >
-                    <div
-                        style={{
-                            justifyContent: 'center',
-                            fontFamily: "'Radio Canada', sans-serif"
-                        }}
+                    {isExpanded ? '▲' : '▼'}
+                </button>
+                </div>
+                
+                <AnimatePresence>
+                {isExpanded && (
+                    <motion.div 
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
+                        transition={{ duration: 0.3 }}
+                        style={{ overflow: 'hidden' }}
                     >
-                        <div
-                            style={{
-                                width: '800px',
-                                backgroundColor: 'white',
-                                borderRadius: '20px',
-                                position: 'relative',
-                                minHeight: '100px',
-                                display: 'flex',
-                                flexDirection: 'column',
-                                justifyContent: 'center',
-                                padding: '20px'
-                            }}
-                        >
-                            <p
-                                style={{
-                                    width: '100%',
-                                    marginLeft: 'auto',
-                                    marginRight: 'auto',
-                                    fontWeight: 'bold',
-                                    
-                                color: `${isCorrect ? 'black' : 'red'}`,
-                                    fontSize: '30px'
-                                }}
-                            >
-                                {question}
-                            </p>
+                    <div style={{ display: 'flex'}}>
+                       
+                      {isCorrect ? (
+
+
+
+
+
+                                        <div style={{ display: 'flex'}}>
+                            <div style={{width: '380px'}}>
+                         <h1 style={{color: 'darkgreen', fontSize: '28px', marginTop: '0px',  fontFamily: '"Rajdhani", sans-serif'}}>Student Answer</h1>
+                        <p style={{fontSize: '20px',color: 'darkgreen',width: '320px'}} >{questionData.choiceContent}</p>
                         </div>
-                        <div
-                            style={{
-                                width: '800px',
-                                marginLeft: '1%',
-                                backgroundColor: 'white',
-                                position: 'relative',
-                                borderRadius: '20px',
-                                minHeight: '20px',
-                                color: `${isCorrect ? '#00B512' : '#9D9D9D'}`,
-                                background: `${isCorrect ? '#AEF2A3' : '#E5E5E5'}`,
-                                display: 'flex',
-                                flexDirection: 'column',
-                                justifyContent: 'center',
-                                padding: '10px 20px ',
-                                zIndex: 2
-                            }}
-                        >
-                            {isCorrect ? (
-                                <p style={{ fontWeight: 'bold', fontSize: '20px', position: 'relative' }}>
-                                    {correctQuestion.choiceContent}
-                                </p>
-                            ) : (
-                                <p style={{ fontWeight: 'bold', fontSize: '20px' }}>
-                                    {incorrectQuestion.choiceContent}
-                                </p>
-                            )}
-                        </div>
-                        {!isCorrect && (
-                            <div
-                                style={{ 
-                                    backgroundColor: '#AEF2A3', 
-                                    padding: '10px 20px', 
-                                    borderRadius: '20px',
-                                    marginLeft: '8px',
-                                    paddingTop: '30px',
-                                    marginTop: '-30px',
-                                    width: '800px',
-                                }}
-                            >
-                                <p style={{ fontWeight: 'bold', fontSize: '20px', color: '#00B512',  }}>
-                                    Correct Answer: {incorrectQuestion.correctContent}
-                                </p>
-                                
+                       
+                              <div style={{width: '400px', marginLeft: '20px'}}>
+
+                                <h1 style={{ fontSize: '28px', marginTop: '0px', fontFamily: '"Rajdhani", sans-serif',color: 'green',}}>
+                                    Explanation</h1>
+
+                            <p style={{fontSize: '20px',color: 'green', }}>
+                                 {questionData.correctExplanation}</p>
+
                             </div>
-                        )}
-                        {isCorrect && hoveredQuestion === question && (
-                            <motion.div
-                                initial={{ opacity: 0, y: -20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                exit={{ opacity: 0, y: -20 }}
-                                transition={{ duration: 0.3 }}
-                                style={{ 
-                                    backgroundColor: '#E1FFDC', 
-                                    padding: '20px', 
-                                    borderRadius: '10px',
-                                    position: 'absolute',
-                                    marginTop: '-20px',
-                                    marginLeft: '8px',
-                                    width: '800px',
-                                    zIndex: 1,
-                                }}
-                            >
-                                <p>{correctQuestion.correctExplanation}</p>
-                            </motion.div>
+                            </div>
+                        ) : (
+                            <div>
+                            <div style={{ display: 'flex'}}>
+                            <div style={{width: '380px'}}>
+                         <h1 style={{color: 'darkred', fontSize: '28px', marginTop: '0px',  fontFamily: '"Rajdhani", sans-serif'}}>Student Answer</h1>
+                        <p style={{fontSize: '20px',color: 'darkRed', width: '320px'}} >{questionData.choiceContent}</p>
+                        </div>
+                       
+                              <div style={{width: '400px', marginLeft: '20px'}}>
+
+                                <h1 style={{ fontSize: '28px', marginTop: '0px', fontFamily: '"Rajdhani", sans-serif',color: 'grey',}}>
+                                    Explanation</h1>
+
+                            <p style={{fontSize: '20px',color: 'grey',}}>
+                                 {questionData.incorrectExplanation}</p>
+
+                            </div>
+                            </div>
+
+
+
+
+                            <div style={{ display: 'flex', marginTop: '40px'}}>
+                            <div style={{width: '380px'}}>
+                         <h1 style={{color: 'darkgreen', fontSize: '28px', marginTop: '0px',  fontFamily: '"Rajdhani", sans-serif'}}>Correct Answer</h1>
+                        <p style={{fontSize: '20px',color: 'darkgreen',width: '320px'}} >{questionData.correctContent}</p>
+                        </div>
+                       
+                              <div style={{width: '400px', marginLeft: '20px'}}>
+
+                                <h1 style={{ fontSize: '28px', marginTop: '0px', fontFamily: '"Rajdhani", sans-serif',color: 'green',}}>
+                                    Explanation</h1>
+
+                            <p style={{fontSize: '20px',color: 'green', }}>
+                                 {questionData.correctExplanation}</p>
+
+                            </div>
+                            </div>
+                           
+                           </div>
                         )}
                     </div>
-                    <div
-                        style={{
-                            width: '880px',
-                            height: '3px',
-                            background: 'lightgrey',
-                            marginTop: '60px'
-                        }}
-                    ></div>
-                </li>
-           
-            );
-        };
+                    </motion.div>
+                )}
+            </AnimatePresence>
+            </li>
+        );
+    };
 
     return (
         <div
@@ -204,7 +241,7 @@ function TeacherStudentResultsAMCQ() {
                     backgroundColor: 'white',
                     borderRadius: '10px',
                     color: 'white',
-                    marginTop: '-50px',
+                    marginTop: '-90px',
                     height: '14%',
                     display: 'flex',
                     marginBottom: '-46px',
@@ -245,7 +282,7 @@ function TeacherStudentResultsAMCQ() {
                 >
                     <h1
                         style={{
-                            fontFamily: "'Poppins', sans-serif",
+                            fontFamily: "'Radio Canada', sans-serif",
                             fontSize: '40px',
                             color: 'grey'
                         }}
@@ -253,6 +290,7 @@ function TeacherStudentResultsAMCQ() {
                         {assignmentName}
                         <h1
                             style={{
+                                fontFamily: "'Rajdhani', sans-serif",
                                 fontSize: '80px',
                                 color: 'black',
                                 marginTop: '20px'
@@ -263,6 +301,8 @@ function TeacherStudentResultsAMCQ() {
                         </h1>
                     </h1>
                 </div>
+
+
                 <div
                     style={{
                         marginBottom: '40px',
@@ -274,11 +314,23 @@ function TeacherStudentResultsAMCQ() {
                         marginLeft: 'auto',
                         marginRight: 'auto',
                         borderRadius: '100px',
+                        fontSize: '30px',
                         border: '6px solid #F4F4F4',
                         alignItems: 'center',
                         justifyContent: 'space-around'
                     }}
                 >
+                      <p
+                    style={{
+                        fontFamily: "'Radio Canada', sans-serif",
+                        marginBottom: '80px', width: '350px', fontWeight: 'bold', color: 'grey', marginTop: '80px', marginLeft: '20px', marginRight: '-100px'
+                        
+                    }}
+                >
+                     {new Date(results.submittedAt.toDate()).toLocaleString()}
+                </p>
+
+            
                     <div
                         style={{
                             fontSize: '40px',
@@ -348,6 +400,7 @@ function TeacherStudentResultsAMCQ() {
                             {incorrectCount}
                         </h1>
                     </div>
+                  
                     <div
                         style={{
                             fontSize: '40px',
@@ -357,6 +410,11 @@ function TeacherStudentResultsAMCQ() {
                     >
                       
                     </div>
+
+
+
+
+
                     <div
                         style={{
                             width: '100px',
@@ -368,6 +426,9 @@ function TeacherStudentResultsAMCQ() {
                             marginRight: '100px'
                         }}
                     >
+
+
+
                         <div
                             style={{
                                 width: '79px',
@@ -391,8 +452,9 @@ function TeacherStudentResultsAMCQ() {
                                     justifyContent: 'space-around',
                                     fontSize: '60px',
                                     alignItems: 'center',
+                                    lineHeight: '80px',
                                     position: 'relative',
-                                    fontFamily: "'Rajdhani, sans-serif"
+                                    fontFamily: "'Rajdhani', sans-serif",
                                 }}
                             >
                                                         {results.SquareScore}
@@ -401,16 +463,24 @@ function TeacherStudentResultsAMCQ() {
                         </div>
                     </div>
                 </div>
-                <p
-                    style={{
-                        fontFamily: "'Radio Canada', sans-serif",
-                        marginBottom: '80px',
-                        color: 'lightgrey'
-                    }}
-                >
-                    Completed: {new Date(results.submittedAt.toDate()).toLocaleString()}
-                </p>
-
+              
+<div
+  style={{
+    display: 'flex',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    maxWidth: '1000px',
+    margin: '10px auto',
+  }}
+>
+  {allQuestions.map((question, index) => (
+    <PerformanceCircle
+      key={index}
+      isCorrect={results.correctQuestions.some(q => q.question === question.question)}
+      onClick={() => handleCircleClick(index)}
+    />
+  ))}
+</div>
                 {results.cycledThroughAll && (
                     <p
                         style={{
@@ -422,14 +492,9 @@ function TeacherStudentResultsAMCQ() {
                     </p>
                 )}
 
-                <ul
-                    style={{
-                        listStyle: 'none',
-                        padding: '0'
-                    }}
-                >
-                    {results.completedQuestions.map((question, index) => renderQuestion(question))}
-                </ul>
+<ul style={{ listStyle: 'none', padding: '0' }}>
+    {allQuestions.map((question, index) => renderQuestion(question.question, index))}
+</ul>
             </div>
         </div>
     );

@@ -1,14 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { doc, getDoc, setDoc, writeBatch, arrayUnion } from 'firebase/firestore';
+import { doc, getDoc, setDoc, writeBatch, arrayUnion, serverTimestamp } from 'firebase/firestore';
 import { db } from './firebase'; // Ensure the path is correct
 import Navbar from './Navbar';
 import SelectStudents from './SelectStudents';
 import CustomDateTimePicker from './CustomDateTimePicker';
 import 'react-datepicker/dist/react-datepicker.css';
-import PreviewAMCQ from './PreviewAMCQ';
+import PreviewAMCQ from './previewAMCQ';
 import axios from 'axios';
-
+import { updateDoc } from 'firebase/firestore';
+import { arrayRemove } from 'firebase/firestore';
 const dropdownContentStyle = `
   .dropdown-content {
     max-height: 0;
@@ -57,11 +58,15 @@ const MCQA = () => {
   const [lockdown, setLockdown] = useState(false);
   const [optionsCount, setOptionsCount] = useState(4);
   const [assignDate, setAssignDate] = useState(new Date());
+  const [questionsGenerated, setQuestionsGenerated] = useState(false);
+
   const [dueDate, setDueDate] = useState(() => {
     const date = new Date();
     date.setHours(date.getHours() + 48);
     return date;
   })
+  
+  const [draftId, setDraftId] = useState(null);
   const [sourceOption, setSourceOption] = useState(null);
   const [sourceText, setSourceText] = useState('');
   const [youtubeLink, setYoutubeLink] = useState('');
@@ -179,49 +184,90 @@ const [questionCount, setQuestionCount] = useState(0);
   
       const animateProgress = async (start, end, duration) => {
         const startTime = Date.now();
+        const incrementInterval = 1666.67; // ~1667ms for each 1% increment (40000ms / 24%)
+        let currentProgress = start;
+  
         return new Promise(resolve => {
           const animate = () => {
             const elapsedTime = Date.now() - startTime;
-            const progress = Math.min(end, start + ((elapsedTime / duration) * (end - start)));
-            setProgress(progress);
-            setProgressText(`${Math.round(progress)}%`);
-  
-            if (progress < end && generating) {
-              requestAnimationFrame(animate);
-            } else {
+            if (elapsedTime >= duration || currentProgress >= end) {
+              setProgress(end);
+              setProgressText(`${end}%`);
               resolve();
+            } else {
+              currentProgress = Math.min(end, start + Math.floor(elapsedTime / incrementInterval));
+              setProgress(currentProgress);
+              setProgressText(`${currentProgress}%`);
+              requestAnimationFrame(animate);
             }
           };
           requestAnimationFrame(animate);
         });
       };
   
-      // Animate to 24% over 20 seconds
-      await animateProgress(0, 24, 20000);
+     
+      const generateQuarter = async (step, retryCount = 0) => {
+        const quarterStart = (step - 1) * 24;
+        const quarterEnd = step * 24;
+        
+        const quarterPromise = new Promise(async (resolve) => {
+          try {
+            const response = await axios.post(
+              step === 1 ? `${baseUrl}/GenerateAMCQstep1` : `${baseUrl}/GenerateAMCQstep2`,
+              {
+                sourceText,
+                selectedOptions,
+                additionalInstructions,
+                ...(step !== 1 && { previousQuestions: generatedQuestions })
+              }
+            );
+            
+            console.log(`Full API response for step ${step}:`, response);
   
-      // Generate initial questions
-      const response = await axios.post(`${baseUrl}/GenerateAMCQstep1`, {
-        sourceText,
-        selectedOptions,
-        additionalInstructions
-      });
-      
-      let questions = parseQuestions(response);
-      
-      setGeneratedQuestions(questions);
-      setQuestionCount(questions.length);
-      setProgress(25);
-      setProgressText('25%');
+            let newQuestions = parseQuestions(response);
+            if (newQuestions.length === 0) {
+              throw new Error('Invalid API response: No questions generated');
+            }
+            setGeneratedQuestions(prevQuestions => [...prevQuestions, ...newQuestions]);
+            setQuestionCount(prevCount => prevCount + newQuestions.length);
+          } catch (error) {
+            console.error(`Error in generateQuarter for step ${step}:`, error);
+            if (error.response) {
+              console.error('Error response:', error.response.data);
+            }
+            if (retryCount < 1) {
+              console.log(`Retrying step ${step}...`);
+              return generateQuarter(step, retryCount + 1);
+            } else {
+              throw error; // Re-throw the error if we've already retried
+            }
+          } finally {
+            resolve();
+          }
+        });
   
-      // Generate additional questions three times
-      for (let i = 1; i <= 3; i++) {
-        await animateProgress(25 * i, 25 * i + 24, 20000);
-        await generateAdditionalQuestions(i + 1);
+        const progressPromise = animateProgress(quarterStart, quarterEnd, 40000);
+  
+        await Promise.race([quarterPromise, progressPromise]);
+        
+        setProgress(quarterEnd);
+        setProgressText(`${quarterEnd}%`);
+      };
+  
+      // Generate questions for each quarter
+      for (let i = 1; i <= 4; i++) {
+        await generateQuarter(i);
+      }
+  
+      // Check if we need an extra step
+      if (generatedQuestions.length < 40) {
+        console.log("Not enough questions generated. Running an extra step...");
+        await generateQuarter(5);
       }
   
       setShowPreview(true);
     } catch (error) {
-      console.error('Error generating questions:', error);
+      console.error('Error in generateQuestions:', error);
       if (error.response) {
         console.error('Response data:', error.response.data);
         console.error('Response status:', error.response.status);
@@ -232,6 +278,7 @@ const [questionCount, setQuestionCount] = useState(0);
       setProgressText('100%');
     }
   };
+
   
   const generateAdditionalQuestions = async (step) => {
     const baseUrl = 'https://us-central1-square-score-ai.cloudfunctions.net';
@@ -294,51 +341,207 @@ const [questionCount, setQuestionCount] = useState(0);
 
     return score;
   };
+  useEffect(() => {
+    const fetchClassName = async () => {
+      const classDocRef = doc(db, 'classes', classId);
+      const classDoc = await getDoc(classDocRef);
+      if (classDoc.exists) {
+        const data = classDoc.data();
+        if (data && data.name) {
+          setClassName(data.name);
+        } else {
+          console.error("Class data is missing or incomplete:", classId);
+        }
+      } else {
+        console.error("Class not found:", classId);
+      }
+    };
+    fetchClassName();
+
+    // Check if we're loading from a draft
+    if (assignmentId && assignmentId.startsWith('DRAFT')) {
+      setDraftId(assignmentId.slice(5)); // Remove 'DRAFT' prefix
+      loadDraft(assignmentId.slice(5));
+    }
+  }, [classId, assignmentId]);
+  const saveDraft = async () => {
+    const draftData = {
+      classId,
+      assignmentName,
+      timer: timerOn ? Number(timer) : 0,
+      timerOn,
+      feedback,
+      selectedOptions,
+      assignDate: assignDate.toISOString(),
+      dueDate: dueDate.toISOString(),
+      selectedStudents: Array.from(selectedStudents),
+      saveAndExit,
+      lockdown,
+      createdAt: serverTimestamp(),
+      questions: generatedQuestions.map(question => {
+        // Ensure the question object has the expected structure
+        const formattedQuestion = {
+          questionId: question.questionId || `question_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+          questionText: question.question || question.questionText || '',
+          choices: question.choices.map(choice => ({
+            choiceText: choice.text,
+            isCorrect: choice.isCorrect,
+            feedback: choice.feedback
+          })),
+          difficulty: question.difficulty || 'medium'
+        };
+
+        // Handle different possible structures of choices
+        if (Array.isArray(question.choices)) {
+          formattedQuestion.choices = question.choices.map(choice => ({
+            choiceText: choice.text || choice.choiceText || '',
+            isCorrect: choice.isCorrect || false,
+            feedback: choice.feedback || ''
+          }));
+        } else if (typeof question.choices === 'object') {
+          // If choices is an object, convert it to an array
+          formattedQuestion.choices = Object.values(question.choices).map(choice => ({
+            choiceText: choice.text || choice.choiceText || '',
+            isCorrect: choice.isCorrect || false,
+            feedback: choice.feedback || ''
+          }));
+        }
+
+        return formattedQuestion;
+      }),
+      sourceOption,
+      sourceText,
+      youtubeLink,
+      questionBank,
+      questionStudent,
+      additionalInstructions
+    };
+
+    const newDraftId = draftId || `${classId}+${Date.now()}+AMCQ`;
+    const draftRef = doc(db, 'drafts', newDraftId);
+    
+    try {
+      await setDoc(draftRef, draftData);
+
+      // Update the class document with the new draft ID
+      const classRef = doc(db, 'classes', classId);
+      await updateDoc(classRef, {
+        [`assignment(amcq)`]: arrayUnion(newDraftId)
+      });
+
+      setDraftId(newDraftId);
+      
+      navigate(`/class/${classId}/Assignments`, {
+        state: { showDrafts: true, newDraftId: newDraftId }
+      });
+    } catch (error) {
+      console.error("Error saving draft:", error);
+      alert(`Error saving draft: ${error.message}. Please try again.`);
+    }
+  };
+
+  const loadDraft = async (draftId) => {
+    const draftRef = doc(db, 'drafts', draftId);
+    const draftDoc = await getDoc(draftRef);
+    if (draftDoc.exists) {
+      const data = draftDoc.data();
+      setAssignmentName(data.assignmentName || '');
+      setTimer(data.timer || '');
+      setTimerOn(data.timerOn || false);
+      setFeedback(data.feedback || 'instant');
+      setSelectedOptions(data.selectedOptions || [4]);
+      
+      const loadedAssignDate = data.assignDate ? new Date(data.assignDate) : new Date();
+      setAssignDate(loadedAssignDate);
+      
+      if (data.dueDate) {
+        setDueDate(new Date(data.dueDate));
+      } else {
+        setDueDate(new Date(loadedAssignDate.getTime() + 48 * 60 * 60 * 1000));
+      }
+
+      setSelectedStudents(new Set(data.selectedStudents || []));
+      setSaveAndExit(data.saveAndExit || true);
+      setLockdown(data.lockdown || false);
+      setSourceOption(data.sourceOption || null);
+      setSourceText(data.sourceText || '');
+      setYoutubeLink(data.youtubeLink || '');
+      setQuestionBank(data.questionBank || '');
+      setQuestionStudent(data.questionStudent || '');
+      setAdditionalInstructions(data.additionalInstructions || '');
+
+      // Load generated questions
+      if (data.questions && data.questions.length > 0) {
+        setGeneratedQuestions(data.questions);
+        setQuestionsGenerated(true);
+      }
+    }
+  };
 
   const saveAssignment = async () => {
+    // Remove 'DRAFT' prefix from assignmentId if it exists
+    const finalAssignmentId = assignmentId.startsWith('DRAFT') ? assignmentId.slice(5) : assignmentId;
+
     const assignmentData = {
       classId,
       assignmentName,
       timer: timerOn ? Number(timer) : 0,
       assignDate: assignDate.toString(),
       dueDate: dueDate.toString(),
-      optionsCount,
-      selectedStudents: Array.from(selectedStudents),
-      questions: generatedQuestions,
-      feedback,
       selectedOptions: selectedOptions.map(option => typeof option === 'object' ? option.value : option),
+      selectedStudents: Array.from(selectedStudents),
+      feedback,
       saveAndExit,
-      lockdown
+      lockdown,
+      createdAt: serverTimestamp(),
+      questions: generatedQuestions.map(question => ({
+        questionId: question.questionId,
+        questionText: question.question,
+        choices: question.choices.map(choice => ({
+          choiceText: choice.text,
+          isCorrect: choice.isCorrect,
+          feedback: choice.feedback
+        })),
+        difficulty: question.difficulty
+      }))
     };
-  
-    // Check for undefined values
-    for (const [key, value] of Object.entries(assignmentData)) {
-      if (value === undefined) {
-        console.error(`Field ${key} is undefined`);
-        alert(`Error: ${key} is not defined. Please check all fields.`);
-        return;
-      }
-    }
-  
+
     try {
       console.log("Attempting to save assignment with data:", assignmentData);
       
-      const assignmentRef = doc(db, 'assignments(Amcq)', assignmentId);
+      const assignmentRef = doc(db, 'assignments(Amcq)', finalAssignmentId);
       await setDoc(assignmentRef, assignmentData, { merge: true });
       
       console.log("Assignment saved successfully. Assigning to students...");
       
-      await assignToStudents(assignmentId);
+      await assignToStudents(finalAssignmentId);
       
       console.log("Assignment assigned to students successfully.");
-      const format = assignmentId.split('+').pop(); // Get the format from the assignment ID
+
+      // Delete the draft document if it exists
+      if (draftId) {
+        const draftRef = doc(db, 'drafts', draftId);
+        await setDoc(draftRef, {});
+
+        // Update the class document
+        const classRef = doc(db, 'classes', classId);
+        await updateDoc(classRef, {
+          [`assignment(amcq)`]: arrayRemove(assignmentId) // Remove the draft ID (with DRAFT prefix)
+        });
+        await updateDoc(classRef, {
+          [`assignment(amcq)`]: arrayUnion(finalAssignmentId) // Add the final assignment ID
+        });
+      }
+
+      const format = finalAssignmentId.split('+').pop(); // Get the format from the assignment ID
 
       navigate(`/class/${classId}`, {
         state: {
           successMessage: `Success: ${assignmentName} published`,
-          assignmentId: assignmentId,
-          format: format}
-        });
+          assignmentId: finalAssignmentId,
+          format: format
+        }
+      });
     } catch (error) {
       console.error("Error saving assignment:", error);
       console.error("Error details:", error.message);
@@ -348,6 +551,7 @@ const [questionCount, setQuestionCount] = useState(0);
       alert(`Error publishing assignment: ${error.message}. Please try again.`);
     }
   };
+
 
   const isFormValid = () => {
     return assignmentName !== '' && assignDate !== '' && dueDate !== '';
@@ -364,7 +568,25 @@ const [questionCount, setQuestionCount] = useState(0);
     <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', backgroundColor: 'white' }}>
       <Navbar userType="teacher" />
       <style>{dropdownContentStyle}{loaderStyle}</style>
-      <div style={{ marginTop: '30px', width: '800px', marginLeft: 'auto', marginRight: 'auto', fontFamily: "'Radio Canada', sans-serif" }}>
+      <div style={{ marginTop: '30px', width: '800px', marginLeft: 'auto', marginRight: 'auto', fontFamily: "'Radio Canada', sans-serif",  }}>
+      <button
+                 onClick={saveDraft}
+              style={{
+                width: '400px',
+                position: 'fixed',
+                right: '-80px',
+                zIndex: '4',
+                border: '15px solid #E01FFF',
+                borderRadius: '30px',
+                top: '-40px',
+                background: 'white',
+                padding: '10px',
+                fontSize: '24px',
+                cursor: 'pointer'
+              }}
+            >
+              <h1 style={{fontSize: '45px', width: '400px',  marginTop: '100px', marginLeft: '-50px', marginBottom: '0px', fontFamily: "'Rajdhani', sans-serif", }}>Save as Draft</h1>
+            </button>
         <button
           onClick={handlePrevious}
           style={{
@@ -396,49 +618,60 @@ const [questionCount, setQuestionCount] = useState(0);
         >
           <img src='/LeftGreenArrow.png' style={{ width: '75px', transition: '.5s' }} />
         </button>
-        <h1 style={{ marginLeft: '40px', fontFamily: "'Radio Canada', sans-serif", color: 'black', fontSize: '70px', display: 'flex', marginBottom: '100px' }}>
-          Create - <h1 style={{ fontSize: '70px', marginTop: '0px', marginLeft: '10px', color: '#009006', display: 'flex' }}> MCQ<h1 style={{ fontSize: '70px', marginTop: '-10px', marginLeft: '0px', color: '#FCCA18', display: 'flex' }}>*</h1> </h1>
+        
+        <h1 style={{ marginLeft: '30px',  fontFamily: "'Rajdhani', sans-serif", color: 'black', fontSize: '80px', display: 'flex', marginBottom: '70px' }}>
+          Create (<h1 style={{ fontSize: '70px', marginTop: '10px', marginLeft: '0px', color: '#009006',display:'flex' }}> MCQ<h1 style={{ fontSize: '70px', marginTop: '-10px', marginLeft: '0px', color: '#FCCA18', display: 'flex' }}>*</h1> </h1>)
         </h1>
         <div style={{ width: '100%', height: 'auto', marginTop: '-200px', border: '10px solid transparent', borderRadius: '30px', padding: '20px' }}>
           <div style={{ width: '810px', marginLeft: 'auto', marginRight: 'auto', marginTop: '30px' }}>
-            <div style={{ position: 'relative' }}>
-              {assignmentName && (
-                <h1 style={{
-                  position: 'relative',
-                  left: '30px',
-                  zIndex: '300',
-                  width: '80px',
-                  marginTop: '-12px',
-                  textAlign: 'center',
-                  backgroundColor: 'white',
-                  padding: '0 5px',
-                  fontSize: '20px',
-                  color: 'grey',
-                  marginBottom: '-12px'
-                }}>
-                  Name
-                </h1>
-              )}
-              <input
-                type="text"
-                placeholder="Name"
-                style={{
-                  width: '755px',
-                  height: '60px',
-                  fontSize: '35px',
-                  padding: '10px',
-                  paddingLeft: '25px',
-                  outline: 'none',
-                  border: '4px solid #F4F4F4',
-                  borderRadius: '10px',
-                  fontFamily: "'Radio Canada', sans-serif",
-                  fontWeight: 'bold',
-                  marginBottom: '20px'
-                }}
-                value={assignmentName}
-                onChange={(e) => setAssignmentName(e.target.value)}
-              />
-            </div>
+          <div style={{ position: 'relative' }}>
+  {assignmentName && (
+    <h1 style={{
+      position: 'absolute',
+      left: '30px',
+      top: '-25px',
+      zIndex: '300',
+      width: '80px',
+      textAlign: 'center',
+      backgroundColor: 'white',
+      padding: '0 5px',
+      fontSize: '20px',
+      color: 'grey',
+    }}>
+      Name
+    </h1>
+  )}
+  <input
+    type="text"
+    placeholder="Name"
+    maxLength={25}
+    style={{
+      width: '755px',
+      height: '60px',
+      fontSize: '35px',
+      padding: '10px',
+      paddingLeft: '25px',
+      outline: 'none',
+      border: '6px solid #F4F4F4',
+      borderRadius: '10px',
+      fontFamily: "'Radio Canada', sans-serif",
+      fontWeight: 'bold',
+      marginBottom: '20px'
+    }}
+    value={assignmentName}
+    onChange={(e) => setAssignmentName(e.target.value)}
+  />
+  <span style={{
+    position: 'absolute',
+    right: '20px',
+    bottom: '30px',
+    fontSize: '14px',
+    color: 'grey',
+    fontFamily: "'Radio Canada', sans-serif",
+  }}>
+    {assignmentName.length}/25
+  </span>
+</div>
             <div style={{ width: '810px', display: 'flex' }}>
               <div style={{ marginBottom: '20px', width: '790px', height: '320px', borderRadius: '10px', border: '4px solid #F4F4F4' }}>
                 <div style={{ width: '730px', marginLeft: '20px', height: '80px', borderBottom: '6px solid lightgrey', display: 'flex', position: 'relative', alignItems: 'center', borderRadius: '0px', padding: '10px' }}>
@@ -665,7 +898,7 @@ const [questionCount, setQuestionCount] = useState(0);
               </div>
             )}
 
-            <div style={{ width: '770px', padding: '10px', marginTop: '20px', border: '4px solid #F4F4F4', borderRadius: '10px', marginBottom: '20px' }}>
+            <div style={{ width: '770px', padding: '10px', marginTop: '20px', border: '4px solid #F4F4F4', borderRadius: '10px', marginBottom: '20px', zIndex: '-10' }}>
               <button
                 onClick={() => setContentDropdownOpen(!contentDropdownOpen)}
                 style={{
@@ -909,7 +1142,9 @@ const [questionCount, setQuestionCount] = useState(0);
                  
                 </div>
               </div>
-              {isReadyToPublish() && (
+             
+            </div>
+            {isReadyToPublish() && (
                 <button
                   onClick={saveAssignment}
                   style={{
@@ -932,7 +1167,6 @@ const [questionCount, setQuestionCount] = useState(0);
                   Publish Assignment
                 </button>
               )}
-            </div>
           </div>
         </div>
       </div>

@@ -45,7 +45,13 @@ const TeacherClassHome = ({ currentPage }) => {
     setAssignmentFormat('');
     
     // Extract classId and assignmentId from the newAssignmentId
-    const [classId, uid, assignmentId] = newAssignmentId.split('+');
+    let [classId, uid, assignmentId] = newAssignmentId.split('+');
+    
+    // Remove "DRAFT" from the beginning of the assignmentId if present
+    if (assignmentId.startsWith('DRAFT')) {
+      assignmentId = assignmentId.slice(5); // Remove the first 5 characters ("DRAFT")
+    }
+    
     const fullAssignmentId = `${classId}+${uid}+${assignmentId}`;
   
     switch(assignmentFormat) {
@@ -75,7 +81,7 @@ const TeacherClassHome = ({ currentPage }) => {
           buttonBorder: '#CE7C00'
         };
       case 'SAQ':
-      case 'ASAQ':
+      case 'Asaq':
         return {
           background: '#9DA6FF',
           border: '#020CFF',
@@ -283,19 +289,21 @@ console.log('Current classChoiceStyle:', classChoiceStyle);
     };
   };
   const linkStyle = {
-    width: '280px', 
-    fontFamily: "'Radio Canada', sans-serif",
-    padding: '40px 0', 
+    width: '90%', 
+    marginLeft: '60px',
+    fontFamily: "'Rajdhani', sans-serif", 
+    padding: '45px 0', 
     marginBottom: '0px', 
+  
  border: '0px solid ',
 fontWeight: 'bold',
    
     textAlign: 'center', 
-    fontSize: '25px', 
+    fontSize: '55px', 
     textDecoration: 'none', 
 backgroundColor: 'rgb(50,50,50)',
     color: 'white',
-    borderRadius: '10px',
+    borderRadius: '20px',
     transition: '.3s', 
     cursor: 'pointer',
     transform: 'scale(1)',
@@ -344,7 +352,7 @@ backgroundColor: 'rgb(50,50,50)',
               border: `6px solid ${getNotificationStyles(assignmentFormat).border}`,
               borderBottomLeftRadius: '20px',
               
-              borderTop: '0px',
+             marginTop: '0px',
               borderBottomRightRadius: '20px',
               padding: '0px 20px',
               height: '40px',
@@ -393,15 +401,18 @@ backgroundColor: 'rgb(50,50,50)',
             </div>
           </div>
         )}
-     <div  style={{ flexGrow: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', marginTop: '20px', width: '1200px'}}>
+     <div  style={{ flexGrow: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', marginTop: '70px', width: '1200px'}}>
 
 
       <div style={{width: '100%', display: 'flex', justifyContent: 'space-between'}}>
+     
+     
+     
       <div
           
           style={{ 
-            width: '700px', zIndex: '1',
-            height: '374px',
+            width: '60%', zIndex: '1',
+            height: '400px',
            position: 'relative',
             marginBottom: '50px', 
             marginTop: '75px',
@@ -416,14 +427,14 @@ backgroundColor: 'rgb(50,50,50)',
             color: 'white',
            marginRight:'-30px', marginLeft:'10px',
          transition: '.3s', 
-                  textShadow: '2px 2px 4px rgba(0, 0, 0, 0.4)',
+                 
                   transform: 'scale(1)'
                    // Set default background color
             // Set default text color
         }}
    
     >
-<h1 style={{fontSize: '36px',
+<div style={{fontSize: '36px',
   height: '60px',
  
   fontFamily: "'Radio Canada', sans-serif",
@@ -443,10 +454,11 @@ backgroundColor: 'rgb(50,50,50)',
   justifyContent: 'center'
 }}>
 <h1 style={{
-  width: '873px',
+  width: '100%',
   border: '15px solid ', 
   borderColor:  classChoiceStyle.color || 'grey',
-  height: ' 60px',  
+  height: ' 80px',  
+  lineHeight: '80px',
   fontWeight: 'bold',
   borderTopLeftRadius: '50px', 
   borderTopRightRadius: '50px', 
@@ -463,19 +475,75 @@ backgroundColor: 'rgb(50,50,50)',
   textShadow: 'none' 
 }}>
   {className}
-</h1></h1>
+</h1></div>
+<div style={{display: 'flex'}}>
+  <h1 style={{ textAlign: 'center', textShadow: 'none', marginTop: '120px', width:'100%',
+     fontSize: '120px', fontWeight: 'bold', color: 'grey',fontFamily: "'Rajdhani', sans-serif", }}>
+      {classChoice}</h1>
+      
 
-  <h1 style={{ textAlign: 'center', textShadow: 'none', marginTop: '106px', fontSize: '120px', fontWeight: 'bold', color: 'grey',fontFamily: "'Rajdhani', sans-serif", }}>{classChoice}</h1>
-
-</div>
-      <div style={{width: '50%', display: 'flex', justifyContent: 'space-between', marginTop: '75px', marginBottom: '-20px'}}>
-        
-        
-        <div style={{width: '384px', backgroundColor: 'white', border: `10px solid ${getBorderColor(recentAverage)}`, borderRadius: '30px', height: '374px',marginLeft: '70px'}}>
-          <h1 style={{fontSize: '22px', padding: '20px', width: '110px', textAlign: 'center', backgroundColor: 'white', fontWeight: 'normal', fontFamily: "'Radio Canada', sans-serif", lineHeight: '1', marginTop: '-105px', marginLeft: 'auto', marginRight: 'auto', color: 'grey'}}> <h5 style={{fontSize: '34px', marginBottom: '-0px', color: 'grey'}}>Recent</h5> Average</h1>
-          <h2 style={{width: '100%', fontSize: '130px', fontWeight: 'normal', fontFamily: "'Radio Canada', sans-serif", textAlign: 'center', color: 'grey', marginTop: '65px'}}>{recentAverage}</h2>
-          </div>
      
+</div>
+</div>
+<div style={{display: 'flex', flexDirection: 'column', marginTop: '80px',width: '40%'}}>
+      <Link 
+          to={`./participants`} 
+          style={{ 
+            ...linkStyle,
+            backgroundColor: '#FFF0A1',
+            marginTop: '20px',
+           
+            border: '10px solid #FC8518',
+            color: '#FC8518'
+           
+          }}
+          onMouseEnter={(e) => {
+            e.target.style.opacity = '85%';
+            e.target.style.boxShadow= ' 0px 4px 4px 0px rgba(0, 0, 0, 0.25)';
+            e.target.style.transform = 'scale(1.01)';
+          
+         
+            
+          }}
+          onMouseLeave={(e) => {
+            e.target.style.opacity = '100%';
+            e.target.style.boxShadow= '';
+            e.target.style.transform = 'scale(1)'; 
+          }}
+          
+        
+    >
+         Students
+        </Link> 
+      <Link 
+          to={`./Assignments`} 
+          style={{ 
+            ...linkStyle,
+            backgroundColor: '#99B6FF',
+            marginTop: '20px',
+            color: '#020CFF',
+            border: '10px solid #020CFF'
+            // Set default background color
+            // Set default text color
+          }}
+          onMouseEnter={(e) => {
+            e.target.style.opacity = '85%';
+            e.target.style.boxShadow= ' 0px 4px 4px 0px rgba(0, 0, 0, 0.25)';
+            e.target.style.transform = 'scale(1.01)';
+          
+         
+            
+          }}
+          onMouseLeave={(e) => {
+            e.target.style.opacity = '100%';
+            e.target.style.boxShadow= '';
+            e.target.style.transform = 'scale(1)'; 
+          }}
+          
+        
+    >
+          Assignments
+        </Link>
         
       </div>
     
@@ -495,117 +563,8 @@ backgroundColor: 'rgb(50,50,50)',
         }}>
 
 
-<Link 
-          to={`./drafts`} 
-          style={{ 
-            ...linkStyle,
-            backgroundColor: '#F8CFFF',
-            color: '#B500D2'
-            // Set default background color
-            // Set default text color
-        }}
-        onMouseEnter={(e) => {
-          e.target.style.opacity = '85%';
-          e.target.style.boxShadow= ' 0px 4px 4px 0px rgba(0, 0, 0, 0.25)';
-          e.target.style.transform = 'scale(1.01)';
-        
-       
-          
-        }}
-        onMouseLeave={(e) => {
-          e.target.style.opacity = '100%';
-          e.target.style.boxShadow= '';
-          e.target.style.transform = 'scale(1)'; 
-        }}
-        
-    >
-          Resources
-        </Link>
-    <Link
-          to={`./teacherassignmenthome`} 
-          style={{ 
-            
-            ...linkStyle,
-            backgroundColor: '#AEF2A3',
-            color: '#18AC00'
-           
-          }}
-          onMouseEnter={(e) => {
-            e.target.style.opacity = '85%';
-            e.target.style.boxShadow= ' 0px 4px 4px 0px rgba(0, 0, 0, 0.25)';
-            e.target.style.transform = 'scale(1.01)';
-          
-         
-            
-          }}
-          onMouseLeave={(e) => {
-            e.target.style.opacity = '100%';
-            e.target.style.boxShadow= '';
-            e.target.style.transform = 'scale(1)'; 
-          }}
-          
-        
-    >
-        Create
-    </Link>
-
-        <Link 
-          to={`./TeacherGradesHome`} 
-          style={{ 
-            ...linkStyle,
-            backgroundColor: '#A3F2ED',
-            color: '#48A49E'
-            // Set default background color
-            // Set default text color
-          }}
-          onMouseEnter={(e) => {
-            e.target.style.opacity = '85%';
-            e.target.style.boxShadow= ' 0px 4px 4px 0px rgba(0, 0, 0, 0.25)';
-            e.target.style.transform = 'scale(1.01)';
-          
-         
-            
-          }}
-          onMouseLeave={(e) => {
-            e.target.style.opacity = '100%';
-            e.target.style.boxShadow= '';
-            e.target.style.transform = 'scale(1)'; 
-          }}
-          
-        
-    >
-          Grades
-        </Link>
-        <Link 
-          to={`./participants`} 
-          style={{ 
-            ...linkStyle,
-            backgroundColor: '#FFECA8',
-            color: '#817400'
-           
-          }}
-          onMouseEnter={(e) => {
-            e.target.style.opacity = '85%';
-            e.target.style.boxShadow= ' 0px 4px 4px 0px rgba(0, 0, 0, 0.25)';
-            e.target.style.transform = 'scale(1.01)';
-          
-         
-            
-          }}
-          onMouseLeave={(e) => {
-            e.target.style.opacity = '100%';
-            e.target.style.boxShadow= '';
-            e.target.style.transform = 'scale(1)'; 
-          }}
-          
-        
-    >
-         Participants
-        </Link>
-        
-      
         </div>
-        <button onClick={handleDeleteClass} style={{marginTop: '40px', backgroundColor: 'transparent', borderColor: 'transparent', marginRight: 'auto', fontWeight: 'bold',  marginBottom: '-50px',      fontFamily: "'Radio Canada', sans-serif", color: 'darkgrey', cursor: 'pointer',fontSize: '20px' }}>Delete Class</button>
+        <button onClick={handleDeleteClass} style={{marginTop: '90px', backgroundColor: 'transparent', borderColor: 'transparent', marginRight: 'auto', fontWeight: 'bold',  marginBottom: '-90px',      fontFamily: "'Radio Canada', sans-serif", color: 'darkgrey', cursor: 'pointer',fontSize: '20px' }}>Delete Class</button>
      
         </div>
       </main>

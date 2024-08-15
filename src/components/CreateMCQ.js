@@ -214,43 +214,55 @@ function MCQ() {
             </h1>
             <div style={{ width: '100%', height: '500px', marginTop: '-30px', border: '10px solid lightgrey', borderRadius: '30px' }}>
               <div style={{ width: '810px', marginLeft: 'auto', marginRight: 'auto', marginTop: '50px' }}>
+                
                 <div style={{ position: 'relative' }}>
-                  {assignmentName && (
-                    <h1 style={{
-                      position: 'relative',
-                      left: '30px',
-                      zIndex: '300',
-                      width: '80px',
-                      marginTop: '-12px',
-                      textAlign: 'center',
-                      backgroundColor: 'white',
-                      padding: '0 5px',
-                      fontSize: '20px',
-                      color: 'grey',
-                      marginBottom: '-12px'
-                    }}>
-                      Name
-                    </h1>
-                  )}
-                  <input
-                    type="text"
-                    placeholder="Name"
-                    style={{
-                      width: '744px',
-                      zIndex: '200',
-                      height: '60px',
-                      fontSize: '45px',
-                      padding: '30px',
-                       border: '6px solid #F4F4F4',
-                      borderRadius: '10px',
-                      fontFamily: "'Radio Canada', sans-serif",
-                      fontWeight: 'bold',
-                      color: 'black'
-                    }}
-                    value={assignmentName}
-                    onChange={(e) => setAssignmentName(e.target.value)}
-                  />
-                </div>
+  {assignmentName && (
+    <h1 style={{
+      position: 'absolute',
+      left: '30px',
+      top: '-25px',
+      zIndex: '300',
+      width: '80px',
+      textAlign: 'center',
+      backgroundColor: 'white',
+      padding: '0 5px',
+      fontSize: '20px',
+      color: 'grey',
+    }}>
+      Name
+    </h1>
+  )}
+  <input
+    type="text"
+    placeholder="Name"
+    maxLength={25}
+    style={{
+      width: '755px',
+      height: '60px',
+      fontSize: '35px',
+      padding: '10px',
+      paddingLeft: '25px',
+      outline: 'none',
+      border: '6px solid #F4F4F4',
+      borderRadius: '10px',
+      fontFamily: "'Radio Canada', sans-serif",
+      fontWeight: 'bold',
+      marginBottom: '20px'
+    }}
+    value={assignmentName}
+    onChange={(e) => setAssignmentName(e.target.value)}
+  />
+  <span style={{
+    position: 'absolute',
+    right: '10px',
+    bottom: '30px',
+    fontSize: '14px',
+    color: 'grey',
+    fontFamily: "'Radio Canada', sans-serif",
+  }}>
+    {assignmentName.length}/25
+  </span>
+</div>
                 <div style={{ width: '810px', display: 'flex' }}>
                   <div style={{ width: '290px', height: '60px',  border: '6px solid #F4F4F4', borderRadius: '10px', marginTop: '25px', display: 'flex', marginRight:'20px' }}>
                     <h1 style={{ fontSize: '30px', color: 'grey', marginLeft: '30px', marginTop: '10px' }}>Timer</h1>

@@ -297,28 +297,31 @@ const TakeAmcq = () => {
       if (currentQuestion.difficulty === 'Easy') points = 1.5;
       if (currentQuestion.difficulty === 'Medium') points = 2.5;
       if (currentQuestion.difficulty === 'Hard') points = 4;
-
+  
       points += 0.5 * streak;
     } else {
       if (currentQuestion.difficulty === 'Easy') points = -4;
       if (currentQuestion.difficulty === 'Medium') points = -2;
       if (currentQuestion.difficulty === 'Hard') points = -1;
-
+  
       if (streak > 6) {
         setStreak(Math.floor(streak / 2));
       } else {
         setStreak(0);
       }
     }
-
+  
     points = Math.round(points);
     let newScore = SquareScore + points;
-
-    if (newScore >= maxScore) {
+  
+    // Check if newScore is NaN and set it to 0 if it is
+    if (isNaN(newScore)) {
+      newScore = 0;
+    } else if (newScore >= maxScore) {
       newScore = maxScore;
       endTest();
     }
-
+  
     setSquareScore(newScore);
   };
 
@@ -709,7 +712,7 @@ const TakeAmcq = () => {
         key={choice}
         onClick={() => handleAnswerSelect(choice)}
         style={{
-          width: displayFormat === 'grid' ? '43%' : '90%',
+          width: displayFormat === 'grid' ? '42%' : '90%',
           margin: displayFormat === 'grid' ? '10px 2%' : '5px auto',
           padding: '10px',
           background: style.background,

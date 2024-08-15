@@ -16,7 +16,7 @@ const SignUp = () => {
   const navigate = useNavigate(); // Initialize the navigate function
   const [showPopup, setShowPopup] = useState(false); // New state variable
   const [navbarBg, setNavbarBg] = useState('rgba(255,255,255,0.7)');
- 
+  const [passwordsMatch, setPasswordsMatch] = useState(true);
   const formatName = (name) => {
     // Remove spaces, capitalize first letter, lowercase the rest
     return name.replace(/\s/g, '').charAt(0).toUpperCase() + name.slice(1).toLowerCase();
@@ -25,9 +25,13 @@ const SignUp = () => {
     e.preventDefault();
 
     if (password !== confirmPassword) {
+      setPasswordsMatch(false);
       setError("Passwords do not match");
       return;
     }
+
+    setPasswordsMatch(true);
+    setError(null);
 
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
@@ -74,7 +78,7 @@ const SignUp = () => {
   };
 
   const isFormComplete = () => {
-    return email && password && confirmPassword && firstName && lastName && (password === confirmPassword);
+    return email && password && role && confirmPassword && firstName && lastName && (password === confirmPassword);
   };
 
   const generateUniquePositions = useCallback((count, size, margin) => {
@@ -314,15 +318,16 @@ className="white-background" style={{width: '1000px', marginLeft: 'auto', border
             <div style={{display: 'flex'}}>
               <div style={{ position: 'relative', width: '410px', marginBottom: '20px' }}>
                 <input 
-                  type="password" 
-                  placeholder="Password" 
-                  value={password}
-                  onFocus={() => handleInputFocus('password')}
-                  onBlur={(e) => handleInputBlur('password', e.target.value)}
-                  onChange={e => {
-                    setPassword(e.target.value);
-                    e.target.style.borderColor= e.target.value.trim() !== '' ? 'lightgreen' : 'lightgrey';
-                  }}
+                type="password" 
+                placeholder="Password" 
+                value={password}
+                onFocus={() => handleInputFocus('password')}
+                onBlur={(e) => handleInputBlur('password', e.target.value)}
+                onChange={e => {
+                  setPassword(e.target.value);
+                  setPasswordsMatch(e.target.value === confirmPassword);
+                  e.target.style.borderColor = e.target.value.trim() !== '' ? 'lightgreen' : 'lightgrey';
+                }}
                   style={{ 
                     width: '90%',  
                     padding: '20px', 
@@ -338,20 +343,21 @@ className="white-background" style={{width: '1000px', marginLeft: 'auto', border
                     fontFamily: "'Radio Canada', sans-serif",
                   }}
                 />
-                {inputStyles.password && <label style={{ position: 'absolute', top: '-10px', left: '15px', backgroundColor: 'white', padding: '0 10px',  borderTopRightRadius: '3px', borderTopLeftRadius: '3px', 
-                    fontFamily: "'Radio Canada', sans-serif", fontWeight: 'bold', height: '10px' }}>Password</label>}
-              </div>
+                 {inputStyles.password && <label style={{ position: 'absolute', top: '-10px', left: '15px', backgroundColor: 'white', padding: '0 10px',  borderTopRightRadius: '3px', borderTopLeftRadius: '3px', 
+                fontFamily: "'Radio Canada', sans-serif", fontWeight: 'bold', height: '10px' }}>Password</label>}
+        </div>
               <div style={{ position: 'relative', width: '410px', marginBottom: '20px', marginLeft: '20px' }}>
                 <input 
-                  type="password" 
-                  placeholder="Confirm Password" 
-                  value={confirmPassword}
-                  onFocus={() => handleInputFocus('confirmPassword')}
-                  onBlur={(e) => handleInputBlur('confirmPassword', e.target.value)}
-                  onChange={e => {
-                    setConfirmPassword(e.target.value);
-                    e.target.style.borderColor= e.target.value.trim() !== '' ? 'lightgreen' : 'lightgrey';
-                  }}
+            type="password" 
+            placeholder="Confirm Password" 
+            value={confirmPassword}
+            onFocus={() => handleInputFocus('confirmPassword')}
+            onBlur={(e) => handleInputBlur('confirmPassword', e.target.value)}
+            onChange={e => {
+              setConfirmPassword(e.target.value);
+              setPasswordsMatch(e.target.value === password);
+              e.target.style.borderColor = e.target.value.trim() !== '' ? 'lightgreen' : 'lightgrey';
+        }}
                   style={{ 
                     width: '100%', 
                     padding: '20px', 
@@ -368,10 +374,16 @@ className="white-background" style={{width: '1000px', marginLeft: 'auto', border
                     fontFamily: "'Radio Canada', sans-serif",
                   }}
                 />
-                {inputStyles.confirmPassword && <label style={{ position: 'absolute', top: '-10px', left: '15px', backgroundColor: 'white', padding: '0 10px',  borderTopRightRadius: '3px', borderTopLeftRadius: '3px', 
-                    fontFamily: "'Radio Canada', sans-serif", fontWeight: 'bold', height: '10px' }}>Confirm Password</label>}
-              </div>
+                  {inputStyles.confirmPassword && <label style={{ position: 'absolute', top: '-10px', left: '15px', backgroundColor: 'white', padding: '0 10px',  borderTopRightRadius: '3px', borderTopLeftRadius: '3px', 
+                fontFamily: "'Radio Canada', sans-serif", fontWeight: 'bold', height: '10px' }}>Confirm Password</label>}
+       </div>
             </div>
+            {!passwordsMatch && (
+          <p style={{ color: 'red', marginTop: '5px', marginBottom: '15px', fontFamily: "'Radio Canada', sans-serif" }}>
+            Passwords do not match
+          </p>
+          
+        )}
             {isFormComplete() && (
               <div style={{display: 'flex', marginTop: '20px'}}>
                 <button onClick={handleSignUp}

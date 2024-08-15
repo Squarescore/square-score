@@ -339,44 +339,54 @@ function SAQA() {
           Create (<h1 style={{ fontSize: '50px', marginTop: '10px', marginLeft: '0px', color: '#020CFF' }}> SAQ*</h1>)
         </h1>
         <div style={{ width: '100%', padding: '20px', border: '10px solid transparent', borderRadius: '30px' , marginTop: '-50px'}}>
-        {assignmentName && (
-          <h1 style={{
-            position: 'relative',
-            left: '30px',
-            zIndex: '300',
-            width: '80px',
-            marginTop: '-12px',
-            textAlign: 'center',
-            backgroundColor: 'white',
-            padding: '0 5px',
-            fontSize: '20px',
-            color: 'grey',
-            marginBottom: '-12px'
-          }}>
-            Name
-          </h1>
-        )}
-          <input
-            type="text"
-            placeholder="Name"
-            style={{
-              width: '755px',
-              height: '60px',
-              
-              fontSize: '35px',
-              padding: '10px',
-              paddingLeft: '25px',
-              outline: 'none',
-               border: '6px solid #F4F4F4',
-              borderRadius: '10px',
-              fontFamily: "'Radio Canada', sans-serif",
-              fontWeight: 'bold',
-              marginBottom: '20px'
-            }}
-            value={assignmentName}
-            onChange={(e) => setAssignmentName(e.target.value)}
-          />
-
+        <div style={{ position: 'relative' }}>
+  {assignmentName && (
+    <h1 style={{
+      position: 'absolute',
+      left: '30px',
+      top: '-25px',
+      zIndex: '300',
+      width: '80px',
+      textAlign: 'center',
+      backgroundColor: 'white',
+      padding: '0 5px',
+      fontSize: '20px',
+      color: 'grey',
+    }}>
+      Name
+    </h1>
+  )}
+  <input
+    type="text"
+    placeholder="Name"
+    maxLength={25}
+    style={{
+      width: '755px',
+      height: '60px',
+      fontSize: '35px',
+      padding: '10px',
+      paddingLeft: '25px',
+      outline: 'none',
+      border: '6px solid #F4F4F4',
+      borderRadius: '10px',
+      fontFamily: "'Radio Canada', sans-serif",
+      fontWeight: 'bold',
+      marginBottom: '20px'
+    }}
+    value={assignmentName}
+    onChange={(e) => setAssignmentName(e.target.value)}
+  />
+  <span style={{
+    position: 'absolute',
+    right: '10px',
+    bottom: '30px',
+    fontSize: '14px',
+    color: 'grey',
+    fontFamily: "'Radio Canada', sans-serif",
+  }}>
+    {assignmentName.length}/25
+  </span>
+</div>
           <div style={{ marginBottom: '20px', width: '790px', height: '200px', borderRadius: '10px',  border: '6px solid #F4F4F4' }}>
             <div style={{ width: '730px', marginLeft: '20px', height: '80px', borderBottom: '6px solid lightgrey', display: 'flex', position: 'relative', alignItems: 'center', borderRadius: '0px', padding: '10px' }}>
               <h1 style={{ fontSize: '30px', color: 'black', width: '300px', paddingLeft: '0px' }}>Timer:</h1>

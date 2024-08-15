@@ -3,14 +3,15 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { doc, getDoc, writeBatch, arrayUnion, serverTimestamp } from 'firebase/firestore';
 import { db } from './firebase'; // Ensure the path is correct
 import TeacherPreview from './PreviewSAQ';
-
+import { setDoc, updateDoc } from 'firebase/firestore';
 import './SwitchGreen.css';
 import SelectStudents from './SelectStudents';
 import Navbar from './Navbar';
 import CustomDateTimePicker from './CustomDateTimePicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import axios from 'axios';
-
+import { arrayRemove } from 'firebase/firestore';
+import { useLocation } from 'react-router-dom';
 const dropdownContentStyle = `
   .dropdown-content {
     max-height: 0;
@@ -55,6 +56,7 @@ function CreateAssignment() {
   const [saveAndExit, setSaveAndExit] = useState(true);
   const [generating, setGenerating] = useState(false);
   const [lockdown, setLockdown] = useState(false);
+  const location = useLocation();
   const [scaleMin, setScaleMin] = useState('0');
   const [scaleMax, setScaleMax] = useState('2');
   
@@ -62,7 +64,9 @@ function CreateAssignment() {
   const [studentsDropdownOpen, setStudentsDropdownOpen] = useState(false);
   const [timeDropdownOpen, setTimeDropdownOpen] = useState(false);
   const [assignDate, setAssignDate] = useState(new Date());
-  const [dueDate, setDueDate] = useState(new Date());
+
+  const [dueDate, setDueDate] = useState(new Date(new Date().getTime() + 48 * 60 * 60 * 1000)); // 48 hours from now
+
   const [sourceOption, setSourceOption] = useState(null);
   const [sourceText, setSourceText] = useState('');
   const [youtubeLink, setYoutubeLink] = useState('');
@@ -75,6 +79,13 @@ function CreateAssignment() {
   const [generatedQuestions, setGeneratedQuestions] = useState([]);
   const [questionsGenerated, setQuestionsGenerated] = useState(false);
 
+  const [draftId, setDraftId] = useState(null);
+
+  
+  useEffect(() => {
+    // Set due date to 48 hours after assign date whenever assign date changes
+    setDueDate(new Date(assignDate.getTime() + 48 * 60 * 60 * 1000));
+  }, [assignDate]);
   const { classId, assignmentId } = useParams(); // Get assignmentId from params
   const navigate = useNavigate();
   const handlePreviewToggle = () => {
@@ -104,8 +115,100 @@ function CreateAssignment() {
       }
     };
     fetchClassName();
-  }, [classId]);
 
+    // Check if we're loading from a draft
+    if (assignmentId && assignmentId.startsWith('DRAFT')) {
+      setDraftId(assignmentId.slice(5)); // Remove 'DRAFT' prefix
+      loadDraft(assignmentId.slice(5));
+    }
+  }, [classId, assignmentId]);
+
+
+  const loadDraft = async (draftId) => {
+    const draftRef = doc(db, 'drafts', draftId);
+    const draftDoc = await getDoc(draftRef);
+    if (draftDoc.exists) {
+      const data = draftDoc.data();
+      setAssignmentName(data.assignmentName || '');
+      setTimer(data.timer || '0');
+      setTimerOn(data.timerOn || false);
+      setHalfCredit(data.halfCredit || false);
+      setScaleMin(data.scale?.min || '0');
+      setScaleMax(data.scale?.max || '2');
+      
+      const loadedAssignDate = data.assignDate ? new Date(data.assignDate) : new Date();
+      setAssignDate(loadedAssignDate);
+      
+      if (data.dueDate) {
+        setDueDate(new Date(data.dueDate));
+      } else {
+        setDueDate(new Date(loadedAssignDate.getTime() + 48 * 60 * 60 * 1000));
+      }
+
+      setSelectedStudents(new Set(data.selectedStudents || []));
+      setSaveAndExit(data.saveAndExit || true);
+      setLockdown(data.lockdown || false);
+      setQuestionBank(data.questionBank || '10');
+      setQuestionStudent(data.questionStudent || '5');
+
+      // Load generated questions
+      if (data.questions && Object.keys(data.questions).length > 0) {
+        const loadedQuestions = Object.entries(data.questions).map(([id, questionData]) => ({
+          questionId: id,
+          ...questionData
+        }));
+        setGeneratedQuestions(loadedQuestions);
+        setQuestionsGenerated(true);
+        setSourceOption('text');
+        setSourceText("Questions have already been generated. Click 'Preview Questions' to view or regenerate.");
+      }
+    }
+  };
+  useEffect(() => {
+    if (location.state && location.state.questions) {
+      setGeneratedQuestions(location.state.questions);
+    }
+  }, [location]);
+
+  const saveDraft = async () => {
+    const draftData = {
+      classId,
+      assignmentName,
+      timer: timerOn ? timer : '0', // Save timer value if timerOn is true, otherwise save '0'
+      timerOn, // Save the timerOn state
+      halfCredit,
+      scale: {
+        min: scaleMin,
+        max: scaleMax,
+      },
+      assignDate: assignDate.toISOString(),
+      dueDate: dueDate.toISOString(),
+      selectedStudents: Array.from(selectedStudents),
+      generatedQuestions,
+      saveAndExit,
+      lockdown,
+      questionBank,
+      questionStudent,
+      createdAt: serverTimestamp(),
+    };
+
+    const newDraftId = draftId || `${classId}+${Date.now()}+SAQ`;
+    const draftRef = doc(db, 'drafts', newDraftId);
+    
+    await setDoc(draftRef, draftData);
+
+    // Update the class document with the new draft ID
+    const classRef = doc(db, 'classes', classId);
+    await updateDoc(classRef, {
+      [`assignment(saq)`]: arrayUnion(newDraftId)
+    });
+
+    setDraftId(newDraftId);
+    
+    navigate(`/class/${classId}/Assignments`, {
+      state: { showDrafts: true, newDraftId: newDraftId }
+    });
+  };
   const handleRegenerate = async (newInstructions) => {
     setStep(5); // Move to loading screen
     try {
@@ -213,8 +316,10 @@ function CreateAssignment() {
       throw error;
     }
   };
-
   const saveAssignment = async () => {
+    // Remove 'DRAFT' prefix from assignmentId if it exists
+    const finalAssignmentId = assignmentId.startsWith('DRAFT') ? assignmentId.slice(5) : assignmentId;
+
     const assignmentData = {
       classId,
       assignmentName,
@@ -237,13 +342,13 @@ function CreateAssignment() {
       saveAndExit
     };
   
-    const assignmentRef = doc(db, 'assignments(saq)', assignmentId);
+    const assignmentRef = doc(db, 'assignments(saq)', finalAssignmentId);
     
     const batch = writeBatch(db);
   
     batch.set(assignmentRef, assignmentData);
     generatedQuestions.forEach((question, index) => {
-      const questionId = `${assignmentId}(question${index + 1})`;
+      const questionId = `${finalAssignmentId}(question${index + 1})`;
       assignmentData.questions[questionId] = {
         question: question.question,
         expectedResponse: question.expectedResponse
@@ -252,21 +357,36 @@ function CreateAssignment() {
   
     batch.update(assignmentRef, { questions: assignmentData.questions });
   
+    // Delete the draft document if it exists
+    if (draftId) {
+      const draftRef = doc(db, 'drafts', draftId);
+      batch.delete(draftRef);
+
+      // Update the class document
+      const classRef = doc(db, 'classes', classId);
+      batch.update(classRef, {
+        [`assignment(saq)`]: arrayRemove(assignmentId) // Remove the draft ID (with DRAFT prefix)
+      });
+      batch.update(classRef, {
+        [`assignment(saq)`]: arrayUnion(finalAssignmentId) // Add the final assignment ID
+      });
+    }
+
     await batch.commit();
   
     await assignToStudents();
-    console.log('Assignment and questions saved to Firebase:', assignmentData);
+    console.log('Assignment saved and draft deleted from Firebase:', assignmentData);
   
-    const format = assignmentId.split('+').pop(); // Get the format from the assignment ID
+    const format = finalAssignmentId.split('+').pop(); // Get the format from the assignment ID
 
     navigate(`/class/${classId}`, {
       state: {
         successMessage: `Success: ${assignmentName} published`,
-        assignmentId: assignmentId,
-        format: format}
-      });
+        assignmentId: finalAssignmentId,
+        format: format
+      }
+    });
   };
-  
   const isFormValid = () => {
     return assignmentName !== '' && assignDate !== '' && dueDate !== '';
   };
@@ -342,47 +462,58 @@ function CreateAssignment() {
           >
             <img src='/LeftGreenArrow.png' style={{width: '75px', transition: '.5s'}} />
           </button>
-        <h1 style={{ marginLeft: '40px', fontFamily: "'Radio Canada', sans-serif", color: 'black', fontSize: '60px', display: 'flex' }}>
-          Create (<h1 style={{ fontSize: '50px', marginTop: '10px', marginLeft: '0px', color: '#020CFF' }}> SAQ </h1>)
+        <h1 style={{ marginLeft: '0px',  fontFamily: "'Rajdhani', sans-serif", color: 'black', fontSize: '80px', display: 'flex', marginBottom: '-20px' }}>
+          Create (<h1 style={{ fontSize: '70px', marginTop: '10px', marginLeft: '0px', color: '#020CFF' }}> SAQ </h1>)
         </h1>
-        <div style={{ width: '100%', padding: '20px', border: '10px solid transparent', borderRadius: '30px' , marginTop: '-50px'}}>
-        {assignmentName && (
-          <h1 style={{
-            position: 'relative',
-            left: '30px',
-            zIndex: '300',
-            width: '80px',
-            marginTop: '-12px',
-            textAlign: 'center',
-            backgroundColor: 'white',
-            padding: '0 5px',
-            fontSize: '20px',
-            color: 'grey',
-            marginBottom: '-12px'
-          }}>
-            Name
-          </h1>
-        )}
-          <input
-            type="text"
-            placeholder="Name"
-            style={{
-              width: '755px',
-              height: '60px',
-              
-              fontSize: '35px',
-              padding: '10px',
-              paddingLeft: '25px',
-              outline: 'none',
-               border: '6px solid #F4F4F4',
-              borderRadius: '10px',
-              fontFamily: "'Radio Canada', sans-serif",
-              fontWeight: 'bold',
-              marginBottom: '20px'
-            }}
-            value={assignmentName}
-            onChange={(e) => setAssignmentName(e.target.value)}
-          />
+        <div style={{ position: 'relative' }}>
+        <div style={{ position: 'relative' }}>
+  {assignmentName && (
+    <h1 style={{
+      position: 'absolute',
+      left: '30px',
+      top: '-25px',
+      zIndex: '300',
+      width: '80px',
+      textAlign: 'center',
+      backgroundColor: 'white',
+      padding: '0 5px',
+      fontSize: '20px',
+      color: 'grey',
+    }}>
+      Name
+    </h1>
+  )}
+  <input
+    type="text"
+    placeholder="Name"
+    maxLength={25}
+    style={{
+      width: '755px',
+      height: '60px',
+      fontSize: '35px',
+      padding: '10px',
+      paddingLeft: '25px',
+      outline: 'none',
+      border: '6px solid #F4F4F4',
+      borderRadius: '10px',
+      fontFamily: "'Radio Canada', sans-serif",
+      fontWeight: 'bold',
+      marginBottom: '20px'
+    }}
+    value={assignmentName}
+    onChange={(e) => setAssignmentName(e.target.value)}
+  />
+  <span style={{
+    position: 'absolute',
+    right: '10px',
+    bottom: '30px',
+    fontSize: '14px',
+    color: 'grey',
+    fontFamily: "'Radio Canada', sans-serif",
+  }}>
+    {assignmentName.length}/25
+  </span>
+</div>
 
           <div style={{ marginBottom: '20px', width: '790px', height: '320px', borderRadius: '10px',  border: '6px solid #F4F4F4' }}>
             <div style={{ width: '730px', marginLeft: '20px', height: '80px', borderBottom: '6px solid lightgrey', display: 'flex', position: 'relative', alignItems: 'center', borderRadius: '0px', padding: '10px' }}>
@@ -678,6 +809,7 @@ function CreateAssignment() {
             borderRadius: '10px',
             resize: 'vertical'
           }}
+          readOnly={questionsGenerated}
         />
       )}
       {sourceOption === 'pdf' && (
@@ -765,14 +897,15 @@ function CreateAssignment() {
 ) && Number(questionBank) >= Number(questionStudent) && (
   <div style={{ display: 'flex', alignItems: 'center', marginTop: '20px' }}>
     <button
-      onClick={async () => {
-        if (generatedQuestions.length > 0) {
+       onClick={async () => {
+        if (questionsGenerated) {
           setShowPreview(true);
         } else {
           setGenerating(true);
           try {
             const questions = await dummyFunction(sourceText, questionBank);
             setGeneratedQuestions(questions);
+            setQuestionsGenerated(true);
             setShowPreview(true);
           } finally {
             setGenerating(false);
@@ -879,22 +1012,21 @@ function CreateAssignment() {
 
           <div style={{ display: 'flex', justifyContent: 'space-between' }}>
             <button
-              onClick={() => console.log('Save Draft')}
+                 onClick={saveDraft}
               style={{
                 width: '400px',
                 position: 'fixed',
-                right: '-180px',
+                right: '-80px',
                 border: '15px solid #E01FFF',
                 borderRadius: '30px',
                 top: '-40px',
+                background: 'white',
                 padding: '10px',
                 fontSize: '24px',
-                backgroundColor: '#FBD3FF',
-                color: '#E01FFF',
                 cursor: 'pointer'
               }}
             >
-              <h1 style={{fontSize: '35px', width: '200px',  marginTop: '100px'}}>Save as Draft</h1>
+              <h1 style={{fontSize: '45px', width: '400px',  marginTop: '100px', marginLeft: '-50px', marginBottom: '0px', fontFamily: "'Rajdhani', sans-serif", }}>Save as Draft</h1>
             </button>
             <button
               onClick={saveAssignment}

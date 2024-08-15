@@ -90,7 +90,7 @@ const TeacherAssignmentHome = () => {
         <h1 style={{marginLeft: '100px', marginTop: '100px', color: 'black', fontSize: '60px', display: 'flex', fontFamily: '"Rajdhani", sans-serif'}}>
           Create <h1 style={{fontSize: '30px', marginLeft: '30px', color: 'grey'}}>Step 1 - Format</h1>
         </h1>
-        <div style={{ display: 'flex', marginTop: '10px', justifyContent: 'space-evenly', flexDirection: 'column', width: '800px', height: '550px', border: '10px solid lightgrey', 
+        <div style={{ display: 'flex', marginTop: '10px', justifyContent: 'space-evenly', flexDirection: 'column', width: '800px', height: '550px', border: '0px solid lightgrey', 
           marginLeft: 'auto', marginRight: 'auto', borderRadius: '30px' }}>
           <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '20px' }}>
             <button

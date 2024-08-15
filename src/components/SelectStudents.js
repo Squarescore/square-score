@@ -11,17 +11,42 @@ function SelectStudents({ classId, selectedStudents = new Set(), setSelectedStud
 
   useEffect(() => {
     const fetchStudents = async () => {
-      const classDocRef = doc(db, 'classes', classId);
-      const classDoc = await getDoc(classDocRef);
-      const classData = classDoc.data();
-      if (classData && classData.participants) {
-        const sortedStudents = classData.participants.sort((a, b) => a.name.split(' ').pop().localeCompare(b.name.split(' ').pop()));
-        setStudents(sortedStudents);
-        // Set all students as selected by default
-        const studentIds = sortedStudents.map(student => student.uid);
-        setSelectedStudents(new Set(studentIds));
+      try {
+        const classDocRef = doc(db, 'classes', classId);
+        const classDoc = await getDoc(classDocRef);
+        const classData = classDoc.data();
+        
+        if (classData && classData.participants) {
+          // Fetch full names for all participants
+          const updatedParticipants = await Promise.all(classData.participants.map(async (participant) => {
+            const studentDocRef = doc(db, 'students', participant.uid);
+            const studentDoc = await getDoc(studentDocRef);
+            if (studentDoc.exists()) {
+              const studentData = studentDoc.data();
+              return {
+                ...participant,
+                name: `${studentData.firstName.trim()} ${studentData.lastName.trim()}`
+              };
+            }
+            return participant;
+          }));
+          
+          // Sort students by last name
+          const sortedStudents = updatedParticipants.sort((a, b) => 
+            a.name.split(' ').pop().localeCompare(b.name.split(' ').pop())
+          );
+          
+          setStudents(sortedStudents);
+          
+          // Set all students as selected by default
+          const studentIds = sortedStudents.map(student => student.uid);
+          setSelectedStudents(new Set(studentIds));
+        }
+      } catch (error) {
+        console.error("Error fetching students:", error);
       }
     };
+    
     fetchStudents();
   }, [classId]);
 
@@ -42,8 +67,8 @@ function SelectStudents({ classId, selectedStudents = new Set(), setSelectedStud
         display: 'flex', 
          marginTop: '15px',
          marginBottom: '15px',
-        flexWrap: 'wrap', 
-        width: '600px',
+        flexWrap: 'wrap',
+        width: '700px',
         
         justifyContent: 'flex-start',
         gap: '10px', 
@@ -53,9 +78,9 @@ function SelectStudents({ classId, selectedStudents = new Set(), setSelectedStud
             key={student.uid}
             onClick={() => handleStudentClick(student.uid)}
             style={{
-              width: 'calc(30% - 10px)',
+              width: 'calc(25.5% - 12px)',
               padding: '10px',
-              border: `6px solid ${selectedStudents.has(student.uid) ? '#73D87D' : 'lightgrey'}`,
+              border: `3px solid ${selectedStudents.has(student.uid) ? '#73D87D' : 'lightgrey'}`,
               borderRadius: '5px',
               height: '50px',
               alignItems: 'center' ,

@@ -11,7 +11,9 @@ const Participants = () => {
   const [timeMultipliers, setTimeMultipliers] = useState({});
   const navigate = useNavigate();
   const [isEditing, setIsEditing] = useState(false); // New state for edit mode
-
+  const navigateToStudentGrades = (studentUid) => {
+    navigate(`/class/${classId}/student/${studentUid}/grades`);
+  };
   useEffect(() => {
     const fetchClass = async () => {
       try {
@@ -26,23 +28,23 @@ const Participants = () => {
         let classData = classDoc.data();
         console.log("Class Data:", classData);
   
-        // Ensure joinRequests is an array before proceeding
-        if (Array.isArray(classData.joinRequests)) {
-          for (let i = 0; i < classData.joinRequests.length; i++) {
-            const studentUID = classData.joinRequests[i];
-            const studentDoc = await getDoc(doc(db, 'students', studentUID));
+        // Fetch full names for participants
+        if (classData.participants) {
+          const updatedParticipants = await Promise.all(classData.participants.map(async (participant) => {
+            const studentDocRef = doc(db, 'students', participant.uid);
+            const studentDoc = await getDoc(studentDocRef);
             if (studentDoc.exists()) {
-              classData.joinRequests[i] = {
-                uid: studentUID,
-                name: studentDoc.data().firstName + ' ' + studentDoc.data().lastName,
-                email: studentDoc.data().email,
+              const studentData = studentDoc.data();
+              return {
+                ...participant,
+                name: `${studentData.firstName.trim()} ${studentData.lastName.trim()}`
               };
             }
-          }
-        } else {
-          console.log("joinRequests is not an array or is undefined");
+            return participant;
+          }));
+          classData.participants = updatedParticipants;
         }
-  
+
         setCurrentClass(classData);
 
         // Fetch time multipliers for participants
@@ -99,24 +101,39 @@ const Participants = () => {
 
   const handleRemoveStudent = async (studentUID) => {
     const classRef = doc(db, 'classes', classId);
-    const participants = currentClass.participants.filter(student => student.uid !== studentUID);
-    await updateDoc(classRef, { participants });
-    setCurrentClass({ ...currentClass, participants });
+    
+    // Remove the student from the participants array
+    const updatedParticipants = currentClass.participants.filter(student => student.uid !== studentUID);
+    
+    // Remove the student's UID from the students array
+    const updatedStudents = currentClass.students.filter(uid => uid !== studentUID);
+    
+    // Update the Firestore document
+    await updateDoc(classRef, { 
+      participants: updatedParticipants,
+      students: updatedStudents
+    });
+    
+    // Update the local state
+    setCurrentClass(prevState => ({
+      ...prevState,
+      participants: updatedParticipants,
+      students: updatedStudents
+    }));
   };
-
   const handleAdmitStudent = async (student) => {
     const classRef = doc(db, 'classes', classId);
     const participants = [...(currentClass.participants || []), {
       uid: student.uid,
       name: student.name,
-      email: student.email}];
+      email: student.email
+    }];
     const joinRequests = currentClass.joinRequests.filter(req => req.uid !== student.uid);
     const students = [...(currentClass.students || []), student.uid];  // Add the student's UID to the students array
     participants.sort((a, b) => a.name.split(' ').pop().localeCompare(b.name.split(' ').pop())); // Sort by last name
     await updateDoc(classRef, { participants, joinRequests, students });  // Update the Firestore document
     setCurrentClass({ ...currentClass, participants, joinRequests, students }); // Update local state
   };
-
   const handleRejectStudent = async (studentUID) => {
     // Similar logic to handleAdmitStudent, just rejecting the student
     // You may update joinRequests and save it to Firestore
@@ -181,7 +198,7 @@ const Participants = () => {
     </div>
   </div>
   
-  <div style={{border: '15px solid #FFECA8', padding: '5px', zIndex: 100, boxShadow: ' 0px 4px 4px 0px rgba(0, 0, 0, 0.25)', width: '350px', fontFamily: "'Radio Canada', sans-serif", position: 'fixed', top: '-190px', right: '-120px', backgroundColor: 'white', textAlign: 'center', borderRadius: '30px', height: '350px', }}>
+  <div style={{border: '15px solid #FCAE18', padding: '5px', zIndex: 100, boxShadow: ' 0px 4px 4px 0px rgba(0, 0, 0, 0.25)', width: '350px', fontFamily: "'Radio Canada', sans-serif", position: 'fixed', top: '-190px', right: '-120px', backgroundColor: 'white', textAlign: 'center', borderRadius: '30px', height: '350px', }}>
     <h2 style={{  fontSize: '50px', fontWeight: 'bold', color: 'black',marginRight: '80px' ,  fontFamily: "'Rajdhani', sans-serif",}}>
       <h1 style={{fontSize: '24px', marginBottom: '-2px', marginTop: '240px', color: 'grey', textDecoration: 'underline', fontFamily: "'Radio Canada', sans-serif"}}>Class Code</h1>  
       {currentClass.classCode}
@@ -189,7 +206,7 @@ const Participants = () => {
   </div>
 
   <div style={{width: '750px', display: 'flex', marginLeft: 'auto', marginRight: 'auto', marginTop: '0px', height: '150px'}}>
-    <h1 style={{ fontSize: '60px', marginTop: '30px', width: '100%',  marginRight: '20px',fontFamily: "'Rajdhani', sans-serif", }}>Participants</h1>
+    <h1 style={{ fontSize: '60px', marginTop: '30px', width: '30%',  marginRight: '20px',fontFamily: "'Rajdhani', sans-serif", }}>Students</h1>
     <div className="tooltip">
       <button 
         onClick={toggleEditMode}
@@ -226,11 +243,11 @@ const Participants = () => {
                 paddingTop: '3px',
                 paddingRight: '4px',
                 height:'20px',
-                backgroundColor: isEditing ?  '#A3F2ED': '#FFECA8', 
+                backgroundColor: isEditing ?  '#A3F2ED': '#FFF0A1', 
                 width: isEditing ? '175px' : '115px',
                 fontFamily: "'Radio Canada', sans-serif", 
                 marginLeft: '30px', 
-                color: isEditing ? '#48A49E':'#C69007', 
+                color: isEditing ? '#48A49E':'#FC8518', 
                 fontWeight: 'bold', 
                 borderTopRightRadius: '5px', 
                 borderTopLeftRadius: '5px', 
@@ -296,11 +313,22 @@ const Participants = () => {
               + Accomodations
             </div>
           )}
+          <div   onClick={() => navigateToStudentGrades(student.uid)}
+          style={{cursor: 'pointer'}}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.color = 'blue';
+        e.currentTarget.style.textDecoration = 'underline';
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.color = 'inherit';
+        e.currentTarget.style.textDecoration = 'none';
+      }}>
           <span style={{ backgroundColor: 'transparent', borderColor: 'transparent', fontFamily: "'Radio Canada', sans-serif", marginLeft: '30px' }}>{student.name.split(' ')[1]},</span>
           <span style={{ backgroundColor: 'transparent', borderColor: 'transparent', fontFamily: "'Radio Canada', sans-serif", fontWeight: 'bold', marginLeft: '10px' }}>{student.name.split(' ')[0]}</span>
         </div>
+        </div>
         <div style={{ marginRight: 'auto' }}>
-          <span style={{ backgroundColor: 'transparent', borderColor: 'transparent', fontSize: '14px', fontFamily: "'Radio Canada', sans-serif", }}> {student.email}</span>
+          <span style={{ backgroundColor: 'transparent', borderColor: 'transparent', fontSize: '14px', fontFamily: "'Radio Canada', sans-serif", marginLeft: '-20px'}}> {student.email}</span>
         </div>
         {isEditing && (
           <button style={{ backgroundColor: 'transparent', fontFamily: "'Radio Canada', sans-serif", borderColor: 'transparent', color: 'red', position: 'absolute', right: '-20px', top: '-15px' }} onClick={() => handleRemoveStudent(student.uid)}>

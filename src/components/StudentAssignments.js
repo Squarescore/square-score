@@ -22,7 +22,50 @@ function StudentAssignmentsHome({ studentUid: propStudentUid }) {
   const [hoveredAssignment, setHoveredAssignment] = useState(null);
   const [showConfirm, setShowConfirm] = useState(false);
 const [confirmAssignment, setConfirmAssignment] = useState(null);
+
   const studentUID = auth.currentUser.uid;
+  useEffect(() => {
+    // Disable right-click
+    const handleContextMenu = (e) => {
+      e.preventDefault();
+    };
+
+    // Disable F12, Ctrl+Shift+I, Ctrl+Shift+J, Ctrl+U
+    const handleKeyDown = (e) => {
+      if (
+        e.keyCode === 123 || // F12
+        (e.ctrlKey && e.shiftKey && (e.keyCode === 73 || e.keyCode === 74)) || // Ctrl+Shift+I or Ctrl+Shift+J
+        (e.ctrlKey && e.keyCode === 85) // Ctrl+U
+      ) {
+        e.preventDefault();
+      }
+    };
+
+    // Detect if DevTools is open
+    const detectDevTools = () => {
+      const widthThreshold = window.outerWidth - window.innerWidth > 160;
+      const heightThreshold = window.outerHeight - window.innerHeight > 160;
+      
+      if (widthThreshold || heightThreshold) {
+        // Optionally, you can redirect or take other actions here
+        console.log('DevTools detected');
+      }
+    };
+
+    // Add event listeners
+    document.addEventListener('contextmenu', handleContextMenu);
+    document.addEventListener('keydown', handleKeyDown);
+
+    // Check for DevTools periodically
+    const interval = setInterval(detectDevTools, 1000);
+
+    // Cleanup function
+    return () => {
+      document.removeEventListener('contextmenu', handleContextMenu);
+      document.removeEventListener('keydown', handleKeyDown);
+      clearInterval(interval);
+    };
+  }, []);
   useEffect(() => {
     const fetchClassData = async () => {
       const classDocRef = doc(db, 'classes', classId);
@@ -97,20 +140,47 @@ const [confirmAssignment, setConfirmAssignment] = useState(null);
 
     fetchAssignments();
   }, [classId, studentUid]);
-
+  const isActiveAssignment = (assignment) => {
+    const now = new Date();
+    const assignDateTime = new Date(assignment.assignDate);
+    const dueDateTime = new Date(assignment.dueDate);
+    return now >= assignDateTime && now <= dueDateTime;
+  };
+  const getBorderColor = (assignment) => {
+    const now = new Date();
+    const assignDateTime = new Date(assignment.assignDate);
+    const dueDateTime = new Date(assignment.dueDate);
+  
+    if (now < assignDateTime) return 'grey';
+    if (now > dueDateTime) return 'red';
+    return '#AEF2A3'; // Light green for active assignments
+  };
   useEffect(() => {
     const fetchCompletedAssignments = async () => {
-      const gradesQuery = query(
+      const saqGradesQuery = query(
         collection(db, 'grades(saq)'),
         where('studentUid', '==', studentUid),
         where('classId', '==', classId)
       );
-
-      const querySnapshot = await getDocs(gradesQuery);
-      const fetchedGrades = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setCompletedAssignments(fetchedGrades);
+  
+      const amcqGradesQuery = query(
+        collection(db, 'grades(AMCQ)'),
+        where('studentUid', '==', studentUid),
+        where('classId', '==', classId)
+      );
+  
+      const [saqSnapshot, amcqSnapshot] = await Promise.all([
+        getDocs(saqGradesQuery),
+        getDocs(amcqGradesQuery)
+      ]);
+  
+      const saqGrades = saqSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), type: 'SAQ' }));
+      const amcqGrades = amcqSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), type: 'AMCQ' }));
+  
+      const allGrades = [...saqGrades, ...amcqGrades].sort((a, b) => b.submittedAt.toDate() - a.submittedAt.toDate());
+      setCompletedAssignments(allGrades);
     };
-
+  
     fetchCompletedAssignments();
   }, [classId, studentUid]);
   
@@ -144,31 +214,16 @@ const [confirmAssignment, setConfirmAssignment] = useState(null);
     setConfirmAssignment({ id: assignmentId, type, assignmentName, saveAndExit });
     setShowConfirm(true);
   };
-  const getAssignmentStyle = (assignDate, dueDate) => {
-    const now = new Date();
-    const assignDateTime = new Date(assignDate);
-    const dueDateTime = new Date(dueDate);
-
-    if (now < assignDateTime) {
-      return {
-        border: '6px solid grey',
-        cursor: 'not-allowed',
-        opacity: 0.5
-      };
-    }
-
-    if (now > dueDateTime) {
-      return {
-        border: '6px solid red',
-        cursor: 'not-allowed',
-        opacity: 0.5
-      };
-    }
-
-    return {
-      border: '6px solid #AEF2A3',
-    };
+const getAssignmentStyle = (assignment) => {
+  const borderColor = getBorderColor(assignment);
+  return {
+    border: `6px solid ${borderColor}`,
+    cursor: borderColor === '#AEF2A3' ? 'pointer' : 'not-allowed',
+    opacity: borderColor === '#AEF2A3' ? 1 : 0.5
   };
+};
+
+ 
   const RetroConfirm = ({ onConfirm, onCancel, assignmentName, saveAndExitEnabled }) => (
     <div style={{
       position: 'fixed',
@@ -293,103 +348,212 @@ const [confirmAssignment, setConfirmAssignment] = useState(null);
 
   const renderCompletedAssignments = () => {
     return completedAssignments.map(grade => {
-      const percentage = Math.round(grade.percentageScore);
+      const isAMCQ = grade.type === 'AMCQ';
+      const percentage = Math.round(isAMCQ ? grade.SquareScore : grade.percentageScore);
       const letterGrade = getLetterGrade(percentage);
-      return (
-        <li key={grade.id} style={{ 
-          fontSize: '40px', 
-          color: 'black', 
-          backgroundColor: 'white', 
-          fontFamily: "'Radio Canada', sans-serif",
-          transition: '.4s',
-          border: grade.viewable ? '6px solid #54AAA4' : '6px solid lightgrey',
-          listStyleType: 'none',
-          textAlign: 'center', 
-          marginTop: '20px', 
-          height: '69px',
-      marginLeft: '-40px',
-          padding: '10px', 
-          borderRadius: '15px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          position: 'relative',
-          borderTopRightRadius: grade.viewable ? '0px' : '15px',
-          borderBottomRightRadius: grade.viewable ? '0px' : '15px',
-        }}>
-          <div style={{display: 'flex'}}>
+      
+      if (isAMCQ) {
+        return (
+          <li key={grade.id} style={{ 
+            color: 'black', 
+            backgroundColor: 'white', 
+            fontFamily: "'Radio Canada', sans-serif",
+            transition: '.4s',
+            border: grade.viewable ? '6px solid #54AAA4' : '6px solid lightgrey',
+            listStyleType: 'none',
+            marginTop: '20px', 
+            height: '100px',
+            marginLeft: '-40px',
+            borderRadius: '15px',
+            display: 'flex',
+            position: 'relative',
+            borderTopRightRadius: grade.viewable ? '0px' : '15px',
+            borderBottomRightRadius: grade.viewable ? '0px' : '15px',
+          }}>
+              <div style={{
+              width: '60px',
+              height: '60px',
+              marginTop: '15px',
+              marginLeft: '15px',
+              border: '7px solid #003BD4',
+              backgroundColor: '#566DFF',
+              borderRadius: '15px'
+            }}>
+              <p style={{
+                fontWeight: 'bold',
+                width: '45px',
+                marginTop: '8px',
+                marginRight: 'auto',
+                marginLeft: 'auto',
+                fontSize: '25px',
+                backgroundColor: 'white',
+                height: '45px',
+                lineHeight: '47px',
+                color: 'black',
+                borderRadius: '3px',
+                fontFamily: "'Rajdhani', sans-serif",
+                textAlign: 'center'
+              }}>
+            {grade.SquareScore}
+               </p>
+            </div>
+            <div style={{flexGrow: 1, padding: '10px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between'}}>
+              <h1 style={{color: 'black', fontSize: '30px', marginTop: '5px'}}>
+                {grade.assignmentName}
+              </h1>
+              <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '-15px'}}>
+                <span style={{fontSize: '25px', fontWeight: 'bold', color: 'grey'}}>
+                  {letterGrade}
+                </span>
+                <span style={{ fontSize: '20px', marginLeft: '40px',fontFamily: "'Radio Canada', sans-serif", fontWeight: 'bold', marginRight: '-10px', color: grade.viewable ? '#54AAA4' : '#009006' }}>
+                    {grade.viewable ? 'Reviewable' : 'Completed'}
+                  </span>
+                 
+                <span style={{fontSize: '20px', color: 'grey'}}>
+               Submitted:   {grade.submittedAt ? new Date(grade.submittedAt.toDate()).toLocaleString(undefined, {
+                    year: 'numeric',
+                    month: 'numeric',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    hour12: true
+                  }) : 'N/A'}
+                </span>
+                <span style={{
+                  fontWeight: 'bold',
+                  fontSize: '30px',
+                  color: '#009006',
+                }}>
+                  MCQ<span style={{ color: '#F4C10A' }}>*</span>
+                </span>
+              </div>
+            </div>
             {grade.viewable && 
             <button style={{
-              fontWeight: 'bold',
               position: 'absolute', 
               right: '-57px', 
               top: '50%', 
               width: '60px',
               cursor: 'pointer',
-              height: '101px',
-              padding: '10px 20px 10px 20px',
+              height: '112px',
               display: 'flex',
               transform: 'translateY(-50%)', 
-              color: 'white',
               backgroundColor: '#A3F2ED',
               border: '6px solid #54AAA4',
-              borderRadius: '15px',
-              marginBottom: '5px',
-              borderTopLeftRadius: '0px',
-              borderBottomLeftRadius: '0px',
+              borderRadius: '0 15px 15px 0',
               fontFamily: "'Radio Canada', sans-serif",
               alignItems: 'center', 
               justifyContent: 'center' 
-            }} onClick={() => navigate(`/studentresults/${grade.assignmentId}/${studentUID}/${classId}`)}>
+            }} onClick={() => navigate(`/studentresultsAMCQ/${grade.assignmentId}/${studentUID}/${classId}`)}>
               <img style={{width: '30px', cursor: 'pointer', transform: 'scale(1)', transition: '.3s'}}
                 onMouseEnter={(e) => { e.target.style.transform = 'scale(1.06)'; }}
                 onMouseLeave={(e) => { e.target.style.transform = 'scale(1)'; }} 
                 src='/gradesarrow.png'/>
             </button>}
-            <div style={{marginLeft: '10px', width: '800px', textAlign: 'left'}}>
-              <h1 style={{color: 'black', fontSize: '25px', marginLeft: '5px'}}>
-                {grade.assignmentName}
-              </h1>  
-              <div style={{display: 'flex', position: 'relative', alignItems: 'center', marginTop: '-30px'}}>
-                <p style={{ fontWeight: 'bold', width: '23px',  textAlign: 'center',fontSize: '22px', backgroundColor: '#566DFF', height: '23px', border: '4px solid #003BD4', lineHeight: '23px', color: 'white', borderRadius: '7px', fontFamily: "'Radio Canada', sans-serif" }}>
-                  {letterGrade}
-                </p>
-                <h1 style={{color: 'grey', fontSize: '24px', marginLeft: '40px'}}>
-                  {percentage}%
-                </h1>
-                <span style={{ fontSize: '20px', marginLeft: '40px',fontFamily: "'Radio Canada', sans-serif", fontWeight: 'bold', marginRight: '-10px', color: grade.viewable ? '#54AAA4' : '#009006' }}>
-                  {grade.viewable ? 'Reviewable' : 'Completed'}
-                </span>
-                <h1 style={{color: 'grey', fontSize: '20px',textAlign: 'left',fontWeight: 'normal', marginLeft: '30px'}}>
-                Completed: {grade.submittedAt ? new Date(grade.submittedAt.toDate()).toLocaleString(undefined, {
-                  year: 'numeric',
-                  month: 'numeric',
-                  day: 'numeric',
-                  hour: '2-digit',
-                  minute: '2-digit',
-                  hour12: true
-                }) : 'N/A'}
-              </h1>
-              <span style={{
-                position: 'absolute',
-                right: '50px',
-                bottom: '20px',
+          </li>
+        );
+      } else {
+        // Original SAQ layout
+
+
+
+
+        return (
+          <li key={grade.id} style={{ 
+            fontSize: '40px', 
+            color: 'black', 
+            backgroundColor: 'white', 
+            fontFamily: "'Radio Canada', sans-serif",
+            transition: '.4s',
+            border: grade.viewable ? '6px solid #54AAA4' : '6px solid lightgrey',
+            listStyleType: 'none',
+            textAlign: 'center', 
+            marginTop: '20px', 
+            height: '69px',
+        marginLeft: '-40px',
+            padding: '10px', 
+            borderRadius: '15px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            position: 'relative',
+            borderTopRightRadius: grade.viewable ? '0px' : '15px',
+            borderBottomRightRadius: grade.viewable ? '0px' : '15px',
+          }}>
+            <div style={{display: 'flex'}}>
+              {grade.viewable && 
+              <button style={{
                 fontWeight: 'bold',
+                position: 'absolute', 
+                right: '-57px', 
+                top: '50%', 
                 width: '60px',
-                marginTop: '0px',
-                fontSize: '25px',
+                cursor: 'pointer',
+                height: '101px',
+                padding: '10px 20px 10px 20px',
+                display: 'flex',
+                transform: 'translateY(-50%)', 
+                color: 'white',
+                backgroundColor: '#A3F2ED',
+                border: '6px solid #54AAA4',
+                borderRadius: '15px',
+                marginBottom: '5px',
+                borderTopLeftRadius: '0px',
+                borderBottomLeftRadius: '0px',
                 fontFamily: "'Radio Canada', sans-serif",
-                color: '#020CFF',
-              }}>
-                SAQ
-              </span>
+                alignItems: 'center', 
+                justifyContent: 'center' 
+              }} onClick={() => navigate(`/studentresults/${grade.assignmentId}/${studentUID}/${classId}`)}>
+                <img style={{width: '30px', cursor: 'pointer', transform: 'scale(1)', transition: '.3s'}}
+                  onMouseEnter={(e) => { e.target.style.transform = 'scale(1.06)'; }}
+                  onMouseLeave={(e) => { e.target.style.transform = 'scale(1)'; }} 
+                  src='/gradesarrow.png'/>
+              </button>}
+              <div style={{marginLeft: '10px', width: '800px', textAlign: 'left'}}>
+                <h1 style={{color: 'black', fontSize: '25px', marginLeft: '5px'}}>
+                  {grade.assignmentName}
+                </h1>  
+                <div style={{display: 'flex', position: 'relative', alignItems: 'center', marginTop: '-30px'}}>
+                  <p style={{ fontWeight: 'bold', width: '23px',  textAlign: 'center',fontSize: '22px', backgroundColor: '#566DFF', height: '23px', border: '4px solid #003BD4', lineHeight: '23px', color: 'white', borderRadius: '7px', fontFamily: "'Radio Canada', sans-serif" }}>
+                    {letterGrade}
+                  </p>
+                  <h1 style={{color: 'grey', fontSize: '24px', marginLeft: '40px'}}>
+                    {percentage}%
+                  </h1>
+                  <span style={{ fontSize: '20px', marginLeft: '40px',fontFamily: "'Radio Canada', sans-serif", fontWeight: 'bold', marginRight: '-10px', color: grade.viewable ? '#54AAA4' : '#009006' }}>
+                    {grade.viewable ? 'Reviewable' : 'Completed'}
+                  </span>
+                  <h1 style={{color: 'grey', fontSize: '20px',textAlign: 'left',fontWeight: 'normal', marginLeft: '30px'}}>
+                  Submitted:  {grade.submittedAt ? new Date(grade.submittedAt.toDate()).toLocaleString(undefined, {
+                    year: 'numeric',
+                    month: 'numeric',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    hour12: true
+                  }) : 'N/A'}
+                </h1>
+                <span style={{
+                  position: 'absolute',
+                  right: '65px',
+                  bottom: '20px',
+                  fontWeight: 'bold',
+                  width: '60px',
+                  marginTop: '0px',
+                  fontSize: '30px',
+                  fontFamily: "'Radio Canada', sans-serif",
+                  color: '#020CFF',
+                }}>
+                  SAQ
+                </span>
+                </div>
               </div>
+         
+              
             </div>
-       
-            
-          </div>
-        </li>
-      );
+          </li>
+        );
+      }
     });
   };
 
@@ -419,14 +583,16 @@ const [confirmAssignment, setConfirmAssignment] = useState(null);
   
       const formatDate = (dateString) => {
         const date = new Date(dateString);
-        return date.toLocaleString(undefined, {
-          year: 'numeric',
-          month: 'numeric',
+        const options = { 
+          weekday: 'short', 
+          year: 'numeric', 
+          month: 'long', 
           day: 'numeric',
-          hour: '2-digit',
-          minute: '2-digit',
-          hour12: true
-        });
+          hour: '2-digit', 
+          minute: '2-digit', 
+          hour12: true 
+        };
+        return date.toLocaleDateString('en-US', options);
       };
   
       return (
@@ -448,11 +614,14 @@ const [confirmAssignment, setConfirmAssignment] = useState(null);
               marginTop: '30px',
               padding: '10px',
               borderRadius: '15px',
-              ...getAssignmentStyle(assignment.assignDate, assignment.dueDate)
+              ...getAssignmentStyle(assignment)
             }}
             onMouseEnter={(e) => {
               setHoveredAssignment(assignment.id);
-              if (e.currentTarget.style.cursor !== 'not-allowed') {
+              const now = new Date();
+              const assignDateTime = new Date(assignment.assignDate);
+              const dueDateTime = new Date(assignment.dueDate);
+              if (now >= assignDateTime && now <= dueDateTime) {
                 e.currentTarget.style.borderColor = '#2BB514';
                 e.currentTarget.style.borderTopRightRadius = '0px';
                 e.currentTarget.style.borderBottomRightRadius = '0px';
@@ -462,7 +631,7 @@ const [confirmAssignment, setConfirmAssignment] = useState(null);
               setHoveredAssignment(null);
               e.currentTarget.style.borderTopRightRadius = '15px';
               e.currentTarget.style.borderBottomRightRadius = '15px';
-              e.currentTarget.style.borderColor = '#AEF2A3';
+              e.currentTarget.style.borderColor = getBorderColor(assignment);
             }}
           >
             <div style={{ display: 'flex', color: 'black', textAlign: 'left', height: '29px', width: '700px', fontFamily: "'Radio Canada', sans-serif", position: 'relative', fontWeight: 'bold', fontSize: '40px', marginLeft: '10px' }}>
@@ -537,50 +706,50 @@ const [confirmAssignment, setConfirmAssignment] = useState(null);
               </h1>
             </div>
             <button
-              onClick={() => navigateToTest(
-                assignment.id, 
-                format, 
-                assignment.assignDate, 
-                assignment.dueDate, 
-                assignment.assignmentName,
-                assignment.saveAndExit
-              )}
-                style={{
-                position: 'absolute',
-                left: '785px',
-                top: '96px',
-                transform: 'translateY(-50%)',
-                background: '#AEF2A3',
-                color: 'white',
-                padding: 0,
-                cursor: 'pointer',
-                borderRadius: '0 15px 15px 0',
-                height: '132px',
-                width: hoveredAssignment === assignment.id ? '90px' : '3px',
-                opacity: hoveredAssignment === assignment.id ? 1 : 0,
-                transition: 'width .4s ease-in-out, left .4s ease-in-out, opacity 0.3s ease-in-out',
-                fontFamily: "'Radio Canada', sans-serif",
-                fontSize: '20px',
-                fontWeight: 'bold',
-                border: '6px solid #2BB514',
-                overflow: 'hidden',
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'center'
-              }}
-            >
-              <img
-                style={{
-                  width: '50px',
-                  cursor: 'pointer',
-                  opacity: hoveredAssignment === assignment.id ? 1 : 0,
-                  transition: 'opacity 0.3s ease-in-out',
-                  transitionDelay: '0.15s'
-                }}
-                src='/greenarrow.png'
-                alt="Enter"
-              />
-            </button>
+  onClick={() => navigateToTest(
+    assignment.id, 
+    format, 
+    assignment.assignDate, 
+    assignment.dueDate, 
+    assignment.assignmentName,
+    assignment.saveAndExit
+  )}
+  style={{
+    position: 'absolute',
+    left: '785px',
+    top: '96px',
+    transform: 'translateY(-50%)',
+    background: '#AEF2A3',
+    color: 'white',
+    padding: 0,
+    cursor: 'pointer',
+    borderRadius: '0 15px 15px 0',
+    height: '132px',
+    width: hoveredAssignment === assignment.id && isActiveAssignment(assignment) ? '90px' : '3px',
+    opacity: hoveredAssignment === assignment.id && isActiveAssignment(assignment) ? 1 : 0,
+    transition: 'width .4s ease-in-out, left .4s ease-in-out, opacity 0.3s ease-in-out',
+    fontFamily: "'Radio Canada', sans-serif",
+    fontSize: '20px',
+    fontWeight: 'bold',
+    border: '6px solid #2BB514',
+    overflow: 'hidden',
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center'
+  }}
+>
+  <img
+    style={{
+      width: '50px',
+      cursor: 'pointer',
+      opacity: hoveredAssignment === assignment.id && isActiveAssignment(assignment) ? 1 : 0,
+      transition: 'opacity 0.3s ease-in-out',
+      transitionDelay: '0.15s'
+    }}
+    src='/greenarrow.png'
+    alt="Enter"
+  />
+</button>
           </li>
         </div>
       );
@@ -608,7 +777,7 @@ const [confirmAssignment, setConfirmAssignment] = useState(null);
   />
 )}
       <div style={{position: 'fixed', width: '100%', top: '70px', background: 'rgb(245,245,245,.8)', backdropFilter: 'blur(5px)'
-        ,zIndex: '1000'
+        ,zIndex: '90'
       }}>
       <div style={{ 
   width: '800px', 

@@ -223,8 +223,8 @@ const [scaleMax, setScaleMax] = useState(2);
   const handleSubmit = async () => {
     setIsSubmitting(true);
     try {
-      // Grade the assignment
-      const gradingResults = await gradeAssignment(questions, answers);
+      // Attempt to grade the assignment with retries
+      const gradingResults = await gradeAssignmentWithRetries(questions, answers);
   
       // Combine grading results with question and student response
       const combinedResults = gradingResults.map((result, index) => ({
@@ -232,12 +232,12 @@ const [scaleMax, setScaleMax] = useState(2);
         score: result.score / 2, 
         question: questions[index].text,
         studentResponse: answers[index].answer,
-        flagged: false // Initialize flagged state to false for each question
+        flagged: false
       }));
   
       // Calculate the total score
       const rawTotalScore = combinedResults.reduce((sum, result) => sum + result.score, 0);
-      const maxRawScore = questions.length; // This is now 1 point per question, not 2
+      const maxRawScore = questions.length;
   
       // Apply scaling
       const scaledScore = ((rawTotalScore / maxRawScore) * (scaleMax - scaleMin)) + scaleMin;
@@ -253,14 +253,14 @@ const [scaleMax, setScaleMax] = useState(2);
         lastName: lastName,
         classId,
         submittedAt: serverTimestamp(),
-        rawTotalScore, // This is already divided by 2
-        maxRawScore, // This is now the number of questions (1 point each)
+        rawTotalScore,
+        maxRawScore,
         scaledScore,
         scaleMin,
         scaleMax,
         percentageScore,
         questions: combinedResults,
-        viewable: false, // Initialize viewable status to false
+        viewable: false,
       });
   
       // Update student's assignment status
@@ -282,36 +282,48 @@ const [scaleMax, setScaleMax] = useState(2);
       setIsSubmitting(false);
     }
   };
-  const gradeAssignment = async (questions, answers) => {
-    try {
-      const questionsToGrade = questions.map((question, index) => ({
-        questionId: question.questionId,
-        question: question.text,
-        expectedResponse: question.expectedResponse,
-        studentResponse: answers[index].answer,
-      }));
-  
-      const response = await fetch('https://us-central1-square-score-ai.cloudfunctions.net/GradeSAQ', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ questions: questionsToGrade }),
-      });
-  
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+
+  const gradeAssignmentWithRetries = async (questions, answers, maxRetries = 2) => {
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      try {
+        const gradingResults = await gradeAssignment(questions, answers);
+        return gradingResults; // If successful, return the results
+      } catch (error) {
+        console.error(`Grading attempt ${attempt + 1} failed:`, error);
+        if (attempt === maxRetries) {
+          // If all retries failed, return fallback grading
+          return questions.map(() => ({
+            feedback: "Question not graded successfully due to technical issues.",
+            score: 0
+          }));
+        }
       }
-  
-      const gradingResults = await response.json();
-      return gradingResults;
-    } catch (error) {
-      console.error("Error grading assignment:", error);
-      throw error;
     }
   };
-  
 
+  const gradeAssignment = async (questions, answers) => {
+    const questionsToGrade = questions.map((question, index) => ({
+      questionId: question.questionId,
+      question: question.text,
+      expectedResponse: question.expectedResponse,
+      studentResponse: answers[index].answer,
+    }));
+
+    const response = await fetch('https://us-central1-square-score-ai.cloudfunctions.net/GradeSAQ', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ questions: questionsToGrade }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const gradingResults = await response.json();
+    return gradingResults;
+  };
 
 
 

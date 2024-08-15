@@ -110,9 +110,9 @@ const { classId } = useParams();
             </header>
             <div style={{ width: '1200px', marginLeft: 'auto', marginTop: '30px', marginRight: 'auto', textAlign: 'center', backgroundColor: 'white', borderRadius: '10px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', marginBottom: '-40px', justifyContent: 'space-around' }}>
-                    <h1 style={{ fontFamily: "'Poppins', sans-serif", fontSize: '40px', color: 'grey' }}>
+                    <h1 style={{ fontFamily: "'Radio Canada', sans-serif", fontSize: '40px', color: 'grey' }}>
                         {assignmentName}
-                        <h1 style={{ fontSize: '80px', color: 'black', marginTop: '20px' }}> Rodrigo Duran{studentName}</h1>
+                        <h1 style={{ fontSize: '80px', color: 'black', fontFamily: "'Rajdhani', sans-serif",marginTop: '20px' }}> Rodrigo Duran{studentName}</h1>
                     </h1>
                 </div>
                 <div style={{ marginBottom: '40px', fontFamily: "'Radio Canada', sans-serif", backgroundColor: 'white', display: 'flex', width: '1000px', height: '70px', marginLeft: 'auto', marginRight: 'auto', borderRadius: '100px',  border: '6px solid #F4F4F4', alignItems: 'center', justifyContent: 'space-around' }}>

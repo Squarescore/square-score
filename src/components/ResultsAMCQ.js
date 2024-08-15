@@ -3,30 +3,211 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { doc, collection, updateDoc, where, query, getDocs, writeBatch, deleteDoc, getDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
 import Navbar from './Navbar';
 import { db } from './firebase';
-
+import { AnimatePresence } from 'framer-motion';
+import CustomDateTimePicker from './CustomDateTimePickerResults';
+import 'react-datepicker/dist/react-datepicker.css';
 const TeacherResultsAMCQ = () => {
   // State hooks
   const [allViewable, setAllViewable] = useState(false);
   const [assignmentData, setAssignmentData] = useState(null);
   const [assignmentName, setAssignmentName] = useState('');
   const [assignmentStatuses, setAssignmentStatuses] = useState({});
-  const [assignDate, setAssignDate] = useState('');
-  const [dueDate, setDueDate] = useState('');
+  const [assignDate, setAssignDate] = useState(null);
+  const [dueDate, setDueDate] = useState(null);
   const [grades, setGrades] = useState({});
   const [hoveredStatus, setHoveredStatus] = useState(null);
   const [hoveredStudent, setHoveredStudent] = useState(null);
-  
+  const [showQuestionContent, setShowQuestionContent] = useState(false);
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [resetStatus, setResetStatus] = useState({});
   const [resetStudent, setResetStudent] = useState(null);
   const [selectedStudents, setSelectedStudents] = useState([]);
-  
+  const [isVisible, setIsVisible] = useState(false);
   const [showQuestionBank, setShowQuestionBank] = useState(false);
   const [students, setStudents] = useState([]);
     const { classId, assignmentId } = useParams();
+    const [showOverlay, setShowOverlay] = useState(false);
+    
+  const [showSettings, setShowSettings] = useState(false);
+  const [assignmentSettings, setAssignmentSettings] = useState({
+    assignDate: null,
+    dueDate: null,
+    halfCredit: false,
+    lockdown: false,
+    saveAndExit: true,
+    scaleMin: '0',
+    scaleMax: '2',
+    timer: '0',
+    timerOn: false,
+  });
   const navigate = useNavigate();
+  useEffect(() => {
+    const fetchAssignmentSettings = async () => {
+      const assignmentRef = doc(db, 'assignments(saq)', assignmentId);
+      const assignmentDoc = await getDoc(assignmentRef);
+      if (assignmentDoc.exists()) {
+        const data = assignmentDoc.data();
+        setAssignmentSettings({
+          assignDate: data.assignDate ? new Date(data.assigned) : null,
+          dueDate: data.dueDate ? new Date(data.dueDate) : null,
+          halfCredit: data.halfCredit || false,
+          lockdown: data.lockdown || false,
+          saveAndExit: data.saveAndExit !== undefined ? data.saveAndExit : true,
+          scaleMin: data.scale?.min || '0',
+          scaleMax: data.scale?.max || '2',
+          timer: data.timer || '0',
+          timerOn: data.timer > 0,
+        });
+      }
+    };
 
+    fetchAssignmentSettings();
+  }, [assignmentId]);
+
+  const updateAssignmentSetting = async (setting, value) => {
+    const assignmentRef = doc(db, 'assignments(saq)', assignmentId);
+    const updateData = { [setting]: value };
+    
+    if (setting === 'scaleMin' || setting === 'scaleMax') {
+      updateData.scale = {
+        min: setting === 'scaleMin' ? value : assignmentSettings.scaleMin,
+        max: setting === 'scaleMax' ? value : assignmentSettings.scaleMax,
+      };
+    }
+
+    await updateDoc(assignmentRef, updateData);
+    setAssignmentSettings(prev => ({ ...prev, [setting]: value }));
+  };
+  
+  const SettingsSection = () => (
+    <div style={{
+      width: '780px',
+      marginRight: 'auto',
+      marginLeft: 'auto', position: 'relative',
+      marginTop: '-10px'
+    }}>
+      <div style={{width: '150px', position: 'absolute', top: '-6px', left: '10px', height: '32px', background: 'lightgrey'}}></div>
+      <div style={{
+        marginLeft: '10px',
+        border: '6px solid lightgrey',
+        background: 'white',
+        borderRadius: '10px',
+        padding: '20px',
+        width: '750px',
+        marginTop: '20px',
+      
+      }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', marginBottom: '10px', borderRadius: '10px', marginLeft: '-5px', background: '#F4F4F4' }}>
+            <h3 style={{
+              fontSize: '18px',
+              color: 'grey', 
+              marginLeft: '20px', 
+              marginRight: '-28px',
+              fontFamily: "'Radio Canada', sans-serif",
+            }}>Assigned:</h3>
+            <CustomDateTimePicker
+              selected={assignDate}
+              onChange={(date) => {
+                setAssignDate(date);
+                if (dueDate) {
+                  updateDates(date, dueDate);
+                }
+              }}
+          
+            />
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', marginBottom: '10px', borderRadius: '10px', marginLeft: '10px', background: '#F4F4F4' }}>
+            <h3 style={{
+              fontSize: '18px',
+              color: 'grey', 
+              marginLeft: '20px', 
+              marginRight: '-28px',
+              fontFamily: "'Radio Canada', sans-serif",
+            }}>Due:</h3>
+            <CustomDateTimePicker
+                selected={dueDate}
+                onChange={(date) => {
+                  setDueDate(date);
+                  if (assignDate) {
+                    updateDates(assignDate, date);
+                  }
+                }}
+            />
+          </div>
+        </div>
+  
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
+          <div style={{display: 'flex', alignItems: 'center', border: '6px solid #f4f4f4', borderRadius: '10px', width: '400px', height: '70px'}}>
+            <h3 style={{lineHeight: '30px', marginLeft: '20px', marginRight: '20px',     fontFamily: "'Radio Canada', sans-serif",}}>Timer</h3>
+            <div style={{ display: 'flex', alignItems: 'center' }}>
+              <input
+                type="checkbox"
+                className="greenSwitch"
+                checked={assignmentSettings.timerOn}
+                onChange={(e) => {
+                  updateAssignmentSetting('timerOn', e.target.checked);
+                  if (!e.target.checked) {
+                    updateAssignmentSetting('timer', '0');
+                  }
+                }}
+              />
+              {assignmentSettings.timerOn ? (
+                <>
+                  <input
+                    type="number"
+                    value={assignmentSettings.timer}
+                    onChange={(e) => updateAssignmentSetting('timer', e.target.value)}
+                    style={{ width: '50px', marginLeft: '10px', padding: '5px', outline: 'none', border: 'none', background: '#f4f4f4', fontSize: '20px',  borderRadius: '5px'}}
+                  />
+                  <span style={{ marginLeft: '5px' ,    fontFamily: "'Radio Canada', sans-serif",}}>minutes</span>
+                </>
+              ) : (
+                <span style={{ marginLeft: '10px', color: 'grey',     fontFamily: "'Radio Canada', sans-serif", }}>Off</span>
+              )}
+            </div>
+          </div>
+  
+          <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', border: '6px solid #f4f4f4', borderRadius: '10px', width: '275px', height: '70px', padding: '0 20px'}}>
+            <h3 style={{    fontFamily: "'Radio Canada', sans-serif",}}>Half Credit</h3>
+            <input
+              type="checkbox"
+              className="greenSwitch"
+              checked={assignmentSettings.halfCredit}
+              onChange={(e) => updateAssignmentSetting('halfCredit', e.target.checked)}
+            />
+          </div>
+        </div>
+  
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '10px' }}>
+          
+          <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', border: '6px solid #f4f4f4', borderRadius: '10px', width: '50%', height: '60px', padding: '0 20px'}}>
+            <h3 style={{    fontFamily: "'Radio Canada', sans-serif",}}>Lockdown</h3>
+            <input
+              type="checkbox"
+              className="greenSwitch"
+              checked={assignmentSettings.lockdown}
+              onChange={(e) => updateAssignmentSetting('lockdown', e.target.checked)}
+            />
+          </div>
+          <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', border: '6px solid #f4f4f4', borderRadius: '10px', width: '35%', height: '60px', padding: '0 20px'}}>
+            <h3 style={{    fontFamily: "'Radio Canada', sans-serif",}}>Save & Exit</h3>
+            <input
+              type="checkbox"
+              className="greenSwitch"
+              checked={assignmentSettings.saveAndExit}
+              onChange={(e) => updateAssignmentSetting('saveAndExit', e.target.checked)}
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  const navigateToStudentGrades = (studentUid) => {
+    navigate(`/class/${classId}/student/${studentUid}/grades`);
+  };
   // Fetch assignment data
   const fetchAssignmentData = async () => {
     try {
@@ -45,7 +226,10 @@ const TeacherResultsAMCQ = () => {
   useEffect(() => {
     fetchAssignmentData();
   }, [assignmentId]);
-
+  useEffect(() => {
+    const timer = setTimeout(() => setIsVisible(true), 300);
+    return () => clearTimeout(timer);
+  }, []);
   // Fetch assignment name and dates
   useEffect(() => {
     const fetchAssignmentName = async () => {
@@ -67,8 +251,8 @@ const TeacherResultsAMCQ = () => {
           const assignDate = assignmentData.assignDate;
           console.log("Assignment found:", assignmentData);
           setAssignmentName(name);
-          setAssignDate(assignDate); 
-          setDueDate(dueDate);
+          setAssignDate(assignDate ? new Date(assignDate) : null);
+          setDueDate(dueDate ? new Date(dueDate) : null);
         } 
       } catch (error) {
         console.error("Error fetching assignment name:", error);
@@ -87,11 +271,29 @@ const TeacherResultsAMCQ = () => {
       const classData = classDoc.data();
     
       if (classData && classData.participants) {
-        const sortedStudents = classData.participants.map(student => {
-          const [firstName, lastName] = student.name.split(' ');
-          return { ...student, firstName, lastName };
-        }).sort((a, b) => a.lastName.localeCompare(b.lastName));
-    
+        // Fetch full names for all participants
+        const updatedParticipants = await Promise.all(classData.participants.map(async (participant) => {
+          const studentDocRef = doc(db, 'students', participant.uid);
+          const studentDoc = await getDoc(studentDocRef);
+          if (studentDoc.exists()) {
+            const studentData = studentDoc.data();
+            const firstName = studentData.firstName.trim();
+            const lastName = studentData.lastName.trim();
+            return {
+              ...participant,
+              firstName,
+              lastName,
+              name: `${firstName} ${lastName}`
+            };
+          }
+          return participant;
+        }));
+        
+        // Sort students by last name
+        const sortedStudents = updatedParticipants.sort((a, b) => 
+          a.lastName.localeCompare(b.lastName)
+        );
+        
         setStudents(sortedStudents);
     
         const gradesCollection = collection(db, 'grades(AMCQ)');
@@ -214,7 +416,18 @@ const TeacherResultsAMCQ = () => {
       return dateString;
     }
   };
-
+  const updateDates = async (newAssignDate, newDueDate) => {
+    try {
+      const assignmentRef = doc(db, 'assignments(Amcq)', assignmentId);
+      await updateDoc(assignmentRef, {
+        assignDate: newAssignDate.toISOString(),
+        dueDate: newDueDate.toISOString()
+      });
+      console.log("Dates updated successfully");
+    } catch (error) {
+      console.error("Error updating dates:", error);
+    }
+  };
   const getStatusColor = (status) => {
     switch (status) {
       case 'completed':
@@ -230,17 +443,19 @@ const TeacherResultsAMCQ = () => {
     }
   };
 
-  const handleAssign = async () => {
+  const handleAssign = async (studentId) => {
     const batch = writeBatch(db);
-    for (const studentId of selectedStudents) {
-      const studentRef = doc(db, 'students', studentId);
-      batch.update(studentRef, {
-        assignmentsToTake: arrayUnion(assignmentId)
-      });
-    }
+    const studentRef = doc(db, 'students', studentId);
+    batch.update(studentRef, {
+      assignmentsToTake: arrayUnion(assignmentId)
+    });
+    
     await batch.commit();
-    setIsAssignModalOpen(false);
-    setSelectedStudents([]);
+    
+    setSelectedStudents(prev => [...prev, studentId]);
+    setTimeout(() => {
+      setSelectedStudents(prev => prev.map(id => id === studentId ? `${id}-checked` : id));
+    }, 1000);
   };
 
   const handleBack = () => {
@@ -370,6 +585,282 @@ const TeacherResultsAMCQ = () => {
     }
   };
 
+
+
+
+
+  const AssignModal = ({ 
+    students, 
+    selectedStudents, 
+    setSelectedStudents, 
+    assignmentId, 
+    onClose, 
+    onAssign 
+  }) => {
+    
+    const handleStudentClick = async (studentId) => {
+      if (!selectedStudents.includes(studentId)) {
+        await onAssign(studentId);  // Assign to this specific student
+      }
+    };
+  
+    return (
+      <div style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: 'rgba(250, 250, 250, 0.5)',
+        backdropFilter: 'blur(10px)',
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        zIndex: 101,
+      }} onClick={onClose}>
+        <div style={{
+          backgroundColor: 'white',
+          borderRadius: '30px',
+          width: '1000px',
+          maxHeight: '80vh',
+          border: '10px solid #54AAA4',
+          overflow: 'hidden',
+          display: 'flex',
+          flexDirection: 'column',
+          position: 'relative',
+        }} onClick={(e) => e.stopPropagation()}>
+          <button 
+            onClick={onClose} 
+            style={{
+              position: 'absolute',
+              top: '10px',
+              right: '20px',
+              fontFamily: "'Radio Canada', sans-serif",
+              fontWeight: 'bold',
+              fontSize: '40px',
+              background: 'none',
+              border: 'none',
+              color: '#54AAA4',
+              cursor: 'pointer',
+              zIndex: 1,
+            }}
+          >
+            X
+          </button>
+          <h2 style={{
+            textAlign: 'center',
+            padding: '20px',
+            margin: 0,
+            backgroundColor: '#A3F2ED ',
+            color: '#54AAA4',
+            fontFamily: "'Radio Canada', sans-serif",
+            fontSize: '28px',
+            borderBottom: '10px solid #54AAA4',
+          }}>
+            Assign to New Students
+          </h2>
+          <div style={{
+            padding: '20px',
+            overflowY: 'auto',
+            maxHeight: 'calc(80vh - 180px)',
+          }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', }}>
+              {students.map((student) => {
+                const isSelected = selectedStudents.includes(student.uid);
+                const isChecked = selectedStudents.includes(`${student.uid}-checked`);
+                return (
+                  <div 
+                    key={student.uid} 
+                    style={{
+                      width: '20%',
+                      margin: '10px 5px',
+                      padding: '15px',
+                      border: isSelected || isChecked ? '3px solid #FFB802' : '3px solid #e0e0e0',
+                      color: 'black',
+                      borderRadius: '10px',
+                      fontWeight: 'bold',
+                      cursor: 'pointer',
+                      transition: 'all 0.3s ease',
+                      backgroundColor: isSelected ? '#FFE768' : 'white',
+                      fontFamily: "'Radio Canada', sans-serif",
+                      position: 'relative',
+                    }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleStudentClick(student.uid);
+                    }}
+                  >
+                    {student.firstName} {student.lastName}
+                    {(isSelected || isChecked) && (
+                      <span style={{
+                        position: 'absolute',
+                        right: '10px',
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                        fontSize: '20px',
+                      }}>
+                        ✓
+                      </span>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }; 
+
+const QuestionBankModal = ({ questions, onClose, setShowQuestionBank, setShowOverlay }) => {
+  const [hoveredOptions, setHoveredOptions] = useState({});
+  const modalRef = useRef(null);
+  
+  const [isVisible, setIsVisible] = useState(false);
+  const optionStyles = {
+    a: { background: '#A3F2ED', color: '#00645E' },
+    b: { background: '#AEF2A3', color: '#006428' },
+    c: { background: '#F8CFFF', color: '#E01FFF' },
+    d: { background: '#FFECA8', color: '#CE7C00' },
+    e: { background: '#FFD1D1', color: '#FF0000' },
+  };
+
+  const handleOptionHover = (index, option) => {
+    setHoveredOptions(prev => ({
+      ...prev,
+      [index]: option
+    }));
+  };
+
+  const handleMouseLeave = () => {
+    setShowQuestionBank(false);
+    setShowOverlay(false);
+  };
+
+  useEffect(() => {
+    const timer = setTimeout(() => setIsVisible(true), 300);
+    return () => clearTimeout(timer);
+  }, []);
+
+
+  return (
+    <div style={{ 
+      position: 'fixed', 
+      top: '70px',
+      right: '15px',
+      height: 'calc(100vh - 95px)',
+      width: '700px',  
+      backgroundColor: 'white', 
+      borderLeft: '15px solid #FCCA18',
+      borderBottom: '15px solid #FCCA18',
+      borderBottomLeftRadius: '30px',
+      overflow: 'hidden',
+      zIndex: 1000,
+      transition: 'all 0.3s ease-in-out',
+      opacity: isVisible ? 1 : 0,
+      visibility: isVisible ? 'visible' : 'hidden',
+      
+    }}
+    
+    onMouseLeave={handleMouseLeave}
+    >
+      {isVisible && (
+   <>
+      <div style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        padding: '20px',
+        borderBottom: '1px solid #e0e0e0',
+      }}
+      >
+         <button onClick={onClose} style={{ 
+          backgroundColor: 'transparent', 
+          border: 'none', 
+          fontSize: '24px', 
+         
+          cursor: 'pointer' 
+        }}>×</button>
+        <h2 style={{ 
+          fontSize: '50px', 
+          fontWeight: 'bold', 
+          fontFamily: "'Rajdhani', sans-serif",
+          margin: 0,
+          marginRight: '269px',
+          marginTop: '-21px',
+        
+        }}>Questions</h2>
+       
+      </div>
+      <div ref={modalRef} style={{
+        height: 'calc(100% - 80px)',
+        overflowY: 'auto',
+        padding: '0 20px',
+        scrollbarWidth: 'thin',
+        scrollbarColor: '#888 #f1f1f1',
+      }}>
+        {questions.map((question, index) => (
+          <div key={index} style={{ marginBottom: '20px', borderBottom: '1px solid #ccc', paddingBottom: '10px', textAlign: 'left' }}>
+            <p style={{ fontSize: '14px', color: '#666', fontFamily: "'Radio Canada', sans-serif", fontWeight: 'bold' }}>
+              Difficulty: {question.difficulty}
+            </p>
+            <h3 style={{ fontSize: '30px', fontWeight: 'bold', fontFamily: "'Radio Canada', sans-serif", width: '100%' }}>
+              {question.question}
+            </h3>
+            <ul style={{ listStyleType: 'none', padding: 0 }}>
+              {['a', 'b', 'c', 'd'].slice(0, question.choices).map((option) => (
+                <li 
+                  key={option} 
+                  style={{ 
+                    marginBottom: '15px', 
+                    padding: '10px', 
+                    backgroundColor: optionStyles[option].background,
+                    color: optionStyles[option].color,
+                    borderRadius: '5px',
+                    cursor: 'pointer',
+                    fontFamily: "'Radio Canada', sans-serif",
+                    fontWeight: 'bold',
+                    width: '600px',
+                    transition: 'all 0.3s',
+                    boxShadow: option === question.correct ? '0 4px 4px rgb(0,200,0,.25)' : 
+                               (hoveredOptions[index] === option ? '0 4px 4px rgb(100,0,0,.25)' : 'none'),
+                  }}
+                  onMouseEnter={() => handleOptionHover(index, option)}
+                  onMouseLeave={() => handleOptionHover(index, null)}
+                >
+                  {question[option]}
+                  {option === question.correct && ' ✓'}
+                </li>
+              ))}
+            </ul>
+            {hoveredOptions[index] && hoveredOptions[index] !== question.correct && (
+              <p style={{ fontSize: '14px', color: '#ff4d4d', width: '100%', fontFamily: "'Radio Canada', sans-serif", fontWeight: 'bold' }}>
+                Explanation: {question[`explanation_${hoveredOptions[index]}`]}
+              </p>
+            )}
+            {(hoveredOptions[index] === question.correct || !hoveredOptions[index]) && (
+              <p style={{ fontSize: '14px', color: '#4CAF50', width: '100%', fontFamily: "'Radio Canada', sans-serif", fontWeight: 'bold' }}>
+                Explanation: {question[`explanation_${question.correct}`]}
+              </p>
+            )}
+          </div>
+        ))}
+      </div>
+      </>
+        )}
+    </div>
+  );
+};
+
+
+
+
+
+
+
+
+
+
   return (
     <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', backgroundColor: 'white' }}>
       <Navbar userType="teacher" />
@@ -385,7 +876,7 @@ const TeacherResultsAMCQ = () => {
           padding: '5px',
           zIndex: 100,
           boxShadow: '0px 4px 4px 0px rgba(0, 0, 0, 0.25)',
-          width: showQuestionBank ? '650px' : '350px',
+          width: showQuestionBank ? '770px' : '350px',
           fontFamily: "'Radio Canada', sans-serif",
           position: 'fixed',
           top: '-80px',
@@ -399,6 +890,7 @@ const TeacherResultsAMCQ = () => {
           <h2 onClick={() => {
             if (assignmentData && assignmentData.questions) {
               setShowQuestionBank(!showQuestionBank);
+              setShowOverlay(!showQuestionBank);
             } else {
               console.log("No questions available");
             }
@@ -407,7 +899,7 @@ const TeacherResultsAMCQ = () => {
             fontWeight: 'bold',
             userSelect: 'none',
             color: 'black',
-            marginRight: '40px',
+            marginRight: showQuestionBank ? '162px' : '30px',
             marginTop: '130px',
             fontFamily: "'Rajdhani', sans-serif",
             cursor: 'pointer',
@@ -416,13 +908,127 @@ const TeacherResultsAMCQ = () => {
             Questions
           </h2>
           {showQuestionBank && assignmentData && (
-            <QuestionBankModal 
-              questions={assignmentData.questions} 
-              onClose={() => setShowQuestionBank(false)} 
-            />
-          )}
+  <QuestionBankModal 
+    questions={assignmentData.questions} 
+    onClose={() => {
+      setShowQuestionBank(false);
+      setShowOverlay(false);
+    }}
+    setShowQuestionBank={setShowQuestionBank}  // Add this line
+    setShowOverlay={setShowOverlay}
+  />
+)}
         </div>
       </div>
+      <div style={{ width: '1000px', display: 'flex', justifyContent: 'align', marginTop: '100px', marginLeft: 'auto', marginRight: 'auto' }}>
+        <div style={{ display: 'flex', width: '780px' , marginRight: 'auto', marginLeft: '120px', height: ' auto', lineHeight:'0px'}}>
+         <div style={{position: 'relative'}}>
+          <h1 style={{  fontSize: '60px', 
+      color: 'black', 
+      width: '100%', // Use full width of parent
+      fontFamily: "'Rajdhani', sans-serif",
+      wordWrap: 'break-word', // Allow long words to break and wrap
+      overflowWrap: 'break-word', // Ensure long words don't overflow
+      hyphens: 'auto', // Enable automatic hyphenation
+      lineHeight: '1.2', // Adjust line height for better readability
+      margin: 0,
+      marginBottom: '30px', // Remove default margins
+      padding: '10px 0' }}>{assignmentName} </h1>
+      <button style={{position: 'absolute', top: '10px', right: '-62px', zIndex: '1', background: 'transparent', border: 'none', 
+        cursor: 'pointer'
+      }}
+    
+      ><img style={{width: '30px'}} src='/Export.png'/></button>
+      </div>
+        
+        </div>
+        
+      </div>
+
+      
+{isAssignModalOpen && (
+  <AssignModal 
+    students={students}
+    selectedStudents={selectedStudents}
+    setSelectedStudents={setSelectedStudents}
+    assignmentId={assignmentId}
+    onClose={() => setIsAssignModalOpen(false)}
+    onAssign={handleAssign}
+  />
+)}
+
+
+<div style={{
+        width: '810px',
+        display: 'flex',
+        justifyContent: 'space-between',
+        marginTop: '0px',
+        alignSelf: 'center',
+        alignItems: 'center',
+        marginLeft: '30px'
+      }}>
+        <button onClick={() => setShowSettings(!showSettings)} style={{
+          width: '150px',
+          fontSize: '20px',
+          height: '50px',
+          borderRadius: '10px',
+          fontWeight: 'bold',
+          border: '6px solid lightgrey',
+          background: 'lightgrey',
+          cursor: 'pointer',
+          color: 'black',
+          marginLeft: '10px',
+          lineHeight: '10px',
+          transition: '.3s',
+          display: 'flex',
+        }}>
+          <img style={{width:'30px', opacity: '40%'}} src='/Settings.png'/>
+          <p style={{marginTop: '12px', marginLeft:'10px', color: 'grey'}}>Settings</p>
+        </button>
+<div style={{width: '280px', fontSize: '20px', height:'45px', borderRadius: '10px', fontWeight: 'bold',  border: '6px solid #F4F4F4', background:' white', cursor: 'pointer', display:'flex',
+alignItems: 'center',
+marginLeft: '10px',
+transition: '.3s',
+
+
+}}
+>
+   <h1 style={{fontSize: '20px', marginLeft:'20px'}}>Student Review </h1>
+       
+          <input type="checkbox" 
+           className="greenSwitch"
+           style={{marginLeft:'30px'}}
+           checked={allViewable} onChange={toggleAllViewable} />
+         
+  
+       
+        </div>
+         
+        <button onClick={() => setIsAssignModalOpen(true)} style={{
+          width: '310px',
+          fontSize: '20px',
+          height: '50px',
+          borderRadius: '10px',
+          fontWeight: 'bold',
+          border: '6px solid #54AAA4',
+          background: '#A3F2ED ',
+          cursor: 'pointer',
+          color: '#54AAA4',
+          marginLeft: '10px',
+          transition: '.3s',
+        }}
+       >
+          Assign to New Students
+        </button>
+
+     
+      </div>
+      <AnimatePresence>
+  {showSettings && <SettingsSection key="settings" />}
+</AnimatePresence>
+
+
+
       <style>
         {`
           .tooltip {
@@ -474,102 +1080,8 @@ const TeacherResultsAMCQ = () => {
         `}
       </style>
       
-      <div style={{
-        width: '750px',
-        justifyContent: 'align',
-        marginTop: '80px',
-        marginLeft: 'auto',
-        marginRight: 'auto',
-        marginBottom: '30px'
-      }}>
-        <h1 style={{ fontSize: '78px', color: 'black', fontFamily: "'Radio Canada', sans-serif" }}>
-          {assignmentName || ''}
-        </h1>
-        <div style={{ display: 'flex' }}>
-          <h1 style={{
-            fontSize: '18px',
-            color: 'lightgrey',
-            fontFamily: "'Radio Canada', sans-serif",
-            marginTop: '-50px',
-            marginLeft: '30px'
-          }}>
-            Assigned: {assignDate ? formatDate(assignDate) : 'No assign date'}
-          </h1>
-          <h1 style={{
-            fontSize: '18px',
-            color: 'lightgrey',
-            fontFamily: "'Radio Canada', sans-serif",
-            marginTop: '-50px',
-            marginLeft: '30px'
-          }}>
-            Due: {dueDate ? formatDate(dueDate) : 'No due date'}
-          </h1>
-        </div>
-      </div>
-
-      {isAssignModalOpen && (
-  <AssignModal 
-    students={students}
-    selectedStudents={selectedStudents}
-    setSelectedStudents={setSelectedStudents}
-    assignmentId={assignmentId}
-    onClose={() => setIsAssignModalOpen(false)}
-    onAssign={handleAssign}
-  />
-)}
-      <div style={{
-        width: '810px',
-        display: 'flex',
-        justifyContent: 'space-between',
-        marginTop: '20px',
-        alignSelf: 'center',
-        alignItems: 'center',
-        marginLeft: '30px'
-      }}>
-        <button onClick={() => setIsAssignModalOpen(true)} style={{
-          width: '450px',
-          fontSize: '20px',
-          height: '50px',
-          borderRadius: '10px',
-          fontWeight: 'bold',
-          border: '6px solid #F4F4F4',
-          background: 'white',
-          cursor: 'pointer',
-          marginLeft: '10px',
-          transition: '.3s',
-        }}
-        onMouseEnter={(e) => {
-          e.target.style.borderColor = 'grey';
-        }}
-        onMouseLeave={(e) => {
-          e.target.style.borderColor = 'lightgrey';
-        }}>
-          Assign to New Students
-        </button>
-
-        <div style={{
-          width: '450px',
-          fontSize: '20px',
-          height: '45px',
-          borderRadius: '10px',
-          fontWeight: 'bold',
-          border: '6px solid #F4F4F4',
-          background: 'white',
-          cursor: 'pointer',
-          display: 'flex',
-          alignItems: 'center',
-          marginLeft: '10px',
-          transition: '.3s',
-        }}>
-          <h1 style={{ fontSize: '20px', marginLeft: '80px' }}>
-            Student Review
-          </h1>
-          <input type="checkbox"
-            className="greenSwitch"
-            style={{ marginLeft: '30px' }}
-            checked={allViewable} onChange={toggleAllViewable} />
-        </div>
-      </div>
+     
+      
 
       <ul>
         {students.map((student) => (
@@ -587,7 +1099,7 @@ const TeacherResultsAMCQ = () => {
             padding: '10px',
             marginBottom: '20px',
             position: 'relative',
-            zIndex: '2',
+            zIndex: '0',
           }}
           onMouseEnter={() => setHoveredStudent(student.uid)}
           onMouseLeave={() => setHoveredStudent(null)}
@@ -595,8 +1107,8 @@ const TeacherResultsAMCQ = () => {
             <div style={{
               width: '60px',
               height: '55px',
-              border: '7px solid #003BD4',
-              backgroundColor: '#566DFF',
+              border: '7px solid #566DFF',
+              backgroundColor: '#003BD4',
               borderRadius: '15px'
             }}>
               <p style={{
@@ -713,7 +1225,7 @@ const TeacherResultsAMCQ = () => {
                 width: '60px',
                 marginTop: '0px',
                 fontFamily: "'Radio Canada', sans-serif",
-                color: 'yellow'
+                color: '#FCCA18'
               }}>
                 *
               </span> 
@@ -726,11 +1238,11 @@ const TeacherResultsAMCQ = () => {
             {hoveredStudent === student.uid && (
               <div className="student-arrow" style={{
                 position: 'absolute',
-                right: '-75px',
-                top: '-3px',
-                height: '78px',
+                right: '-78px',
+                top: '-6px',
+                height: '80px',
                 width: '50px',
-                padding: '11px',
+                padding: '10px',
                 zIndex: '1',
                 backgroundColor: '#A3F2ED',
                 display: 'flex',
@@ -758,293 +1270,22 @@ const TeacherResultsAMCQ = () => {
         ))}
       </ul>
 
-      <style>{`
-        .switch {
-          position: relative;
-          width: 60px;
-          height: 34px;
-          margin-right: 30px;
-        }
-        .switch input {
-          opacity: 0;
-          width: 0;
-          height: 0;
-        }
-        .slider {
-          position: absolute;
-          cursor: pointer;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          background-color: #ccc;
-          transition: .4s;
-        }
-        .slider:before {
-          position: absolute;
-          content: "";
-          height: 26px;
-          width: 26px;
-          left: 4px;
-          bottom: 4px;
-          background-color: white;
-          transition: .4s;
-        }
-        input:checked + .slider {
-          background-color: #2196F3;
-        }
-        input:checked + .slider:before {
-          transform: translateX(26px);
-        }
-        .slider.round {
-          border-radius: 34px;
-        }
-        .slider.round:before {
-          border-radius: 50%;
-        }
-      `}</style>
+     
+      {showOverlay && (
+  <div style={{
+    position: 'fixed',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(255, 255, 255, 0.7)',
+    backdropFilter: 'blur(5px)',
+    zIndex: 98,  // Make sure this is below the question bank but above other content
+  }} />
+)}
     </div>
   );
 };
 
-const AssignModal = ({ 
-    students, 
-    selectedStudents, 
-    setSelectedStudents, 
-    assignmentId, 
-    onClose, 
-    onAssign 
-  }) => {
-    const handleAssign = async () => {
-      await onAssign();
-      onClose();  // Use onClose instead of setIsAssignModalOpen
-    };
-
-  return (
-    <div style={{
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      backgroundColor: 'rgba(0, 0, 0, 0.5)',
-      display: 'flex',
-      justifyContent: 'center',
-      alignItems: 'center',
-      zIndex: 1000,
-    }}>
-      <div style={{
-        backgroundColor: 'white',
-        borderRadius: '15px',
-        boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
-        width: '600px',
-        maxHeight: '80vh',
-        overflow: 'hidden',
-        display: 'flex',
-        flexDirection: 'column',
-        position: 'relative',
-      }}>
-        <button 
-         onClick={onClose} 
-          style={{
-            position: 'absolute',
-            top: '10px',
-            right: '10px',
-            background: 'none',
-            border: 'none',
-            fontSize: '20px',
-            cursor: 'pointer',
-            zIndex: 1,
-          }}
-        >
-          <img style={{width: '30px'}} src='/redCircleX.png' alt="Close"/>
-        </button>
-        <h2 style={{
-          textAlign: 'center',
-          padding: '20px',
-          margin: 0,
-          backgroundColor: '#54AAA4',
-          color: 'white',
-          fontFamily: "'Radio Canada', sans-serif",
-          fontSize: '28px',
-        }}>
-          Assign to New Students
-        </h2>
-        <div style={{
-          padding: '20px',
-          overflowY: 'auto',
-          maxHeight: 'calc(80vh - 180px)',
-        }}>
-          <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between' }}>
-            {students.map((student) => (
-              <div 
-                key={student.uid} 
-                style={{
-                  width: '48%',
-                  margin: '10px 0',
-                  padding: '15px',
-                  border: selectedStudents.includes(student.uid) ? '6px solid #54AAA4' : '6px solid #e0e0e0',
-                  borderRadius: '10px',
-                  cursor: 'pointer',
-                  transition: 'all 0.3s ease',
-                  backgroundColor: selectedStudents.includes(student.uid) ? '#ECFAF9' : 'white',
-                  fontFamily: "'Radio Canada', sans-serif",
-                }}
-                onClick={() => {
-                  if (selectedStudents.includes(student.uid)) {
-                    setSelectedStudents(prev => prev.filter(id => id !== student.uid));
-                  } else {
-                    setSelectedStudents(prev => [...prev, student.uid]);
-                  }
-                }}
-              >
-                {student.firstName} {student.lastName}
-              </div>
-            ))}
-          </div>
-        </div>
-        <div style={{
-          padding: '20px',
-          borderTop: '1px solid #e0e0e0',
-          textAlign: 'center',
-        }}>
-          <button 
-            style={{
-              padding: '10px 20px',
-              backgroundColor: '#54AAA4',
-              color: 'white',
-              border: 'none',
-              borderRadius: '5px',
-              cursor: 'pointer',
-              fontSize: '18px',
-              fontFamily: "'Radio Canada', sans-serif",
-              transition: 'background-color 0.3s ease',
-            }}
-            onClick={handleAssign}
-            onMouseEnter={(e) => e.target.style.backgroundColor = '#458F8A'}
-            onMouseLeave={(e) => e.target.style.backgroundColor = '#54AAA4'}
-          >
-            Assign
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-
-
-
-
-const QuestionBankModal = ({ questions, onClose }) => {
-  const [hoveredOptions, setHoveredOptions] = useState({});
-  const modalRef = useRef(null);
-
-  const optionStyles = {
-    a: { background: '#A3F2ED', color: '#00645E' },
-    b: { background: '#AEF2A3', color: '#006428' },
-    c: { background: '#F8CFFF', color: '#E01FFF' },
-    d: { background: '#FFECA8', color: '#CE7C00' },
-    e: { background: '#FFD1D1', color: '#FF0000' },
-  };
-
-  const handleOptionHover = (index, option) => {
-    setHoveredOptions(prev => ({
-      ...prev,
-      [index]: option
-    }));
-  };
-
-  return (
-    <div style={{ 
-      position: 'absolute', 
-      top: '120px',
-      right: '15px',
-      width: '650px',  
-      backgroundColor: 'white', 
-      borderLeft: '15px solid #FCCA18',
-      overflow: 'hidden',
-      zIndex: 1000,
-      transition: 'all 0.3s ease-in-out',
-    }}>
-      <div style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        padding: '20px',
-        borderBottom: '1px solid #e0e0e0',
-      }}>
-         <button onClick={onClose} style={{ 
-          backgroundColor: 'transparent', 
-          border: 'none', 
-          fontSize: '24px', 
-         
-          cursor: 'pointer' 
-        }}>×</button>
-        <h2 style={{ 
-          fontSize: '44px', 
-          fontWeight: 'bold', 
-          fontFamily: "'Rajdhani', sans-serif",
-          margin: 0,
-        }}>Questions</h2>
-       
-      </div>
-      <div ref={modalRef} style={{
-        height: 'calc(100% - 80px)',
-        overflowY: 'auto',
-        padding: '0 20px',
-        scrollbarWidth: 'thin',
-        scrollbarColor: '#888 #f1f1f1',
-      }}>
-        {questions.map((question, index) => (
-          <div key={index} style={{ marginBottom: '20px', borderBottom: '1px solid #ccc', paddingBottom: '10px', textAlign: 'left' }}>
-            <p style={{ fontSize: '14px', color: '#666', fontFamily: "'Radio Canada', sans-serif", fontWeight: 'bold' }}>
-              Difficulty: {question.difficulty}
-            </p>
-            <h3 style={{ fontSize: '30px', fontWeight: 'bold', fontFamily: "'Radio Canada', sans-serif", width: '100%' }}>
-              {question.question}
-            </h3>
-            <ul style={{ listStyleType: 'none', padding: 0 }}>
-              {['a', 'b', 'c', 'd'].slice(0, question.choices).map((option) => (
-                <li 
-                  key={option} 
-                  style={{ 
-                    marginBottom: '15px', 
-                    padding: '10px', 
-                    backgroundColor: optionStyles[option].background,
-                    color: optionStyles[option].color,
-                    borderRadius: '5px',
-                    cursor: 'pointer',
-                    fontFamily: "'Radio Canada', sans-serif",
-                    fontWeight: 'bold',
-                    width: '100%',
-                    transition: 'all 0.3s',
-                    boxShadow: option === question.correct ? '0 4px 4px rgb(0,200,0,.25)' : 
-                               (hoveredOptions[index] === option ? '0 4px 4px rgb(100,0,0,.25)' : 'none'),
-                  }}
-                  onMouseEnter={() => handleOptionHover(index, option)}
-                  onMouseLeave={() => handleOptionHover(index, null)}
-                >
-                  {question[option]}
-                  {option === question.correct && ' ✓'}
-                </li>
-              ))}
-            </ul>
-            {hoveredOptions[index] && hoveredOptions[index] !== question.correct && (
-              <p style={{ fontSize: '14px', color: '#ff4d4d', width: '100%', fontFamily: "'Radio Canada', sans-serif", fontWeight: 'bold' }}>
-                Explanation: {question[`explanation_${hoveredOptions[index]}`]}
-              </p>
-            )}
-            {(hoveredOptions[index] === question.correct || !hoveredOptions[index]) && (
-              <p style={{ fontSize: '14px', color: '#4CAF50', width: '100%', fontFamily: "'Radio Canada', sans-serif", fontWeight: 'bold' }}>
-                Explanation: {question[`explanation_${question.correct}`]}
-              </p>
-            )}
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-};
 
 export default TeacherResultsAMCQ;

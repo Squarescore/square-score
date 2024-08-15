@@ -8,14 +8,18 @@ function TakeASAQ() {
   const { assignmentId } = useParams();
   const [assignment, setAssignment] = useState(null);
   const [currentQuestion, setCurrentQuestion] = useState(null);
-  const [answer, setAnswer] = useState('');
+  const [studentResponse, setStudentResponse] = useState('');
   const [timeLimit, setTimeLimit] = useState(null);
   const [secondsLeft, setSecondsLeft] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [feedback, setFeedback] = useState('');
+const [showCorrectScreen, setShowCorrectScreen] = useState(false);
+const [showIncorrectScreen, setShowIncorrectScreen] = useState(false);
   const [assignmentStatus, setAssignmentStatus] = useState('open');
   const [classId, setClassId] = useState(null);
   const [assignmentName, setAssignmentName] = useState('');
   const [timerStarted, setTimerStarted] = useState(false);
+  const [score, setScore] = useState(0);
   const studentUid = auth.currentUser.uid;
   const navigate = useNavigate();
   const [scaleMin, setScaleMin] = useState(0);
@@ -24,7 +28,7 @@ function TakeASAQ() {
   const [lockdown, setLockdown] = useState(false);
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
-  const [squareScore, setSquareScore] = useState(0);
+
   const [streak, setStreak] = useState(0);
   const [showTimer, setShowTimer] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -36,38 +40,95 @@ function TakeASAQ() {
   const [questions, setQuestions] = useState([]);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [answers, setAnswers] = useState([]);
+  const [currentGradingMessage, setCurrentGradingMessage] = useState(0);
+  const gradingMessages = [
+    "Grading in Progress",
+    "Analyzing Response",
+    "Contacting Server",
+    "Evaluating Answer",
+    "Processing Feedback",
+    "Comparing to Expected Response",
+    "Calculating Score",
+    "Assessing Accuracy",
+    "Reviewing Content",
+    "Checking for Completeness",
+    "Verifying Key Points",
+    "Examining Reasoning",
+    "Scrutinizing Details",
+    "Weighing Arguments",
+    "Considering Perspective",
+    "Judging Coherence",
+    "Evaluating Clarity",
+    "Assessing Relevance",
+    "Determining Validity",
+    "Finalizing Grade"
+  ];
+
+  const getRandomInterval = () => {
+    return Math.random() * 800 + 200; // Random number between 200ms and 1000ms
+  };
 
   useEffect(() => {
-    const fetchAssignment = async () => {
-      setLoading(true);
-      try {
-        const assignmentRef = doc(db, 'assignments(Asaq)', assignmentId);
-        const assignmentDoc = await getDoc(assignmentRef);
-
-        if (assignmentDoc.exists()) {
-          const assignmentData = assignmentDoc.data();
-          setAssignment(assignmentData);
-          setAssignmentName(assignmentData.assignmentName);
-          setTimeLimit(assignmentData.timer * 60);
-          setClassId(assignmentData.classId);
-          setSaveAndExit(assignmentData.saveAndExit);
-          setLockdown(assignmentData.lockdown || false);
-          setScaleMin(assignmentData.scale?.min ? Number(assignmentData.scale.min) : 0);
-          setScaleMax(assignmentData.scale?.max ? Number(assignmentData.scale.max) : 2);
-
-          await fetchSavedProgress(assignmentData);
-
-          if (!currentQuestion) {
-            selectNextQuestion('Medium');
-          }
-        }
-      } catch (error) {
-        console.error("Error fetching assignment:", error);
-      } finally {
-        setLoading(false);
-      }
+    let timeoutId;
+    if (isSubmitting) {
+      const cycleMessage = () => {
+        setCurrentGradingMessage(prev => {
+          let next;
+          do {
+            next = Math.floor(Math.random() * gradingMessages.length);
+          } while (next === prev);
+          return next;
+        });
+        timeoutId = setTimeout(cycleMessage, getRandomInterval());
+      };
+      cycleMessage();
+    }
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId);
     };
+  }, [isSubmitting]);
 
+  const fetchAssignment = async () => {
+    setLoading(true);
+    try {
+      const assignmentRef = doc(db, 'assignments(Asaq)', assignmentId);
+      const assignmentDoc = await getDoc(assignmentRef);
+  
+      if (assignmentDoc.exists()) {
+        const assignmentData = assignmentDoc.data();
+        setAssignment(assignmentData);
+        setAssignmentName(assignmentData.assignmentName);
+        setTimeLimit(assignmentData.timer * 60);
+        setClassId(assignmentData.classId);
+        setSaveAndExit(assignmentData.saveAndExit);
+        setLockdown(assignmentData.lockdown || false);
+        setScaleMin(assignmentData.scale?.min ? Number(assignmentData.scale.min) : 0);
+        setScaleMax(assignmentData.scale?.max ? Number(assignmentData.scale.max) : 2);
+  
+        // Set questions
+        const questionArray = Object.entries(assignmentData.questions || {}).map(([id, data]) => ({
+          id,
+          ...data
+        }));
+        setQuestions(questionArray);
+  
+        await fetchSavedProgress(assignmentData);
+  
+        if (questionArray.length > 0) {
+          setCurrentQuestion(questionArray[0]);
+          setCurrentQuestionIndex(0);
+        }
+      } else {
+        console.error("Assignment not found:", assignmentId);
+      }
+    } catch (error) {
+      console.error("Error fetching assignment:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchAssignment();
   }, [assignmentId]);
 
@@ -76,7 +137,7 @@ function TakeASAQ() {
     const progressDoc = await getDoc(progressRef);
     if (progressDoc.exists()) {
       const data = progressDoc.data();
-      setSquareScore(data.squareScore);
+      setScore(data.score);
       setStreak(data.streak);
       setCompletedQuestions(data.completedQuestions || []);
       setCorrectQuestions(data.correctQuestions || []);
@@ -100,139 +161,186 @@ function TakeASAQ() {
         setSecondsLeft(prevSeconds => prevSeconds - 1);
       }, 1000);
     } else if (secondsLeft === 0 && timerStarted) {
-      handleSubmit();
+ 
     }
     return () => {
       if (timerId) clearInterval(timerId);
     };
   }, [secondsLeft, timerStarted]);
 
-  const handleAnswerChange = (e) => {
-    setAnswer(e.target.value);
+  const handleStudentResponseChange = (e) => {
+    const newResponse = e.target.value;
+    setStudentResponse(newResponse);
+    setAnswers(prevAnswers => {
+      const newAnswers = [...prevAnswers];
+      const currentQuestionId = questions[currentQuestionIndex]?.id;
+      const existingAnswerIndex = newAnswers.findIndex(a => a.questionId === currentQuestionId);
+      
+      if (existingAnswerIndex !== -1) {
+        newAnswers[existingAnswerIndex] = { ...newAnswers[existingAnswerIndex], answer: newResponse };
+      } else {
+        newAnswers.push({ questionId: currentQuestionId, answer: newResponse });
+      }
+      
+      return newAnswers;
+    });
   };
 
   const handleCheck = async () => {
     setIsSubmitting(true);
     try {
-      const result = await gradeASAQ(currentQuestion.question, currentQuestion.expectedResponse, answer);
-      const newScore = calculateScore(result.score, currentQuestion.difficulty);
-      setSquareScore(prevScore => prevScore + newScore);
-
-      if (result.score >= 0.5) {
-        setFeedbackMessage("Correct! Moving to the next question.");
-        setStreak(prevStreak => prevStreak + 1);
-        setCorrectQuestions(prev => [...prev, currentQuestion.id]);
-        moveToNextQuestion(true);
-      } else {
-        setFeedbackMessage("Incorrect. Please try again.");
-        setStreak(0);
-        setIncorrectQuestions(prev => [...prev, currentQuestion.id]);
+      const currentQuestion = questions[currentQuestionIndex];
+      
+      const response = await fetch('https://us-central1-square-score-ai.cloudfunctions.net/GradeASAQ', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          question: {
+            questionId: currentQuestion.id,
+            question: currentQuestion.question,
+            expectedResponse: currentQuestion.expectedResponse,
+            studentResponse: studentResponse
+          }
+        }),
+      });
+  
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
+  
+      const result = await response.json();
+      const wasCorrect = result.score >= 1;  // Assuming score is out of 2
+  
+      // Process the result
+      if (wasCorrect) {
+        setFeedbackMessage("Correct!");
+        setCorrectQuestions(prev => [...prev, currentQuestion.id]);
+        setShowCorrectScreen(true);
+      } else {
+        setFeedbackMessage("Incorrect.");
+        setIncorrectQuestions(prev => [...prev, currentQuestion.id]);
+        setShowIncorrectScreen(true);
+      }
+  
+      setFeedback(result.feedback);
       setCompletedQuestions(prev => [...prev, currentQuestion.id]);
-      setShowFeedback(true);
       await saveProgress();
+  
+      // Update the score with the new scoring system
+      updateScore(wasCorrect);
+  
     } catch (error) {
-      console.error("Error grading answer:", error);
+      console.error("Error checking answer:", error);
       setFeedbackMessage("An error occurred while grading. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
   };
-
-  const gradeASAQ = async (question, expectedResponse, studentResponse) => {
-    // Implement the call to your ASAQ grading function here
-    // This is a placeholder implementation
-
-      try {
-        const questionsToGrade = questions.map((question, index) => ({
-          questionId: question.questionId,
-          question: question.text,
-          expectedResponse: question.expectedResponse,
-          studentResponse: answers[index].answer,
-        }));
-    
-        const response = await fetch('https://us-central1-square-score-ai.cloudfunctions.net/GradeASAQ', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ questions: questionsToGrade }),
-        });
-    
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
+  const updateScore = (isCorrect) => {
+    setScore(prevScore => {
+      let newScore = Number(prevScore) || 0; // Ensure prevScore is a number
+      let points = 0;
+      
+      console.log('Current question difficulty:', currentQuestion.difficulty);
+      console.log('Is answer correct?', isCorrect);
+      
+      if (isCorrect) {
+        if (currentQuestion.difficulty === 'Easy') points = 1.5;
+        if (currentQuestion.difficulty === 'Medium') points = 2.5;
+        if (currentQuestion.difficulty === 'Hard') points = 4;
+        
+        points += 0.5 * streak;
+        setStreak(prevStreak => prevStreak + 1);
+      } else {
+        if (currentQuestion.difficulty === 'Easy') points = -4;
+        if (currentQuestion.difficulty === 'Medium') points = -2;
+        if (currentQuestion.difficulty === 'Hard') points = -1;
+        
+        if (streak > 6) {
+          setStreak(prevStreak => Math.floor(prevStreak / 2));
+        } else {
+          setStreak(0);
         }
-    
-        const gradingResults = await response.json();
-        return gradingResults;
-      } catch (error) {
-        console.error("Error grading assignment:", error);
-        throw error;
       }
-    };
-
-
-
-  const calculateScore = (score, difficulty) => {
-    switch (difficulty) {
-      case 'Easy':
-        return score * 1;
-      case 'Medium':
-        return score * 2;
-      case 'Hard':
-        return score * 3;
-      default:
-        return score;
-    }
+      
+      newScore += points;
+      console.log('Points awarded:', points);
+      console.log('New score:', newScore);
+      return newScore;
+    });
   };
-
-  const selectNextQuestion = (difficulty) => {
-    const availableQuestions = Object.entries(assignment.questions)
-      .filter(([id, q]) => q.difficulty === difficulty && !completedQuestions.includes(id));
-
-    if (availableQuestions.length > 0) {
-      const randomQuestion = availableQuestions[Math.floor(Math.random() * availableQuestions.length)];
-      setCurrentQuestion({ id: randomQuestion[0], ...randomQuestion[1] });
-    } else {
-      handleSubmit();
-    }
-  };
-
   const moveToNextQuestion = (wasCorrect) => {
     let nextDifficulty;
+    const currentDifficulty = currentQuestion.difficulty;
+  
     if (wasCorrect) {
-      if (currentQuestion.difficulty === 'Easy') nextDifficulty = 'Medium';
-      else if (currentQuestion.difficulty === 'Medium') nextDifficulty = 'Hard';
-      else nextDifficulty = 'Hard';
+      if (currentDifficulty === 'Easy') nextDifficulty = 'Medium';
+      else if (currentDifficulty === 'Medium') nextDifficulty = 'Hard';
+      else nextDifficulty = 'Hard'; // If it's already Hard, stay on Hard
     } else {
-      if (currentQuestion.difficulty === 'Hard') nextDifficulty = 'Medium';
-      else if (currentQuestion.difficulty === 'Medium') nextDifficulty = 'Easy';
-      else nextDifficulty = 'Easy';
+      if (currentDifficulty === 'Hard') nextDifficulty = 'Medium';
+      else if (currentDifficulty === 'Medium') nextDifficulty = 'Easy';
+      else nextDifficulty = 'Easy'; // If it's already Easy, stay on Easy
     }
-
-    selectNextQuestion(nextDifficulty);
-    setAnswer('');
+  
+    // Find the next question with the appropriate difficulty
+    const nextQuestionIndex = questions.findIndex((q, index) => 
+      index > currentQuestionIndex && q.difficulty === nextDifficulty
+    );
+  
+    if (nextQuestionIndex !== -1) {
+      setCurrentQuestionIndex(nextQuestionIndex);
+      setCurrentQuestion(questions[nextQuestionIndex]);
+    } else {
+      // If no question with the exact difficulty is found, find the closest difficulty
+      const fallbackIndex = questions.findIndex((q, index) => 
+        index > currentQuestionIndex
+      );
+      if (fallbackIndex !== -1) {
+        setCurrentQuestionIndex(fallbackIndex);
+        setCurrentQuestion(questions[fallbackIndex]);
+      } else {
+        // If we've reached the end of the questions, you might want to handle that case
+        // For example, you could set a state to indicate the quiz is finished
+        setAssignmentStatus('completed');
+      }
+    }
+  
+    setStudentResponse('');
     setShowFeedback(false);
   };
 
   const saveProgress = async () => {
     const progressRef = doc(db, 'assignments(progress:Asaq)', `${assignmentId}_${studentUid}`);
-    await setDoc(progressRef, {
-      squareScore,
-      streak,
-      completedQuestions,
-      correctQuestions,
-      incorrectQuestions,
-      timeRemaining: secondsLeft,
+    const progressData = {
+      score: score || 0,  // Use 0 if score is undefined
+      streak: streak || 0,  // Use 0 if streak is undefined
+      completedQuestions: completedQuestions || [],
+      correctQuestions: correctQuestions || [],
+      incorrectQuestions: incorrectQuestions || [],
+      timeRemaining: secondsLeft || 0,
       savedAt: serverTimestamp(),
-      status: assignmentStatus
-    }, { merge: true });
+      status: assignmentStatus || 'open'
+    };
+  
+    // Remove any fields with undefined values
+    Object.keys(progressData).forEach(key => 
+      progressData[key] === undefined && delete progressData[key]
+    );
+  
+    try {
+      await setDoc(progressRef, progressData, { merge: true });
+    } catch (error) {
+      console.error("Error saving progress:", error);
+    }
   };
 
   const handleSubmit = async () => {
-    setIsSubmitting(true);
+    
     try {
-      const gradeDocRef = doc(db, 'grades(saq)', `${assignmentId}_${studentUid}`);
+      const gradeDocRef = doc(db, 'grades(Asaq)', `${assignmentId}_${studentUid}`);
       await setDoc(gradeDocRef, {
         assignmentId,
         studentUid,
@@ -241,7 +349,7 @@ function TakeASAQ() {
         lastName,
         classId,
         submittedAt: serverTimestamp(),
-        squareScore,
+        score,
         scaleMin,
         scaleMax,
         completedQuestions,
@@ -264,7 +372,7 @@ function TakeASAQ() {
     } catch (error) {
       console.error("Error submitting assignment:", error);
     } finally {
-      setIsSubmitting(false);
+      
     }
   };
 
@@ -280,75 +388,294 @@ function TakeASAQ() {
     }
   };
 
-  const checkAnswer = async () => {
-    const currentQuestion = questions[currentQuestionIndex];
-    const currentAnswer = answers[currentQuestionIndex];
-
-    if (currentAnswer.answer.trim().toLowerCase() === currentQuestion.expectedResponse.trim().toLowerCase()) {
-      updateScore(true);
-      alert('Correct!'); // Replace this with correct response handling if necessary
-      moveToNextQuestion(true);
-    } else {
-      updateScore(false);
-      alert('Incorrect!'); // Replace this with incorrect response handling if necessary
-      moveToNextQuestion(false);
-    }
-  };
-
-  const updateScore = (isCorrect) => {
-    let points = 0;
-    if (isCorrect) {
-      points = 1 + 0.5 * streak;
-      setStreak(streak + 1);
-    } else {
-      points = -1;
-      setStreak(0);
-    }
-    setSquareScore(squareScore + points);
-  };
-
-  const loadingModalStyle = {
-    position: 'fixed',
-    top: 0,
-    left: 0,
-    width: '100%',
-    height: '100%',
-    backgroundColor: 'white',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: '1000'
-  };
-
-  const loadingModalContentStyle = {
-    width: 300,
-    height: 180,
-    backgroundColor: 'white',
-    borderRadius: 10,
-    textAlign: 'center',
-    padding: 20,
-    color: 'white',
-    alignItems: 'center',
-    justifyContent: 'center'
-  };
 
   if (loading) return <Loader />;
 
+  const CorrectScreen = ({ feedback, onContinue }) => (
+    <div style={{
+      position: 'fixed',
+      top: '100px',
+      left: 0,
+      width: '100%',
+      height: '100%',
+      backgroundColor: 'rgba(255,255,255,.8)',
+      backdropFilter: 'blur(15px)',
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+      zIndex: 100
+    }}>
+      <div style={{border: '0px solid #00B512', padding: '30px',  marginTop: '-200px', borderRadius: '100px', height: '100px', width: '100px'}}>
+      <img src="/greencheck.png" alt="Correct" style={{ width: 100, marginBottom: 0, marginTop:'15px'  }} />
+      </div>
+      
+      <h2 style={{fontSize: '60px', fontFamily: "'rajdhani',sans-serif", marginTop: '10px', marginBottom: '-20px'}}>Correct!</h2>
+     <div style={{background: 'white'}}>
+      <p style={{width:' 600px', fontSize: '30px', background: 'white'}}>{feedback}</p>
+      <button onClick={onContinue} style={{
+          backgroundColor: '#FFC700',
+          
+          padding: '10px',
+          width: '240px',
+          fontSize: '25px',
+          
+          right: '60px',
+          top: '20px',
+          borderColor: 'transparent',
+          cursor: 'pointer',
+          borderRadius: '15px',
+          fontFamily: "'Radio Canada', sans-serif",
+          color: 'white',
+          fontWeight: 'bold',
+          zIndex: '100',
+          transition: 'transform 0.3s ease'
+        }}
+        onMouseEnter={(e) => e.target.style.transform = 'scale(1.01)'}
+        onMouseLeave={(e) => e.target.style.transform = 'scale(1)'}
+      >
+        Continue
+      </button></div>
+    </div>
+  );
+  
+  const IncorrectScreen = ({ feedback, onContinue }) => (
+    <div style={{
+      position: 'fixed',
+      top: '100px',
+      left: 0,
+      width: '100%',
+      height: '100%',
+      backgroundColor: 'rgba(255,255,255,.8)',
+      backdropFilter: 'blur(15px)',
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+      zIndex: 100
+    }}>
+      <div style={{border: '0px solid #00B512', padding: '30px',  marginTop: '-200px', borderRadius: '20px', height: '100px', width: '100px'}}>
+      <img src="/redx.png" alt="Correct" style={{ width: 70, marginBottom: 0, marginTop:'15px'  }} />
+      </div>
+      
+      <h2 style={{fontSize: '60px', fontFamily: "'rajdhani',sans-serif", marginTop: '10px', marginBottom: '-20px'}}>Almost There</h2>
+     <div style={{background: 'white'}}>
+      <p style={{width:' 600px', fontSize: '30px', background: 'white'}}>{feedback}</p>
+      <button onClick={onContinue} style={{
+          backgroundColor: '#FFC700',
+          
+          padding: '10px',
+          width: '240px',
+          fontSize: '25px',
+          
+          right: '60px',
+          top: '20px',
+          borderColor: 'transparent',
+          cursor: 'pointer',
+          borderRadius: '15px',
+          fontFamily: "'Radio Canada', sans-serif",
+          color: 'white',
+          fontWeight: 'bold',
+          zIndex: '100',
+          transition: 'transform 0.3s ease'
+        }}
+        onMouseEnter={(e) => e.target.style.transform = 'scale(1.01)'}
+        onMouseLeave={(e) => e.target.style.transform = 'scale(1)'}
+      >
+        Continue
+      </button></div>
+    </div>
+  );
 
-
-
-
-
-
-
-
-
-
-
+  const handleSaveAndExit = async () => {
+    // Implement save and exit functionality
+    // This should save the current progress to Firestore
+    // Then navigate back to the student assignments page
+    navigate(`/studentassignments/${classId}`);
+  };
+  const toggleTimer = () => {
+    setShowTimer((prevShowTimer) => !prevShowTimer);
+  };
   return (
-    <div style={{ paddingBottom: '80px', marginLeft: '-3px', marginRight: '-3px', display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', width: '100%' }}>
+    <div style={{ marginTop: '100px', marginLeft: 'auto', marginRight: 'auto', fontFamily: "'Radio Canada', sans-serif", textAlign: 'center' }}>
+  
+  {showCorrectScreen && (
+  <CorrectScreen 
+    feedback={feedback} 
+    onContinue={() => {
+      setShowCorrectScreen(false);
+      moveToNextQuestion(true);
+    }} 
+  />
+)}
+
+{showIncorrectScreen && (
+  <IncorrectScreen 
+    feedback={feedback} 
+    onContinue={() => {
+      setShowIncorrectScreen(false);
+      moveToNextQuestion(false);
+    }} 
+  />
+)}
+    {timeLimit > 0 && (
+      <div
+        style={{
+          color: showTimer ? 'grey' : 'transparent',
+          left: '100px',
+          top: '10px',
+          fontSize: '44px',
+          fontWeight: 'bold',
+          width: '120px',
+          zIndex: '100',
+          fontFamily: "'Radio Canada', sans-serif",
+          position: 'fixed',
+          border: secondsLeft <= 60 ? '4px solid red' : 'none',
+          padding: '5px',
+          borderRadius: '5px',
+        }}
+      >
+        {formatTime(secondsLeft)}
+        <button
+          onClick={toggleTimer}
+          style={{
+            position: 'absolute',
+            top: '0px',
+            left: '-70px',
+            backgroundColor: 'transparent',
+            border: 'none',
+            color: 'black',
+            fontWeight: 'bold',
+            cursor: 'pointer',
+          }}
+        >
+          {showTimer ? <img style={{ width: '60px', opacity: '90%' }} src="/hidecon.png" /> : <img style={{ width: '60px', opacity: '90%' }} src="/eyecon.png" />}
+        </button>
+      </div>
+    )}
+
+    <header
+      style={{
+        backgroundColor: 'white',
+        position: 'fixed',
+        borderRadius: '10px',
+        color: 'white',
+        zIndex: '99',
+        height: '90px',
+        display: 'flex',
+        background: 'rgb(255,255,255,.9)',
+        backdropFilter: 'blur(4px)',
+        borderBottom: '5px solid lightgrey',
+        marginTop: '-150px',
+        marginBottom: '40px',
+        alignItems: 'center',
+        justifyContent: 'center',
+        width: '100%',
+      }}
+    >
+      <img style={{ width: '390px', marginLeft: '20px', marginTop: '-20px' }} src="/SquareScore.png" alt="logo" />
+    </header>
+
+    {saveAndExit && (
       <button
-        onClick={submitButton}
+        style={{
+          backgroundColor: 'transparent',
+          color: 'grey',
+          padding: '10px',
+          width: '200px',
+          background: 'lightgrey',
+          textAlign: 'center',
+          fontSize: '20px',
+          position: 'fixed',
+          left: '0px',
+          top: '90px',
+          borderColor: 'transparent',
+          cursor: 'pointer',
+          borderBottomRightRadius: '15px',
+          fontFamily: "'Radio Canada', sans-serif",
+          fontWeight: 'bold',
+          zIndex: '100',
+          transition: 'transform 0.3s ease',
+        }}
+        onMouseEnter={(e) => (e.target.style.transform = 'scale(1.01)')}
+        onMouseLeave={(e) => (e.target.style.transform = 'scale(1)')}
+        onClick={handleSaveAndExit}
+      >
+        Save & Exit
+      </button>
+    )}
+
+    <div
+      style={{
+        position: 'fixed',
+        right: '40px',
+        width: '100px',
+        height: '100px',
+        border: '10px solid #020CFF',
+        background: '#627BFF',
+        borderRadius: '25px',
+        top: '200px',
+      }}
+    >
+      <h1
+        style={{
+          width: '80px',
+          fontSize: '35px',
+          background: 'white',
+          height: '80px',
+          borderRadius: '10px',
+          marginLeft: 'auto',
+          marginRight: 'auto',
+          marginTop: '10px',
+          textAlign: 'center',
+          lineHeight: '80px',
+        }}
+      >
+        {score}
+      </h1>
+    </div>
+    <div
+      style={{
+        position: 'fixed',
+        left: '40px',
+        width: '100px',
+        height: '100px',
+        border: '10px solid orange',
+        background: 'white',
+        borderRadius: '25px',
+        top: '200px',
+      }}
+    >
+      <h1
+        style={{
+          width: '80px',
+          marginLeft: '10px',
+          fontSize: '20px',
+          marginTop: '-20px',
+          backgroundColor: 'white',
+          marginBottom: '-5px',
+        }}
+      >
+        Streak
+      </h1>
+      <h1
+        style={{
+          width: '80px',
+          fontSize: '55px',
+          background: 'white',
+          height: '80px',
+          borderRadius: '10px',
+          marginLeft: 'auto',
+          marginRight: 'auto',
+          marginTop: '10px',
+          textAlign: 'center',
+          lineHeight: '80px',
+        }}
+      >
+        {streak}
+      </h1>
+    </div> <button
+        onClick={handleSubmit}
         style={{
           backgroundColor: '#0E19FF',
           textShadow: '2px 2px 4px rgba(0, 0, 0, 0.2)',
@@ -374,55 +701,66 @@ function TakeASAQ() {
       </button>
 
       {loading &&
-        <div style={loadingModalStyle}>
-          <div style={loadingModalContentStyle}>
+        <div style={{}}>
+         
             <p style={{ fontSize: '30px', fontFamily: "'Radio Canada', sans-serif", fontWeight: 'bold', position: 'absolute', color: 'black', top: '25%', left: '50%', transform: 'translate(-50%, -30%)' }}>
               Loading Assignment
             </p>
             <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
               <div className="lds-ripple"><div></div><div></div></div>
             </div>
-          </div>
+    
         </div>
       }
 
-      {loading || isSubmitting ? (
-        <div style={loadingModalStyle}>
-          <div style={loadingModalContentStyle}>
-            <p style={{ fontSize: '30px', fontFamily: "'Radio Canada', sans-serif", fontWeight: 'bold', position: 'absolute', color: 'black', top: '25%', left: '50%', transform: 'translate(-50%, -30%)' }}>
-              {isSubmitting ? 'Grading in Progress' : 'Loading Assignment'}
-            </p>
-            <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-              <div className="lds-ripple"><div></div><div></div></div>
-            </div>
-          </div>
-        </div>
-      ) : null}
+{isSubmitting && (
+  <div style={{ position: 'fixed',
+    top: '100px',
+    left: 0,
+    width: '100%',
+    height: '100%',
+    backgroundColor: 'rgba(255,255,255,.8)',
+    backdropFilter: 'blur(15px)',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 20}}>
+    
+      <p style={{ fontSize: '30px', fontFamily: "'Radio Canada', sans-serif", fontWeight: 'bold', position: 'absolute', color: 'black', top: '25%', left: '50%', transform: 'translate(-50%, -30%)' }}>
+      {gradingMessages[currentGradingMessage]}
+      </p>
+      <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+        <div className="lds-ripple"><div></div><div></div></div>
+      </div>
+ 
+  </div>
+)}
 
-      {questions.length > 0 && (
-        <div style={{ width: '1000px', marginLeft: 'auto', marginRight: 'auto', marginTop: '150px', position: 'relative' }}>
-          <div style={{
-            backgroundColor: 'white', width: '700px', color: 'black', border: '10px solid #EAB3FD',
-            textAlign: 'center', fontWeight: 'bold', padding: '40px', borderRadius: '30px', fontSize: '30px', position: 'relative',
-            marginLeft: 'auto', marginRight: 'auto', marginTop: '40px', fontFamily: "'Radio Canada', sans-serif", userSelect: 'none'
-          }}>
-            {questions[currentQuestionIndex]?.text}
-            <h3 style={{
-              width: 'auto',
-              top: '0px',
-              marginTop: '-43px',
-              left: '50%',
-              transform: 'translateX(-50%)',
-              position: 'absolute',
-              backgroundColor: '#FCD3FF',
-              borderRadius: '20px',
-              color: '#E01FFF',
-              border: '10px solid white',
-              fontSize: '34px',
-              padding: '10px 20px',
-              whiteSpace: 'nowrap'
-            }}>
-              {assignmentName}
+{questions.length > 0 && (
+  <div style={{ width: '1000px', marginLeft: 'auto', marginRight: 'auto', marginTop: '150px', position: 'relative' }}>
+    <div style={{
+      backgroundColor: 'white', width: '700px', color: 'black', border: '10px solid #EAB3FD',
+      textAlign: 'center', fontWeight: 'bold', padding: '40px', borderRadius: '30px', fontSize: '30px', position: 'relative',
+      marginLeft: 'auto', marginRight: 'auto', marginTop: '40px', fontFamily: "'Radio Canada', sans-serif", userSelect: 'none'
+    }}>
+      {questions[currentQuestionIndex]?.question}
+      <h3 style={{
+        width: 'auto',
+        top: '0px',
+        marginTop: '-43px',
+        left: '50%',
+        transform: 'translateX(-50%)',
+        position: 'absolute',
+        backgroundColor: '#FCD3FF',
+        borderRadius: '20px',
+        color: '#E01FFF',
+        border: '10px solid white',
+        fontSize: '34px',
+        padding: '10px 20px',
+        whiteSpace: 'nowrap'
+      }}>
+        {assignmentName}
             </h3>
           </div>
           <textarea
@@ -433,6 +771,7 @@ function TakeASAQ() {
               border: '5px solid lightgrey',
               marginLeft: 'auto',
               outline: 'none',
+              marginTop: '100px',
               marginRight: 'auto',
               textAlign: 'left',
               fontSize: '20px',
@@ -441,13 +780,14 @@ function TakeASAQ() {
             }}
             type="text"
             placeholder='Type your response here'
-            value={answers.find(a => a.questionId === questions[currentQuestionIndex]?.questionId)?.answer || ''}
-            onChange={handleAnswerChange}
+            value={studentResponse || answers.find(a => a.questionId === questions[currentQuestionIndex]?.id)?.answer || ''}
+            onChange={handleStudentResponseChange}
           />
           <button
-            onClick={checkAnswer}
+            onClick={handleCheck}
             style={{
               width: '200px',
+              border: 'none',
               height: '50px',
               color: 'white',
               backgroundColor: '#020CFF',
@@ -462,21 +802,7 @@ function TakeASAQ() {
           >
             Check
           </button>
-          <h3 style={{
-            width: '300px',
-            textAlign: 'center',
-            fontSize: '40px',
-            backgroundColor: 'transparent',
-            fontFamily: "'Radio Canada', sans-serif",
-            color: 'grey',
-            position: 'fixed',
-            bottom: '0px',
-            left: '50%',
-            transform: 'translateX(-50%)',
-            border: '2px solid transparent'
-          }}>
-            {currentQuestionIndex + 1} of {questions.length}
-          </h3>
+       
         </div>
       )}
     </div>
