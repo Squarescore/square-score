@@ -176,17 +176,19 @@ const HomeNavbar = ({ userType, currentPage, firstName, lastName }) => {
                     boxShadow: '0px 2px 5px rgba(0, 0, 0, 0.2)',
                     borderRadius: '5px',
                     minWidth: '150px',
-                    zIndex: 100,
+                    zIndex: 10000,
                     
                 }}>
                     <ul style={{
                         listStyleType: 'none',
                         padding: 0,
-                        margin: 0
+                        margin: 0,
+                        zIndex: 1000,
                     }}>
                         <li onClick={handleLogout} style={{
                             padding: '10px 15px',
                             cursor: 'pointer',
+                            zIndex: 1000,
                             borderBottom: '1px solid #FFE279',
                             display: 'flex',
                             alignItems: 'center',

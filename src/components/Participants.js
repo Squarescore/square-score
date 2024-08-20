@@ -29,7 +29,7 @@ const Participants = () => {
         console.log("Class Data:", classData);
   
         // Fetch full names for participants
-        if (classData.participants) {
+        if (Array.isArray(classData.participants)) {
           const updatedParticipants = await Promise.all(classData.participants.map(async (participant) => {
             const studentDocRef = doc(db, 'students', participant.uid);
             const studentDoc = await getDoc(studentDocRef);
@@ -44,12 +44,30 @@ const Participants = () => {
           }));
           classData.participants = updatedParticipants;
         }
-
+  
+        // Fetch full names for join requests
+        if (Array.isArray(classData.joinRequests)) {
+          const updatedJoinRequests = await Promise.all(classData.joinRequests.map(async (requestUID) => {
+            const studentDocRef = doc(db, 'students', requestUID);
+            const studentDoc = await getDoc(studentDocRef);
+            if (studentDoc.exists()) {
+              const studentData = studentDoc.data();
+              return {
+                uid: requestUID,
+                name: `${studentData.firstName.trim()} ${studentData.lastName.trim()}`,
+                email: studentData.email
+              };
+            }
+            return null;
+          }));
+          classData.joinRequests = updatedJoinRequests.filter(request => request !== null);
+        }
+  
         setCurrentClass(classData);
-
+  
         // Fetch time multipliers for participants
         const newTimeMultipliers = {};
-        if (classData.participants) {
+        if (Array.isArray(classData.participants)) {
           for (const participant of classData.participants) {
             const studentDocRef = doc(db, 'students', participant.uid);
             const studentDoc = await getDoc(studentDocRef);
@@ -66,10 +84,10 @@ const Participants = () => {
     };
   
     fetchClass();
-
+  
     // Set up interval to fetch join requests every 6 seconds
     const intervalId = setInterval(fetchClass, 6000);
-
+  
     // Clean up interval on component unmount
     return () => clearInterval(intervalId);
   }, [classId]);

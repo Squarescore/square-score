@@ -26,7 +26,8 @@ const [scaleMax, setScaleMax] = useState(2);
   const [lockdown, setLockdown] = useState(false);
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
-
+  const [initialWindowSize, setInitialWindowSize] = useState({ width: window.innerWidth, height: window.innerHeight });
+  const [showTimerComponents, setShowTimerComponents] = useState(false);
   const fetchUserName = async () => {
     const userRef = doc(db, 'students', auth.currentUser.uid);
     const userDoc = await getDoc(userRef);
@@ -145,19 +146,19 @@ const [scaleMax, setScaleMax] = useState(2);
 
 
 
-
   useEffect(() => {
     const handleVisibilityChange = () => {
-      if (lockdown) {
-        if (document.hidden) {
-          handleLockdownViolation();
-        }
+      if (lockdown && document.hidden) {
+        handleLockdownViolation();
       }
     };
   
     const handleResize = () => {
       if (lockdown) {
-        handleLockdownViolation();
+        const currentSize = { width: window.innerWidth, height: window.innerHeight };
+        if (currentSize.width !== initialWindowSize.width || currentSize.height !== initialWindowSize.height) {
+          handleLockdownViolation();
+        }
       }
     };
   
@@ -168,12 +169,57 @@ const [scaleMax, setScaleMax] = useState(2);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('resize', handleResize);
     };
+  }, [lockdown, initialWindowSize]);
+
+  useEffect(() => {
+    if (lockdown) {
+      setInitialWindowSize({ width: window.innerWidth, height: window.innerHeight });
+    }
   }, [lockdown]);
+
+  const handleLockdownViolation = async () => {
+    await saveProgress('paused');
+    setAssignmentStatus('paused');
+    navigate(`/studentassignments/${classId}?tab=completed`);
+  };
+  
+  const saveProgress = async (status = 'in_progress') => {
+    try {
+      const progressRef = doc(db, 'assignments(progress:saq)', `${assignmentId}_${studentUid}`);
+      await setDoc(progressRef, {
+        assignmentId,
+        studentUid,
+        questions: questions.map(question => ({
+          questionId: question.questionId,
+          text: question.text,
+          expectedResponse: question.expectedResponse,
+          studentResponse: answers.find(answer => answer.questionId === question.questionId)?.answer || ''
+        })),
+        timeRemaining: secondsLeft,
+        savedAt: serverTimestamp(),
+        status: status
+      }, { merge: true });
+  
+      // Update student assignment status
+      const studentRef = doc(db, 'students', studentUid);
+      await updateDoc(studentRef, {
+        assignmentsToTake: arrayRemove(assignmentId),
+        assignmentsInProgress: arrayUnion(assignmentId)
+      });
+  
+      console.log('Progress saved and status updated');
+    } catch (error) {
+      console.error("Error saving progress:", error);
+    }
+  };
   useEffect(() => {
     if (timeLimit !== null) {
       setSecondsLeft(timeLimit);
       if (timeLimit > 0) {
         setTimerStarted(true);
+        setShowTimerComponents(true);
+      } else {
+        setShowTimerComponents(false);
       }
     }
   }, [timeLimit]);
@@ -205,13 +251,6 @@ const [scaleMax, setScaleMax] = useState(2);
   const toggleTimer = () => {
     setShowTimer(prevShowTimer => !prevShowTimer);
   };
-
-  const handleLockdownViolation = async () => {
-    await saveProgress('paused');
-    setAssignmentStatus('paused');
-    navigate(`/studentassignments/${classId}?tab=completed`);
-  };
-  
 
 
 
@@ -334,37 +373,6 @@ const [scaleMax, setScaleMax] = useState(2);
 
 
 
-
-  const saveProgress = async () => {
-    try {
-      const progressRef = doc(db, 'assignments(progress:saq)', `${assignmentId}_${studentUid}`);
-      await setDoc(progressRef, {
-        assignmentId,
-        studentUid,
-        
-        questions: questions.map(question => ({
-          questionId: question.questionId,
-          text: question.text,
-          expectedResponse: question.expectedResponse,
-          studentResponse: answers.find(answer => answer.questionId === question.questionId)?.answer || ''
-        })),
-        timeRemaining: secondsLeft,
-        savedAt: serverTimestamp(),
-        status: assignmentStatus // Add this line
-      }, { merge: true });
-  
-      // Update student assignment status
-      const studentRef = doc(db, 'students', studentUid);
-      await updateDoc(studentRef, {
-        assignmentsToTake: arrayRemove(assignmentId),
-        assignmentsInProgress: arrayUnion(assignmentId)
-      });
-  
-      console.log('Progress saved and status updated');
-    } catch (error) {
-      console.error("Error saving progress:", error);
-    }
-  };
   useEffect(() => {
     let saveInterval;
     if (saveAndExit && !loading && questions.length > 0) {
@@ -464,40 +472,41 @@ const [scaleMax, setScaleMax] = useState(2);
         Submit
       </button>
      
-      <div
-        style={{
-          color: showTimer ? 'grey' : 'transparent',
-          left: '100px',
-          top: '10px',
-          fontSize: '44px',
-          fontWeight: 'bold',
-          width: '120px',
-          zIndex: '100',
-          fontFamily: "'Radio Canada', sans-serif",
-          position: 'fixed',
-          border: secondsLeft <= 60 ? '4px solid red' : 'none',
-          padding: '5px',
-          borderRadius: '5px',
-        }}
-      >
-      
-        {formatTime(secondsLeft)}
-        <button
-          onClick={toggleTimer}
+      {showTimerComponents && (
+        <div
           style={{
-            position: 'absolute',
-            top: '0px',
-            left: '-70px',
-            backgroundColor: 'transparent',
-            border: 'none',
-            color: 'black',
+            color: showTimer ? 'grey' : 'transparent',
+            left: '100px',
+            top: '10px',
+            fontSize: '44px',
             fontWeight: 'bold',
-            cursor: 'pointer',
+            width: '120px',
+            zIndex: '100',
+            fontFamily: "'Radio Canada', sans-serif",
+            position: 'fixed',
+            border: secondsLeft <= 60 ? '4px solid red' : 'none',
+            padding: '5px',
+            borderRadius: '5px',
           }}
         >
-          {showTimer ? <img style={{ width: '60px', opacity: '90%' }} src='/hidecon.png' /> : <img style={{ width: '60px', opacity: '90%' }} src='/eyecon.png' />}
-        </button>
-      </div>
+          {formatTime(secondsLeft)}
+          <button
+            onClick={toggleTimer}
+            style={{
+              position: 'absolute',
+              top: '0px',
+              left: '-70px',
+              backgroundColor: 'transparent',
+              border: 'none',
+              color: 'black',
+              fontWeight: 'bold',
+              cursor: 'pointer',
+            }}
+          >
+            {showTimer ? <img style={{ width: '60px', opacity: '90%' }} src='/hidecon.png' /> : <img style={{ width: '60px', opacity: '90%' }} src='/eyecon.png' />}
+          </button>
+        </div>
+      )}
       {loading &&
         <div style={loadingModalStyle}>
           <div style={loadingModalContentStyle}>

@@ -574,7 +574,7 @@ function SAQA() {
       {/* Source Section */}
       <div style={{width: '740px', marginLeft: '20px', }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px', marginTop: '30px' }}>
-        {['text', 'pdf', 'youtube'].map((option) => (
+        {['text'].map((option) => (
           <button
             key={option}
             onClick={() => setSourceOption(option)}

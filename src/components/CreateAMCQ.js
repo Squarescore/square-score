@@ -382,7 +382,7 @@ const [questionCount, setQuestionCount] = useState(0);
         // Ensure the question object has the expected structure
         const formattedQuestion = {
           questionId: question.questionId || `question_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-          questionText: question.question || question.questionText || '',
+          question: question.question || question.question|| '',
           choices: question.choices.map(choice => ({
             choiceText: choice.text,
             isCorrect: choice.isCorrect,
@@ -476,12 +476,31 @@ const [questionCount, setQuestionCount] = useState(0);
         setQuestionsGenerated(true);
       }
     }
-  };
-
-  const saveAssignment = async () => {
+  };const saveAssignment = async () => {
     // Remove 'DRAFT' prefix from assignmentId if it exists
     const finalAssignmentId = assignmentId.startsWith('DRAFT') ? assignmentId.slice(5) : assignmentId;
-
+  
+    const formatQuestion = (question) => {
+      const choiceKeys = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
+      const formattedQuestion = {
+        questionId: question.questionId || `question_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        question: question.question || question.question || '',
+        difficulty: question.difficulty || 'medium',
+        correct: question.correct || '',
+        choices: question.choices || choiceKeys.filter(key => question[key]).length
+      };
+  
+      // Add individual choice texts and explanations
+      choiceKeys.forEach(key => {
+        if (question[key]) {
+          formattedQuestion[key] = question[key];
+          formattedQuestion[`explanation_${key}`] = question[`explanation_${key}`] || '';
+        }
+      });
+  
+      return formattedQuestion;
+    };
+  
     const assignmentData = {
       classId,
       assignmentName,
@@ -494,18 +513,9 @@ const [questionCount, setQuestionCount] = useState(0);
       saveAndExit,
       lockdown,
       createdAt: serverTimestamp(),
-      questions: generatedQuestions.map(question => ({
-        questionId: question.questionId,
-        questionText: question.question,
-        choices: question.choices.map(choice => ({
-          choiceText: choice.text,
-          isCorrect: choice.isCorrect,
-          feedback: choice.feedback
-        })),
-        difficulty: question.difficulty
-      }))
+      questions: generatedQuestions.map(formatQuestion)
     };
-
+  
     try {
       console.log("Attempting to save assignment with data:", assignmentData);
       
@@ -517,12 +527,12 @@ const [questionCount, setQuestionCount] = useState(0);
       await assignToStudents(finalAssignmentId);
       
       console.log("Assignment assigned to students successfully.");
-
+  
       // Delete the draft document if it exists
       if (draftId) {
         const draftRef = doc(db, 'drafts', draftId);
         await setDoc(draftRef, {});
-
+  
         // Update the class document
         const classRef = doc(db, 'classes', classId);
         await updateDoc(classRef, {
@@ -532,9 +542,9 @@ const [questionCount, setQuestionCount] = useState(0);
           [`assignment(amcq)`]: arrayUnion(finalAssignmentId) // Add the final assignment ID
         });
       }
-
+  
       const format = finalAssignmentId.split('+').pop(); // Get the format from the assignment ID
-
+  
       navigate(`/class/${classId}`, {
         state: {
           successMessage: `Success: ${assignmentName} published`,
@@ -551,8 +561,6 @@ const [questionCount, setQuestionCount] = useState(0);
       alert(`Error publishing assignment: ${error.message}. Please try again.`);
     }
   };
-
-
   const isFormValid = () => {
     return assignmentName !== '' && assignDate !== '' && dueDate !== '';
   };
@@ -931,7 +939,7 @@ const [questionCount, setQuestionCount] = useState(0);
                   {/* Source Section */}
                   <div style={{ width: '740px', marginLeft: '20px', }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px', marginTop: '30px' }}>
-                      {['text', 'pdf', 'youtube'].map((option) => (
+                      {['text'].map((option) => (
                         <button
                           key={option}
                           onClick={() => setSourceOption(option)}

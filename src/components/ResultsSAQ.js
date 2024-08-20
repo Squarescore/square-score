@@ -681,31 +681,47 @@ const TeacherResults = () => {
     return () => clearInterval(classAndGradesInterval);
   }, [classId, assignmentId]);
   const handleReset = async (studentUid) => {
-    setResetStatus(prev => ({ ...prev, [studentUid]: 'resetting' }));
-
-    // Remove test from testsTaken array
-    const studentRef = doc(db, 'students', studentUid);
-    await updateDoc(studentRef, {
-      testsTaken: arrayRemove(assignmentId)
-    });
-
-    // Delete existing grade doc
-    const gradeRef = doc(db, 'grades', `${studentUid}_${assignmentId}`);
-    await deleteDoc(gradeRef);
-
-    // Re-add assignment to take 
-    await updateDoc(studentRef, {
-      assignmentsToTake: arrayUnion(assignmentId)
-    });
-    try {
-      // Simulate resetting logic
-      await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate a network request
-
-      setResetStatus(prev => ({ ...prev, [studentUid]: 'success' }));
-      setTimeout(() => setResetStatus(prev => ({ ...prev, [studentUid]: '' })), 1000); // Reset the status after 1 second
-    } catch (error) {
-      console.error("Failed to reset:", error);
-      setResetStatus(prev => ({ ...prev, [studentUid]: 'failed' }));
+    if (window.confirm("Are you sure you want to reset this student's assignment? This action cannot be undone.")) {
+      try {
+        // Delete the grade document
+        const gradeDocRef = doc(db, 'grades(saq)', `${assignmentId}_${studentUid}`);
+        await deleteDoc(gradeDocRef);
+  
+        // Delete any progress documents
+        const progressQuery = query(
+          collection(db, 'assignments(progress:saq)'),
+          where('assignmentId', '==', assignmentId),
+          where('studentUid', '==', studentUid)
+        );
+        const progressSnapshot = await getDocs(progressQuery);
+        const deletePromises = progressSnapshot.docs.map(doc => deleteDoc(doc.ref));
+        await Promise.all(deletePromises);
+  
+        // Update student's assignment status
+        const studentRef = doc(db, 'students', studentUid);
+        await updateDoc(studentRef, {
+          assignmentsTaken: arrayRemove(assignmentId),
+          assignmentsToTake: arrayUnion(assignmentId),
+          assignmentsInProgress: arrayRemove(assignmentId) // Remove from assignmentsInProgress
+        });
+  
+        // Update local state to reflect the reset
+        setGrades(prevGrades => {
+          const newGrades = { ...prevGrades };
+          delete newGrades[studentUid];
+          return newGrades;
+        });
+  
+        // Update assignment status in local state
+        setAssignmentStatuses(prevStatuses => ({
+          ...prevStatuses,
+          [studentUid]: 'not_started'
+        }));
+        
+        console.log(`Assignment reset for student ${studentUid}`);
+      } catch (error) {
+        console.error("Error resetting assignment:", error);
+      }
     }
   };
   const handleAssign = async (studentId) => {

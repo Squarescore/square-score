@@ -267,8 +267,8 @@ const getAssignmentStyle = (assignment) => {
         <div style={{ padding: '20px', textAlign: 'center', fontWeight: 'bold', fontFamily: '"Radio Canada", sans-serif', fontSize: '30px' }}>
   Are you sure you want to enter {assignmentName}?<br /> 
   {saveAndExitEnabled 
-    ? "You will be able to exit once you start." 
-    : "You will not be able to exit once you start."}
+    ? "You will not be able to exit once you start." 
+    : "You will be able to exit once you start."}
 </div>
         <div style={{ 
           display: 'flex', 

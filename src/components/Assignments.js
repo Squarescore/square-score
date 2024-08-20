@@ -38,6 +38,13 @@ function Assignments() {
   const [newFolderColor, setNewFolderColor] = useState(pastelColors[0]);
   const [selectedFolderForAssignments, setSelectedFolderForAssignments] = useState(null);
   const [showAddAssignmentsModal, setShowAddAssignmentsModal] = useState(false);
+  const [showFolderModal, setShowFolderModal] = useState(false);
+  const [folderAssignments, setFolderAssignments] = useState([]);
+  const [allAssignments, setAllAssignments] = useState([]);
+  const [searchTermAddAssignments, setSearchTermAddAssignments] = useState('');
+  const [showFolderSearchBar, setShowFolderSearchBar] = useState(false);
+  const [folderSearchTerm, setFolderSearchTerm] = useState('');
+
  
   const handleAddAssignmentsToFolder = (folderId) => {
     setSelectedFolderForAssignments(folderId);
@@ -200,56 +207,91 @@ function Assignments() {
     };
 
     fetchData();
-  }, [classId]);
-
-
-    const fetchAssignments = async () => {
-      try {
-        const assignmentsCollections = [
-          'assignments(saq)',
-          'assignments(Asaq)',
-          'assignments(mcq)',
-          'assignments(Amcq)'
-        ];
-  
-        const fetchPromises = assignmentsCollections.map(collectionName =>
-          getDocs(collection(db, collectionName))
-        );
-  
-        const snapshots = await Promise.all(fetchPromises);
-  
-        let allAssignments = [];
-        snapshots.forEach((snapshot, index) => {
-          const filteredDocs = snapshot.docs.filter(doc => doc.id.startsWith(`${classId}+`));
-          const assignments = filteredDocs
-            .map(doc => {
-              const data = doc.data();
-              const [, , type] = doc.id.split('+');
-              return {
-                id: doc.id,
-                ...data,
-                type: type.replace('*', ''),
-                name: data.assignmentName || data.name
-              };
-            })
-            .filter(assignment => assignment.name); // Filter out assignments without names
-  
-          allAssignments = allAssignments.concat(assignments);
-        });
-  
-        const sortedAssignments = allAssignments.sort((a, b) => {
-          const dateA = a.createdDate && typeof a.createdDate.toDate === 'function' ? a.createdDate.toDate() : new Date(0);
-          const dateB = b.createdDate && typeof b.createdDate.toDate === 'function' ? b.createdDate.toDate() : new Date(0);
-          return dateB - dateA;
-        });
-  
-        setAssignments(sortedAssignments);
-        setHasContent(allAssignments.length > 0);
-        setFilteredAssignments(sortedAssignments);
-      } catch (error) {
-        console.error("Error fetching assignments:", error);
+    const handleEscKey = (event) => {
+      if (event.key === 'Escape') {
+        setShowFolderForm(false);
+        setShowFolderModal(false);
+        setShowAddAssignmentsModal(false);
       }
     };
+
+    window.addEventListener('keydown', handleEscKey);
+
+    // Clean up the event listener
+    return () => {
+      window.removeEventListener('keydown', handleEscKey);
+    };
+  }, [classId, location.state]);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      setIsLoading(true);
+      try {
+        await fetchAssignments();
+        await fetchFolders();
+        await fetchDrafts();
+        
+        // Set allAssignments after fetching
+        setAllAssignments(assignments);
+
+      } catch (error) {
+        console.error("Error fetching data:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [classId, location.state]);
+
+  const fetchAssignments = async () => {
+    try {
+      const assignmentsCollections = [
+        'assignments(saq)',
+        'assignments(Asaq)',
+        'assignments(mcq)',
+        'assignments(Amcq)'
+      ];
+
+      const fetchPromises = assignmentsCollections.map(collectionName =>
+        getDocs(collection(db, collectionName))
+      );
+
+      const snapshots = await Promise.all(fetchPromises);
+
+      let allAssignments = [];
+      snapshots.forEach((snapshot) => {
+        const filteredDocs = snapshot.docs.filter(doc => doc.id.startsWith(`${classId}+`));
+        const assignments = filteredDocs
+          .map(doc => {
+            const data = doc.data();
+            const [, , type] = doc.id.split('+');
+            return {
+              id: doc.id,
+              ...data,
+              type: type.replace('*', ''),
+              name: data.assignmentName || data.name
+            };
+          })
+          .filter(assignment => assignment.name);
+
+        allAssignments = allAssignments.concat(assignments);
+      });
+
+      const sortedAssignments = allAssignments.sort((a, b) => {
+        const dateA = a.createdDate && typeof a.createdDate.toDate === 'function' ? a.createdDate.toDate() : new Date(0);
+        const dateB = b.createdDate && typeof b.createdDate.toDate === 'function' ? b.createdDate.toDate() : new Date(0);
+        return dateB - dateA;
+      });
+
+      setAssignments(sortedAssignments);
+      setAllAssignments(sortedAssignments);
+      setFilteredAssignments(sortedAssignments);
+      setHasContent(sortedAssignments.length > 0);
+    } catch (error) {
+      console.error("Error fetching assignments:", error);
+    }
+  };
 
     const fetchFolders = async () => {
       try {
@@ -379,6 +421,8 @@ function Assignments() {
     setSelectedFormat(null);
     setSearchTerm('');
   };
+
+  
   const getFormatDisplay = (type) => {
     switch(type) {
       case 'ASAQ':
@@ -453,6 +497,248 @@ function Assignments() {
         return null;
     }
   };
+
+  const openFolderModal = async (folder) => {
+    setSelectedFolder(folder);
+    setShowFolderModal(true);
+    const folderAssignments = await fetchFolderAssignments(folder.id);
+    setFolderAssignments(folderAssignments);
+  };
+
+  const fetchFolderAssignments = async (folderId) => {
+    const folderRef = doc(db, 'folders', folderId);
+    const folderDoc = await getDoc(folderRef);
+    const assignmentIds = folderDoc.data().assignments || [];
+    const assignmentPromises = assignmentIds.map(id => getDoc(doc(db, 'assignments(Amcq)', id)));
+    const assignmentDocs = await Promise.all(assignmentPromises);
+    return assignmentDocs.map(doc => ({ id: doc.id, ...doc.data() }));
+  };
+
+  const addAssignmentToFolder = async (assignmentId) => {
+    const folderRef = doc(db, 'folders', selectedFolder.id);
+    await updateDoc(folderRef, {
+      assignments: [...selectedFolder.assignments, assignmentId]
+    });
+    const updatedFolderAssignments = await fetchFolderAssignments(selectedFolder.id);
+    setFolderAssignments(updatedFolderAssignments);
+  };
+
+  const renderAddAssignmentsModal = () => {
+    if (!showAddAssignmentsModal) return null;
+    return (
+      <div style={{
+        position: 'fixed',
+        top: 0,
+        right: 0,
+        bottom: 0,
+        width: '600px',
+        backdropFilter: 'blur(5px)',
+        backgroundColor: 'rgb(250,250,250,.8)',
+        borderLeft: `6px solid grey`,
+        padding: '20px',
+        zIndex: 102,
+        height: 'calc(100vh-200px)',
+        overflowY: 'auto'
+      }}>
+        <button
+          onClick={() => setShowAddAssignmentsModal(false)}
+          style={{
+            position: 'absolute',
+            top: '10px',
+            left: '10px',
+            background: 'none',
+            border: 'none',
+            fontSize: '24px',
+            cursor: 'pointer',
+            opacity: 0.5,
+          }}
+        >
+          ×
+        </button>
+        <div style={{ display: 'flex', alignItems: 'center', marginTop: '100px', marginBottom: '20px' }}>
+          <input
+            type="text"
+            placeholder="Search assignments..."
+            value={searchTermAddAssignments}
+            onChange={(e) => setSearchTermAddAssignments(e.target.value)}
+            style={{
+              width: '300px',
+              padding: '10px',
+              border: `2px solid ${selectedFolder.color.text}`,
+              borderRadius: '5px',
+              flexGrow: 1,
+            }}
+          />
+          <button
+            onClick={() => setSearchTermAddAssignments('')}
+            style={{
+              background: 'none',
+              border: 'none',
+              fontSize: '20px',
+              cursor: 'pointer',
+              marginLeft: '10px',
+            }}
+          >
+            ×
+          </button>
+        </div>
+        {allAssignments.length > 0 ? (
+          allAssignments
+            .filter(assignment => assignment.name.toLowerCase().includes(searchTermAddAssignments.toLowerCase()))
+            .map(assignment => (
+              <div key={assignment.id} style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: '10px',
+                padding: '10px',
+                backgroundColor: '#f0f0f0',
+                borderRadius: '5px',
+              }}>
+                <div>
+                  <div>{assignment.name}</div>
+                  <div>{getFormatDisplay(assignment.type)}</div>
+                </div>
+                <button
+                  onClick={() => addAssignmentToFolder(assignment.id)}
+                  style={{
+                    backgroundColor: selectedFolder.color.text,
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '5px',
+                    padding: '5px 10px',
+                    cursor: 'pointer',
+                  }}
+                >
+                  +
+                </button>
+              </div>
+            ))
+        ) : (
+          <div style={{ textAlign: 'center', marginTop: '20px', color: '#666' }}>
+            No assignments available to add.
+          </div>
+        )}
+      </div>
+    );
+  };
+  
+  const renderFolderModal = () => {
+    if (!selectedFolder) return null;
+    return (
+      <div style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: 'rgba(250, 250, 250, 0.5)',
+        backdropFilter: 'blur(10px)',
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        zIndex: 101,
+      }}>
+        <div style={{
+          width: '60%',
+          height: '60%',
+          backgroundColor: selectedFolder.color.bg,
+          border: `6px solid ${selectedFolder.color.text}`,
+          borderRadius: '30px',
+          padding: '20px',
+          display: 'flex',
+          position: 'relative',
+          flexDirection: 'column',
+        }}>
+          <button
+            onClick={() => setSelectedFolder(null)}
+            style={{
+              position: 'absolute',
+              top: '10px',
+              left: '10px',
+              background: 'none',
+              border: 'none',
+              fontSize: '24px',
+              cursor: 'pointer',
+              opacity: 0.5,
+              color: selectedFolder.color.text,
+            }}
+          >
+            ×
+          </button>
+          <div style={{
+            backgroundColor: selectedFolder.color.bg,
+            height: '70px',
+            width: '300px',
+            position: 'absolute',
+            top: '-65px',
+            zIndex: '-1',
+            left: '-6px',
+            border: `6px solid ${selectedFolder.color.text}`,
+            borderRadius: '30px',
+            borderBottomLeftRadius: '0px',
+            borderBottomRightRadius: '0px',
+          }}>
+            <h2 style={{
+              color: selectedFolder.color.text,
+              fontFamily: "'Radio Canada', sans-serif",
+              fontSize: '34px',
+              marginTop: '5px',
+              marginLeft: '10px'
+            }}>
+              {selectedFolder.name}
+            </h2>
+          </div>
+          
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '20px', overflow: 'auto' }}>
+          {folderAssignments.length > 0 ? (
+            folderAssignments.map((assignment, index) => (
+              <div
+                key={assignment.id}
+                onClick={() => handleItemClick(assignment)}
+                style={{
+                  width: 'calc(30.33% - 20px)',
+                  padding: '10px',
+                  backgroundColor: 'white',
+                  borderRadius: '10px',
+                  cursor: 'pointer',
+                  border: `3px solid ${selectedFolder.color.text}`,
+                }}
+              >
+                <h3 style={{ color: selectedFolder.color.text, fontFamily: "'Radio Canada', sans-serif", marginBottom: '5px' }}>
+                  {assignment.name || assignment.assignmentName} {/* Use assignment.name or assignment.assignmentName */}
+                </h3>
+                <div style={{ 
+                  display: 'inline-block',
+                  padding: '2px 6px',
+                  backgroundColor: selectedFolder.color.text,
+                  color: selectedFolder.color.bg,
+                  borderRadius: '4px',
+                  fontSize: '12px',
+                  fontFamily: "'Radio Canada', sans-serif",
+                }}>
+                  {getFormatDisplay(assignment.type)}
+                </div>
+              </div>
+            ))
+            ) : (
+              <div style={{ 
+                width: '100%', 
+                textAlign: 'center', 
+                color: selectedFolder.color.text, 
+                fontFamily: "'Radio Canada', sans-serif",
+                fontSize: '20px',
+                marginTop: '20px'
+              }}>
+                This folder is empty. Add assignments using the button above.
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div style={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
       <Navbar userType="teacher" />
@@ -464,6 +750,7 @@ function Assignments() {
       </div>
     ) : assignments.length > 0 || drafts.length > 0 ? (
         <div style={{ width: '1000px', marginLeft: 'auto', marginRight: 'auto' }}>
+           
             <div 
               onClick={handleCreateFirstAssignment}
             style={{
@@ -819,14 +1106,16 @@ function Assignments() {
       
       gap: '20px'
     }}>
-    {folders
+   {folders
         .filter(folder => folder.classId === classId)
         .map((folder, index) => (
           <div 
             key={folder.id} 
+            onClick={() => openFolderModal(folder)}
             style={{ 
               width: 'calc(28% - 14px)', 
               marginBottom: '40px',
+              cursor: 'pointer',
             }}
           >
             <div style={{
@@ -865,11 +1154,14 @@ function Assignments() {
                    >
 
                    </div>
-              {folder.name} dsad asd
+              {folder.name} 
             </div>
           </div>
         ))
       }
+           {showFolderModal && renderFolderModal()}
+      {showAddAssignmentsModal && renderAddAssignmentsModal()}
+  
     </div>
   </div>
 )}

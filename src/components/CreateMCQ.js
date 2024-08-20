@@ -544,7 +544,7 @@ function MCQ() {
                 <div style={{ width: '100%', height: '545px', marginTop: '-30px', border: '10px solid lightgrey', borderRadius: '30px' }}>
                   <div style={{ width: '780px', marginLeft: 'auto', marginRight: 'auto', marginTop: '30px' }}>
                     <h2 style={{ fontSize: '40px', color: 'grey', width: '100%', textAlign: 'center' }}>Select Source Type</h2>
-                    {['text', 'pdf', 'youtube'].map((option) => (
+                    {['text'].map((option) => (
                       <button
                         key={option}
                         onClick={() => setSourceOption(option)}
