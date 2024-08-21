@@ -7,6 +7,7 @@ import Navbar from './Navbar';
 import { useRef } from 'react';
 import CustomDateTimePicker from './CustomDateTimePickerResults';
 import 'react-datepicker/dist/react-datepicker.css';
+import { AnimatePresence } from 'framer-motion';
 const TeacherResultsASAQ = () => {
   const [students, setStudents] = useState([]);
   const [grades, setGrades] = useState({});
@@ -32,7 +33,160 @@ const TeacherResultsASAQ = () => {
   const [hoveredStatus, setHoveredStatus] = useState(null);
   const [showQuestionBank, setShowQuestionBank] = useState(false);
   const [showOverlay, setShowOverlay] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [assignmentSettings, setAssignmentSettings] = useState({
+    assignDate: null,
+    dueDate: null,
+    halfCredit: false,
+    lockdown: false,
+    saveAndExit: true,
+    timer: '0',
+    timerOn: false,
+  });
+  useEffect(() => {
+    const fetchAssignmentSettings = async () => {
+      const assignmentRef = doc(db, 'assignments(Asaq)', assignmentId);
+      const assignmentDoc = await getDoc(assignmentRef);
+      if (assignmentDoc.exists()) {
+        const data = assignmentDoc.data();
+        setAssignmentSettings({
+          assignDate: data.assignDate ? new Date(data.assignDate) : null,
+          dueDate: data.dueDate ? new Date(data.dueDate) : null,
+          halfCredit: data.halfCredit || false,
+          lockdown: data.lockdown || false,
+          saveAndExit: data.saveAndExit !== undefined ? data.saveAndExit : true,
+          timer: data.timer || '0',
+          timerOn: data.timer > 0,
+        });
+      }
+    };
 
+    fetchAssignmentSettings();
+  }, [assignmentId]);
+ 
+  const SettingsSection = () => (
+    <div style={{
+      width: '780px',
+      marginRight: 'auto',
+      marginLeft: 'auto', position: 'relative',
+      marginTop: '-10px'
+    }}>
+      <div style={{width: '150px', position: 'absolute', top: '-6px', left: '10px', height: '32px', background: 'lightgrey'}}></div>
+      <div style={{
+        marginLeft: '10px',
+        border: '6px solid lightgrey',
+        background: 'white',
+        borderRadius: '10px',
+        padding: '20px',
+        width: '750px',
+        marginTop: '20px',
+      
+      }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', marginBottom: '10px', borderRadius: '10px', marginLeft: '-5px', background: '#F4F4F4' }}>
+            <h3 style={{
+              fontSize: '18px',
+              color: 'grey', 
+              marginLeft: '20px', 
+              marginRight: '-28px',
+              fontFamily: "'Radio Canada', sans-serif",
+            }}>Assigned:</h3>
+            <CustomDateTimePicker
+              selected={assignmentSettings.assignDate}
+              onChange={(date) => updateAssignmentSetting('assignDate', date)}
+            />
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', marginBottom: '10px', borderRadius: '10px', marginLeft: '10px', background: '#F4F4F4' }}>
+            <h3 style={{
+              fontSize: '18px',
+              color: 'grey', 
+              marginLeft: '20px', 
+              marginRight: '-28px',
+              fontFamily: "'Radio Canada', sans-serif",
+            }}>Due:</h3>
+            <CustomDateTimePicker
+              selected={assignmentSettings.dueDate}
+              onChange={(date) => updateAssignmentSetting('dueDate', date)}
+            />
+          </div>
+        </div>
+  
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
+          <div style={{display: 'flex', alignItems: 'center', border: '6px solid #f4f4f4', borderRadius: '10px', width: '400px', height: '70px'}}>
+            <h3 style={{lineHeight: '30px', marginLeft: '20px', marginRight: '20px',     fontFamily: "'Radio Canada', sans-serif",}}>Timer</h3>
+            <div style={{ display: 'flex', alignItems: 'center' }}>
+              <input
+                type="checkbox"
+                className="greenSwitch"
+                checked={assignmentSettings.timerOn}
+                onChange={(e) => {
+                  updateAssignmentSetting('timerOn', e.target.checked);
+                  if (!e.target.checked) {
+                    updateAssignmentSetting('timer', '0');
+                  }
+                }}
+              />
+              {assignmentSettings.timerOn ? (
+                <>
+                  <input
+                    type="number"
+                    value={assignmentSettings.timer}
+                    onChange={(e) => updateAssignmentSetting('timer', e.target.value)}
+                    style={{ width: '50px', marginLeft: '10px', padding: '5px', outline: 'none', border: 'none', background: '#f4f4f4', fontSize: '20px',  borderRadius: '5px'}}
+                  />
+                  <span style={{ marginLeft: '5px' ,    fontFamily: "'Radio Canada', sans-serif",}}>minutes</span>
+                </>
+              ) : (
+                <span style={{ marginLeft: '10px', color: 'grey',     fontFamily: "'Radio Canada', sans-serif", }}>Off</span>
+              )}
+            </div>
+            
+          </div>
+          <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', border: '6px solid #f4f4f4', borderRadius: '10px', width: '265px', height: '70px', padding: '0 20px'}}>
+            <h3 style={{    fontFamily: "'Radio Canada', sans-serif",}}>Half Credit</h3>
+            <input
+              type="checkbox"
+              className="greenSwitch"
+              checked={assignmentSettings.halfCredit}
+              onChange={(e) => updateAssignmentSetting('halfCredit', e.target.checked)}
+            />
+          </div>
+  
+        </div>
+  
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '10px' }}>
+         
+          <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', border: '6px solid #f4f4f4', borderRadius: '10px', width: '305px', height: '60px', padding: '0 20px'}}>
+            <h3 style={{    fontFamily: "'Radio Canada', sans-serif",}}>Lockdown</h3>
+            <input
+              type="checkbox"
+              className="greenSwitch"
+              checked={assignmentSettings.lockdown}
+              onChange={(e) => updateAssignmentSetting('lockdown', e.target.checked)}
+            />
+          </div>
+          <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', border: '6px solid #f4f4f4', borderRadius: '10px', width: '320px', height: '60px', padding: '0 20px'}}>
+            <h3 style={{    fontFamily: "'Radio Canada', sans-serif",}}>Save & Exit</h3>
+            <input
+              type="checkbox"
+              className="greenSwitch"
+              checked={assignmentSettings.saveAndExit}
+              onChange={(e) => updateAssignmentSetting('saveAndExit', e.target.checked)}
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+  const updateAssignmentSetting = async (setting, value) => {
+    const assignmentRef = doc(db, 'assignments(Asaq)', assignmentId);
+    const updateData = { [setting]: value };
+    
+   
+
+    await updateDoc(assignmentRef, updateData);
+    setAssignmentSettings(prev => ({ ...prev, [setting]: value }));
+  };
   const openResetModal = (student) => {
     setResetStudent(student);
   }
@@ -188,7 +342,7 @@ const TeacherResultsASAQ = () => {
           
           setStudents(sortedStudents);
       
-          const gradesCollection = collection(db, 'grades(saq)');
+          const gradesCollection = collection(db, 'grades(Asaq)');
           const gradesQuery = query(gradesCollection, where('assignmentId', '==', assignmentId));
           const gradesSnapshot = await getDocs(gradesQuery);
           const fetchedGrades = {};
@@ -342,6 +496,9 @@ const TeacherResultsASAQ = () => {
 
 
 
+const navigateToStudentGrades = (studentUid) => {
+  navigate(`/class/${classId}/student/${studentUid}/grades`);
+};
   // Modal component to display questions
   const QuestionBankModal = ({ questions, onClose, setShowQuestionBank, setShowOverlay }) => {
     const [hoveredOptions, setHoveredOptions] = useState({});
@@ -430,7 +587,7 @@ const TeacherResultsASAQ = () => {
                 }}
               >
                 <div style={{ background: '#627BFF', }}>
-                <h3 style={{
+                <div style={{
                   
                   marginBottom: '10px',
                    color: 'white',
@@ -440,8 +597,9 @@ const TeacherResultsASAQ = () => {
                     top: '50%',
                     msTransform: 'translateY(-50%)'
                     }}>
+                    <div>{question.difficulty}</div>  
                   {indexOfFirstQuestion + index + 1}.
-                </h3>
+                </div>
                 </div>
                 <div >
 
@@ -905,64 +1063,7 @@ const TeacherResultsASAQ = () => {
   />
 )}
 
-<div style={{display: 'flex', marginLeft: 'auto', marginRight: 'auto'}}>
-<div style={{ display: 'flex', alignItems: 'center', marginBottom: '10px', background: '#F4F4F4', borderRadius: '10px', marginLeft: '40px',  }}>
-  <h1 style={{
-    fontSize: '18px',
-    
-
-      
-    color: 'grey', 
-    marginLeft :'20px', 
-    marginRight: '-28px',
-    fontFamily: "'Radio Canada', sans-serif",
-    
-  }}>
-    Assigned:
-  </h1>
-  <CustomDateTimePicker
-    selected={assignDate}
-    onChange={(date) => {
-      setAssignDate(date);
-      if (dueDate) {
-        updateDates(date, dueDate);
-      }
-    }}
-    label="Assign Date"
-  />
-</div>
-
-
-
-
-   
-<div style={{ display: 'flex', alignItems: 'center', marginBottom: '10px', background: '#F4F4F4', borderRadius: '10px', width: '400px', marginLeft: '10px' }}>
-  <h1 style={{
-fontSize: '18px',
-    
-width: '500px',
-      
-color: 'grey', 
-marginLeft :'20px', 
-marginRight: '-60px',
-fontFamily: "'Radio Canada', sans-serif",
-  }}>
-    Due:
-  </h1>
-  <CustomDateTimePicker
-    selected={dueDate}
-    onChange={(date) => {
-      setDueDate(date);
-      if (assignDate) {
-        updateDates(assignDate, date);
-      }
-    }}
-    label="Due Date"
-  />
-</div>
-</div>
-
-      <div style={{
+<div style={{
         width: '810px',
         display: 'flex',
         justifyContent: 'space-between',
@@ -971,8 +1072,49 @@ fontFamily: "'Radio Canada', sans-serif",
         alignItems: 'center',
         marginLeft: '30px'
       }}>
+        <button onClick={() => setShowSettings(!showSettings)} style={{
+          width: '150px',
+          fontSize: '20px',
+          height: '50px',
+          borderRadius: '10px',
+          fontWeight: 'bold',
+          border: '6px solid lightgrey',
+          background: 'lightgrey',
+          cursor: 'pointer',
+          color: 'black',
+          marginLeft: '10px',
+          lineHeight: '10px',
+          transition: '.3s',
+          display: 'flex',
+        }}>
+          <img style={{width:'30px', opacity: '40%'}} src='/Settings.png'/>
+          <p style={{marginTop: '12px', marginLeft:'10px', color: 'grey'}}>Settings</p>
+        </button>
+        <div style={{
+          width: '280px', 
+          fontSize: '20px', 
+          height:'45px', 
+          borderRadius: '10px', 
+          fontWeight: 'bold',  
+          border: '6px solid #F4F4F4', 
+          background:' white', 
+          cursor: 'pointer', 
+          display:'flex',
+          alignItems: 'center',
+          marginLeft: '10px',
+          transition: '.3s',
+        }}>
+          <h1 style={{fontSize: '20px', marginLeft:'20px'}}>Student Review </h1>
+          <input 
+            type="checkbox" 
+            className="greenSwitch"
+            style={{marginLeft:'30px'}}
+            checked={allViewable} 
+            onChange={toggleAllViewable} 
+          />
+        </div>
         <button onClick={() => setIsAssignModalOpen(true)} style={{
-          width: '450px',
+          width: '310px',
           fontSize: '20px',
           height: '50px',
           borderRadius: '10px',
@@ -983,91 +1125,108 @@ fontFamily: "'Radio Canada', sans-serif",
           color: '#54AAA4',
           marginLeft: '10px',
           transition: '.3s',
-        }}
-       >
+        }}>
           Assign to New Students
         </button>
-<div style={{width: '450px', fontSize: '20px', height:'45px', borderRadius: '10px', fontWeight: 'bold',  border: '6px solid #F4F4F4', background:' white', cursor: 'pointer', display:'flex',
-alignItems: 'center',
-marginLeft: '10px',
-transition: '.3s',
-
-
-}}
->
-   <h1 style={{fontSize: '20px', marginLeft:'80px'}}>Student Review </h1>
-       
-          <input type="checkbox" 
-           className="greenSwitch"
-           style={{marginLeft:'30px'}}
-           checked={allViewable} onChange={toggleAllViewable} />
-         
-  
-       
-        </div>
       </div>
+
+      <AnimatePresence>
+        {showSettings && <SettingsSection key="settings" />}
+      </AnimatePresence>
 
       <ul>
         {students.map((student) => (
-   <li key={student.uid} className="student-item" style={{ 
-        width: '780px', 
-        height: '80px', 
-        alignItems: 'center', 
+  <li key={student.uid} className="student-item" style={{
+    width: '780px',
+    height: '80px',
+    alignItems: 'center',
+    display: 'flex',
+    justifyContent: 'space-between',
+    marginRight: 'auto',
+    marginLeft: 'auto',
+    border: '6px solid #F4F4F4',
+    backgroundColor: 'white',
+    borderRadius: '10px',
+    padding: '10px',
+    marginBottom: '20px',
+    position: 'relative',
+    zIndex: '0',
+  }}
+  onMouseEnter={() => setHoveredStudent(student.uid)}
+  onMouseLeave={() => setHoveredStudent(null)}
+  > 
+    <div style={{
+      width: '60px',
+      height: '55px',
+      border: '7px solid #566DFF',
+      backgroundColor: '#003BD4',
+      borderRadius: '15px'
+    }}>
+      <p style={{
+        fontWeight: 'bold',
+        width: '40px',
+        marginTop: '8px',
+        marginRight: 'auto',
+        marginLeft: 'auto',
+        fontSize: '25px',
+        backgroundColor: 'white',
+        height: '40px',
+        lineHeight: '45px',
+        color: 'black',
+        borderRadius: '3px',
+        fontFamily: "'Rajdhani', sans-serif",
+        textAlign: 'center'
+      }}>
+        {grades[student.uid] && grades[student.uid].SquareScore !== undefined 
+          ? grades[student.uid].SquareScore 
+          : '—'}
+      </p>
+    </div>
+    <div style={{ marginLeft: '20px', width: '400px', marginTop: '-15px' }}>
+    <div 
+      style={{ 
         display: 'flex', 
-        justifyContent: 'space-between', 
-        marginRight: 'auto', 
-        marginLeft: 'auto', 
-         border: '6px solid #F4F4F4', 
-        backgroundColor: 'white', 
-        borderRadius: '10px', 
-        padding: '10px', 
-        marginBottom: '20px', 
-        position: 'relative',
-        zIndex: '2', 
-    }}
-    onMouseEnter={() => setHoveredStudent(student.uid)}
-    
-    onMouseLeave={() => setHoveredStudent(null)}
-
-    
-    >  <div style={{ marginLeft: '20px', width: '400px',  }}>
-              <div style={{ display: 'flex', marginBottom: '10px' }}>
-                <h3 style={{ fontWeight: 'normal', color: 'grey', fontFamily: "'Radio Canada', sans-serif", fontSize: '23px' }}>{student.lastName},</h3>
-                <h3 style={{ fontWeight: 'bold', color: 'black', fontFamily: "'Radio Canada', sans-serif", fontSize: '23px', marginLeft: '10px' }}>{student.firstName}</h3>
-              </div>
-
-              <div style={{ fontWeight: 'bold', textAlign: 'center', color: 'black', fontFamily: "'Poppins', sans-serif", marginTop: '-40px' }}>
-              {grades[student.uid] ? (
-  <div style={{ display: 'flex', alignItems: 'center' }}>
-    <p style={{ fontWeight: 'bold', width: '23px', fontSize: '22px', backgroundColor: '#566DFF', height: '23px', border: '4px solid #003BD4', lineHeight: '23px', color: 'white', borderRadius: '7px', fontFamily: "'Radio Canada', sans-serif" }}>
-      {calculateLetterGrade(grades[student.uid].percentageScore)}
-    </p>
-    <p style={{ fontSize: '22px', color: 'lightgrey', marginLeft: '30px' }}>
-      {`${Math.round(grades[student.uid].percentageScore)}%`}
-    </p>
-    <button style={{ backgroundColor: 'transparent', color: resetStatus[student.uid] === 'success' ? 'lightgreen' : 'red', cursor: 'pointer', borderColor: 'transparent', fontFamily: "'Radio Canada', sans-serif", fontWeight: 'bold', fontSize: '22px', marginLeft: '30px' }} onClick={() => handleReset(student.uid)}>
-      {resetStatus[student.uid] === 'success' ? 'Success' : 'Reset'}
-    </button>
-  </div>
-) : (
-  <div style={{ display: 'flex', alignItems: 'center' }}>
-    <p style={{ fontWeight: 'bold', width: '23px', fontSize: '22px', backgroundColor: '#566DFF', height: '23px', border: '4px solid #003BD4', lineHeight: '23px', color: 'white', borderRadius: '7px', fontFamily: "'Radio Canada', sans-serif" }}>
-      Z
-    </p>
-    <p style={{ fontSize: '22px', color: 'lightgrey', marginLeft: '30px' }}>
-      00%
-    </p>
-    <button style={{ backgroundColor: 'transparent', color: resetStatus[student.uid] === 'success' ? 'lightgreen' : 'red', cursor: 'pointer', borderColor: 'transparent', fontFamily: "'Radio Canada', sans-serif", fontWeight: 'bold', fontSize: '22px', marginLeft: '30px' }} onClick={() => handleReset(student.uid)}>
-      {resetStatus[student.uid] === 'success' ? 'Success' : 'Reset'}
-    </button>
-  </div>
-)}
-                  
-              </div>
-            </div>
-            <div style={{ color: 'lightgrey', width: '400px', display: 'flex'}}>
-              <div style={{}}>
-              <h1 style={{ fontSize: '22px', fontFamily: "'Radio Canada', sans-serif", fontWeight: 'normal' }}>
+        marginBottom: '-15px', 
+        cursor: 'pointer',
+        transition: 'color 0.3s'
+      }}
+      onClick={() => navigateToStudentGrades(student.uid)}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.color = 'blue';
+        e.currentTarget.style.textDecoration = 'underline';
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.color = 'inherit';
+        e.currentTarget.style.textDecoration = 'none';
+      }}
+    >
+      <h3 style={{ fontWeight: 'normal', color: 'inherit', fontFamily: "'Radio Canada', sans-serif", fontSize: '23px' }}>{student.lastName},</h3>
+      <h3 style={{ fontWeight: 'bold', color: 'inherit', fontFamily: "'Radio Canada', sans-serif", fontSize: '23px', marginLeft: '10px' }}>{student.firstName}</h3>
+    </div>
+      <button style={{
+        backgroundColor: 'transparent',
+        color: resetStatus[student.uid] === 'success' ? 'lightgreen' : 'red',
+        cursor: 'pointer',
+        borderColor: 'transparent',
+        fontFamily: "'Radio Canada', sans-serif",
+        fontWeight: 'bold',
+        fontSize: '22px',
+        marginLeft: '-10px',
+      }} onClick={() => handleReset(student.uid)}>
+        {resetStatus[student.uid] === 'success' ? 'Success' : 'Reset'}
+      </button>
+    </div>
+    <div style={{
+      color: 'lightgrey',
+      width: '400px',
+      display: 'flex'
+    }}>
+      <div>
+        <h1 style={{
+          fontSize: '22px',
+          fontFamily: "'Radio Canada', sans-serif",
+          fontWeight: 'normal'
+        }}>
           Completed: {grades[student.uid] && grades[student.uid].submittedAt ? 
             new Date(grades[student.uid].submittedAt.toDate()).toLocaleString(undefined, {
               year: 'numeric',
@@ -1078,25 +1237,51 @@ transition: '.3s',
               hour12: true
             }) : 'Not completed'}
         </h1>
-        <h1 style={{ 
-  fontSize: '22px', 
-  fontFamily: "'Radio Canada', sans-serif", 
-  fontWeight: 'bold',
-  color: getStatusColor(assignmentStatuses[student.uid]),
-  textTransform: assignmentStatuses[student.uid] === 'Completed' ? 'uppercase' : 'capitalize',
-  cursor: assignmentStatuses[student.uid] === 'Paused' ? 'pointer' : 'default'
-}}
-onMouseEnter={() => assignmentStatuses[student.uid] === 'Paused' && setHoveredStatus(student.uid)}
-onMouseLeave={() => setHoveredStatus(null)}
-onClick={() => assignmentStatuses[student.uid] === 'Paused' && togglePauseAssignment(student.uid)}
->
-  {hoveredStatus === student.uid && assignmentStatuses[student.uid] === 'Paused' 
-    ? 'Unpause' 
-    : assignmentStatuses[student.uid]}
-</h1>
-              </div>
-          <h1 style={{fontSize: '25px',position: 'absolute', right: '25px', bottom: '-6px', color: '#003BD4', fontWeight: 'bold', fontFamily: "'Radio Canada', sans-serif"}}>SAQ</h1>
-            </div>
+        <h1 style={{
+          fontSize: '22px',
+          fontFamily: "'Radio Canada', sans-serif",
+          fontWeight: 'bold',
+          color: getStatusColor(assignmentStatuses[student.uid]),
+          textTransform: assignmentStatuses[student.uid] === 'Completed' ? 'uppercase' : 'capitalize',
+          cursor: assignmentStatuses[student.uid] === 'Paused' ? 'pointer' : 'default'
+        }}
+        onMouseEnter={() => assignmentStatuses[student.uid] === 'Paused' && setHoveredStatus(student.uid)}
+        onMouseLeave={() => setHoveredStatus(null)}
+        onClick={() => assignmentStatuses[student.uid] === 'Paused' && togglePauseAssignment(student.uid)}>
+          {hoveredStatus === student.uid && assignmentStatuses[student.uid] === 'Paused' 
+            ? 'Unpause' 
+            : assignmentStatuses[student.uid]}
+        </h1>
+      </div>
+      <span style={{
+        position: 'absolute',
+        right: '15px',
+        top: '60px',
+        cursor: 'pointer',
+        fontWeight: 'bold',
+        width: '60px',
+        marginTop: '0px',
+        fontSize: '25px',
+        fontFamily: "'Radio Canada', sans-serif",
+        color: 'blue'
+      }}>
+        SAQ
+      </span>
+      <span style={{
+        position: 'absolute',
+        right: '-38px',
+        top: '45px',
+        fontSize: '25px',
+        cursor: 'pointer',
+        fontWeight: 'bold',
+        width: '60px',
+        marginTop: '0px',
+        fontFamily: "'Radio Canada', sans-serif",
+        color: '#FCCA18'
+      }}>
+        *
+      </span> 
+    </div>
 
           
   

@@ -1132,25 +1132,26 @@ transition: '.3s',
               </p>
             </div>
             <div style={{ marginLeft: '20px', width: '400px', marginTop: '-15px' }}>
-              <div style={{ display: 'flex', marginBottom: '-20px' }}>
-                <h3 style={{
-                  fontWeight: 'normal',
-                  color: 'grey',
-                  fontFamily: "'Radio Canada', sans-serif",
-                  fontSize: '23px'
-                }}>
-                  {student.lastName},
-                </h3>
-                <h3 style={{
-                  fontWeight: 'bold',
-                  color: 'black',
-                  fontFamily: "'Radio Canada', sans-serif",
-                  fontSize: '23px',
-                  marginLeft: '10px'
-                }}>
-                  {student.firstName}
-                </h3>
-              </div>
+            <div 
+      style={{ 
+        display: 'flex', 
+        marginBottom: '-15px', 
+        cursor: 'pointer',
+        transition: 'color 0.3s'
+      }}
+      onClick={() => navigateToStudentGrades(student.uid)}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.color = 'blue';
+        e.currentTarget.style.textDecoration = 'underline';
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.color = 'inherit';
+        e.currentTarget.style.textDecoration = 'none';
+      }}
+    >
+      <h3 style={{ fontWeight: 'normal', color: 'inherit', fontFamily: "'Radio Canada', sans-serif", fontSize: '23px' }}>{student.lastName},</h3>
+      <h3 style={{ fontWeight: 'bold', color: 'inherit', fontFamily: "'Radio Canada', sans-serif", fontSize: '23px', marginLeft: '10px' }}>{student.firstName}</h3>
+    </div>
               <button style={{
                 backgroundColor: 'transparent',
                 color: resetStatus[student.uid] === 'success' ? 'lightgreen' : 'red',

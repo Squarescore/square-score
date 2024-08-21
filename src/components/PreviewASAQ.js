@@ -1,13 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
 import TextareaAutosize from 'react-textarea-autosize';
-
-const TeacherPreviewASAQ = ({ questionsWithIds, setQuestionsWithIds, onRegenerate }) => {
+import axios from 'axios';
+const TeacherPreviewASAQ = ({ questionsWithIds, setQuestionsWithIds, sourceText, questionCount }) => {
   const containerRef = useRef(null);
   const [textareaHeight, setTextareaHeight] = useState({});
 
+
   const [showRegenerateDropdown, setShowRegenerateDropdown] = useState(false);
   const [regenerateInput, setRegenerateInput] = useState('');
-  
+  const [isRegenerating, setIsRegenerating] = useState(false);
   
   const updateTextareaHeight = (index, height) => {
     setTextareaHeight(prev => ({...prev, [index]: height}));
@@ -47,6 +48,31 @@ const TeacherPreviewASAQ = ({ questionsWithIds, setQuestionsWithIds, onRegenerat
       insertIndex = Math.min(insertIndex, questionsWithIds.length);
     }
 
+     const handleRegenerateSubmit = async () => {
+    setIsRegenerating(true);
+    try {
+      const response = await axios.post('https://us-central1-square-score-ai.cloudfunctions.net/RegenerateASAQ', {
+        sourceText,
+        questionCount,
+        QuestionsPreviouslyGenerated: JSON.stringify(questionsWithIds),
+        instructions: regenerateInput
+      });
+
+      const regeneratedQuestions = response.data.questions.map((newQuestion, index) => ({
+        ...newQuestion,
+        questionId: questionsWithIds[index] ? questionsWithIds[index].questionId : `newQuestion${index}`
+      }));
+
+      setQuestionsWithIds(regeneratedQuestions);
+      setShowRegenerateDropdown(false);
+      setRegenerateInput('');
+    } catch (error) {
+      console.error('Error regenerating questions:', error);
+      // Optionally, show an error message to the user
+    } finally {
+      setIsRegenerating(false);
+    }
+  };
     const newQuestions = [
       ...questionsWithIds.slice(0, insertIndex),
       newQuestion,
@@ -64,11 +90,32 @@ const TeacherPreviewASAQ = ({ questionsWithIds, setQuestionsWithIds, onRegenerat
       }
     }, 0);
   };
-  const handleRegenerateSubmit = () => {
-    onRegenerate(regenerateInput);
-    setShowRegenerateDropdown(false);
-    setRegenerateInput('');
+  const handleRegenerateSubmit = async () => {
+    setIsRegenerating(true);
+    try {
+      const response = await axios.post('https://us-central1-square-score-ai.cloudfunctions.net/RegenerateASAQ', {
+        sourceText,
+        questionCount,
+        QuestionsPreviouslyGenerated: JSON.stringify(questionsWithIds),
+        instructions: regenerateInput
+      });
+
+      const regeneratedQuestions = response.data.questions.map((newQuestion, index) => ({
+        ...newQuestion,
+        questionId: questionsWithIds[index] ? questionsWithIds[index].questionId : `newQuestion${index}`
+      }));
+
+      setQuestionsWithIds(regeneratedQuestions);
+      setShowRegenerateDropdown(false);
+      setRegenerateInput('');
+    } catch (error) {
+      console.error('Error regenerating questions:', error);
+      // Optionally, show an error message to the user
+    } finally {
+      setIsRegenerating(false);
+    }
   };
+
   const handleEditQuestion = (index, field, value) => {
     const newQuestions = [...questionsWithIds];
     newQuestions[index] = { ...newQuestions[index], [field]: value };
@@ -89,7 +136,7 @@ const TeacherPreviewASAQ = ({ questionsWithIds, setQuestionsWithIds, onRegenerat
       marginRight: 'auto',
       position: 'relative',
     }}>
-      <div style={{
+        <div style={{
         width: '940px',
         backgroundColor: '#FFDE67',
         marginLeft: '-30px',
@@ -102,12 +149,60 @@ const TeacherPreviewASAQ = ({ questionsWithIds, setQuestionsWithIds, onRegenerat
       }}>
         <h1 style={{fontSize: '20px', fontFamily: "'Radio Canada', sans-serif", color: '#F5A200', marginLeft: 'auto'}}>Don't like these questions?</h1>
         <h1 
-            style={{fontSize: '20px', fontFamily: "'Radio Canada', sans-serif", color: '#1421FF', cursor: 'pointer', marginLeft: '20px', marginRight: 'auto'}}
-            onClick={() => setShowRegenerateDropdown(!showRegenerateDropdown)}
-          >
-            Regenerate
-          </h1>
+          style={{fontSize: '20px', fontFamily: "'Radio Canada', sans-serif", color: '#1421FF', cursor: 'pointer', marginLeft: '20px', marginRight: 'auto'}}
+          onClick={() => setShowRegenerateDropdown(!showRegenerateDropdown)}
+        >
+          Regenerate
+        </h1>
       </div>
+      {showRegenerateDropdown && (
+        <div style={{
+          backgroundColor: '#FFDE67',
+          padding: '10px',
+          position: 'absolute',
+          zIndex:'100',
+          width: 'calc(100% - 20px)',
+          marginLeft: '-30px',
+          marginTop: '-90px',
+          border: '10px solid #F5A200',
+          borderTop: '10px solid #F5A200',
+          borderTopLeftRadius: '20px',
+          borderTopRightRadius: '20px',
+        }}>
+          <input
+            type="text"
+            value={regenerateInput}
+            onChange={(e) => setRegenerateInput(e.target.value)}
+            placeholder="Enter general adjustments you want made to questions..."
+            style={{
+              width: '400px',
+              marginLeft: '100px',
+              marginRight: '30px',
+              padding: '10px',
+              fontFamily: "'Radio Canada', sans-serif",
+              margin: '10px 0',
+              borderRadius: '5px',
+              border: '1px solid #48A49E',
+            }}
+          />
+          <button
+            onClick={handleRegenerateSubmit}
+            disabled={isRegenerating}
+            style={{
+              padding: '10px 20px',
+              backgroundColor: isRegenerating ? '#A0A0A0' : '#F5A200',
+              color: 'white',
+              border: 'none',
+              borderRadius: '5px',
+              cursor: isRegenerating ? 'not-allowed' : 'pointer',
+              fontFamily: "'Radio Canada', sans-serif",
+              fontWeight: 'bold',
+            }}
+          >
+            {isRegenerating ? 'Regenerating...' : 'Regenerate'}
+          </button>
+        </div>
+      )}
       <h2 style={{color: 'lightgrey', fontSize: '16px', fontWeight: 'normal'}}>Click on a question to edit, Possible answers indicate the most likely student responses, questions that have various answers should have etc at the end. Ex- cats,dogs,hamsters, etc.</h2>
       <div ref={containerRef} style={{ height: '400px', overflowY: 'auto' , width: '880px', marginRight: 'auto', marginLeft: 'auto'}}>
         {questionsWithIds.map((question, index) => (
@@ -191,44 +286,7 @@ const TeacherPreviewASAQ = ({ questionsWithIds, setQuestionsWithIds, onRegenerat
                 <img style={{width: '30px'}} src='/redcirclex.png' alt="Delete"/>
               </button>
             </div>
-            {showRegenerateDropdown && (
-          <div style={{
-            backgroundColor: '#A3F2ED',
-            padding: '10px',
-            borderBottomLeftRadius: '20px',
-            borderBottomRightRadius: '20px',
-          }}>
-            <input
-              type="text"
-              value={regenerateInput}
-              onChange={(e) => setRegenerateInput(e.target.value)}
-              placeholder="Enter additional instructions..."
-              style={{
-                width: '80%',
-                padding: '10px',
-                margin: '10px 0',
-                borderRadius: '5px',
-                border: '1px solid #F5A200',
-              }}
-            />
-            <button
-              onClick={handleRegenerateSubmit}
-              style={{
-                padding: '10px 20px',
-                backgroundColor: '#48A49E',
-                color: 'white',
-                border: 'none',
-                borderRadius: '5px',
-                cursor: 'pointer',
-                fontFamily: "'Radio Canada', sans-serif",
-                fontWeight: 'bold',
-              }}
-            >
-              Regenerate
-            </button>
-          </div>
-        )}
-
+           
 
 
             <div style={{display: 'flex', alignItems: 'center', marginLeft: '50px', position: 'relative', }}>

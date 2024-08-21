@@ -117,27 +117,7 @@ function Assignments() {
     }
   };
 
-  const handleAddAssignmentToFolder = async (folderId, assignmentId) => {
-    try {
-      const folderRef = doc(db, 'folders', folderId);
-      const folderSnap = await getDoc(folderRef);
-      if (folderSnap.exists()) {
-        const currentAssignments = folderSnap.data().assignments || [];
-        await updateDoc(folderRef, {
-          assignments: [...currentAssignments, assignmentId]
-        });
-
-        // Update local state
-        setFolders(folders.map(folder => 
-          folder.id === folderId 
-            ? { ...folder, assignments: [...(folder.assignments || []), assignmentId] }
-            : folder
-        ));
-      }
-    } catch (error) {
-      console.error("Error adding assignment to folder:", error);
-    }
-  };
+  
   useEffect(() => {
     const fetchData = async () => {
       setIsLoading(true);
@@ -336,7 +316,7 @@ function Assignments() {
         // Navigation for non-draft assignments based on format
         switch (format) {
           case 'ASAQ':
-            navigate(`/class/${classId}/dbq/${item.id}/TeacherResultsASAQ`);
+            navigate(`/class/${classId}/assignment/${item.id}/TeacherResultsASAQ`);
             break;
           case 'AMCQ':
             navigate(`/class/${classId}/assignment/${item.id}/TeacherResultsAMCQ`);
@@ -423,7 +403,9 @@ function Assignments() {
   };
 
   
-  const getFormatDisplay = (type) => {
+
+  const getFormatDisplay = (assignmentId) => {
+    const type = getAssignmentType(assignmentId);
     switch(type) {
       case 'ASAQ':
       case 'SAQ':
@@ -433,7 +415,6 @@ function Assignments() {
               position: 'absolute',
               right: '10px',
               top: '50px',
-              cursor: 'pointer',
               fontWeight: 'bold',
               width: '60px',
               marginTop: '0px',
@@ -447,7 +428,6 @@ function Assignments() {
                 position: 'absolute',
                 right: '-38px',
                 top: '40px',
-                cursor: 'pointer',
                 fontWeight: 'bold',
                 width: '60px',
                 marginTop: '0px',
@@ -467,7 +447,6 @@ function Assignments() {
               position: 'absolute',
               right: '10px',
               top: '50px',
-              cursor: 'pointer',
               fontWeight: 'bold',
               width: '60px',
               marginTop: '0px',
@@ -481,7 +460,6 @@ function Assignments() {
                 position: 'absolute',
                 right: '-38px',
                 top: '40px',
-                cursor: 'pointer',
                 fontWeight: 'bold',
                 width: '60px',
                 marginTop: '0px',
@@ -498,29 +476,57 @@ function Assignments() {
     }
   };
 
+  const addAssignmentToFolder = async (assignmentId) => {
+    try {
+      const type = getAssignmentType(assignmentId);
+      const collectionName = `assignments(${type.toLowerCase()})`;
+      const assignmentRef = doc(db, collectionName, assignmentId);
+      const assignmentDoc = await getDoc(assignmentRef);
+
+      if (assignmentDoc.exists()) {
+        const currentFolders = assignmentDoc.data().folders || [];
+        if (!currentFolders.includes(selectedFolder.id)) {
+          await updateDoc(assignmentRef, {
+            folders: [...currentFolders, selectedFolder.id]
+          });
+        }
+
+        // Update local state
+        setAllAssignments(prevAssignments => 
+          prevAssignments.map(assignment => 
+            assignment.id === assignmentId 
+              ? { ...assignment, folders: [...(assignment.folders || []), selectedFolder.id] }
+              : assignment
+          )
+        );
+
+        // Refresh folder assignments
+        const updatedFolderAssignments = await fetchFolderAssignments(selectedFolder.id);
+        setFolderAssignments(updatedFolderAssignments);
+      }
+    } catch (error) {
+      console.error("Error adding assignment to folder:", error);
+    }
+  };
+
+  const fetchFolderAssignments = async (folderId) => {
+    const assignmentCollections = ['assignments(saq)', 'assignments(asaq)', 'assignments(mcq)', 'assignments(amcq)'];
+    let folderAssignments = [];
+
+    for (const collectionName of assignmentCollections) {
+      const q = query(collection(db, collectionName), where('folders', 'array-contains', folderId));
+      const querySnapshot = await getDocs(q);
+      folderAssignments = [...folderAssignments, ...querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))];
+    }
+
+    return folderAssignments;
+  };
+
   const openFolderModal = async (folder) => {
     setSelectedFolder(folder);
     setShowFolderModal(true);
     const folderAssignments = await fetchFolderAssignments(folder.id);
     setFolderAssignments(folderAssignments);
-  };
-
-  const fetchFolderAssignments = async (folderId) => {
-    const folderRef = doc(db, 'folders', folderId);
-    const folderDoc = await getDoc(folderRef);
-    const assignmentIds = folderDoc.data().assignments || [];
-    const assignmentPromises = assignmentIds.map(id => getDoc(doc(db, 'assignments(Amcq)', id)));
-    const assignmentDocs = await Promise.all(assignmentPromises);
-    return assignmentDocs.map(doc => ({ id: doc.id, ...doc.data() }));
-  };
-
-  const addAssignmentToFolder = async (assignmentId) => {
-    const folderRef = doc(db, 'folders', selectedFolder.id);
-    await updateDoc(folderRef, {
-      assignments: [...selectedFolder.assignments, assignmentId]
-    });
-    const updatedFolderAssignments = await fetchFolderAssignments(selectedFolder.id);
-    setFolderAssignments(updatedFolderAssignments);
   };
 
   const renderAddAssignmentsModal = () => {
@@ -584,7 +590,10 @@ function Assignments() {
         </div>
         {allAssignments.length > 0 ? (
           allAssignments
-            .filter(assignment => assignment.name.toLowerCase().includes(searchTermAddAssignments.toLowerCase()))
+            .filter(assignment => 
+              (assignment.name || assignment.assignmentName).toLowerCase().includes(searchTermAddAssignments.toLowerCase()) &&
+              (!assignment.folders || !assignment.folders.includes(selectedFolder.id))
+            )
             .map(assignment => (
               <div key={assignment.id} style={{
                 display: 'flex',
@@ -594,10 +603,11 @@ function Assignments() {
                 padding: '10px',
                 backgroundColor: '#f0f0f0',
                 borderRadius: '5px',
+                position: 'relative',
               }}>
                 <div>
-                  <div>{assignment.name}</div>
-                  <div>{getFormatDisplay(assignment.type)}</div>
+                  <div>{assignment.name || assignment.assignmentName}</div>
+                  {getFormatDisplay(assignment.id)}
                 </div>
                 <button
                   onClick={() => addAssignmentToFolder(assignment.id)}
@@ -621,6 +631,24 @@ function Assignments() {
         )}
       </div>
     );
+  };
+ 
+  const getAssignmentType = (assignmentId) => {
+    const parts = assignmentId.split('+');
+    return parts[parts.length - 1];
+  };
+  
+  const getBackgroundColorWithOpacity = (color, opacity) => {
+    // Check if the color is in hexadecimal format
+    if (color.startsWith('#')) {
+      // Convert hex to RGB
+      const r = parseInt(color.slice(1, 3), 16);
+      const g = parseInt(color.slice(3, 5), 16);
+      const b = parseInt(color.slice(5, 7), 16);
+      return `rgba(${r}, ${g}, ${b}, ${opacity})`;
+    }
+    // If it's already in RGB format, just add the opacity
+    return color.replace('rgb', 'rgba').replace(')', `, ${opacity})`);
   };
   
   const renderFolderModal = () => {
@@ -654,14 +682,15 @@ function Assignments() {
             onClick={() => setSelectedFolder(null)}
             style={{
               position: 'absolute',
-              top: '10px',
-              left: '10px',
+              top: '30px',
+              fontWeight: 'bold',
+              right: '40px',
               background: 'none',
               border: 'none',
-              fontSize: '24px',
+              fontSize: '44px',
               cursor: 'pointer',
-              opacity: 0.5,
               color: selectedFolder.color.text,
+              zIndex: 102,
             }}
           >
             ×
@@ -681,46 +710,76 @@ function Assignments() {
           }}>
             <h2 style={{
               color: selectedFolder.color.text,
-              fontFamily: "'Radio Canada', sans-serif",
+              fontFamily: "'Rajdhani', sans-serif",
               fontSize: '34px',
               marginTop: '5px',
-              marginLeft: '10px'
+              marginLeft: '20px'
             }}>
               {selectedFolder.name}
             </h2>
           </div>
           
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '20px', overflow: 'auto' }}>
-          {folderAssignments.length > 0 ? (
-            folderAssignments.map((assignment, index) => (
-              <div
-                key={assignment.id}
-                onClick={() => handleItemClick(assignment)}
-                style={{
-                  width: 'calc(30.33% - 20px)',
-                  padding: '10px',
-                  backgroundColor: 'white',
-                  borderRadius: '10px',
-                  cursor: 'pointer',
-                  border: `3px solid ${selectedFolder.color.text}`,
-                }}
-              >
-                <h3 style={{ color: selectedFolder.color.text, fontFamily: "'Radio Canada', sans-serif", marginBottom: '5px' }}>
-                  {assignment.name || assignment.assignmentName} {/* Use assignment.name or assignment.assignmentName */}
-                </h3>
-                <div style={{ 
-                  display: 'inline-block',
-                  padding: '2px 6px',
-                  backgroundColor: selectedFolder.color.text,
-                  color: selectedFolder.color.bg,
-                  borderRadius: '4px',
-                  fontSize: '12px',
-                  fontFamily: "'Radio Canada', sans-serif",
-                }}>
-                  {getFormatDisplay(assignment.type)}
+          <button
+            onClick={() => {
+              setSelectedFolderForAssignments(selectedFolder.id);
+              setShowAddAssignmentsModal(true);
+            }}
+            style={{
+              position: 'absolute',
+              top: '30px',
+              width: '500px',
+              left: '20px',
+              padding: '10px 20px',
+              color: selectedFolder.color.text,
+              border: `0px solid ${selectedFolder.color.text}`,
+              backgroundColor: getBackgroundColorWithOpacity(selectedFolder.color.text, 0.2), // 0.2 is the opacity, adjust as needed
+              borderRadius: '15px',
+              cursor: 'pointer',
+              fontSize: '30px',
+              fontFamily: "'Radio Canada', sans-serif",
+              fontWeight: 'bold',
+            }}
+          >
+            Add Assignments +
+          </button>
+          
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '20px', overflow: 'auto', marginTop: '100px', left: '10px' }}>
+            {folderAssignments.length > 0 ? (
+              folderAssignments.map((assignment) => (
+                <div
+                  key={assignment.id}
+                  onClick={() => handleItemClick(assignment)}
+                  style={{
+                    width: 'calc(30.33% - 20px)',
+                    padding: '10px',
+                    backgroundColor: 'white',
+                    borderRadius: '10px',
+                    cursor: 'pointer',
+                    border: `3px solid ${selectedFolder.color.text}`,
+                    position: 'relative',
+                  }}
+                >
+                  <div style={{ 
+                    display: 'flex', 
+                    justifyContent: 'space-between', 
+                    alignItems: 'center',
+                    marginBottom: '5px'
+                  }}>
+                    <h3 style={{ 
+                      color: 'black', 
+                      fontFamily: "'Radio Canada', sans-serif", 
+                      margin: 0,
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      maxWidth: '70%'
+                    }}>
+                      {assignment.name || assignment.assignmentName}
+                    </h3>
+                   <div style={{position: 'absolute',top: '-50px'}}> {getFormatDisplay(assignment.id)}</div>
+                  </div>
                 </div>
-              </div>
-            ))
+              ))
             ) : (
               <div style={{ 
                 width: '100%', 
@@ -738,7 +797,8 @@ function Assignments() {
       </div>
     );
   };
-
+  
+  
   return (
     <div style={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
       <Navbar userType="teacher" />
@@ -788,42 +848,43 @@ function Assignments() {
         </h2>
     
       </div>
-        <div style={{
-          marginLeft: 'auto',
-          marginRight: 'auto',
-          marginTop: '70px',
-          padding: '10px',
-          backgroundColor: 'transparent',
-          borderRadius: '10px'
-        }}>
-          <h1 style={{ color: 'black', fontSize: '80px', fontFamily: "'Rajdhani', sans-serif", marginLeft: '20px' }}>
-            Assignments</h1>
-          
-          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '20px',justifyContent: 'space-between', position: 'relative', width: '920px',  marginLeft: '20px' }}>
-          <div style={{
-              width: '400px',
-              border: '6px solid #D7D7D7',
-              display: 'flex',
-              flexDirection: 'column',
-              padding: '20px',
-              borderRadius: '10px',
-              marginTop: '-15px'
-            }}>
+       
 
 
-
-              <h1 style={{ position: 'absolute', marginTop: '-50px', fontSize: '26px', padding: '8px', backgroundColor: 'white', fontFamily: "'Radio Canada', sans-serif" }}> Sort By</h1>
-              <div style={{ display: 'flex', height: '25px' }}>
-                {['assignment', 'folder', 'format', 'drafts'].map((option) => (
-                  <button
-                    key={option}
-                    style={getSortButtonStyle(option)}
-                    onClick={() => handleSortClick(option)}
-                  >
-                    {option.charAt(0).toUpperCase() + option.slice(1)}
-                  </button>
-                ))}
-              </div>
+      <div style={{
+            marginLeft: 'auto',
+            marginRight: 'auto',
+            marginTop: '70px',
+            padding: '10px',
+            backgroundColor: 'transparent',
+            borderRadius: '10px'
+          }}>
+            <h1 style={{ color: 'black', fontSize: '80px', fontFamily: "'Rajdhani', sans-serif", marginLeft: '20px' }}>
+              Assignments
+            </h1>
+            
+            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', position: 'relative', width: '920px', marginLeft: '20px' }}>
+              <div style={{
+                width: '400px',
+                border: '6px solid #D7D7D7',
+                display: 'flex',
+                flexDirection: 'column',
+                padding: '20px',
+                borderRadius: '10px',
+                marginTop: '-15px'
+              }}>
+                <h1 style={{ position: 'absolute', marginTop: '-50px', fontSize: '26px', padding: '8px', backgroundColor: 'white', fontFamily: "'Radio Canada', sans-serif" }}> Sort By</h1>
+                <div style={{ display: 'flex', height: '25px' }}>
+                  {['assignment', 'folder', 'format', 'drafts'].map((option) => (
+                    <button
+                      key={option}
+                      style={getSortButtonStyle(option)}
+                      onClick={() => handleSortClick(option)}
+                    >
+                      {option.charAt(0).toUpperCase() + option.slice(1)}
+                    </button>
+                  ))}
+                </div>
               
 
 
@@ -885,33 +946,44 @@ function Assignments() {
 
 
             
+            {sortBy === 'folder' && (
+                <button
+                  onClick={() => setShowFolderForm(!showFolderForm)}
+                  style={{
+                    backgroundColor: "#f4f4f4",
+                    width: showSearchBar ? '70px' : '300px',
+                    height: '70px',
+                    cursor: 'pointer',
+                    marginTop: '-10px',
+                    marginLeft: '-20px',
+                    fontSize: showSearchBar ? '24px' : '30px', 
+                    borderRadius: '10px',
+                    color: 'grey',
+                    border: `6px solid #f4f4f4`,
+                    fontFamily: "'Rajdhani', sans-serif",
+                    fontWeight: 'bold',
+                    zIndex: 9,
+                    display: 'flex',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                  }}
+                >
+                  {showSearchBar ? '+' : 'Create Folder'}
+                </button>
+              )}
+    
 
 
-            <div style={{  gap: '20px' }}>
-           
+            <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+             
             {sortBy === 'folder' && (
   <div style={{width: '1000px', position: 'absolute', left: '0px', top: '100px'}}>
-    <button
-      onClick={() => setShowFolderForm(!showFolderForm)}
-      style={{
-        padding: '10px',
-        backgroundColor: showFolderForm ? (newFolderColor ? newFolderColor.bg : '#FFECA9') : 'white',
-        width: '300px',
-        cursor: 'pointer',
-        marginRight: 'auto',
-        fontSize: '30px', 
-        borderRadius: '10px',
-        color: 'grey',
-        border: `6px solid #f4f4f4`,
-        fontFamily: "'Radio Canada', sans-serif",
-        fontWeight: 'bold',
-        position: 'relative',
-        zIndex: 9
-      }}
-    >
-      Create Folder
-    </button>
-    
+  
+
+
+
+
+
     {showFolderForm && (
       <div style={{
         position: 'fixed',
@@ -1072,7 +1144,7 @@ function Assignments() {
                 ))}
               </div>
             </div>
-            
+          
             <button
               onClick={handleCreateFolder}
               style={{
@@ -1098,13 +1170,18 @@ function Assignments() {
     
 
 
+
+
+
+
+
     <div style={{
-      marginTop: '40px', 
+      marginTop: '30px', 
       display: 'flex', 
       flexWrap: 'wrap', 
       width: '100%', 
       
-      gap: '20px'
+      gap: '50px'
     }}>
    {folders
         .filter(folder => folder.classId === classId)
@@ -1132,6 +1209,8 @@ function Assignments() {
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
+              
+              fontFamily: "'Rajdhani', sans-serif",
               fontSize: '30px',
               boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
             }}>
@@ -1166,22 +1245,20 @@ function Assignments() {
   </div>
 )}
 
-              {!showSearchBar ? (
-                <button
-                  onClick={() => setShowSearchBar(true)}
-                  style={{ 
-                   
-                    height: '40px', 
-                    backgroundColor: 'transparent', 
-                    border: 'none',
-                    padding: '5px', 
-                   width:' 80px',
-                    cursor: 'pointer',
-                    alignSelf: 'flex-end'
-                  }}
-                >
-                  <img style={{ width: '30px' }} src={getSearchBarStyle().iconSrc} alt="Search" />
-                </button>
+{!showSearchBar ? (
+                  <button
+                    onClick={() => setShowSearchBar(true)}
+                    style={{ 
+                      height: '50px', 
+                      backgroundColor: 'transparent', 
+                      border: 'none',
+                      padding: '5px', 
+                      width: '80px',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    <img style={{ width: '30px' }} src={getSearchBarStyle().iconSrc} alt="Search" />
+                  </button>
               ) : (
 
 
@@ -1197,49 +1274,49 @@ function Assignments() {
 
 
 
-                <div style={{ position: 'relative', width: '300px', height: '30px', marginRight: '20px' }}>
-                  <input
-                    type="text"
-                    placeholder="Search..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    style={{
-                      width: '100%',
-                      height: '100%',
-                      fontSize: '20px',
-                      fontFamily: "'Radio Canada', sans-serif",
-                      padding: '5px',
-                      border: `none`,
-                      backgroundColor: getSearchBarStyle().backgroundColor,
-                      color: getSearchBarStyle().color,
-                      borderRadius: '100px',
-                      paddingLeft: '20px',
-                      
-                      outline: 'none',
-                    }}
-                  />
-                  <button
-                    onClick={() => setShowSearchBar(false)}
-                    style={{
-                      width: '30px',
-                      height: '30px',
-                      position: 'absolute',
-                      top: '20px',
-                      right: '5px',
-                      transform: 'translateY(-50%)',
-                      backgroundColor: 'transparent',
-                      border: 'none',
-                      cursor: 'pointer',
-                      padding: '0',
-                    }}
-                  >
-                    <img style={{ width: '30px' }} src={getSearchBarStyle().iconSrc} alt="Search" />
-                  </button>
-                </div>
-              )}
+                <div style={{ position: 'relative', width: '300px', height: '40px' }}>
+                <input
+                  type="text"
+                  placeholder="Search..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    fontSize: '20px',
+                    fontFamily: "'Radio Canada', sans-serif",
+                    padding: '5px 40px 5px 20px',
+                    border: 'none',
+                    marginLeft: '-50px',
+                    backgroundColor: getSearchBarStyle().backgroundColor,
+                    color: getSearchBarStyle().color,
+                    borderRadius: '100px',
+                    outline: 'none',
+                  }}
+                />
+                <button
+                  onClick={() => {
+                    setShowSearchBar(false);
+                    setSearchTerm('');
+                  }}
+                  style={{
+                    position: 'absolute',
+                    top: '75%',
+                    right: '25px',
+                    transform: 'translateY(-65%)',
+                    backgroundColor: 'transparent',
+                    border: 'none',
+                    cursor: 'pointer',
+                    padding: '0',
+                  }}
+                >
+                  <img style={{ width: '30px' }} src={getSearchBarStyle().iconSrc} alt="Close" />
+                </button>
               </div>
+            )}
           </div>
         </div>
+      </div>
 
         <ul style={{ width: '100%', display: 'flex', flexWrap: 'wrap', padding: 0, margin: 'auto' }}>
         {sortBy !== 'folder' && filteredAssignments.map((item, index) => (

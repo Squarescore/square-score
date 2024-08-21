@@ -298,10 +298,12 @@ function SAQA() {
                 <img style={{width: '60px'}} src='/redcirclex.png'/>
               </button>
               <TeacherPreviewASAQ
-                questionsWithIds={generatedQuestions}
-                setQuestionsWithIds={setGeneratedQuestions}
-              />
-            </div>
+            questionsWithIds={generatedQuestions}
+            setQuestionsWithIds={setGeneratedQuestions}
+            sourceText={sourceText}
+            questionCount={questionBank}
+          />
+        </div>
           </div>
         )}
          <button

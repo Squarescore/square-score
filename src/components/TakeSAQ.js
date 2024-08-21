@@ -18,6 +18,8 @@ function TakeTests() {
   const [classId, setClassId] = useState(null);
   const [assignmentName, setAssignmentName] = useState('');
   const [timerStarted, setTimerStarted] = useState(false);
+  
+  const [HalfCredit, setHalfCredit] = useState(false);
   const studentUid = auth.currentUser.uid;
   const navigate = useNavigate();
   const [scaleMin, setScaleMin] = useState(0);
@@ -54,6 +56,7 @@ const [scaleMax, setScaleMax] = useState(2);
           setAssignmentName(assignmentData.assignmentName);
           setTimeLimit(assignmentData.timer * 60);
           setClassId(assignmentData.classId);
+          setHalfCredit(assignmentData.halfCredit);
           setSaveAndExit(assignmentData.saveAndExit);
           setLockdown(assignmentData.lockdown || false);
           const scaleMin = assignmentData.scale?.min ? Number(assignmentData.scale.min) : 0;
@@ -271,6 +274,7 @@ const [scaleMax, setScaleMax] = useState(2);
         score: result.score / 2, 
         question: questions[index].text,
         studentResponse: answers[index].answer,
+        expectedResponse: questions[index].expectedResponse, 
         flagged: false
       }));
   
@@ -291,6 +295,7 @@ const [scaleMax, setScaleMax] = useState(2);
         firstName: firstName,
         lastName: lastName,
         classId,
+        halfCreditEnabled: HalfCredit,
         submittedAt: serverTimestamp(),
         rawTotalScore,
         maxRawScore,
@@ -340,7 +345,7 @@ const [scaleMax, setScaleMax] = useState(2);
     }
   };
 
-  const gradeAssignment = async (questions, answers) => {
+  const gradeAssignment = async (questions, answers, halfCredit) => {
     const questionsToGrade = questions.map((question, index) => ({
       questionId: question.questionId,
       question: question.text,
@@ -353,7 +358,8 @@ const [scaleMax, setScaleMax] = useState(2);
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ questions: questionsToGrade }),
+      body: JSON.stringify({   questions: questionsToGrade,
+        halfCreditEnabled: halfCredit }),
     });
 
     if (!response.ok) {

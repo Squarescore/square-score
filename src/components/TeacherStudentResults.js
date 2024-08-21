@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { db } from './firebase';
 import Navbar from './Navbar';
-
+import axios from 'axios';
 function TeacherStudentResults() {
     const { assignmentId, studentUid } = useParams();
     const [assignmentName, setAssignmentName] = useState('');
@@ -14,6 +14,80 @@ const [partialCount, setPartialCount] = useState(0);
 const [incorrectCount, setIncorrectCount] = useState(0);
 const { classId } = useParams();
     const navigate = useNavigate();
+    
+    const [isRegrading, setIsRegrading] = useState(false);
+    const [halfCredit, setHalfCredit] = useState(false);
+
+    const handleRegrade = async () => {
+        if (window.confirm("Are you sure you want to regrade this assignment? This will replace the current grades.")) {
+            setIsRegrading(true);
+            try {
+                const questionsToGrade = results.questions.map(q => ({
+                    question: q.question,
+                    expectedResponse: q.expectedResponse,
+                    studentResponse: q.studentResponse
+                }));
+
+                const response = await axios.post('https://us-central1-square-score-ai.cloudfunctions.net/GradeSAQ', {
+                    questions: questionsToGrade,
+                    halfCreditEnabled: halfCredit
+                });
+
+                if (response.status === 200) {
+                    const newGrades = response.data;
+                    
+                    // Calculate new scores
+                    const newTotalScore = newGrades.reduce((sum, grade) => sum + grade.score, 0);
+                    const maxRawScore = results.questions.length * 2; // Assuming max score per question is 2
+                    const newScaledScore = ((newTotalScore / maxRawScore) * (results.scaleMax - results.scaleMin)) + results.scaleMin;
+                    const newPercentageScore = ((newScaledScore - results.scaleMin) / (results.scaleMax - results.scaleMin)) * 100;
+
+                    // Update questions with new grades
+                    const updatedQuestions = results.questions.map((q, index) => ({
+                        ...q,
+                        score: newGrades[index].score,
+                        feedback: newGrades[index].feedback
+                    }));
+
+                    // Update Firestore document
+                    const gradeDocRef = doc(db, 'grades(saq)', `${assignmentId}_${studentUid}`);
+                    await updateDoc(gradeDocRef, {
+                        questions: updatedQuestions,
+                        rawTotalScore: newTotalScore,
+                        scaledScore: newScaledScore,
+                        percentageScore: newPercentageScore,
+                        halfCreditEnabled: halfCredit
+                    });
+
+                    // Update local state
+                    setResults(prevResults => ({
+                        ...prevResults,
+                        questions: updatedQuestions,
+                        rawTotalScore: newTotalScore,
+                        scaledScore: newScaledScore,
+                        percentageScore: newPercentageScore,
+                        halfCreditEnabled: halfCredit
+                    }));
+
+                    // Update counts
+                    const newCorrectCount = updatedQuestions.filter(q => q.score === results.scaleMax).length;
+                    const newPartialCount = halfCredit ? updatedQuestions.filter(q => q.score > results.scaleMin && q.score < results.scaleMax).length : 0;
+                    const newIncorrectCount = updatedQuestions.filter(q => q.score === results.scaleMin).length;
+                    
+                    setCorrectCount(newCorrectCount);
+                    setPartialCount(newPartialCount);
+                    setIncorrectCount(newIncorrectCount);
+
+                    alert("Assignment regraded successfully!");
+                }
+            } catch (error) {
+                console.error("Error regrading assignment:", error);
+                alert("An error occurred while regrading the assignment. Please try again.");
+            } finally {
+                setIsRegrading(false);
+            }
+        }
+    };
     useEffect(() => {
         const fetchResults = async () => {
             try {
@@ -140,7 +214,38 @@ const { classId } = useParams();
                         </div>
                     </div>
                 </div>
-                <p style={{ fontFamily: "'Radio Canada', sans-serif", marginBottom: '80px', color: 'lightgrey' }}> Completed: {new Date(results.submittedAt.toDate()).toLocaleString()}</p>
+                <div style={{display: 'flex', width:'700px',marginLeft: 'auto', marginRight: 'auto', alignItems: 'center', justifyContent: 'center' }}>
+                <p style={{ fontFamily: "'Radio Canada', sans-serif", marginBottom: '40px', color: 'lightgrey' }}> Completed: {new Date(results.submittedAt.toDate()).toLocaleString()}</p>
+                <div style={{ marginBottom: '0px', border: '0px solid grey',background: '#f4f4f4', height: '40px', marginTop: '-20px', borderRadius: '10px', marginLeft: '30px' }}>
+                    <label style={{ fontFamily: "'Radio Canada', sans-serif",}}>
+                        <input
+                            type="checkbox"
+                            checked={halfCredit}
+                            onChange={(e) => setHalfCredit(e.target.checked)}
+                        />
+                        Enable Half Credit
+                    </label>
+                
+                <button
+                    onClick={handleRegrade}
+                    disabled={isRegrading}
+                    style={{
+                        backgroundColor: isRegrading ? '#A0A0A0' : '#f4f4f4',
+                        color: isRegrading ? 'grey' : 'blue',
+                        padding: '8px 20px',
+                        fontSize: '18px',
+                        borderRadius: '5px',
+                        fontFamily: "'Radio Canada', sans-serif",
+                        fontWeight: 'bold',
+                        border: 'none',
+                        cursor: isRegrading ? 'not-allowed' : 'pointer',
+                        marginBottom: '20px'
+                    }}
+                >
+                    {isRegrading ? 'Regrading...' : 'Regrade Assignment'}
+                </button>
+                </div>
+                </div>
                 <ul style={{ listStyle: 'none', padding: '0' }}>
                     {results.questions && results.questions.map((question, index) => {
                         const maxHeight = Math.max(
