@@ -17,9 +17,17 @@ const SignUp = () => {
   const [showPopup, setShowPopup] = useState(false); // New state variable
   const [navbarBg, setNavbarBg] = useState('rgba(255,255,255,0.7)');
   const [passwordsMatch, setPasswordsMatch] = useState(true);
+  const [allCriteriaMet, setAllCriteriaMet] = useState(false);
+
+  const [passwordCriteria, setPasswordCriteria] = useState({
+    length: false,
+    uppercase: false,
+    lowercase: false,
+    number: false
+  });
   const formatName = (name) => {
     // Remove spaces, capitalize first letter, lowercase the rest
-    return name.replace(/\s/g, '').charAt(0).toUpperCase() + name.slice(1).toLowerCase();
+    return name.replace(/[^a-zA-Z]/g, '').charAt(0).toUpperCase() + name.slice(1).toLowerCase();
   };
   const handleSignUp = async (e) => {
     e.preventDefault();
@@ -58,6 +66,13 @@ const SignUp = () => {
         await setDoc(doc(db, 'teachers', uid), userProfile);
         navigate('/teacherhome');  // Navigate to teacher home
       }
+      else if (role === 'admin') {
+        userProfile.school = [];
+        userProfile.usage = [];
+        userProfile.teachers = [];
+        await setDoc(doc(db, 'admin', uid), userProfile);
+        navigate('/adminhome');  // Navigate to teacher home
+      }
 
     } catch (err) {
       setError(err.message);
@@ -78,9 +93,21 @@ const SignUp = () => {
   };
 
   const isFormComplete = () => {
-    return email && password && role && confirmPassword && firstName && lastName && (password === confirmPassword);
+    return email && password && role && confirmPassword && firstName && lastName && 
+           (password === confirmPassword) && allCriteriaMet;
   };
-
+  
+ 
+  const checkPasswordCriteria = (password) => {
+    const newCriteria = {
+      length: password.length >= 8,
+      uppercase: /[A-Z]/.test(password),
+      lowercase: /[a-z]/.test(password),
+      number: /[0-9]/.test(password)
+    };
+    setPasswordCriteria(newCriteria);
+    setAllCriteriaMet(Object.values(newCriteria).every(Boolean));
+  };
   const generateUniquePositions = useCallback((count, size, margin) => {
     const positions = [];
     const documentHeight = document.documentElement.scrollHeight;
@@ -169,22 +196,25 @@ const SignUp = () => {
       </div>
 
       <div 
-className="white-background" style={{width: '1000px', marginLeft: 'auto', border: '0px solid lightgrey',marginTop: '200px', marginRight: 'auto',  backgroundColor: 'rgb(255,255,255,.8)',backdropFilter: 'blur(7px)', padding: '40px', borderRadius: '30px'}}>
-        <h1 style={{ fontWeight: 'Bold', color: 'black', fontSize: '95px', fontFamily: "'Rajdhani', sans-serif",  padding: '0px', backgroundColor: 'transparent', marginTop: '-10px', marginLeft: '50px',width: '370px'}}>Sign Up</h1>
+className="white-background" style={{width: '1000px', marginLeft: 'auto', border: '0px solid lightgrey',marginTop: '150px', marginRight: 'auto',  backgroundColor: 'rgb(255,255,255,.8)',backdropFilter: 'blur(7px)', padding: '40px', borderRadius: '30px'}}>
+        <h1 style={{ fontWeight: 'Bold',
+           color: 'black', fontSize: '95px', fontFamily: "'Rajdhani', sans-serif", 
+            padding: '0px', backgroundColor: 'transparent', marginTop: '-10px',
+             marginLeft: '50px',width: '370px', marginBottom: '100px'}}>Sign Up</h1>
         <form onSubmit={handleSignUp}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', width: '50%',marginLeft: 'auto',marginBottom: '40px' , marginTop: '-160px'}}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', width: '60%',marginLeft: '37%',marginBottom: '40px' , marginTop: '-180px'}}>
             <button 
-             type="button"
+              type="button"
               onClick={() => toggleRole('student')}
               style={{ 
                 flex: 1, 
-                marginLeft: '-2px',
-                marginRight: '40px',
+                marginLeft: '22px',
+                marginRight: '20px',
                 backgroundColor: role === 'student' ? '#627BFF' : 'transparent',
                 color:  role === 'student' ? 'white' : 'black',
                 borderColor: 'transparent',
-                padding: '10px',
-                fontSize: '30px', 
+                padding: '5px 20px',
+                fontSize: '25px', 
                 fontWeight: 'bold',
                 border: '5px solid transparent',
                 cursor: 'pointer',
@@ -196,29 +226,50 @@ className="white-background" style={{width: '1000px', marginLeft: 'auto', border
               Student
             </button>
             <button 
-             type="button"
+              type="button"
               onClick={() => toggleRole('teacher')}
               style={{ 
                 flex: 1, 
                 marginLeft: '-2px',
-                marginRight: '40px',
+                marginRight: '20px',
                 backgroundColor: role === 'teacher' ? '#FCCA18' : 'transparent',
                 color:  role === 'teacher' ? 'white' : 'black',
                 borderColor: 'transparent',
-                padding: '10px',
-                fontSize: '30px', 
+                padding: '5px 20px',
+                fontSize: '25px', 
                 fontWeight: 'bold',
                 border: '5px solid transparent',
                 cursor: 'pointer',
                 fontFamily: "'Radio Canada', sans-serif",
                 borderRadius: '10px',
                 transition: '.2s',
-             
               }}
             >
               Teacher
             </button>
-          </div>
+            <button 
+              type="button"
+              onClick={() => toggleRole('admin')}
+              style={{ 
+                flex: 1, 
+                marginLeft: '-2px',
+                marginRight: '40px',
+                backgroundColor: role === 'admin' ? '#FF6262' : 'transparent',
+                color:  role === 'admin' ? 'white' : 'black',
+                borderColor: 'transparent',
+                padding: '5px 0px',
+                fontSize: '25px', 
+                fontWeight: 'bold',
+                border: '5px solid transparent',
+                cursor: 'pointer',
+                fontFamily: "'Radio Canada', sans-serif",
+                borderRadius: '10px',
+                transition: '.2s',
+              }}
+            >
+              Admin
+            </button>
+            </div>
           <div style={{ width: '90%', marginLeft: 'auto', marginRight: 'auto',}}>
             <div style={{display: 'flex'}}>
               <div style={{ position: 'relative', width: '410px', marginBottom: '20px' }}>
@@ -294,8 +345,10 @@ className="white-background" style={{width: '1000px', marginLeft: 'auto', border
                 onFocus={() => handleInputFocus('email')}
                 onBlur={(e) => handleInputBlur('email', e.target.value)}
                 onChange={e => {
-                  setEmail(e.target.value);
-                  e.target.style.borderColor= e.target.value.trim() !== '' ? 'lightgreen' : 'lightgrey';
+                  const newEmail = e.target.value.replace(/\s/g, '');
+                  setEmail(newEmail);
+                  e.target.value = newEmail;
+                  e.target.style.borderColor = newEmail.trim() !== '' ? 'lightgreen' : 'lightgrey';
                 }}
                 style={{ 
                   width: '98%', 
@@ -315,19 +368,47 @@ className="white-background" style={{width: '1000px', marginLeft: 'auto', border
               {inputStyles.email && <label style={{ position: 'absolute', top: '-10px', left: '15px', backgroundColor: 'white', padding: '0 10px',  borderTopRightRadius: '3px', borderTopLeftRadius: '3px', 
                     fontFamily: "'Radio Canada', sans-serif", fontWeight: 'bold', height: '10px'  }}>Email</label>}
             </div>
+            <div style={{ display: 'flex', 
+            
+            backgroundColor: 'rgb(240,240,240,.5)', 
+           boxShadow: ' 0px 4px 4px 0px rgba(0, 0, 0, 0.25)',
+            borderRadius: '10px',
+            backdropFilter: 'blur(5px)',
+            paddingLeft: '20px',
+            paddingRight: '50px',
+            justifyContent: 'space-between', width: '90%', marginTop: '30px', marginBottom: '25px' }}>
+          <h1 style={{fontFamily: "'Radio Canada', sans-serif", fontSize: '20px',
+             color: allCriteriaMet ? '#91D487' : 'grey'
+          }}>Password Criteria</h1>
+            {Object.entries(passwordCriteria).map(([criterion, isMet]) => (
+              <div key={criterion} style={{ display: 'flex', alignItems: 'center', fontFamily: "'Radio Canada', sans-serif" }}>
+                
+                <span style={{ color: isMet ? '#91D487' : 'grey', marginRight: '5px' }}>
+                  {isMet ? '✓' : '•'}
+                </span>
+                <span style={{ color: isMet ? '#91D487' : 'grey' }}>
+                  {criterion === 'length' ? 'At least 8 characters' : 
+                   criterion === 'uppercase' ? 'Uppercase letter' :
+                   criterion === 'lowercase' ? 'Lowercase letter' : 'Number'}
+                </span>
+              </div>
+            ))}
+          </div>
             <div style={{display: 'flex'}}>
               <div style={{ position: 'relative', width: '410px', marginBottom: '20px' }}>
                 <input 
-                type="password" 
-                placeholder="Password" 
-                value={password}
-                onFocus={() => handleInputFocus('password')}
-                onBlur={(e) => handleInputBlur('password', e.target.value)}
-                onChange={e => {
-                  setPassword(e.target.value);
-                  setPasswordsMatch(e.target.value === confirmPassword);
-                  e.target.style.borderColor = e.target.value.trim() !== '' ? 'lightgreen' : 'lightgrey';
-                }}
+                      type="password" 
+                      placeholder="Password" 
+                      value={password}
+                      onFocus={() => handleInputFocus('password')}
+                      onBlur={(e) => handleInputBlur('password', e.target.value)}
+                      onChange={e => {
+                        const newPassword = e.target.value;
+                        setPassword(newPassword);
+                        setPasswordsMatch(newPassword === confirmPassword);
+                        checkPasswordCriteria(newPassword);
+                        e.target.style.borderColor = newPassword.trim() !== '' ? 'lightgreen' : 'lightgrey';
+                      }}
                   style={{ 
                     width: '90%',  
                     padding: '20px', 
@@ -339,51 +420,52 @@ className="white-background" style={{width: '1000px', marginLeft: 'auto', border
                     backdropFilter: 'blur(7px)',
                     fontSize: '20px',
                     boxShadow: ' 0px 4px 4px 0px rgba(0, 0, 0, 0.25)',
-                    backgroundColor: 'rgb(250,250,250,.5)', 
+                    backgroundColor: 'rgb(255,255,255,.5)', 
                     fontFamily: "'Radio Canada', sans-serif",
                   }}
                 />
                  {inputStyles.password && <label style={{ position: 'absolute', top: '-10px', left: '15px', backgroundColor: 'white', padding: '0 10px',  borderTopRightRadius: '3px', borderTopLeftRadius: '3px', 
                 fontFamily: "'Radio Canada', sans-serif", fontWeight: 'bold', height: '10px' }}>Password</label>}
         </div>
-              <div style={{ position: 'relative', width: '410px', marginBottom: '20px', marginLeft: '20px' }}>
-                <input 
-            type="password" 
-            placeholder="Confirm Password" 
-            value={confirmPassword}
-            onFocus={() => handleInputFocus('confirmPassword')}
-            onBlur={(e) => handleInputBlur('confirmPassword', e.target.value)}
-            onChange={e => {
-              setConfirmPassword(e.target.value);
-              setPasswordsMatch(e.target.value === password);
-              e.target.style.borderColor = e.target.value.trim() !== '' ? 'lightgreen' : 'lightgrey';
-        }}
-                  style={{ 
-                    width: '100%', 
-                    padding: '20px', 
-                    
-                    fontWeight: 'bold',
-                    border: '0px solid lightgrey', 
-                    color: 'black',
-                    borderRadius: '10px', 
-                    outline: 'none', 
-                    backdropFilter: 'blur(7px)',
-                    fontSize: '20px',
-                    boxShadow: ' 0px 4px 4px 0px rgba(0, 0, 0, 0.25)',
-                    backgroundColor: 'rgb(250,250,250,.5)', 
-                    fontFamily: "'Radio Canada', sans-serif",
-                  }}
-                />
-                  {inputStyles.confirmPassword && <label style={{ position: 'absolute', top: '-10px', left: '15px', backgroundColor: 'white', padding: '0 10px',  borderTopRightRadius: '3px', borderTopLeftRadius: '3px', 
-                fontFamily: "'Radio Canada', sans-serif", fontWeight: 'bold', height: '10px' }}>Confirm Password</label>}
-       </div>
+           
+            <div style={{ position: 'relative', width: '410px', marginBottom: '20px', marginLeft: '20px' }}>
+              <input 
+                type="password" 
+                placeholder="Confirm Password" 
+                value={confirmPassword}
+                onFocus={() => handleInputFocus('confirmPassword')}
+                onBlur={(e) => handleInputBlur('confirmPassword', e.target.value)}
+                onChange={e => {
+                  setConfirmPassword(e.target.value);
+                  setPasswordsMatch(e.target.value === password);
+                  e.target.style.borderColor = e.target.value.trim() !== '' ? 'lightgreen' : 'lightgrey';
+                }}
+                style={{ 
+                  width: '100%', 
+                  padding: '20px', 
+                  fontWeight: 'bold',
+                  border: '0px solid lightgrey', 
+                  color: 'black',
+                  borderRadius: '10px', 
+                  outline: 'none', 
+                  backdropFilter: 'blur(7px)',
+                  fontSize: '20px',
+                  boxShadow: ' 0px 4px 4px 0px rgba(0, 0, 0, 0.25)',
+                  backgroundColor: 'rgb(255,255,255,.5)', 
+                  fontFamily: "'Radio Canada', sans-serif",
+                }}
+              />
+              {inputStyles.confirmPassword && <label style={{ position: 'absolute', top: '-10px', left: '15px', backgroundColor: 'white', padding: '0 10px',  borderTopRightRadius: '3px', borderTopLeftRadius: '3px', 
+              fontFamily: "'Radio Canada', sans-serif", fontWeight: 'bold', height: '10px' }}>Confirm Password</label>}
             </div>
-            {!passwordsMatch && (
-          <p style={{ color: 'red', marginTop: '5px', marginBottom: '15px', fontFamily: "'Radio Canada', sans-serif" }}>
-            Passwords do not match
-          </p>
+          </div>
           
-        )}
+          {!passwordsMatch && (
+            <p style={{ color: 'red', marginTop: '5px', marginBottom: '15px', fontFamily: "'Radio Canada', sans-serif" }}>
+              Passwords do not match
+            </p>
+          )}
+          
             {isFormComplete() && (
               <div style={{display: 'flex', marginTop: '20px'}}>
                 <button onClick={handleSignUp}

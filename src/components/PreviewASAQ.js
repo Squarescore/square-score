@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import TextareaAutosize from 'react-textarea-autosize';
 import axios from 'axios';
-const TeacherPreviewASAQ = ({ questionsWithIds, setQuestionsWithIds, sourceText, questionCount }) => {
+const TeacherPreviewASAQ = ({ questionsWithIds, setQuestionsWithIds, sourceText, questionCount, classId, teacherId }) => {
   const containerRef = useRef(null);
   const [textareaHeight, setTextareaHeight] = useState({});
 
@@ -48,31 +48,7 @@ const TeacherPreviewASAQ = ({ questionsWithIds, setQuestionsWithIds, sourceText,
       insertIndex = Math.min(insertIndex, questionsWithIds.length);
     }
 
-     const handleRegenerateSubmit = async () => {
-    setIsRegenerating(true);
-    try {
-      const response = await axios.post('https://us-central1-square-score-ai.cloudfunctions.net/RegenerateASAQ', {
-        sourceText,
-        questionCount,
-        QuestionsPreviouslyGenerated: JSON.stringify(questionsWithIds),
-        instructions: regenerateInput
-      });
-
-      const regeneratedQuestions = response.data.questions.map((newQuestion, index) => ({
-        ...newQuestion,
-        questionId: questionsWithIds[index] ? questionsWithIds[index].questionId : `newQuestion${index}`
-      }));
-
-      setQuestionsWithIds(regeneratedQuestions);
-      setShowRegenerateDropdown(false);
-      setRegenerateInput('');
-    } catch (error) {
-      console.error('Error regenerating questions:', error);
-      // Optionally, show an error message to the user
-    } finally {
-      setIsRegenerating(false);
-    }
-  };
+   
     const newQuestions = [
       ...questionsWithIds.slice(0, insertIndex),
       newQuestion,
@@ -97,7 +73,9 @@ const TeacherPreviewASAQ = ({ questionsWithIds, setQuestionsWithIds, sourceText,
         sourceText,
         questionCount,
         QuestionsPreviouslyGenerated: JSON.stringify(questionsWithIds),
-        instructions: regenerateInput
+        instructions: regenerateInput,
+        classId,
+        teacherId
       });
 
       const regeneratedQuestions = response.data.questions.map((newQuestion, index) => ({

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import TextareaAutosize from 'react-textarea-autosize';
 import axios from 'axios';
 
-const TeacherPreview = ({ questionsWithIds, setQuestionsWithIds, sourceText, questionCount }) => {
+const TeacherPreview = ({ questionsWithIds, setQuestionsWithIds, sourceText, questionCount, classId, teacherId }) => {
   const containerRef = useRef(null);
   const [showRegenerateDropdown, setShowRegenerateDropdown] = useState(false);
   const [regenerateInput, setRegenerateInput] = useState('');
@@ -20,7 +20,9 @@ const TeacherPreview = ({ questionsWithIds, setQuestionsWithIds, sourceText, que
         sourceText,
         questionCount,
         QuestionsPreviouslyGenerated: JSON.stringify(questions),
-        instructions: additionalInstructions
+        instructions: additionalInstructions,
+        classId,
+        teacherId
       });
   
       // Preserve original questionIds
@@ -91,6 +93,11 @@ const TeacherPreview = ({ questionsWithIds, setQuestionsWithIds, sourceText, que
     setQuestionsWithIds(newQuestions);
   };
 
+  const handleNevermind = () => {
+    setShowRegenerateDropdown(false);
+    setRegenerateInput('');
+  };
+
   return (
     <div style={{
       width: '900px',
@@ -145,8 +152,8 @@ const TeacherPreview = ({ questionsWithIds, setQuestionsWithIds, sourceText, que
             placeholder="Enter general adjustments you want made to questions..."
             style={{
               width: '400px',
-              marginLeft: '100px',
-              marginRight: '30px',
+              marginLeft: '150px',
+              marginRight: '40px',
               padding: '10px',
               fontFamily: "'Radio Canada', sans-serif",
               margin: '10px 0',
@@ -159,16 +166,33 @@ const TeacherPreview = ({ questionsWithIds, setQuestionsWithIds, sourceText, que
             disabled={isRegenerating}
             style={{
               padding: '10px 20px',
-              backgroundColor: isRegenerating ? '#A0A0A0' : '#48A49E',
-              color: 'white',
-              border: 'none',
-              borderRadius: '5px',
+              backgroundColor: isRegenerating ? '#A0A0A0' : '#A3F2ED'
+              ,
+              color: isRegenerating ? 'white' : ' #48A49E',
+              border: isRegenerating ? '#A0A0A0' : '4px solid #48A49E',
+              borderRadius: '10px',
               cursor: isRegenerating ? 'not-allowed' : 'pointer',
+              fontFamily: "'Radio Canada', sans-serif",
+              fontWeight: 'bold',
+              marginRight: '10px',
+            }}
+          >
+            {isRegenerating ? 'Regenerating...' : 'Regenerate'}
+          </button>
+          <button
+            onClick={handleNevermind}
+            style={{
+              padding: '10px 20px',
+              backgroundColor: '#f4f4f4',
+              border: '4px solid lightgrey',
+              color: 'grey',
+              borderRadius: '10px',
+              cursor: 'pointer',
               fontFamily: "'Radio Canada', sans-serif",
               fontWeight: 'bold',
             }}
           >
-            {isRegenerating ? 'Regenerating...' : 'Regenerate'}
+            Nevermind
           </button>
         </div>
       )}

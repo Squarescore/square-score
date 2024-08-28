@@ -539,18 +539,7 @@ const TeacherResults = () => {
       // Optionally, revert the local state change here
     }
   };
-  const updateDates = async (newAssignDate, newDueDate) => {
-    try {
-      const assignmentRef = doc(db, 'assignments(saq)', assignmentId);
-      await updateDoc(assignmentRef, {
-        assignDate: newAssignDate.toISOString(),
-        dueDate: newDueDate.toISOString()
-      });
-      console.log("Dates updated successfully");
-    } catch (error) {
-      console.error("Error updating dates:", error);
-    }
-  };
+ 
   const togglePauseAssignment = async (studentUid) => {
     if (assignmentStatuses[studentUid] !== 'Paused') return;
   
@@ -811,7 +800,7 @@ const TeacherResults = () => {
     const modalRef = useRef(null);
     const [isVisible, setIsVisible] = useState(false);
     const [currentPage, setCurrentPage] = useState(1);
-    const [questionsPerPage] = useState(5);
+    const [questionsPerPage] = useState(100);
   
     useEffect(() => {
       setIsVisible(true);

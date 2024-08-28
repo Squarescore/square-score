@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { doc, getDoc, writeBatch, arrayUnion, serverTimestamp } from 'firebase/firestore';
 import { db } from './firebase'; // Ensure the path is correct
 import TeacherPreviewASAQ from './PreviewASAQ';
-
+import { auth } from './firebase';
 import './SwitchGreen.css';
 import SelectStudents from './SelectStudents';
 import Navbar from './Navbar';
@@ -45,18 +45,16 @@ const loaderStyle = `
 `;
 
 function SAQA() {
-  const [step, setStep] = useState(1);
   const [showPreview, setShowPreview] = useState(false);
-  const [className, setClassName] = useState('');
   const [assignmentName, setAssignmentName] = useState('');
-  const [timer, setTimer] = useState('');
+  const [timer, setTimer] = useState('60');
   const [halfCredit, setHalfCredit] = useState(false);
   const [securityDropdownOpen, setSecurityDropdownOpen] = useState(false);
   const [saveAndExit, setSaveAndExit] = useState(true);
   const [generating, setGenerating] = useState(false);
   const [lockdown, setLockdown] = useState(false);
   
-  
+  const [teacherId, setTeacherId] = useState(null);
   const [contentDropdownOpen, setContentDropdownOpen] = useState(false);
   const [studentsDropdownOpen, setStudentsDropdownOpen] = useState(false);
   const [timeDropdownOpen, setTimeDropdownOpen] = useState(false);
@@ -89,32 +87,21 @@ function SAQA() {
     }
   };
   useEffect(() => {
-    const fetchClassName = async () => {
-      const classDocRef = doc(db, 'classes', classId);
-      const classDoc = await getDoc(classDocRef);
-      if (classDoc.exists) {
-        const data = classDoc.data();
-        if (data && data.name) {
-          setClassName(data.name);
-        }
+    const fetchTeacherId = async () => {
+     
+  
+      // Get the current user's UID (teacher ID)
+      const user = auth.currentUser;
+      if (user) {
+        setTeacherId(user.uid);
       } else {
-        console.error("Class not found:", classId);
+        console.error("No authenticated user found");
       }
     };
-    fetchClassName();
+    fetchTeacherId();
   }, [classId]);
 
-  const handleRegenerate = async (newInstructions) => {
-    setStep(5); // Move to loading screen
-    try {
-      const questions = await GenerateASAQ(sourceText, questionBank, newInstructions || additionalInstructions);
-      setGeneratedQuestions(questions);
-      setQuestionsGenerated(true);
-    } catch (error) {
-      console.error("Error generating questions:", error);
-    }
-    setStep(6);  // Move to preview screen
-  };
+ 
 
   const assignToStudents = async () => {
     const selectedStudentIds = Array.from(selectedStudents);
@@ -149,11 +136,14 @@ function SAQA() {
     return `${dateString.replace(/,/g, '')} ${timeString}`;
   };
 
-  const GenerateASAQ = async (sourceText, questionCount, additionalInstructions) => {
+  const GenerateASAQ = async (sourceText, questionCount, additionalInstructions,  classId) => {
     try {
       const response = await axios.post('https://us-central1-square-score-ai.cloudfunctions.net/GenerateASAQ', {
         sourceText: sourceText,
-        questionCount: questionCount
+        questionCount: questionCount,
+        additionalInstructions: additionalInstructions,
+        classId: classId,
+        teacherId: teacherId
       }, {
         headers: {
           'Content-Type': 'application/json'
@@ -260,9 +250,6 @@ function SAQA() {
     });
   };
   
-  const isFormValid = () => {
-    return assignmentName !== '' && assignDate !== '' && dueDate !== '';
-  };
 
   const renderForm = () => {
     return (
@@ -302,6 +289,8 @@ function SAQA() {
             setQuestionsWithIds={setGeneratedQuestions}
             sourceText={sourceText}
             questionCount={questionBank}
+            classId={classId}
+            teacherId={teacherId}
           />
         </div>
           </div>
@@ -369,7 +358,7 @@ function SAQA() {
       padding: '10px',
       paddingLeft: '25px',
       outline: 'none',
-      border: '6px solid #F4F4F4',
+      border: '4px solid #F4F4F4',
       borderRadius: '10px',
       fontFamily: "'Radio Canada', sans-serif",
       fontWeight: 'bold',
@@ -389,8 +378,8 @@ function SAQA() {
     {assignmentName.length}/25
   </span>
 </div>
-          <div style={{ marginBottom: '20px', width: '790px', height: '200px', borderRadius: '10px',  border: '6px solid #F4F4F4' }}>
-            <div style={{ width: '730px', marginLeft: '20px', height: '80px', borderBottom: '6px solid lightgrey', display: 'flex', position: 'relative', alignItems: 'center', borderRadius: '0px', padding: '10px' }}>
+          <div style={{ marginBottom: '20px', width: '790px', height: '200px', borderRadius: '10px',  border: '4px solid #F4F4F4' }}>
+            <div style={{ width: '730px', marginLeft: '20px', height: '80px', borderBottom: '4px solid lightgrey', display: 'flex', position: 'relative', alignItems: 'center', borderRadius: '0px', padding: '10px' }}>
               <h1 style={{ fontSize: '30px', color: 'black', width: '300px', paddingLeft: '0px' }}>Timer:</h1>
              
               {timerOn ? (
@@ -403,7 +392,7 @@ function SAQA() {
                       width: '50px',
                       textAlign: 'center',
                       fontWeight: 'bold',
-                      border: '6px solid transparent',
+                      border: '4px solid transparent',
                       outline: 'none',
                       borderRadius: '5px',
                       fontSize: '30px',
@@ -451,7 +440,7 @@ function SAQA() {
           </div>
 
         {/* Timer Button and Settings */}
-<div style={{ width: '770px', padding: '10px',  border: '6px solid #F4F4F4', borderRadius: '10px' }}>
+<div style={{ width: '770px', padding: '10px',  border: '4px solid #F4F4F4', borderRadius: '10px' }}>
   <button
     onClick={() => setTimeDropdownOpen(!timeDropdownOpen)}
     style={{
@@ -505,7 +494,7 @@ function SAQA() {
 </div>
 
 {/* Select Students */}
-<div style={{ width: '770px', padding: '10px', marginTop: '20px',  border: '6px solid #F4F4F4', borderRadius: '10px', marginBottom: '20px' }}>
+<div style={{ width: '770px', padding: '10px', marginTop: '20px',  border: '4px solid #F4F4F4', borderRadius: '10px', marginBottom: '20px' }}>
   <button
     onClick={() => setStudentsDropdownOpen(!studentsDropdownOpen)}
     style={{
@@ -543,7 +532,7 @@ function SAQA() {
 </div>
 
 {/* Content Dropdown */}
-<div style={{ width: '770px', padding: '10px', marginTop: '20px',  border: '6px solid #F4F4F4', borderRadius: '10px', marginBottom: '20px' }}>
+<div style={{ width: '770px', padding: '10px', marginTop: '20px',  border: '4px solid #F4F4F4', borderRadius: '10px', marginBottom: '20px' }}>
   <button
     onClick={() => setContentDropdownOpen(!contentDropdownOpen)}
     style={{
@@ -574,80 +563,27 @@ function SAQA() {
       {/* Questions Section */}
     
       {/* Source Section */}
-      <div style={{width: '740px', marginLeft: '20px', }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px', marginTop: '30px' }}>
-        {['text'].map((option) => (
-          <button
-            key={option}
-            onClick={() => setSourceOption(option)}
-            style={{
-              width: '30%',
-              padding: '10px',
-            fontWeight: 'BOLD',
-              fontSize: '20px',
-              backgroundColor: sourceOption === option ? 'black' : 'lightgrey',
-              color: sourceOption === option ? 'white' : 'grey',
-              marginBottom: '20px',
-              border: 'none',
-              borderRadius: '10px',
-              cursor: 'pointer'
-            }}
-          >
-            {option.charAt(0).toUpperCase() + option.slice(1)}
-          </button>
-        ))}
-      </div>
-      {sourceOption === 'text' && (
-        <textarea
-          placeholder="Paste source here"
-          value={sourceText}
-          onChange={(e) => setSourceText(e.target.value)}
-          style={{
-            width: '688px',
-            height: '100px',
-            fontSize: '16px',
-            background: '#F1F1F1',
-            borderLeft: '10px solid #f1f1f1',
-
-            borderBottom: '20px solid #f1f1f1',
-            borderTop: '0px solid #f1f1f1',
-            outline: 'none', padding: '20px',
-            borderRadius: '10px',
-            resize: 'vertical'
-          }}
-        />
-      )}
-      {sourceOption === 'pdf' && (
-        <input
-          type="file"
-          accept=".pdf"
-          onChange={(e) => {
-            // Handle PDF file upload
-          }}
-          style={{
-            width: '100%',
-            padding: '10px',
-            fontSize: '16px',
-             border: '6px solid #F4F4F4',
-            borderRadius: '10px'
-          }}
-        />
-      )}
-      {sourceOption === 'youtube' && (
-        <input
-          type="text"
-          placeholder="Paste YouTube link"
-          value={youtubeLink}
-          onChange={(e) => setYoutubeLink(e.target.value)}
-          style={{
-            width: '715px',
-            padding: '10px',
-            fontSize: '16px',
-             border: '6px solid #F4F4F4',
-            borderRadius: '10px'
-          }}
-        />
-      )}
+      <div style={{ width: '740px', marginLeft: '20px', }}>
+               
+                   
+               <textarea
+                 placeholder="Paste source here"
+                 value={sourceText}
+                 onChange={(e) => setSourceText(e.target.value)}
+                 style={{
+                   width: '688px',
+                   height: '100px',
+                   marginTop: '30px',
+                   fontSize: '16px',
+                   background: '#F4F4F4',
+                   padding: '20px 20px',
+                   border: 'none',
+                   outline: 'none',
+                   borderRadius: '10px',
+                   resize: 'vertical'
+                 }}
+               />
+             
 
       {/* Additional Instructions Section */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '-15px' }}>
@@ -683,7 +619,7 @@ function SAQA() {
                           marginTop: '-20px',
                           fontFamily: "'Radio Canada', sans-serif",
                           borderRadius: '10px',
-                           border: '6px solid #F4F4F4',
+                           border: '4px solid #F4F4F4',
                           outline: 'none'
                         }}
                         type='text'
@@ -697,11 +633,7 @@ function SAQA() {
       {/* Generate Questions Button */}
     {/* Generate Questions Button */}
   {/* Generate Questions Button */}
-{questionBank && sourceOption && (
-  (sourceOption === 'text' && sourceText) || 
-  (sourceOption === 'youtube' && youtubeLink) || 
-  sourceOption === 'pdf'
-) && (
+  {sourceText.trim() !== '' && (
   <div style={{ display: 'flex', alignItems: 'center', marginTop: '20px' }}>
     <button
       onClick={async () => {
@@ -710,7 +642,8 @@ function SAQA() {
         } else {
           setGenerating(true);
           try {
-            const questions = await GenerateASAQ(sourceText, questionBank);
+            const questions = await GenerateASAQ(sourceText, questionBank, additionalInstructions, classId, teacherId);
+     
             setGeneratedQuestions(questions);
             setShowPreview(true);
           } finally {
@@ -763,7 +696,7 @@ function SAQA() {
 </div>
 
 {/* Security Dropdown */}
-<div style={{ width: '770px', padding: '10px', marginTop: '20px',  border: '6px solid #F4F4F4', borderRadius: '10px', marginBottom: '20px' }}>
+<div style={{ width: '770px', padding: '10px', marginTop: '20px',  border: '4px solid #F4F4F4', borderRadius: '10px', marginBottom: '20px' }}>
   <button
     onClick={() => setSecurityDropdownOpen(!securityDropdownOpen)}
     style={{

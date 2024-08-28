@@ -1,22 +1,72 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { db, auth } from './firebase';
-import { collection, query, where, doc, deleteDoc } from "firebase/firestore";
+import { collection, query, where, doc, getDoc, getDocs, updateDoc, arrayUnion } from "firebase/firestore";
+
 import { useState, useEffect } from 'react';
 import {  useNavigate, useLocation } from 'react-router-dom';
-
+import { useAuthState } from 'react-firebase-hooks/auth';
 import { useCollection } from 'react-firebase-hooks/firestore';
-import { getAuth, signOut } from 'firebase/auth';
 import HomeNavbar from './HomeNavbar';
 import FooterAuth from './FooterAuth'; // Make sure this file exists in the same directory
 const TeacherHome = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const [user] = useAuthState(auth);
+  const [teacherData, setTeacherData] = useState(null);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [schoolCode, setSchoolCode] = useState('');
  
-
   const [successMessage, setSuccessMessage] = useState('');
   const [newClassId, setNewClassId] = useState('');
+  useEffect(() => {
+    const fetchTeacherData = async () => {
+      if (user) {
+        const teacherRef = doc(db, 'teachers', user.uid);
+        const teacherSnap = await getDoc(teacherRef);
+        if (teacherSnap.exists()) {
+          setTeacherData(teacherSnap.data());
+        }
+      }
+    };
+    fetchTeacherData();
+  }, [user]);
 
+  const handleJoinOrganization = async () => {
+    try {
+      const schoolsQuery = query(collection(db, 'schools'), where('joinCode', '==', schoolCode));
+      const schoolsSnap = await getDocs(schoolsQuery);
+
+      if (!schoolsSnap.empty) {
+        const schoolDoc = schoolsSnap.docs[0];
+        const schoolData = schoolDoc.data();
+        const schoolRef = doc(db, 'schools', schoolDoc.id);
+
+        // Update teacher's document
+        const teacherRef = doc(db, 'teachers', user.uid);
+        await updateDoc(teacherRef, { 
+          school: schoolData.schoolName, 
+          schoolCode
+        });
+
+        // Add teacher UID to school's teachers array
+        await updateDoc(schoolRef, { teachers: arrayUnion(user.uid) });
+
+        // Update state
+        setTeacherData(prevData => ({ 
+          ...prevData, 
+          school: schoolData.schoolName,
+          schoolCode: schoolData.schoolCode
+        }));
+        setModalOpen(false);
+        setSchoolCode('');
+      } else {
+        alert('Invalid school code.');
+      }
+    } catch (error) {
+      console.error('Error joining organization:', error);
+    }
+  };
   useEffect(() => {
     if (location.state?.successMessage) {
       setSuccessMessage(location.state.successMessage);
@@ -39,14 +89,7 @@ const TeacherHome = () => {
   const getRandomColor = () => {
     return hoverColors[Math.floor(Math.random() * hoverColors.length)];
   };
-  const handleLogout = async () => {
-    try {
-      await signOut(auth);
-      navigate('/');
-    } catch (error) {
-      console.error("Error signing out:", error);
-    }
-  };
+
   const hoverColors = [
     { background: '#F8CFFF', border: '#E01FFF' },
     { background: '#A3F2ED', border: '#4BD682' },
@@ -65,12 +108,7 @@ const TeacherHome = () => {
         7: { background: '#8296FF', color: '#3D44EA' },
         8: { background: '#FF8E8E', color: '#D23F3F' }
   };
-  const handleDeleteClass = async (classId) => {
-    if (window.confirm("Are you sure you want to delete this class?")) {
-      const classDocRef = doc(db, 'classes', classId);
-      await deleteDoc(classDocRef);
-    }
-  };
+
 
   const classesRef = collection(db, 'classes');
   const teacherUID = auth.currentUser.uid;
@@ -164,8 +202,93 @@ const TeacherHome = () => {
     </div>
   </div>
 )}
-            <h4 style={{ fontFamily: "'Rajdhani', sans-serif",width: '90%', marginLeft: '32px', fontSize: '60px', marginBottom: '10px', marginTop: '40px'}}>Your Classes</h4>
+
+<div style={{ fontFamily: "'Rajdhani', sans-serif",width: '90%', display: 'flex',marginLeft: '32px', fontSize: '60px',  marginTop: '0px', height: '70px',
+  marginBottom: '100px',
+}}>
+            <h4 style={{
+             
+            }}>Your Classes</h4>
+          
+          </div>  
        
+
+            {modalOpen && (
+          <div style={{
+            position: 'fixed',
+            top: '0',
+            left: '0',
+            right: '0',
+            bottom: '0',
+            backdropFilter: 'blur(15px)',
+            backgroundColor: 'rgba(255, 255, 255, 0.8)',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+zIndex: '100'
+          }}>
+            <div style={{
+              backgroundColor: 'transparent',
+              padding: '20px',
+              borderRadius: '10px',
+              textAlign: 'center',
+            }}>
+              <h3
+             
+              style={{ fontSize: '80px', fontFamily: '"rajdhani", sans-serif', marginTop:' -50px', marginBottom: '0px'}}
+              >School Code</h3>
+              <input
+                type="text"
+                value={schoolCode}
+                onChange={(e) => setSchoolCode(e.target.value)}
+              style={{  fontFamily: "'rajdhani', sans-serif", fontSize: '100px', borderTopLeftRadius: '20px', borderTopRightRadius: '20px', background: "rgb(230,230,230,.4)",
+                 width: '440px',paddingLeft: '60px',paddingRight: '60px', paddingTop: '10px', paddingBottom: '10px', fontWeight: 'bold',
+                  textAlign: 'Left', borderColor: 'transparent',borderBottom: '6px solid lightgrey',
+                   outline: 'none', }} />  
+              <br />
+              <button
+                onClick={handleJoinOrganization}
+                style={{ 
+                  padding: '10px 20px', 
+                  backgroundColor: '#AEF2A3',
+              border: '5px solid #45B434',
+              color: '#45B434',
+                    borderRadius: '15px',
+                     cursor: 'pointer', 
+                    marginTop: '30px',
+                     fontFamily: "'Radio Canada', sans-serif",
+                     fontWeight: 'bold',
+                     fontSize: '30px',
+                     width: '45%',
+                     marginRight: '10px' }}
+              >
+                Join
+              </button>
+              <button
+                onClick={() => setModalOpen(false)}
+                style={{ 
+
+                  padding: '10px 20px', 
+                  backgroundColor: '#f4f4f4',
+              border: '5px solid lightgrey',
+              color: 'grey',
+                    borderRadius: '15px',
+                     cursor: 'pointer', 
+                    marginTop: '30px',
+                     fontFamily: "'Radio Canada', sans-serif",
+                     fontWeight: 'bold',
+                     fontSize: '30px',
+                     width: '45%',
+                     marginRight: '10px'
+                 }}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
+
+
    
             {classes && classes
           .sort((a, b) => a.className.localeCompare(b.className)) // Sort alphabetically by className
@@ -278,7 +401,7 @@ const TeacherHome = () => {
 
 
 
-<div style={{width: '1000px', marginRight: 'auto', marginLeft: 'auto', marginTop: '30px'}}>
+<div style={{width: '1000px', marginRight: 'auto', marginLeft: 'auto', marginTop: '30px', display: 'flex'}}>
         <Link to="/createclass" style={{
           marginRight: 'auto', 
            textDecoration: 'none',
@@ -304,7 +427,55 @@ const TeacherHome = () => {
             e.target.style.opacity = '100%';
             e.target.style.boxShadow = ' none ';
         }}>Create Class +</Link>
-        
+          {teacherData && teacherData.school ? (
+         <div
+         style={{ 
+            
+          
+
+          marginTop: '10px', marginLeft: 'auto',
+          marginRight: 'auto',
+           fontSize: '30px',  color: 'lightgrey' }}>
+            
+         <h4 style={{ 
+            marginLeft: '-400px',
+            fontFamily: "'Rajdhani', sans-serif",
+            marginTop: '0px', 
+             fontSize: '30px',  color: 'lightgrey' }}> {teacherData.school}</h4>
+             </div>
+        ) : (
+          <button
+            onClick={() => setModalOpen(true)}
+            style={{
+              marginRight: 'auto',
+              backgroundColor: '#9CACFF',
+              border: '5px solid #020CFF',
+              color: '#020CFF',
+              borderRadius: '10px',
+              padding: '20px 20px',
+              height: '40px',
+              fontWeight: 'bold',
+              cursor: 'pointer',
+             marginTop: '0px',
+             lineHeight: '0px',
+             marginLeft: '-570px',
+              fontSize: '20px',
+              transition: '.3s',
+            }}
+            onMouseEnter={(e) => {
+              e.target.style.opacity = '90%';
+              e.target.style.boxShadow = ' 0px 4px 4px 0px rgba(0, 0, 0, 0.25)';
+          }}
+          onMouseLeave={(e) => {
+              e.target.style.opacity = '100%';
+              e.target.style.boxShadow = ' none ';
+          }}
+          >
+            Join School
+          </button>
+        )}
+
+
         </div>
        
 

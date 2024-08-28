@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-const PreviewAMCQ = ({ questions, onBack, onNext }) => {
+const PreviewMCQ = ({ questions, onBack, onNext }) => {
   const [hoveredChoice, setHoveredChoice] = useState(null);
 
   const choiceStyles = {
@@ -47,8 +47,8 @@ const PreviewAMCQ = ({ questions, onBack, onNext }) => {
 
   return (
     <div style={{ marginTop: '100px', width: '1000px', marginLeft: 'auto', marginRight: 'auto', fontFamily: "'Radio Canada', sans-serif" }}>
-      <h1 style={{ marginLeft: '40px', fontFamily: "'Radio Canada', sans-serif", color: 'black', fontSize: '60px', display: 'flex' }}>
-        Preview (<h1 style={{ fontSize: '50px', marginTop: '10px', marginLeft: '0px', color: '#009006', display: 'flex' }}> MCQ<h1 style={{ fontSize: '50px', marginTop: '-10px', marginLeft: '0px', color: '#FCCA18', display: 'flex' }}>*</h1> </h1>)
+      <h1 style={{ marginLeft: '40px', fontFamily: "'Rajdhani', sans-serif", color: 'black', fontSize: '60px', display: 'flex' }}>
+        Preview (<h1 style={{ fontSize: '50px', marginTop: '10px', marginLeft: '0px', color: '#009006', display: 'flex' }}> MCQ </h1>)
       </h1>
       <button
             onClick={onBack}
@@ -84,37 +84,9 @@ const PreviewAMCQ = ({ questions, onBack, onNext }) => {
       {questions.map((question, questionIndex) => (
         <div key={questionIndex} style={{ borderBottom: '10px solid lightgrey', padding: '20px', marginBottom: '30px' }}>
           <div style={{ width: '100%', display: 'flex', marginBottom: '30px' }}>
-            <div style={{ 
-              width: '20%', 
-              border: `7px solid ${getDifficultyColor(question.difficulty)}`, 
-              borderTopLeftRadius: '10px', 
-              borderBottomLeftRadius: '10px', 
-              position: "relative", 
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}>
-              <h1 style={{ 
-                fontSize: '22px', 
-                color: 'white', 
-                width: '120px', 
-                textAlign: 'center', 
-                background: getDifficultyColor(question.difficulty), 
-                padding: '5px', 
-                borderRadius: '10px', 
-                position: 'absolute', 
-                top: '-40px', 
-                left: '30px' 
-              }}>Difficulty</h1>
-              <p style={{ 
-                fontSize: '35px', 
-                fontWeight: 'bold', 
-                textAlign: 'center', 
-                margin: 0 
-              }}>{question.difficulty}</p>
-            </div>
-            <div style={{ width: '710px', border: '7px solid #E01FFF', marginLeft: 'auto', position: 'relative', borderTopRightRadius: '10px', borderBottomRightRadius: '10px' }}>
-              <h1 style={{ fontSize: '25px', color: 'white', width: '160px', textAlign: 'center', background: '#E01FFF', padding: '5px', borderRadius: '10px', position: 'absolute', top: '-40px', left: '100px' }}>Question</h1>
+          
+            <div style={{ width: '1000px', border: '7px solid lightgrey', marginLeft: 'auto', position: 'relative', borderRadius: '20px'}}>
+              <h1 style={{ fontSize: '25px', color: 'grey', width: '160px', textAlign: 'center', background: '#f4f4f4', border: '6px solid white', padding: '5px', borderRadius: '10px', position: 'absolute', top: '-50px', left: '150px' }}>Question</h1>
               <p style={{ width: '90%', marginLeft: 'auto', marginRight: 'auto', fontSize: '25px', fontWeight: 'bold' }}>{question.question}</p>
             </div>
           </div>
@@ -183,4 +155,4 @@ const PreviewAMCQ = ({ questions, onBack, onNext }) => {
   );
 };
 
-export default PreviewAMCQ;
+export default PreviewMCQ;

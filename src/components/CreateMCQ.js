@@ -1,50 +1,114 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { doc, getDoc, setDoc, writeBatch, arrayUnion } from 'firebase/firestore';
+import { doc, getDoc, setDoc, writeBatch, arrayUnion, serverTimestamp } from 'firebase/firestore';
 import { db } from './firebase'; // Ensure the path is correct
-import TeacherPreview from './PreviewSAQ';
-import './SwitchGreen.css';
-import SelectStudents from './SelectStudents';
-import { v4 as uuidv4 } from 'uuid';
 import Navbar from './Navbar';
+import SelectStudents from './SelectStudents';
 import CustomDateTimePicker from './CustomDateTimePicker';
 import 'react-datepicker/dist/react-datepicker.css';
+import PreviewMCQ from './previewMCQ';
 import axios from 'axios';
-import Select from 'react-select';
+import { auth } from './firebase';
+import { updateDoc } from 'firebase/firestore';
+import { arrayRemove } from 'firebase/firestore';
+const dropdownContentStyle = `
+  .dropdown-content {
+    max-height: 0;
+    opacity: 0;
+    overflow: visible;
+    transition: max-height 0.5s ease, opacity 0.5s ease, visibility 0.5s ease;
+    visibility: hidden;
+    position: relative;
+    z-index: 90;
+  }
 
-function MCQ() {
-  const [step, setStep] = useState(1);
-  const [className, setClassName] = useState('');
+  .dropdown-content.open {
+    max-height: 1000px;
+    opacity: 1;
+    visibility: visible;
+  }
+`;
+
+const loaderStyle = `
+  .loader {
+    height: 4px;
+    width: 130px;
+    --c: no-repeat linear-gradient(#020CFF 0 0);
+    background: var(--c), var(--c), #627BFF;
+    background-size: 60% 100%;
+    animation: l16 3s infinite;
+  }
+  @keyframes l16 {
+    0%   {background-position: -150% 0, -150% 0}
+    66%  {background-position: 250% 0, -150% 0}
+    100% {background-position: 250% 0, 250% 0}
+  }
+`;
+
+const MCQ = () => {
+  const [teacherId, setTeacherId] = useState(null);
   const [assignmentName, setAssignmentName] = useState('');
-  const [timer, setTimer] = useState('');
-  const [selectedOptions, setSelectedOptions] = useState([]);
-
+  const [timer, setTimer] = useState('10');
+  const [securityDropdownOpen, setSecurityDropdownOpen] = useState(false);
+  const [contentDropdownOpen, setContentDropdownOpen] = useState(false);
+  const [timerOn, setTimerOn] = useState(false);
+  const [feedback, setFeedback] = useState(false);
+  const [retype, setRetype] = useState(false);
+  const [timeDropdownOpen, setTimeDropdownOpen] = useState(false);
+  const [selectedOptions, setSelectedOptions] = useState([4]);
+  const [saveAndExit, setSaveAndExit] = useState(true);
+  const [lockdown, setLockdown] = useState(false);
   const [optionsCount, setOptionsCount] = useState(4);
   const [assignDate, setAssignDate] = useState(new Date());
-  const [dueDate, setDueDate] = useState(new Date());
+  const [questionsGenerated, setQuestionsGenerated] = useState(false);
+
+  const [dueDate, setDueDate] = useState(() => {
+    const date = new Date();
+    date.setHours(date.getHours() + 48);
+    return date;
+  })
+  
+  const [draftId, setDraftId] = useState(null);
   const [sourceOption, setSourceOption] = useState(null);
   const [sourceText, setSourceText] = useState('');
   const [youtubeLink, setYoutubeLink] = useState('');
-  const [questionBank, setQuestionBank] = useState('');
-  const [questionStudent, setQuestionStudent] = useState('');
-  const [timerOn, setTimerOn] = useState(false);
-  const [additionalInstructions, setAdditionalInstructions] = useState(['']);
-  const [selectedStudents, setSelectedStudents] = useState(new Set());
+  
+  const [questionBank, setQuestionBank] = useState('10');
+  const [questionStudent, setQuestionStudent] = useState('5');
+  const [studentsDropdownOpen, setStudentsDropdownOpen] = useState(false);
+  const [className, setClassName] = useState('');
+  const [additionalInstructions, setAdditionalInstructions] = useState('');
   const [showAdditionalInstructions, setShowAdditionalInstructions] = useState(false);
-  const [feedback, setFeedback] = useState('instant');
-  const { classId } = useParams();
+  const [selectedStudents, setSelectedStudents] = useState(new Set());
+  const [generatedQuestions, setGeneratedQuestions] = useState([]);
+  const [generating, setGenerating] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
+  const { classId, assignmentId } = useParams();
+  const [progress, setProgress] = useState(0);
+const [progressText, setProgressText] = useState('');
+const [questionCount, setQuestionCount] = useState(0);
   const navigate = useNavigate();
-  const handleNext = () => setStep((prevStep) => prevStep + 1);
-  const handleBack = () => setStep((prevStep) => prevStep - 1);
-  const handlePrevious = () => {
-    navigate(-1);
-  };
+
   const toggleAdditionalInstructions = () => {
     setShowAdditionalInstructions(!showAdditionalInstructions);
     if (showAdditionalInstructions) {
       setAdditionalInstructions('');
     }
   };
+
+  const handlePrevious = () => {
+    navigate(-1);
+  };
+
+  const isReadyToPublish = () => {
+    return (
+      assignmentName !== '' &&
+      assignDate.getTime() !== dueDate.getTime() &&
+      generatedQuestions.length > 0
+    );
+  };
+
+  // Fetch class name effect
   useEffect(() => {
     const fetchClassName = async () => {
       const classDocRef = doc(db, 'classes', classId);
@@ -63,6 +127,34 @@ function MCQ() {
     fetchClassName();
   }, [classId]);
 
+  // Ensure at least one option is always selected
+  useEffect(() => {
+    if (selectedOptions.length === 0) {
+      setSelectedOptions([4]);
+    }
+  }, [selectedOptions]);
+
+  const ProgressBar = ({ progress, text }) => (
+    <div style={{ width: '300px', marginLeft: '20px' }}>
+      <div style={{
+        height: '20px',
+        backgroundColor: '#e0e0e0',
+        borderRadius: '10px',
+        overflow: 'hidden'
+      }}>
+        <div style={{
+          width: `${progress}%`,
+          height: '100%',
+          backgroundColor: '#020CFF',
+          transition: 'width 0.5s ease-in-out'
+        }}></div>
+      </div>
+      <div style={{ textAlign: 'center', marginTop: '5px', fontSize: '14px', color: '#666' }}>
+        {text}
+      </div>
+    </div>
+  );
+
   const assignToStudents = async (assignmentId) => {
     const selectedStudentIds = Array.from(selectedStudents);
     const batch = writeBatch(db);
@@ -74,148 +166,345 @@ function MCQ() {
     });
     await batch.commit();
   };
-  const options = [
-    { value: '5', label: '5' },
-    { value: '4', label: '4' },
-    { value: '2', label: '2' },
-    { value: 'torf', label: 'True or False' },
-    
-  ];
-  const convertToDateTime = (date) => {
-    return new Date(date).toString();
-  };
-
-  const generateQuestions = async (sourceText, questionCount, assignmentId) => {
+  
+  const generateQuestions = async () => {
     try {
-      const response = await fetch('https://us-central1-squarescore-ai.cloudfunctions.net/generateQuestions', {
-        method: "POST",
+      setGenerating(true);
+      setProgress(0);
+      setProgressText('Starting generation...');
+  
+      const response = await axios.post('https://us-central1-square-score-ai.cloudfunctions.net/GenerateMCQ', {
+        sourceText: sourceText,
+        selectedOptions: selectedOptions,
+        additionalInstructions: additionalInstructions,
+        classId: classId,
+        teacherId: teacherId,
+        questionCount: parseInt(questionBank),
+        feedback: feedback
+      }, {
         headers: {
-          "Content-Type": "application/json"
-        },
+          'Content-Type': 'application/json'
+        }
       });
-      const data = await response.json();
-      if (data.success && data.questions) {
-        return data.questions;
+  
+      if (response.status !== 200) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+  
+      const data = response.data;
+      console.log('API response data:', data);
+  
+      let questionsString = data.questions;
+      if (typeof questionsString === 'string') {
+        const jsonMatch = questionsString.match(/```json\s*([\s\S]*?)\s*```/);
+        if (jsonMatch) {
+          questionsString = jsonMatch[1];
+        }
+        try {
+          questionsString = questionsString.trim();
+          const questions = JSON.parse(questionsString);
+          
+          if (Array.isArray(questions)) {
+            const questionsWithIds = questions.map((question, index) => ({
+              questionId: `${assignmentId}(question${index + 1})`,
+              ...question
+            }));
+            console.log('Generated questions:', questionsWithIds);
+            setGeneratedQuestions(questionsWithIds);
+            setQuestionsGenerated(true);
+            setShowPreview(true);
+          } else {
+            console.error("Parsed questions is not an array:", questions);
+          }
+        } catch (error) {
+          console.error('Error parsing questions JSON:', error);
+          console.error('Questions JSON:', questionsString);
+          throw error;
+        }
+      } else if (Array.isArray(data.questions)) {
+        const questionsWithIds = data.questions.map((question, index) => ({
+          questionId: `${assignmentId}(question${index + 1})`,
+          ...question
+        }));
+        console.log('Generated questions:', questionsWithIds);
+        setGeneratedQuestions(questionsWithIds);
+        setQuestionsGenerated(true);
+        setShowPreview(true);
       } else {
         console.error("Unexpected response format:", data);
-        return [];
       }
     } catch (error) {
       console.error("Error calling generateQuestions function:", error);
-      return [];
+      alert(`Error generating questions: ${error.message}. Please try again.`);
+    } finally {
+      setGenerating(false);
+      setProgress(100);
+      setProgressText('Generation complete!');
     }
   };
-  useEffect(() => {
-    const now = new Date();
-    setAssignDate(now);
-    
-    const dueDateDefault = new Date(now);
-    dueDateDefault.setHours(dueDateDefault.getHours() + 48);
-    setDueDate(dueDateDefault);
-  }, []);
-  const saveAssignment = async () => {
-    const assignmentId = `${classId}${uuidv4()}MCQ`;
-    let generatedQuestions = [];
   
-    if (sourceOption === 'text' && sourceText) {
-      generatedQuestions = await generateQuestions(sourceText, questionBank, assignmentId);
+ 
+  const handleGenerateQuestions = () => {
+    if (generatedQuestions.length > 0) {
+      setShowPreview(true);
+    } else {
+      generateQuestions();
     }
+  };
+
+  const handleSaveQuestions = () => {
+    setGeneratedQuestions(generatedQuestions);
+  };
+
+  useEffect(() => {
+    const fetchTeacherId = async () => {
+     
+  
+      // Get the current user's UID (teacher ID)
+      const user = auth.currentUser;
+      if (user) {
+        setTeacherId(user.uid);
+      } else {
+        console.error("No authenticated user found");
+      }
+    };
+    fetchTeacherId();
+  
+
+    // Check if we're loading from a draft
+    if (assignmentId && assignmentId.startsWith('DRAFT')) {
+      setDraftId(assignmentId.slice(5)); // Remove 'DRAFT' prefix
+      loadDraft(assignmentId.slice(5));
+    }
+  }, [classId, assignmentId]);
+  const saveDraft = async () => {
+    const draftData = {
+      classId,
+      assignmentName,
+      timer: timerOn ? Number(timer) : 0,
+      timerOn,
+      feedback,
+      retype,
+      assignDate: assignDate.toISOString(),
+      dueDate: dueDate.toISOString(),
+      selectedStudents: Array.from(selectedStudents),
+      questionBank: Number(questionBank),
+      questionStudent: Number(questionStudent),
+      saveAndExit,
+      lockdown,
+      createdAt: serverTimestamp(),
+      questions: generatedQuestions.map(question => ({
+        questionId: question.questionId || `question_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        question: question.question || '',
+        choices: Array.isArray(question.choices) ? question.choices.map(choice => ({
+          choiceText: choice.text || choice.choiceText || '',
+          isCorrect: choice.isCorrect || false,
+          feedback: choice.feedback || ''
+        })) : [],
+        
+      })),
+      sourceText,
+      additionalInstructions
+    };
+  
+    const newDraftId = draftId || `${classId}+${Date.now()}+MCQ`;
+    const draftRef = doc(db, 'drafts', newDraftId);
+    
+    try {
+      await setDoc(draftRef, draftData);
+  
+      const classRef = doc(db, 'classes', classId);
+      await updateDoc(classRef, {
+        [`assignment(mcq)`]: arrayUnion(newDraftId)
+      });
+  
+      setDraftId(newDraftId);
+      
+      navigate(`/class/${classId}/Assignments`, {
+        state: { showDrafts: true, newDraftId: newDraftId }
+      });
+    } catch (error) {
+      console.error("Error saving draft:", error);
+      alert(`Error saving draft: ${error.message}. Please try again.`);
+    }
+  };
+  
+  const saveAssignment = async () => {
+    const finalAssignmentId = assignmentId.startsWith('DRAFT') ? assignmentId.slice(5) : assignmentId;
   
     const assignmentData = {
       classId,
       assignmentName,
-      timer: timerOn ? timer : 0,
-      assignDate: convertToDateTime(assignDate),
-      dueDate: convertToDateTime(dueDate),
-      optionsCount,
-      selectedStudents: Array.from(selectedStudents),
-      questions: generatedQuestions,
-      questionCount: {
-        bank: questionBank,
-        student: questionStudent,
-      },
+      timer: timerOn ? Number(timer) : 0,
+      timerOn,
       feedback,
-      selectedOptions: selectedOptions.map(option => option.value), // Save the selected options
+      retype,
+      assignDate: assignDate.toISOString(),
+      dueDate: dueDate.toISOString(),
+      selectedStudents: Array.from(selectedStudents),
+      questionBank: Number(questionBank),
+      questionStudent: Number(questionStudent),
+      saveAndExit,
+      lockdown,
+      createdAt: serverTimestamp(),
+      questions: generatedQuestions.map(question => ({
+        questionId: question.questionId || `question_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        question: question.question || '',
+        choices: Array.isArray(question.choices) ? question.choices.map(choice => ({
+          choiceText: choice.text || choice.choiceText || '',
+          isCorrect: choice.isCorrect || false,
+          feedback: choice.feedback || ''
+        })) : [],
+        
+      })),
+      sourceText,
+      additionalInstructions
     };
   
-    const assignmentRef = doc(db, 'ASSIGNMENTS(MCQ)', assignmentId);
-    await setDoc(assignmentRef, assignmentData);
-    await assignToStudents(assignmentId);
-
-  const format = assignmentId.split('+').pop(); // Get the format from the assignment ID
-
-  navigate(`/class/${classId}`, {
-    state: {
-      successMessage: `Success: ${assignmentName} published`,
-      assignmentId: assignmentId,
-      format: format}
-    });
-  };
+    try {
+      console.log("Attempting to save assignment with data:", assignmentData);
+      
+      const assignmentRef = doc(db, 'assignments(mcq)', finalAssignmentId);
+      await setDoc(assignmentRef, assignmentData, { merge: true });
+      
+      console.log("Assignment saved successfully. Assigning to students...");
+      
+      await assignToStudents(finalAssignmentId);
+      
+      console.log("Assignment assigned to students successfully.");
   
-
-  const isFormValid = () => {
-    return assignmentName !== '' && assignDate !== '' && dueDate !== '';
-  };
-  const customStyles = {
-    control: (provided, state) => ({
-      ...provided,
-      fontFamily: "'Radio Canada', sans-serif",
-      fontSize: '16px',
-      marginLeft: 'auto',
-      marginTop: '-10px',
-      marginRight: 'auto',
-      width: '250px', // Reduce the width
-       border: '6px solid #F4F4F4', // Set border to 3px light grey
-      boxShadow: state.isFocused ? '0 0 0 1px #45B434' : provided.boxShadow, // Add box shadow when focused
-      '&:hover': {
-        border: '6px solid #45B434' // Change border color on hover
+      if (draftId) {
+        const draftRef = doc(db, 'drafts', draftId);
+        await setDoc(draftRef, {});
+  
+        const classRef = doc(db, 'classes', classId);
+        await updateDoc(classRef, {
+          [`assignment(mcq)`]: arrayRemove(assignmentId)
+        });
+        await updateDoc(classRef, {
+          [`assignment(mcq)`]: arrayUnion(finalAssignmentId)
+        });
       }
-    }),
-    option: (provided) => ({
-      ...provided,
-      fontFamily: "'Radio Canada', sans-serif",
-      fontSize: '16px'
-    }),
-    multiValue: (provided) => ({
-      ...provided,
-      backgroundColor: 'lightgreen', // Light green background
-      border: '6px solid green', // Green border
-      borderRadius: '4px', // Optional: rounded corners
-      display: 'flex',
-      alignItems: 'center',
-    }),
-    multiValueLabel: (provided) => ({
-      ...provided,
-      color: 'green', // Green font color
-      fontFamily: "'Radio Canada', sans-serif",
-      fontSize: '16px',
-    }),
-    multiValueRemove: (provided) => ({
-      ...provided,
-      color: 'green', // Green color for the remove icon
-      '&:hover': {
-        backgroundColor: 'lightgreen', // Keep the background color on hover
-        color: 'darkgreen' ,
-        cursor: 'pointer'
-        // Darker green on hover for better visibility
+  
+      navigate(`/class/${classId}`, {
+        state: {
+          successMessage: `Success: ${assignmentName} published`,
+          assignmentId: finalAssignmentId,
+          format: 'MCQ'
+        }
+      });
+    } catch (error) {
+      console.error("Error saving assignment:", error);
+      console.error("Error details:", error.message);
+      if (error.code) {
+        console.error("Error code:", error.code);
       }
-    })
+      alert(`Error publishing assignment: ${error.message}. Please try again.`);
+    }
   };
   
+  const loadDraft = async (draftId) => {
+    const draftRef = doc(db, 'drafts', draftId);
+    const draftDoc = await getDoc(draftRef);
+    if (draftDoc.exists) {
+      const data = draftDoc.data();
+      setAssignmentName(data.assignmentName || '');
+      setTimer(data.timer?.toString() || '');
+      setTimerOn(data.timerOn || false);
+      setFeedback(data.feedback || false);
+      setRetype(data.retype || false);
+      
+      if (data.assignDate) {
+        setAssignDate(new Date(data.assignDate));
+      }
+      
+      if (data.dueDate) {
+        setDueDate(new Date(data.dueDate));
+      }
   
+      setSelectedStudents(new Set(data.selectedStudents || []));
+      setQuestionBank(data.questionBank?.toString() || '');
+      setQuestionStudent(data.questionStudent?.toString() || '');
+      setSaveAndExit(data.saveAndExit || true);
+      setLockdown(data.lockdown || false);
+      setSourceText(data.sourceText || '');
+      setAdditionalInstructions(data.additionalInstructions || '');
   
-  const renderStep = () => {
-    switch (step) {
-      case 1:
-        return (
-          <div style={{ marginTop: '100px', width: '1000px', marginLeft: 'auto', marginRight: 'auto', fontFamily: "'Radio Canada', sans-serif" }}>
-            <h1 style={{ marginLeft: '40px', fontFamily: "'Radio Canada', sans-serif", color: 'black', fontSize: '60px', display: 'flex' }}>
-              Create (<h1 style={{ fontSize: '50px', marginTop: '10px', marginLeft: '0px', color: '#020CFF' }}> MCQ </h1>)<h1 style={{ fontSize: '30px', marginLeft: '30px', color: 'grey' }}>Step 2 - Settings</h1>
-            </h1>
-            <div style={{ width: '100%', height: '500px', marginTop: '-30px', border: '10px solid lightgrey', borderRadius: '30px' }}>
-              <div style={{ width: '810px', marginLeft: 'auto', marginRight: 'auto', marginTop: '50px' }}>
-                
-                <div style={{ position: 'relative' }}>
+      if (data.questions && data.questions.length > 0) {
+        setGeneratedQuestions(data.questions);
+        setQuestionsGenerated(true);
+      }
+    }
+  };
+
+  const optionStyles = {
+    2: { background: '#A3F2ED', color: '#00645E' },
+    3: { background: '#AEF2A3', color: '#006428' },
+    4: { background: '#F8CFFF', color: '#E01FFF' },
+    5: { background: '#FFECA8', color: '#CE7C00' }
+  };
+
+  return (
+    <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', backgroundColor: 'white' }}>
+      <Navbar userType="teacher" />
+      <style>{dropdownContentStyle}{loaderStyle}</style>
+      <div style={{ marginTop: '30px', width: '800px', marginLeft: 'auto', marginRight: 'auto', fontFamily: "'Radio Canada', sans-serif",  }}>
+      <button
+                 onClick={saveDraft}
+              style={{
+                width: '400px',
+                position: 'fixed',
+                right: '-80px',
+                zIndex: '4',
+                border: '15px solid #E01FFF',
+                borderRadius: '30px',
+                top: '-40px',
+                background: 'white',
+                padding: '10px',
+                fontSize: '24px',
+                cursor: 'pointer'
+              }}
+            >
+              <h1 style={{fontSize: '45px', width: '400px',  marginTop: '100px', marginLeft: '-50px', marginBottom: '0px', fontFamily: "'Rajdhani', sans-serif", }}>Save as Draft</h1>
+            </button>
+        <button
+          onClick={handlePrevious}
+          style={{
+            position: 'fixed',
+            width: '75px',
+            height: '75px',
+            padding: '10px 20px',
+            left: '10%',
+            top: '460px',
+            bottom: '20px',
+            backgroundColor: 'transparent',
+            cursor: 'pointer',
+            border: 'none',
+            fontSize: '30px',
+            color: '#45B434',
+            borderRadius: '10px',
+            fontWeight: 'bold',
+            fontFamily: "'Radio Canada', sans-serif",
+            transition: '.5s',
+            transform: 'scale(1)',
+            opacity: '100%'
+          }}
+          onMouseEnter={(e) => {
+            e.target.style.transform = 'scale(1.04)';
+          }}
+          onMouseLeave={(e) => {
+            e.target.style.transform = 'scale(1)';
+          }}
+        >
+          <img src='/LeftGreenArrow.png' style={{ width: '75px', transition: '.5s' }} />
+        </button>
+        
+        <h1 style={{ marginLeft: '30px',  fontFamily: "'Rajdhani', sans-serif", color: 'black', fontSize: '80px', display: 'flex', marginBottom: '100px' }}>
+          Create (<h1 style={{ fontSize: '70px', marginTop: '10px', marginLeft: '0px', color: '#009006',display:'flex' }}> MCQ </h1>)
+        </h1>
+        <div style={{ width: '100%', height: 'auto', marginTop: '-200px', border: '10px solid transparent', borderRadius: '30px', padding: '20px' }}>
+          <div style={{ width: '810px', marginLeft: 'auto', marginRight: 'auto', marginTop: '30px' }}>
+          <div style={{ position: 'relative' }}>
   {assignmentName && (
     <h1 style={{
       position: 'absolute',
@@ -243,7 +532,7 @@ function MCQ() {
       padding: '10px',
       paddingLeft: '25px',
       outline: 'none',
-      border: '6px solid #F4F4F4',
+      border: '4px solid #F4F4F4',
       borderRadius: '10px',
       fontFamily: "'Radio Canada', sans-serif",
       fontWeight: 'bold',
@@ -254,7 +543,7 @@ function MCQ() {
   />
   <span style={{
     position: 'absolute',
-    right: '10px',
+    right: '20px',
     bottom: '30px',
     fontSize: '14px',
     color: 'grey',
@@ -263,367 +552,296 @@ function MCQ() {
     {assignmentName.length}/25
   </span>
 </div>
-                <div style={{ width: '810px', display: 'flex' }}>
-                  <div style={{ width: '290px', height: '60px',  border: '6px solid #F4F4F4', borderRadius: '10px', marginTop: '25px', display: 'flex', marginRight:'20px' }}>
-                    <h1 style={{ fontSize: '30px', color: 'grey', marginLeft: '30px', marginTop: '10px' }}>Timer</h1>
-                    <input
-                      style={{ marginTop: '15px', width: '60px', marginLeft: '20px' }}
-                      type="checkbox"
-                      className="greenSwitch"
-                      checked={timerOn}
-                      onChange={() => setTimerOn(!timerOn)}
-                    />
-                    {timerOn ? (
+            <div style={{ width: '810px', display: 'flex' }}>
+              <div style={{ marginBottom: '20px', width: '790px', height: '320px', borderRadius: '10px', border: '4px solid #F4F4F4' }}>
+                <div style={{ width: '730px', marginLeft: '20px', height: '80px', borderBottom: '4px solid lightgrey', display: 'flex', position: 'relative', alignItems: 'center', borderRadius: '0px', padding: '10px' }}>
+                  <h1 style={{ fontSize: '30px', color: 'black', width: '300px', paddingLeft: '0px' }}>Timer:</h1>
+                  {timerOn ? (
+                    <div style={{ display: 'flex', alignItems: 'center', position: 'relative', marginLeft: '30px' }}>
                       <input
                         type="number"
                         style={{
-                          marginLeft: '10px',
+                          marginLeft: '-200px',
                           height: '30px',
                           width: '50px',
                           textAlign: 'center',
-                          marginTop: '12px',
-                           border: '6px solid #F4F4F4',
+                          fontWeight: 'bold',
+                          border: '6px solid transparent',
+                          outline: 'none',
                           borderRadius: '5px',
-                          fontSize: '20px',
+                          fontSize: '30px',
                         }}
-                        placeholder="min"
+                        placeholder="10"
                         value={timer}
                         onChange={(e) => setTimer(e.target.value)}
                       />
-                    ) : (
-                      <span style={{
-                        marginLeft: '10px',
-                        height: '30px',
-                        width: '50px',
-                        
-                        textAlign: 'center',
-                        marginTop: '20px',
-                        fontSize: '20px',
-                        color: 'grey'
-                      }}>
-                        Off
-                      </span>
-                    )}
-                  </div>
-                  <div style={{ width: '500px', borderRadius: '10px',  border: '6px solid #F4F4F4', display: 'flex', height: '60px', marginTop: '25px' }}>
-                      <label style={{ fontSize: '30px', color: 'grey', marginLeft: '30px', marginRight: '38px', marginTop: '13px', fontFamily: "'Radio Canada', sans-serif", fontWeight: 'bold' }}>Feedback: </label>
-                      <div style={{ display: 'flex', justifyContent: 'space-around', width: '300px', marginLeft: '-30px' , alignItems: 'center'}}>
-                        <div
-                          style={{
-                           
-                            height: '30px',
-                            lineHeight: '30px',
-
-                            width: '100px',
-                            textAlign: 'center',
-                            fontSize: '20px',
-                            transition: '.3s',
-                          borderRadius: '5px',
-                        fontWeight: feedback === 'instant' ? 'bold' : 'normal',
-                            backgroundColor: feedback === 'instant' ? '#AEF2A3' : 'white',
-                           color: feedback === 'instant' ? '#2BB514' : 'black',
-                           border: feedback === 'instant' ? '4px solid #2BB514' : '4px solid transparent',
-                     
-                            cursor: 'pointer'
-                          }}
-                          onClick={() => setFeedback('instant')}
-                        >
-                          Instant
-                        </div>
-                        <div
-                          style={{
-                            height: '30px',
-                            lineHeight: '30px',
-
-                         
-                            fontSize: '20px',
-                            width: '160px',
-                            textAlign: 'center',
-                            transition: '.3s',
-                            borderRadius: '5px',
-                           
-                            backgroundColor: feedback === 'at_completion' ? '#AEF2A3' : 'white',
-                            fontWeight: feedback === 'at_completion' ? 'bold' : 'normal',
-                            color: feedback === 'at_completion' ? '#2BB514' : 'black',
-                            border: feedback === 'at_completion' ? '4px solid #2BB514' : '4px solid transparent',
-                     
-                            cursor: 'pointer'
-                          }}
-                          onClick={() => setFeedback('at_completion')}
-                        >
-                          At Completion
-                        </div>
-                      </div>
+                      <h1 style={{ marginLeft: '-5px', fontSize: '26px' }}>Minutes</h1>
                     </div>
+                  ) : (
+                    <span style={{
+                      marginLeft: '-150px',
+                      height: '30px',
+                      width: '50px',
+                      fontWeight: 'bold',
+                      textAlign: 'center',
+                      marginTop: '0px',
+                      fontSize: '30px',
+                      color: 'grey'
+                    }}>
+                      Off
+                    </span>
+                  )}
+                  <input
+                    style={{ marginLeft: 'auto' }}
+                    type="checkbox"
+                    className="greenSwitch"
+                    checked={timerOn}
+                    onChange={() => setTimerOn(!timerOn)}
+                  />
                 </div>
-                <div style={{ width: '100%', display: 'flex', marginTop: '20px', }}>
-                  <div style={{ width: '270px',  border: '6px solid #F4F4F4', height: '160px', borderRadius: '10px' }}>
-                    <h3 style={{ width: '100%', textAlign: 'center', fontSize: '23px', color: 'grey', marginTop: '15px', marginBottom: '25px' }}>Choices Per Question</h3>
-                   
-    <Select
-      isMulti
-      name="options"
-      options={options}
-      className="basic-multi-select"
-      classNamePrefix="select"
-      value={selectedOptions}
-      onChange={setSelectedOptions}
-      styles={customStyles} // Apply custom styles here
-    />
-  
-                  </div>
-                  <div style={{ width: '507px', marginLeft: '20px' }}>
-                    <div style={{ width: '507px', borderRadius: '10px',  border: '6px solid #F4F4F4', display: 'flex', height: '66px' }}>
-                      <label style={{ fontSize: '30px', color: 'grey', marginLeft: '20px', marginTop: '13px', fontFamily: "'Radio Canada', sans-serif", fontWeight: 'bold' }}>Assign: </label>
+                <div style={{ display: 'flex', alignItems: 'center', height: '80px', width: '750px', marginLeft: '20px', borderBottom: '4px solid lightgrey', position: 'relative', marginTop: '0px', paddingBottom: '20px' }}>
+          <label style={{ fontSize: '30px', color: 'black', marginLeft: '10px', marginRight: '38px', fontFamily: "'Radio Canada', sans-serif", fontWeight: 'bold', marginTop: '20px' }}>Feedback: </label>
+          <div style={{ marginLeft: 'auto', marginRight: '10px', marginTop: '20px' }}>
+            <input
+              type="checkbox"
+              className="greenSwitch"
+              checked={feedback}
+              onChange={() => setFeedback(!feedback)}
+            />
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', height: '80px', width: '750px', marginLeft: '20px', borderBottom: '0px solid lightgrey', position: 'relative', marginTop: '0px', paddingBottom: '20px' }}>
+          <label style={{ fontSize: '30px', color: 'black', marginLeft: '10px', marginRight: '38px', fontFamily: "'Radio Canada', sans-serif", fontWeight: 'bold' }}>Retype: </label>
+          <div style={{ marginLeft: 'auto', marginRight: '10px' }}>
+            <input
+              type="checkbox"
+              className="greenSwitch"
+              checked={retype}
+              onChange={() => setRetype(!retype)}
+            />
+          </div>
+        </div>
+              
+              </div>
+            </div>
+            <div style={{ width: '770px', padding: '10px', border: '4px solid #F4F4F4', borderRadius: '10px' }}>
+              <button
+                onClick={() => setTimeDropdownOpen(!timeDropdownOpen)}
+                style={{
+                  width: '100%',
+                  padding: '10px',
+                  fontSize: '30px',
+                  backgroundColor: 'white',
+                  color: 'black',
+                  border: 'none',
+                  cursor: 'pointer',
+                  height: '50px',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center'
+                }}
+              >
+                <img style={{ width: '40px' }} src='/clock.png' />
+                <h1 style={{ fontSize: '30px', marginLeft: '20px', marginRight: 'auto' }}> Dates</h1>
+                <img
+                  src={timeDropdownOpen ? '/Up.png' : '/Down.png'}
+                  alt={timeDropdownOpen ? "Collapse" : "Expand"}
+                  style={{ width: '20px' }}
+                />
+              </button>
+
+              <div className={`dropdown-content ${timeDropdownOpen ? 'open' : ''}`}>
+                <div style={{ marginTop: '10px' }}>
+                  {/* Assign and Due Dates */}
+                  <div style={{ marginTop: '10px', display: 'flex', position: 'relative', alignItems: 'center' }}>
+                    <h1 style={{ marginLeft: '20px' }}>Assign on:</h1>
+                    <div style={{ marginLeft: 'auto', marginRight: '20px' }}>
                       <CustomDateTimePicker
                         selected={assignDate}
                         onChange={(date) => setAssignDate(date)}
+                        label="Assign Date"
                       />
                     </div>
-                    <div style={{ width: '507px', borderRadius: '10px',  border: '6px solid #F4F4F4', display: 'flex', height: '66px', marginTop: '22px' }}>
-                      <label style={{ fontSize: '30px', color: 'grey', marginLeft: '20px', marginRight: '38px', marginTop: '13px', fontFamily: "'Radio Canada', sans-serif", fontWeight: 'bold' }}>Due: </label>
+                  </div>
+                  <div style={{ marginTop: '10px', display: 'flex', position: 'relative', alignItems: 'center' }}>
+                    <h1 style={{ marginLeft: '20px' }}>Due on:</h1>
+                    <div style={{ marginLeft: 'auto', marginRight: '20px' }}>
                       <CustomDateTimePicker
                         selected={dueDate}
                         onChange={(date) => setDueDate(date)}
+                        label="Due Date"
                       />
                     </div>
-                  
                   </div>
                 </div>
-                <button
-                  onClick={isFormValid() ? handleNext : null}
-                  style={{
-                    position: 'fixed',
-                    width: '75px',
-                    height: '75px',
-                    padding: '10px 20px',
-                    right: '10%',
-                    top: '460px',
-                    bottom: '20px',
-                    backgroundColor: 'transparent',
-                    cursor: 'pointer',
-                    border: 'none',
-                    fontSize: '30px',
-                    color: '#45B434',
-                    borderRadius: '10px',
-                    fontWeight: 'bold',
-                    fontFamily: "'Radio Canada', sans-serif",
-                    transition: '.5s',
-                    transform: 'scale(1)',
-                    opacity: '100%' // Set default background color
-                  }}
-                  onMouseEnter={(e) => {
-                    e.target.style.transform = 'scale(1.04)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.target.style.transform = 'scale(1)';
-                  }}
-                >
-                  <img src='/RightGreenArrow.png' style={{ width: '75px', transition: '.5s' }} />
-                </button>
-                <button
-                  onClick={handlePrevious}
-                  style={{
-                    position: 'fixed',
-                    width: '75px',
-                    height: '75px',
-                    padding: '10px 20px',
-                    left: '8.5%',
-                    top: '460px',
-                    bottom: '20px',
-                    backgroundColor: 'transparent',
-                    cursor: 'pointer',
-                    border: 'none',
-                    fontSize: '30px',
-                    color: '#45B434',
-                    borderRadius: '10px',
-                    fontWeight: 'bold',
-                    fontFamily: "'Radio Canada', sans-serif",
-                    transition: '.5s',
-                    transform: 'scale(1)',
-                    opacity: '100%' // Set default background color
-                  }}
-                  onMouseEnter={(e) => {
-                    e.target.style.transform = 'scale(1.04)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.target.style.transform = 'scale(1)';
-                  }}
-                >
-                  <img src='/LeftGreenArrow.png' style={{ width: '75px', transition: '.5s' }} />
-                </button>
               </div>
             </div>
-          </div>
-        );
-          case 2:
-            return (
-              <div style={{ marginTop: '100px', width: '1000px', marginLeft: 'auto', marginRight: 'auto', fontFamily: "'Radio Canada', sans-serif" }}>
-                <h1 style={{ marginLeft: '40px', fontFamily: "'Radio Canada', sans-serif", color: 'black', fontSize: '60px', display: 'flex' }}>
-                  Create (<h1 style={{ fontSize: '50px', marginTop: '10px', marginLeft: '0px', color: '#020CFF' }}> MCQ </h1>)<h1 style={{ fontSize: '30px', marginLeft: '30px', color: 'grey' }}>Step 3 - Select Students</h1>
-                </h1>
-                <div style={{ width: '100%', height: '500px', marginTop: '-30px', border: '10px solid lightgrey', borderRadius: '30px' }}>
-                  <div style={{ width: '950px', marginLeft: 'auto', marginRight: 'auto', marginTop: '40px', borderBottom: '5px solid lightgrey', borderTop: '5px solid lightgrey' }}>
-                    <SelectStudents
-                      classId={classId}
-                      selectedStudents={selectedStudents}
-                      setSelectedStudents={setSelectedStudents}
-                    />
-                    <button
-                      onClick={handleBack}
-                      style={{
-                        position: 'fixed',
-                        width: '75px',
-                        height: '75px',
-                        padding: '10px 20px',
-                        left: '8.5%',
-                        top: '460px',
-                        bottom: '20px',
-                        backgroundColor: 'transparent',
-                        cursor: 'pointer',
-                        border: 'none',
-                        fontSize: '30px',
-                        color: '#45B434',
-                        borderRadius: '10px',
-                        fontWeight: 'bold',
-                        fontFamily: "'Radio Canada', sans-serif",
-                        transition: '.5s',
-                        transform: 'scale(1)',
-                        opacity: '100%'
-                      }}
-                      onMouseEnter={(e) => {
-                        e.target.style.transform = 'scale(1.04)';
-                      }}
-                      onMouseLeave={(e) => {
-                        e.target.style.transform = 'scale(1)';
-                      }}
-                    >
-                      <img src='/LeftGreenArrow.png' style={{ width: '75px', transition: '.5s' }} />
-                    </button>
-                    <button
-                      onClick={handleNext}
-                      style={{
-                        position: 'fixed',
-                        width: '75px',
-                        height: '75px',
-                        padding: '10px 20px',
-                        right: '10%',
-                        top: '460px',
-                        bottom: '20px',
-                        backgroundColor: 'transparent',
-                        cursor: 'pointer',
-                        border: 'none',
-                        fontSize: '30px',
-                        color: '#45B434',
-                        borderRadius: '10px',
-                        fontWeight: 'bold',
-                        fontFamily: "'Radio Canada', sans-serif",
-                        transition: '.5s',
-                        transform: 'scale(1)',
-                        opacity: '100%'
-                      }}
-                      onMouseEnter={(e) => {
-                        e.target.style.transform = 'scale(1.04)';
-                      }}
-                      onMouseLeave={(e) => {
-                        e.target.style.transform = 'scale(1)';
-                      }}
-                    >
-                      <img src='/RightGreenArrow.png' style={{ width: '75px', transition: '.5s' }} />
-                    </button>
-                  </div>
+
+            <div style={{ width: '770px', padding: '10px', marginTop: '20px', border: '4px solid #F4F4F4', borderRadius: '10px', marginBottom: '20px' }}>
+              <button
+                onClick={() => setStudentsDropdownOpen(!studentsDropdownOpen)}
+                style={{
+                  width: '100%',
+                  padding: '10px',
+                  fontSize: '30px',
+                  height: '50px',
+                  backgroundColor: 'white',
+                  color: 'black',
+                  border: 'none',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center'
+                }}
+              >
+                <img style={{ width: '40px' }} src='/select.png' />
+                <h1 style={{ fontSize: '30px', marginRight: 'auto', marginLeft: '20px' }}>Select Students</h1>
+                <img
+                  src={studentsDropdownOpen ? '/Up.png' : '/Down.png'}
+                  alt={studentsDropdownOpen ? "Collapse" : "Expand"}
+                  style={{ width: '20px' }}
+                />
+              </button>
+
+              <div className={`dropdown-content ${studentsDropdownOpen ? 'open' : ''}`}>
+                <div style={{ marginTop: '10px' }}>
+                  <SelectStudents
+                    classId={classId}
+                    selectedStudents={selectedStudents}
+                    setSelectedStudents={setSelectedStudents}
+                  />
                 </div>
               </div>
-            );
-          case 3:
-            return (
-              <div style={{ marginTop: '100px', width: '1000px', marginLeft: 'auto', marginRight: 'auto', fontFamily: "'Radio Canada', sans-serif" }}>
-                <h1 style={{ marginLeft: '40px', fontFamily: "'Radio Canada', sans-serif", color: 'black', fontSize: '60px', display: 'flex' }}>
-                  Create (<h1 style={{ fontSize: '50px', marginTop: '10px', marginLeft: '0px', color: '#020CFF' }}> MCQ </h1>)<h1 style={{ fontSize: '30px', marginLeft: '30px', color: 'grey' }}>Step 4 - Add Source</h1>
-                </h1>
-                <div style={{ width: '100%', height: '545px', marginTop: '-30px', border: '10px solid lightgrey', borderRadius: '30px' }}>
-                  <div style={{ width: '780px', marginLeft: 'auto', marginRight: 'auto', marginTop: '30px' }}>
-                    <h2 style={{ fontSize: '40px', color: 'grey', width: '100%', textAlign: 'center' }}>Select Source Type</h2>
-                    {['text'].map((option) => (
+            </div>
+            {showPreview && generatedQuestions && generatedQuestions.length > 0 && (
+              <div style={{ width: '100%', position: 'absolute', zIndex: 100000, background: 'white', top: '70px', left: '0%' }}>
+                <PreviewMCQ
+                  questions={generatedQuestions}
+                  onBack={() => setShowPreview(false)}
+                  onSave={handleSaveQuestions}
+                />
+              </div>
+            )}
+
+            <div style={{ width: '770px', padding: '10px', marginTop: '20px', border: '4px solid #F4F4F4', borderRadius: '10px', marginBottom: '20px', zIndex: '-10' }}>
+              <button
+                onClick={() => setContentDropdownOpen(!contentDropdownOpen)}
+                style={{
+                  width: '100%',
+                  padding: '10px',
+                  fontSize: '30px',
+                  backgroundColor: 'white',
+                  color: 'black',
+                  border: 'none',
+                  height: '50px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center'
+                }}
+              >
+                <img style={{ width: '30px', marginRight: '20px', marginLeft: '5px' }} src='/idea.png' />
+                <h1 style={{ fontSize: '30px', marginLeft: '0px', marginRight: 'auto' }}>Generate Questions</h1>
+                <img
+                  src={contentDropdownOpen ? '/Up.png' : '/Down.png'}
+                  alt={contentDropdownOpen ? "Collapse" : "Expand"}
+                  style={{ width: '20px' }}
+                />
+              </button>
+
+              <div className={`dropdown-content ${contentDropdownOpen ? 'open' : ''}`}>
+                <div style={{ marginTop: '0px' }}>
+                  {/* Questions Section */}
+                  <div style={{ width: '730px', background: 'lightgrey', height: '3px', marginLeft: '20px', marginTop: '20px' }}></div>
+                  
+
+                  <div style={{display: 'flex', alignItems: 'center', position: 'relative'}}>
+      <h2 style={{ fontSize: '30px', color: 'black', marginBottom: '10px' , marginLeft: '20px'}}>Question Bank</h2>
+      <input
+        type="number"
+        placeholder="10"
+        value={questionBank}
+        onChange={(e) => setQuestionBank(e.target.value)}
+        style={{ width: '60px', fontWeight:'bold',marginBottom: '10px', marginTop: '25px',  marginLeft: 'auto', marginRight: '20px',padding: '10px', fontSize: '30px',  border: '4px solid #F4F4F4', borderRadius: '10px' }}
+      />
+      </div>
+      <div style={{display: 'flex', alignItems: 'center', position: 'relative'}}>
+      <h2 style={{ fontSize: '30px', color: 'black', marginBottom: '10px', marginLeft: '20px' }}>Question Per Student</h2>
+      
+      <input
+        type="number"
+        placeholder="5"
+        value={questionStudent}
+        onChange={(e) => setQuestionStudent(e.target.value)}
+        style={{ width: '60px', fontWeight:'bold',marginBottom: '10px', marginTop: '25px',  marginLeft: 'auto', marginRight: '20px',padding: '10px', fontSize: '30px',  border: '4px solid #F4F4F4', borderRadius: '10px' }}
+        />
+        </div>
+
+        <div style={{ width: '730px', background: 'lightgrey', height: '3px', marginLeft: '20px', marginTop: '20px' }}></div>
+                  
+                  <div style={{ width: '750px', height: '80px', border: '6px solid transparent', display: 'flex', position: 'relative', alignItems: 'center', borderRadius: '10px', padding: '10px', marginLeft: '-15px' }}>
+                  <h1 style={{ fontSize: '30px', color: 'black', width: '400px', paddingLeft: '20px' }}>Choices Per Question</h1>
+                  <div style={{ marginLeft: 'auto', marginTop: '45px', display: 'flex', position: 'relative', alignItems: 'center' }}>
+                    {[2, 3, 4, 5].map((num) => (
                       <button
-                        key={option}
-                        onClick={() => setSourceOption(option)}
+                        key={num}
+                        onClick={() => {
+                          if (selectedOptions.includes(num)) {
+                            setSelectedOptions(selectedOptions.filter(n => n !== num));
+                          } else {
+                            setSelectedOptions([...selectedOptions, num]);
+                          }
+                        }}
                         style={{
-                          width: '230px',
-                          height: '60px',
-                          borderRadius: '30px',
-                          fontSize: '30px',
+                          width: '85px',
+                          height: '40px',
+                          marginLeft: '20px',
+                          marginTop: '-45px',
+                          backgroundColor: selectedOptions.includes(num) ? optionStyles[num].background : 'white',
+                          border: selectedOptions.includes(num) ? `5px solid ${optionStyles[num].color}` : '6px solid lightgrey',
+                          borderRadius: '105px',
                           cursor: 'pointer',
-                          fontFamily: "'Radio Canada', sans-serif",
-                          border: `5px solid ${sourceOption === option ? '#73D87D' : 'lightgrey'}`,
-                          backgroundColor: 'white',
-                          fontWeight: 'bold',
-                          marginLeft: option !== 'text' ? '45px' : '0',
-                          transition: 'border-color 0.3s'
-                        }}
-                        onMouseEnter={(e) => {
-                          if (sourceOption !== option) {
-                            e.target.style.borderColor = 'grey';
-                          }
-                        }}
-                        onMouseLeave={(e) => {
-                          if (sourceOption !== option) {
-                            e.target.style.borderColor = 'lightgrey';
-                          }
+                          transition: 'all 0.3s ease',
                         }}
                       >
-                        {option.charAt(0).toUpperCase() + option.slice(1)}
+                        <h1 style={{
+                          fontSize: '24px',
+                          color: selectedOptions.includes(num) ? optionStyles[num].color : 'black',
+                          margin: 0,
+                        }}>{num}</h1>
                       </button>
                     ))}
-                    <p style={{ width: '100%', textAlign: 'left', color: 'lightgrey', marginTop: '30px' }}>
-                      SquareScore does not store your sources, nor does it use them to train any large language models
-                    </p>
-                    {sourceOption === 'text' && (
-                      <div>
-                        <textarea
-                          style={{ width: '96%', height: '100px', padding: '2%', fontFamily: "'Radio Canada', sans-serif", borderRadius: '10px', border: '6px solid grey', outline: 'none' }}
-                          placeholder="Paste source here"
-                          value={sourceText}
-                          onChange={(e) => setSourceText(e.target.value)}
-                        />
-                        <p style={{ width: '100%', textAlign: 'left', color: 'lightgrey' }}>Max 5000 words</p>
-                      </div>
-                    )}
-                    {sourceOption === 'pdf' && (
-                      <div style={{ marginTop: '70px', marginBottom: '50px' }}>
-                        <input
-                          type="file"
-                          id="file-input"
-                          onChange={(e) => {
-                            const fileName = e.target.files[0] ? e.target.files[0].name : 'No file chosen';
-                            document.getElementById('file-name').textContent = fileName;
-                          }}
-                          style={{ display: 'none' }}
-                        />
-                        <label htmlFor="file-input" style={{
-                          backgroundColor: 'white',
-                          fontSize: '30px',
-                          padding: '10px 20px',
-                          border: '6px solid grey',
+                  </div>
+                </div>
+
+                <div style={{ width: '730px', background: 'lightgrey', height: '3px', marginLeft: '20px', marginTop: '0px' }}></div>
+                
+
+                  <div style={{ width: '740px', marginLeft: '20px', }}>
+               
+                   
+                      <textarea
+                        placeholder="Paste source here"
+                        value={sourceText}
+                        onChange={(e) => setSourceText(e.target.value)}
+                        style={{
+                          width: '688px',
+                          height: '100px',
+                          marginTop: '30px',
+                          fontSize: '16px',
+                          background: '#F4F4F4',
+                          padding: '20px 20px',
+                          border: 'none',
+                          outline: 'none',
                           borderRadius: '10px',
-                          fontWeight: 'bold',
-                          cursor: 'pointer'
-                        }}>
-                          Choose File
-                        </label>
-                        <span id="file-name" style={{ marginLeft: '10px', fontSize: '20px', color: 'grey' }}>No file chosen</span>
-                      </div>
-                    )}
-                    {sourceOption === 'youtube' && (
-                      <input
-                        style={{ width: '96%', height: '40px', padding: '2%', fontWeight: 'bold', fontSize: '20px', marginTop: '30px', marginBottom: '30px', fontFamily: "'Radio Canada', sans-serif", borderRadius: '10px', border: '6px solid grey', outline: 'none' }}
-                        type="text"
-                        placeholder="Paste YouTube link"
-                        value={youtubeLink}
-                        onChange={(e) => setYoutubeLink(e.target.value)}
+                          resize: 'vertical'
+                        }}
                       />
-                    )}
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '-35px' }}>
+                    
+               
+                    {/* Additional Instructions Section */}
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '-15px' }}>
                       <h1 style={{ marginTop: '20px', color: 'grey', display: 'flex', fontSize: '25px', alignItems: 'center' }}>
                         Additional instructions
                         <p style={{ fontSize: '20px', marginTop: '20px', marginLeft: '10px', color: 'lightgrey' }}>- optional</p>
@@ -656,7 +874,7 @@ function MCQ() {
                           marginTop: '-20px',
                           fontFamily: "'Radio Canada', sans-serif",
                           borderRadius: '10px',
-                           border: '6px solid #F4F4F4',
+                          border: '4px solid #F4F4F4',
                           outline: 'none'
                         }}
                         type='text'
@@ -665,326 +883,134 @@ function MCQ() {
                         onChange={(e) => setAdditionalInstructions(e.target.value)}
                       />
                     )}
-                  </div>
-                  <button
-                    onClick={handleBack}
-                    style={{
-                      position: 'fixed',
-                      width: '75px',
-                      height: '75px',
-                      padding: '10px 20px',
-                      left: '8.5%',
-                      top: '460px',
-                      bottom: '20px',
-                      backgroundColor: 'transparent',
-                      cursor: 'pointer',
-                      border: 'none',
-                      fontSize: '30px',
-                      color: '#45B434',
-                      borderRadius: '10px',
-                      fontWeight: 'bold',
-                      fontFamily: "'Radio Canada', sans-serif",
-                      transition: '.5s',
-                      transform: 'scale(1)',
-                      opacity: '100%'
-                    }}
-                    onMouseEnter={(e) => {
-                      e.target.style.transform = 'scale(1.04)';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.target.style.transform = 'scale(1)';
-                    }}
-                  >
-                    <img src='/LeftGreenArrow.png' style={{ width: '75px', transition: '.5s' }} />
-                  </button>
-                  <button
-                    onClick={handleNext}
-                    style={{
-                      position: 'fixed',
-                      width: '75px',
-                      height: '75px',
-                      padding: '10px 20px',
-                      right: '10%',
-                      top: '460px',
-                      bottom: '20px',
-                      backgroundColor: 'transparent',
-                      cursor: 'pointer',
-                      border: 'none',
-                      fontSize: '30px',
-                      color: '#45B434',
-                      borderRadius: '10px',
-                      fontWeight: 'bold',
-                      fontFamily: "'Radio Canada', sans-serif",
-                      transition: '.5s',
-                      transform: 'scale(1)',
-                      opacity: '100%'
-                    }}
-                    onMouseEnter={(e) => {
-                      e.target.style.transform = 'scale(1.04)';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.target.style.transform = 'scale(1)';
-                    }}
-                  >
-                    <img src='/RightGreenArrow.png' style={{ width: '75px', transition: '.5s' }} />
-                  </button>
-                </div>
-              </div>
-            );
-          case 4:
-            return (
-              <div style={{ marginTop: '100px', width: '1000px', marginLeft: 'auto', marginRight: 'auto', fontFamily: "'Radio Canada', sans-serif" }}>
-                <h1 style={{ marginLeft: '40px', fontFamily: "'Radio Canada', sans-serif", color: 'black', fontSize: '60px', display: 'flex' }}>
-                  Create (<h1 style={{ fontSize: '50px', marginTop: '10px', marginLeft: '0px', color: '#020CFF' }}> MCQ </h1>)<h1 style={{ fontSize: '30px', marginLeft: '30px', color: 'grey' }}>Step 5 - Question Generation</h1>
-                </h1>
-                <div style={{ width: '100%', height: '350px', marginTop: '70px', border: '10px solid lightgrey', borderRadius: '30px' }}>
-                  <div style={{ width: '780px', marginLeft: 'auto', marginRight: 'auto', marginTop: '50px', display: 'flex' }}>
-                    <div style={{}}>
-                      <h1 style={{ display: 'flex', fontSize: '26px', width: '190px', height: '30px', padding: '20px', backgroundColor: 'white', color: 'grey', marginBottom: '-35px', zIndex: '300', position: 'relative', marginLeft: '64px' }}>
-                        Questions <p style={{ color: 'grey', marginTop: '6px', marginLeft: '8px', fontSize: '18px' }}>(Bank)</p>
-                      </h1>
-                      <input
-                        style={{ width: '350px', height: '150px', border: '4px solid lightgrey', borderRadius: '10px', fontSize: '70px', zIndex: '200', fontWeight: 'bold', textAlign: 'center' }}
-                        type="number"
-                        placeholder="10"
-                        value={questionBank}
-                        onChange={(e) => setQuestionBank(e.target.value)}
-                      />
-                    </div>
-                    <div style={{ marginLeft: 'auto ' }}>
-                      <h1 style={{ display: 'flex', fontSize: '26px', width: '210px', height: '30px', padding: '20px', backgroundColor: 'white', color: 'grey', marginBottom: '-35px', zIndex: '300', position: 'relative', marginLeft: '55px' }}>
-                        Questions <p style={{ color: 'grey', marginTop: '6px', marginLeft: '8px', fontSize: '18px' }}>(Student)</p>
-                      </h1>
-                      <input
-                        type="number"
-                        style={{ width: '350px', height: '150px', border: '4px solid lightgrey', borderRadius: '10px', fontSize: '70px', zIndex: '200', fontWeight: 'bold', textAlign: 'center' }}
-                        placeholder="5"
-                        value={questionStudent}
-                        onChange={(e) => setQuestionStudent(e.target.value)}
-                      />
-                    </div>
+                    {/* Generate Questions Button */}
+                    {sourceText.trim() !== '' && Number(questionBank) >= Number(questionStudent) && (
+                      <div style={{ display: 'flex', alignItems: 'center', marginTop: '20px' }}>
+                        <button
+                          onClick={handleGenerateQuestions}
+                          disabled={generating}
+                          style={{
+                            width: '300px',
+                            fontWeight: 'bold',
+                            height: '50px',
+                            padding: '10px',
+                            fontSize: '24px',
+                            backgroundColor: generating ? 'lightgrey' : generatedQuestions.length > 0 ? '#4CAF50' : '#020CFF',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '10px',
+                            cursor: generating ? 'default' : 'pointer',
+                            transition: 'box-shadow 0.3s ease, background-color 0.3s ease',
+                            boxShadow: generating ? 'none' : '0 4px 6px rgba(0, 0, 0, 0.1)',
+                          }}
+                          onMouseEnter={(e) => {
+                            if (!generating) {
+                              e.target.style.boxShadow = '0 6px 8px rgba(0, 0, 0, 0.2)';
+                            }
+                          }}
+                          onMouseLeave={(e) => {
+                            if (!generating) {
+                              e.target.style.boxShadow = '0 4px 6px rgba(0, 0, 0, 0.1)';
+                            }
+                          }}
+                        >
+                          {generating ? 'Generating...' : generatedQuestions.length > 0 ? 'Preview Questions' : 'Generate Questions'}
+                        </button>
+                        {generating && (
+                          <ProgressBar progress={progress} text={progressText} />
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
-                {questionBank && questionStudent && Number(questionBank) >= Number(questionStudent) ? (
-                  <button
-                    onClick={async () => {
-                      setStep(5); // Move to loading screen
-                      const assignmentId = `${classId}${uuidv4()}MCQ`;
-                      const generatedQuestions = await generateQuestions(sourceText, questionBank, assignmentId);
-                      console.log("Generated questions:", generatedQuestions);
-                      setStep(6); // Move to preview screen
-                    }}
-                    style={{
-                      width: '400px',
-                      height: '70px',
-                      borderRadius: '10px',
-                      fontSize: '26px',
-                      fontFamily: "'Radio Canada', sans-serif",
-                      fontWeight: 'bold',
-                      border: '4px solid white',
-                      color: 'white',
-                      marginLeft: '248px',
-                      marginTop: '10px',
-                      backgroundColor: 'white',
-                      transform: 'scale(1)',
-                      cursor: 'pointer',
-                      transition: '.2s',
-                      opacity: '100%'
-                    }}
-                  >
-                    <img 
-                      style={{ width: '400px', marginLeft: '-10px', borderRadius: '15px', transition: '.2s' }}
-                      onMouseEnter={(e) => {
-                        e.target.style.opacity = '85%';
-                        e.target.style.boxShadow = ' 0px 4px 4px 0px rgba(0, 0, 0, 0.25)';
-                        e.target.style.transform = 'scale(1.005)';
-                      }}
-                      onMouseLeave={(e) => {
-                        e.target.style.opacity = '100%';
-                        e.target.style.boxShadow = 'none';
-                        e.target.style.transform = 'scale(1)';
-                      }}
-                      src='/GenerateQuestions.png' 
-                    />
-                  </button>
-                ) : (
-                  <p style={{ color: 'red', textAlign: 'center' }}>
-                    Please fill in both fields. Questions (Bank) must be greater than or equal to Questions (Student).
-                  </p>
-                )}
-                <button
-                  onClick={handleBack}
-                  style={{
-                    position: 'fixed',
-                    width: '75px',
-                    height: '75px',
-                    padding: '10px 20px',
-                    left: '8.5%',
-                    top: '460px',
-                    bottom: '20px',
-                    backgroundColor: 'transparent',
-                    cursor: 'pointer',
-                    border: 'none',
-                    fontSize: '30px',
-                    color: '#45B434',
-                    borderRadius: '10px',
-                    fontWeight: 'bold',
-                    fontFamily: "'Radio Canada', sans-serif",
-                    transition: '.5s',
-                    transform: 'scale(1)',
-                    opacity: '100%'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.target.style.transform = 'scale(1.04)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.target.style.transform = 'scale(1)';
-                  }}
-                >
-                  <img src='/LeftGreenArrow.png' style={{ width: '75px', transition: '.5s' }} />
-                </button>
-              </div>
-            );
-          case 5:
-            return (
-              <div style={{marginLeft: 'auto', marginRight: 'auto', marginTop: 'auto', marginBottom: 'auto'}}>
-                <div className="lds-ripple"><div></div><div></div></div>
-                <p>Generating questions...</p>
-              </div>
-            );
-          case 6:
-            return (
-              <div style={{marginTop: '100px'}}>
-                <h2>Preview Questions</h2>
-                <div>
-                  <p>Preview of generated questions...</p>
-                </div>
-                <button
-                  onClick={handleBack}
-                  style={{
-                    position: 'fixed',
-                    width: '75px',
-                    height: '75px',
-                    padding: '10px 20px',
-                    left: '8.5%',
-                    top: '460px',
-                    bottom: '20px',
-                    backgroundColor: 'transparent',
-                    cursor: 'pointer',
-                    border: 'none',
-                    fontSize: '30px',
-                    color: '#45B434',
-                    borderRadius: '10px',
-                    fontWeight: 'bold',
-                    fontFamily: "'Radio Canada', sans-serif",
-                    transition: '.5s',
-                    transform: 'scale(1)',
-                    opacity: '100%'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.target.style.transform = 'scale(1.04)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.target.style.transform = 'scale(1)';
-                  }}
-                >
-                  <img src='/LeftGreenArrow.png' style={{ width: '75px', transition: '.5s' }} />
-                </button>
-                <button
-                  onClick={handleNext}
-                  style={{
-                    position: 'fixed',
-                    width: '75px',
-                    height: '75px',
-                    padding: '10px 20px',
-                    right: '10%',
-                    top: '460px',
-                    bottom: '20px',
-                    backgroundColor: 'transparent',
-                    cursor: 'pointer',
-                    border: 'none',
-                    fontSize: '30px',
-                    color: '#45B434',
-                    borderRadius: '10px',
-                    fontWeight: 'bold',
-                    fontFamily: "'Radio Canada', sans-serif",
-                    transition: '.5s',
-                    transform: 'scale(1)',
-                    opacity: '100%'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.target.style.transform = 'scale(1.04)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.target.style.transform = 'scale(1)';
-                  }}
-                >
-                  <img src='/RightGreenArrow.png' style={{ width: '75px', transition: '.5s' }} />
-                </button>
-              </div>
-            );
-          case 7:
-            return (
-              <div>
-                <h2>Review & Publish</h2>
-                <div>
-                  <p>Name: {assignmentName}</p>
-                  <p>Timer: {timer}</p>
                 
-                  <p>Feedback: {feedback}</p>
-                  <p>Assign Date: {convertToDateTime(assignDate)}</p>
-                  <p>Due Date: {convertToDateTime(dueDate)}</p>
-                  <p>Selected Students: {[...selectedStudents].join(', ')}</p>
-                  <p>Source: {sourceOption === 'youtube' ? youtubeLink : sourceText}</p>
-                  <p>Question Bank: {questionBank}</p>
-                  <p>Questions per Student: {questionStudent}</p>
-                </div>
-                <button onClick={handleBack}>Back</button>
-                <button onClick={saveAssignment}>Publish</button>
               </div>
-            );
-          default:
-            return null;
-        }
-      };
-    
-      return (
-        <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', backgroundColor: 'white' }}>
-          <Navbar userType="teacher"  />
-          <button style={{
-            position: 'fixed', top: -70, right: -70, backgroundColor: '#FBD3FF',
-            borderRadius: '200px',
-            height: '300px', width: '300px', border: '15px solid #E01FFF',
-            transform: 'scale(1)',
-            transition: '.3s',
-            opacity: '100%'
-          }}
-            onMouseEnter={(e) => {
-              e.target.style.opacity = '85%';
-              e.target.style.boxShadow = '5px 2px 8px 2px #BC9AEF'
-              e.target.style.transform = 'scale(1.01)';
-            }}
-            onMouseLeave={(e) => {
-              e.target.style.opacity = '100%';
-              e.target.style.boxShadow = '5px 2px 8px 2px lightgrey';
-              e.target.style.transform = 'scale(1)';
-            }}
-            onClick={() => console.log('Save Draft')}
-          >
-            <h1 style={{
-              fontSize: '35px',
-              width: '200px',
-              marginTop: '100px',
-              boxShadow: 'none',
-              marginLeft: '10px',
-              color: '#E01FFF',
-              fontFamily: "'Radio Canada', sans-serif", cursor: 'pointer'
-            }}>Save as Draft</h1>
-          </button>
-          {renderStep()}
+              </div>
+
+
+
+              
+              <div style={{ width: '770px', padding: '10px', marginTop: '20px', border: '4px solid #F4F4F4', borderRadius: '10px', marginBottom: '20px' }}>
+                <button
+                  onClick={() => setSecurityDropdownOpen(!securityDropdownOpen)}
+                  style={{
+                    width: '100%',
+                    padding: '10px',
+                    fontSize: '30px',
+                    backgroundColor: 'white',
+                    color: 'black',
+                    border: 'none',
+                    cursor: 'pointer',
+                    height: '50px',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center'
+                  }}
+                >
+                  <img style={{ width: '40px' }} src='/astrid.png' />
+                  <h1 style={{ fontSize: '30px', marginLeft: '20px', marginRight: 'auto' }}>Security</h1>
+                  <img
+                    src={securityDropdownOpen ? '/Up.png' : '/Down.png'}
+                    alt={securityDropdownOpen ? "Collapse" : "Expand"}
+                    style={{ width: '20px' }}
+                  />
+                </button>
+
+                <div className={`dropdown-content ${securityDropdownOpen ? 'open' : ''}`}>
+                  <div style={{ marginTop: '10px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', marginBottom: '10px' }}>
+                      <h1 style={{ fontSize: '30px', color: 'black', marginLeft: '20px', flex: 1 }}>Save & Exit</h1>
+                      <input
+                        style={{ marginRight: '20px' }}
+                        type="checkbox"
+                        className="greenSwitch"
+                        checked={saveAndExit}
+                        onChange={() => setSaveAndExit(!saveAndExit)}
+                      />
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center' }}>
+                      <h1 style={{ fontSize: '30px', color: 'black', marginLeft: '20px', flex: 1 }}>Lockdown</h1>
+                      <input
+                        style={{ marginRight: '20px' }}
+                        type="checkbox"
+                        className="greenSwitch"
+                        checked={lockdown}
+                        onChange={() => setLockdown(!lockdown)}
+                      />
+                    </div>
+                 
+                </div>
+              </div>
+             
+            </div>
+            {isReadyToPublish() && (
+                <button
+                  onClick={saveAssignment}
+                  style={{
+                    width: '770px',
+                    height: '50px',
+                    marginTop: '20px',
+                    marginBottom: '40px',
+                    backgroundColor: '#4CAF50',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '10px',
+                    fontSize: '20px',
+                    fontWeight: 'bold',
+                    cursor: 'pointer',
+                    transition: 'background-color 0.3s ease',
+                  }}
+                  onMouseEnter={(e) => e.target.style.backgroundColor = '#45a049'}
+                  onMouseLeave={(e) => e.target.style.backgroundColor = '#4CAF50'}
+                >
+                  Publish Assignment
+                </button>
+              )}
+          </div>
         </div>
-      );
-    }
-    
+      </div>
+    </div>
+  );
+};
 
 export default MCQ;

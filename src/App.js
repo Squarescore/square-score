@@ -7,6 +7,7 @@ import Loader from './components/Loader';
 import SignUp from './components/SignUp';
 import StudentHome from './components/StudentHome';
 import TeacherHome from './components/TeacherHome';
+import AdminHome from './components/AdminHome';
 import TeacherClassHome from './components/TeacherClassHome';
 import TeacherAssignmentHome from './components/TeacherAssignmentHome';
 import CreateAssignment from './components/CreateSAQ';
@@ -38,6 +39,10 @@ import TeacherStudentGrades from './components/TeacherStudentGrades';
 import TakeASAQ from './components/TakeASAQ';
 import TakeAmcq from './components/TakeAmcq';
 import TeacherResultsASAQ from './components/ResultsASAQ';
+
+import TeacherResultsMCQ from './components/ResultsMCQ';
+import AdminUB from './components/AdminUB';
+import TeacherLogs from './components/TeacherLogs';
 function App() {
   const [user, setUser] = useState(null);
   const [userRole, setUserRole] = useState(null); // State for storing user role
@@ -101,15 +106,55 @@ useEffect(() => {
       {user ? (
           userRole ? ( // Add this check
            
-        <Routes>
+            <Routes>
+            <Route 
+              path="/" 
+              element={
+                <Navigate 
+                  to={
+                    userRole === 'student' 
+                      ? "/studenthome" 
+                      : userRole === 'teacher' 
+                        ? "/teacherhome" 
+                        : "/adminhome"
+                  } 
+                />
+              } 
+            />
+            <Route 
+              path="/login" 
+              element={
+                <Navigate 
+                  to={
+                    userRole === 'student' 
+                      ? "/studenthome" 
+                      : userRole === 'teacher' 
+                        ? "/teacherhome" 
+                        : "/adminhome"
+                  } 
+                />
+              } 
+            />
+            <Route 
+              path="/signup" 
+              element={
+                <Navigate 
+                  to={
+                    userRole === 'student' 
+                      ? "/studenthome" 
+                      : userRole === 'teacher' 
+                        ? "/teacherhome" 
+                        : "/adminhome"
+                  } 
+                />
+              } 
+            />
+ <Route path="/termsofservice" element={<TermsOfService />} />
 
-<Route path="/" element={<Navigate to={userRole === 'student' ? "/studenthome" : "/teacherhome"} />} />
-              <Route path="/login" element={<Navigate to={userRole === 'student' ? "/studenthome" : "/teacherhome"} />} />
-              <Route path="/signup" element={<Navigate to={userRole === 'student' ? "/studenthome" : "/teacherhome"} />} />
-              <Route path="/termsofservice" element={<TermsOfService />} />
 
-
-
+ <Route path="/admin-ub" element={<AdminUB />} />
+ <Route path="/teacher-logs/:teacherId" element={<TeacherLogs />} /> {/* Implement this component separately */}
+   
         <Route path="/class/:classId/teacherassignmenthome" element={<TeacherAssignmentHome currentPage="Grades"/>} />
         <Route path="/class/:classId/createassignment/:assignmentId" element={<CreateAssignment currentPage="Create"/>} />
         
@@ -131,6 +176,8 @@ useEffect(() => {
         <Route path="/class/:classId/assignment/:assignmentId/TeacherResults" element={<TeacherResults />} />
         <Route path="/class/:classId/assignment/:assignmentId/TeacherResultsASAQ" element={<TeacherResultsASAQ />} />
         <Route path="/class/:classId/assignment/:assignmentId/TeacherResultsAMCQ" element={<TeacherResultsAMCQ />} />
+        
+        <Route path="/class/:classId/assignment/:assignmentId/TeacherResultsMCQ" element={<TeacherResultsMCQ />} />
         <Route path="/teacherReview/:classId/:assignmentId" element={<TeacherReview currentPage="Grades"/>} />
         
 
@@ -140,6 +187,7 @@ useEffect(() => {
         <Route path="/class/:classId" element={<TeacherClassHome />} />
 
         <Route path="/teacherhome" element={<TeacherHome />} />
+        <Route path="/adminhome" element={<AdminHome />} />
 
         <Route path="/createclass" element={<CreateClass />} />
 

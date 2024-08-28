@@ -232,13 +232,13 @@ function Assignments() {
         'assignments(mcq)',
         'assignments(Amcq)'
       ];
-
+  
       const fetchPromises = assignmentsCollections.map(collectionName =>
         getDocs(collection(db, collectionName))
       );
-
+  
       const snapshots = await Promise.all(fetchPromises);
-
+  
       let allAssignments = [];
       snapshots.forEach((snapshot) => {
         const filteredDocs = snapshot.docs.filter(doc => doc.id.startsWith(`${classId}+`));
@@ -250,20 +250,21 @@ function Assignments() {
               id: doc.id,
               ...data,
               type: type.replace('*', ''),
-              name: data.assignmentName || data.name
+              name: data.assignmentName || data.name,
+              date: data.createdAt || data.createdDate || new Date(0) // Use createdAt or createdDate, fallback to epoch
             };
           })
           .filter(assignment => assignment.name);
-
+  
         allAssignments = allAssignments.concat(assignments);
       });
-
+  
       const sortedAssignments = allAssignments.sort((a, b) => {
-        const dateA = a.createdDate && typeof a.createdDate.toDate === 'function' ? a.createdDate.toDate() : new Date(0);
-        const dateB = b.createdDate && typeof b.createdDate.toDate === 'function' ? b.createdDate.toDate() : new Date(0);
-        return dateB - dateA;
+        const dateA = a.date instanceof Date ? a.date : a.date.toDate();
+        const dateB = b.date instanceof Date ? b.date : b.date.toDate();
+        return dateB - dateA; // Sort in descending order (newest first)
       });
-
+  
       setAssignments(sortedAssignments);
       setAllAssignments(sortedAssignments);
       setFilteredAssignments(sortedAssignments);
@@ -308,6 +309,9 @@ function Assignments() {
           case 'AMCQ':
             navigate(`/class/${classId}/MCQA/DRAFT${item.id}`);
             break;
+            case 'MCQ':
+            navigate(`/class/${classId}/MCQ/DRAFT${item.id}`);
+            break;
           default:
             // Default case, if format is not specified or is something else
             navigate(`/class/${classId}/createassignment/DRAFT${item.id}`);
@@ -321,8 +325,12 @@ function Assignments() {
           case 'AMCQ':
             navigate(`/class/${classId}/assignment/${item.id}/TeacherResultsAMCQ`);
             break;
-          default:
-            navigate(`/class/${classId}/assignment/${item.id}/TeacherResults`);
+            case 'SAQ':
+              navigate(`/class/${classId}/assignment/${item.id}/TeacherResults`);
+              break;
+              case 'MCQ':
+                navigate(`/class/${classId}/assignment/${item.id}/TeacherResultsMCQ`);
+                break;;
         }
       }
     };
@@ -403,9 +411,8 @@ function Assignments() {
   };
 
   
-
-  const getFormatDisplay = (assignmentId) => {
-    const type = getAssignmentType(assignmentId);
+  const getFormatDisplay = (item) => {
+    const type = getAssignmentType(item);
     switch(type) {
       case 'ASAQ':
       case 'SAQ':
@@ -472,7 +479,20 @@ function Assignments() {
           </>
         );
       default:
-        return null;
+        return (
+          <span style={{
+            position: 'absolute',
+            right: '10px',
+            top: '50px',
+            fontWeight: 'bold',
+            width: '60px',
+            marginTop: '0px',
+            fontFamily: "'Radio Canada', sans-serif",
+            color: '#E01FFF'  // Color for unknown types or drafts
+          }}>
+            {type}
+          </span>
+        );
     }
   };
 
@@ -633,9 +653,10 @@ function Assignments() {
     );
   };
  
-  const getAssignmentType = (assignmentId) => {
-    const parts = assignmentId.split('+');
-    return parts[parts.length - 1];
+  const getAssignmentType = (item) => {
+    const id = item.id || '';
+    const parts = id.split('+');
+    return parts[parts.length - 1] || item.type || 'Unknown';
   };
   
   const getBackgroundColorWithOpacity = (color, opacity) => {
@@ -1433,7 +1454,24 @@ function Assignments() {
                     *
                   </span>
                 </>
-              ) : (
+              ) :  item.type === 'SAQ' ? (
+                <>
+                  <span style={{
+                    position: 'absolute',
+                    right: '10px',
+                    top: '50px',
+                    cursor: 'pointer',
+                    fontWeight: 'bold',
+                    width: '60px',
+                    marginTop: '0px',
+                    fontFamily: "'Radio Canada', sans-serif",
+                    color: '#020CFF'
+                  }}>
+                    SAQ
+                  </span>
+                 
+                </>
+              ) :(
                 <span style={{
                   position: 'absolute',
                   right: '10px',
@@ -1443,7 +1481,7 @@ function Assignments() {
                   width: '60px',
                   marginTop: '0px',
                   fontFamily: "'Radio Canada', sans-serif",
-                  color: '#020CFF'
+                  color: 'green'
                 }}>
                   {item.type}
                 </span>

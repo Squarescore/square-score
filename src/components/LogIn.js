@@ -2,9 +2,8 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "./firebase";
 import { useNavigate } from 'react-router-dom';
-import { getAuth, setPersistence, signInWithEmailAndPassword } from 'firebase/auth';
+import { getAuth, setPersistence, signInWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth';
 import { browserLocalPersistence } from 'firebase/auth';
-import { sendPasswordResetEmail } from 'firebase/auth';
 import { Link } from 'react-router-dom';
 
 const Login = () => {
@@ -48,6 +47,7 @@ const Login = () => {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const userUID = userCredential.user.uid;
 
+      // Check user type by searching in different collections
       let userDocRef = doc(db, 'students', userUID);
       let userProfile = await getDoc(userDocRef);
 
@@ -55,10 +55,21 @@ const Login = () => {
         userDocRef = doc(db, 'teachers', userUID);
         userProfile = await getDoc(userDocRef);
       }
+
+      if (!userProfile.exists()) {
+        userDocRef = doc(db, 'admins', userUID);  // Check if user is an admin
+        userProfile = await getDoc(userDocRef);
+      }
+
+      // Redirect based on user type
       if (userDocRef.path.startsWith('students')) {
         navigate('/studenthome');
       } else if (userDocRef.path.startsWith('teachers')) {
         navigate('/teacherhome');
+      } else if (userDocRef.path.startsWith('admins')) {
+        navigate('/adminhome');  // Redirect to admin home
+      } else {
+        setError("User type not recognized.");
       }
     } catch (err) {
       setError(err.message);
@@ -170,7 +181,6 @@ const Login = () => {
               style={{
                 width: '100%', 
                 padding: '20px', 
-              
                 fontWeight: 'bold',
                 border: '0px solid lightgrey', 
                 color: 'black',
@@ -178,7 +188,7 @@ const Login = () => {
                 outline: 'none', 
                 backdropFilter: 'blur(7px)',
                 fontSize: '30px',
-                boxShadow: ' 0px 4px 4px 0px rgba(0, 0, 0, 0.25)',
+                boxShadow: '0px 4px 4px 0px rgba(0, 0, 0, 0.25)',
                 backgroundColor: 'rgb(250,250,250,.5)', 
                 fontFamily: "'Radio Canada', sans-serif"
               }}
@@ -200,7 +210,7 @@ const Login = () => {
               style={{
                 width: '100%', 
                 padding: '20px', 
-              marginTop: '30px',
+                marginTop: '30px',
                 fontWeight: 'bold',
                 border: '0px solid lightgrey', 
                 color: 'black',
@@ -208,12 +218,12 @@ const Login = () => {
                 outline: 'none', 
                 backdropFilter: 'blur(7px)',
                 fontSize: '30px',
-                boxShadow: ' 0px 4px 4px 0px rgba(0, 0, 0, 0.25)',
+                boxShadow: '0px 4px 4px 0px rgba(0, 0, 0, 0.25)',
                 backgroundColor: 'rgb(250,250,250,.5)', 
                 fontFamily: "'Radio Canada', sans-serif",
               }}
             />
-            {inputStyles.password && <label style={{position: 'absolute', top: '10px', left: '15px', backgroundColor: 'white', padding: '0 10px', borderTopRightRadius: '3px', borderTopLeftRadius: '3px', fontFamily: "'Radio Canada', sans-serif", fontWeight: 'bold', height: '20px', fontSize: '20px' }}>Password</label>}
+            {inputStyles.password && <label style={{ position: 'absolute', top: '10px', left: '15px', backgroundColor: 'white', padding: '0 10px', borderTopRightRadius: '3px', borderTopLeftRadius: '3px', fontFamily: "'Radio Canada', sans-serif", fontWeight: 'bold', height: '20px', fontSize: '20px' }}>Password</label>}
           </div>
 
           <div style={{ display: 'flex' }}>
@@ -241,7 +251,7 @@ const Login = () => {
                 e.target.style.transform = 'scale(1)';
               }}
             >
-              <h1 style={{marginTop: '7px', color: 'white', pointerEvents: 'none'}}>Login</h1>
+              <h1 style={{ marginTop: '7px', color: 'white', pointerEvents: 'none' }}>Login</h1>
             </button>
             <p style={{ fontFamily: "'Radio Canada', sans-serif", color: 'black', marginLeft: '30px', fontSize: '20px', width: '300px', marginTop: '0px' }}>
               By logging in you agree to our <a href="/TermsofService" style={{ color: 'blue' }}>terms of service</a>

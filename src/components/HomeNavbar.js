@@ -12,47 +12,10 @@ const HomeNavbar = ({ userType, currentPage, firstName, lastName }) => {
     const navigate = useNavigate();
     const [showDropdown, setShowDropdown] = useState(false);
     const [userInitials, setUserInitials] = useState("");
-    const [currentClass, setCurrentClass] = useState('');
-    const [showClassDropdown, setShowClassDropdown] = useState(false);
-    const [classes, setClasses] = useState([]);
+    
 
-    useEffect(() => {
-       
-        const fetchClasses = async () => {
-            let classQuery;
-            if (userType === 'teacher') {
-                const teacherUID = auth.currentUser.uid;
-                classQuery = query(collection(db, 'classes'), where('teacherUID', '==', teacherUID));
-            } else {
-                const studentUID = auth.currentUser.uid;
-                classQuery = query(collection(db, 'classes'), where('students', 'array-contains', studentUID));
-            }
 
-            const classesSnapshot = await getDocs(classQuery);
-            const classesData = classesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            setClasses(classesData);
-
-            const currentClassData = classesData.find(cls => cls.id === classId);
-            if (currentClassData) {
-                setCurrentClass(currentClassData.className);
-            }
-        };
-
-        fetchClasses();
-    }, [classId, userType]);
-
-    const handleClassChange = (newClassId, e) => {
-        e.stopPropagation();
-        if (newClassId !== classId) {
-            let newPath = userType === 'teacher' ? `/class/${newClassId}/` : `/studentclasshome/${newClassId}`;
-            navigate(newPath);
-            setShowClassDropdown(false);
-        }
-    };
-    const handleClassDropdownClick = (e) => {
-        e.stopPropagation(); // Prevents click event from propagating to parent elements
-    };
-
+    
 
     const teacherLinkRoutes = {
         
@@ -66,7 +29,8 @@ const HomeNavbar = ({ userType, currentPage, firstName, lastName }) => {
         const fetchUserData = async () => {
             try {
                 const uid = auth.currentUser.uid; // Get current user's UID
-                const userDoc = await getDoc(doc(db, userType === 'teacher' ? 'teachers' : 'students', uid));
+                const userDoc = await getDoc(doc(db, userType === 'teacher' ? 'teachers' : userType === 'student' ? 'students' : 'admin', uid));
+
                 if (userDoc.exists()) {
                     const userData = userDoc.data();
                     setUserInitials(getInitials(userData.firstName, userData.lastName));

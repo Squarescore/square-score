@@ -8,6 +8,7 @@ import CustomDateTimePicker from './CustomDateTimePicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import PreviewAMCQ from './previewAMCQ';
 import axios from 'axios';
+import { auth } from './firebase';
 import { updateDoc } from 'firebase/firestore';
 import { arrayRemove } from 'firebase/firestore';
 const dropdownContentStyle = `
@@ -47,7 +48,7 @@ const loaderStyle = `
 const MCQA = () => {
 
   const [assignmentName, setAssignmentName] = useState('');
-  const [timer, setTimer] = useState('');
+  const [timer, setTimer] = useState('60');
   const [securityDropdownOpen, setSecurityDropdownOpen] = useState(false);
   const [contentDropdownOpen, setContentDropdownOpen] = useState(false);
   const [timerOn, setTimerOn] = useState(false);
@@ -56,10 +57,9 @@ const MCQA = () => {
   const [selectedOptions, setSelectedOptions] = useState([4]);
   const [saveAndExit, setSaveAndExit] = useState(true);
   const [lockdown, setLockdown] = useState(false);
-  const [optionsCount, setOptionsCount] = useState(4);
   const [assignDate, setAssignDate] = useState(new Date());
   const [questionsGenerated, setQuestionsGenerated] = useState(false);
-
+  const [teacherId, setTeacherId] = useState(null);
   const [dueDate, setDueDate] = useState(() => {
     const date = new Date();
     date.setHours(date.getHours() + 48);
@@ -83,7 +83,6 @@ const MCQA = () => {
   const { classId, assignmentId } = useParams();
   const [progress, setProgress] = useState(0);
 const [progressText, setProgressText] = useState('');
-const [questionCount, setQuestionCount] = useState(0);
   const navigate = useNavigate();
 
   const toggleAdditionalInstructions = () => {
@@ -107,22 +106,26 @@ const [questionCount, setQuestionCount] = useState(0);
 
   // Fetch class name effect
   useEffect(() => {
-    const fetchClassName = async () => {
-      const classDocRef = doc(db, 'classes', classId);
-      const classDoc = await getDoc(classDocRef);
-      if (classDoc.exists) {
-        const data = classDoc.data();
-        if (data && data.name) {
-          setClassName(data.name);
-        } else {
-          console.error("Class data is missing or incomplete:", classId);
-        }
+    const fetchTeacherId = async () => {
+     
+  
+      // Get the current user's UID (teacher ID)
+      const user = auth.currentUser;
+      if (user) {
+        setTeacherId(user.uid);
       } else {
-        console.error("Class not found:", classId);
+        console.error("No authenticated user found");
       }
     };
-    fetchClassName();
-  }, [classId]);
+    fetchTeacherId();
+  
+  
+    // Check if we're loading from a draft
+    if (assignmentId && assignmentId.startsWith('DRAFT')) {
+      setDraftId(assignmentId.slice(5)); // Remove 'DRAFT' prefix
+      loadDraft(assignmentId.slice(5));
+    }
+  }, [classId, assignmentId]);
 
   // Ensure at least one option is always selected
   useEffect(() => {
@@ -163,184 +166,123 @@ const [questionCount, setQuestionCount] = useState(0);
     });
     await batch.commit();
   };
-  const parseQuestions = (response) => {
-    let data = response.data;
-    if (typeof data === 'string') {
-      // Extract only the JSON array part if there's a preamble
+const parseQuestions = (response) => {
+  let data = response.data;
+  
+  if (typeof data === 'object' && data !== null) {
+    return Array.isArray(data) ? data : [data];
+  }
+
+  if (typeof data === 'string') {
+    try {
+      const parsedData = JSON.parse(data);
+      return Array.isArray(parsedData) ? parsedData : [parsedData];
+    } catch (error) {
+      console.error("Error parsing full response:", error);
+      
       const match = data.match(/\[[\s\S]*\]/);
       if (match) {
-        data = match[0];
+        try {
+          const extractedJson = JSON.parse(match[0]);
+          return Array.isArray(extractedJson) ? extractedJson : [extractedJson];
+        } catch (innerError) {
+          console.error("Error parsing extracted JSON:", innerError);
+        }
       }
     }
-    return Array.isArray(data) ? data : JSON.parse(data);
-  };
-  const generateQuestions = async () => {
-    const baseUrl = 'https://us-central1-square-score-ai.cloudfunctions.net';
-    
-    try {
-      setGenerating(true);
-      setProgress(0);
-      setProgressText('0%');
-  
-      const animateProgress = async (start, end, duration) => {
-        const startTime = Date.now();
-        const incrementInterval = 1666.67; // ~1667ms for each 1% increment (40000ms / 24%)
-        let currentProgress = start;
-  
-        return new Promise(resolve => {
-          const animate = () => {
-            const elapsedTime = Date.now() - startTime;
-            if (elapsedTime >= duration || currentProgress >= end) {
-              setProgress(end);
-              setProgressText(`${end}%`);
-              resolve();
-            } else {
-              currentProgress = Math.min(end, start + Math.floor(elapsedTime / incrementInterval));
-              setProgress(currentProgress);
-              setProgressText(`${currentProgress}%`);
-              requestAnimationFrame(animate);
-            }
-          };
-          requestAnimationFrame(animate);
-        });
-      };
-  
-     
-      const generateQuarter = async (step, retryCount = 0) => {
-        const quarterStart = (step - 1) * 24;
-        const quarterEnd = step * 24;
-        
-        const quarterPromise = new Promise(async (resolve) => {
-          try {
-            const response = await axios.post(
-              step === 1 ? `${baseUrl}/GenerateAMCQstep1` : `${baseUrl}/GenerateAMCQstep2`,
-              {
-                sourceText,
-                selectedOptions,
-                additionalInstructions,
-                ...(step !== 1 && { previousQuestions: generatedQuestions })
-              }
-            );
-            
-            console.log(`Full API response for step ${step}:`, response);
-  
-            let newQuestions = parseQuestions(response);
-            if (newQuestions.length === 0) {
-              throw new Error('Invalid API response: No questions generated');
-            }
-            setGeneratedQuestions(prevQuestions => [...prevQuestions, ...newQuestions]);
-            setQuestionCount(prevCount => prevCount + newQuestions.length);
-          } catch (error) {
-            console.error(`Error in generateQuarter for step ${step}:`, error);
-            if (error.response) {
-              console.error('Error response:', error.response.data);
-            }
-            if (retryCount < 1) {
-              console.log(`Retrying step ${step}...`);
-              return generateQuarter(step, retryCount + 1);
-            } else {
-              throw error; // Re-throw the error if we've already retried
-            }
-          } finally {
-            resolve();
-          }
-        });
-  
-        const progressPromise = animateProgress(quarterStart, quarterEnd, 40000);
-  
-        await Promise.race([quarterPromise, progressPromise]);
-        
-        setProgress(quarterEnd);
-        setProgressText(`${quarterEnd}%`);
-      };
-  
-      // Generate questions for each quarter
-      for (let i = 1; i <= 4; i++) {
-        await generateQuarter(i);
-      }
-  
-      // Check if we need an extra step
-      if (generatedQuestions.length < 40) {
-        console.log("Not enough questions generated. Running an extra step...");
-        await generateQuarter(5);
-      }
-  
-      setShowPreview(true);
-    } catch (error) {
-      console.error('Error in generateQuestions:', error);
-      if (error.response) {
-        console.error('Response data:', error.response.data);
-        console.error('Response status:', error.response.status);
-      }
-    } finally {
-      setGenerating(false);
-      setProgress(100);
-      setProgressText('100%');
-    }
-  };
+  }
+
+  console.error("Failed to parse response. Raw data:", data);
+  return [];
+};
+
+ 
 
   
-  const generateAdditionalQuestions = async (step) => {
-    const baseUrl = 'https://us-central1-square-score-ai.cloudfunctions.net';
-    
-    try {
-      const response = await axios.post(`${baseUrl}/GenerateAMCQstep2`, {
-        sourceText,
-        selectedOptions,
-        additionalInstructions,
-        previousQuestions: generatedQuestions
-      });
+  
+const generateQuestions = async () => {
+  const baseUrl = 'https://us-central1-square-score-ai.cloudfunctions.net';
+  
+  try {
+    setGenerating(true);
+    setProgress(0);
+    setProgressText('0%');
+    setGeneratedQuestions([]); // Clear previous questions
+
+    const generateQuarter = async (step, retryCount = 0) => {
+      const quarterStart = (step - 1) * 24;
+      const quarterEnd = step * 24;
       
-      let newQuestions = parseQuestions(response);
-      
-      setGeneratedQuestions(prevQuestions => [...prevQuestions, ...newQuestions]);
-      setQuestionCount(prevCount => prevCount + newQuestions.length);
-      
-      const newProgress = step * 25;
-      setProgress(newProgress);
-      setProgressText(`${newProgress}%`);
-    } catch (error) {
-      console.error('Error generating additional questions:', error);
-      if (error.response) {
-        console.error('Response data:', error.response.data);
-        console.error('Response status:', error.response.status);
+      try {
+        const response = await axios.post(
+          step === 1 ? `${baseUrl}/GenerateAMCQstep1` : `${baseUrl}/GenerateAMCQstep2`,
+          {
+            sourceText,
+            selectedOptions,
+            additionalInstructions,
+            classId,
+            teacherId,
+            ...(step !== 1 && { previousQuestions: generatedQuestions })
+          }
+        );
+        
+        console.log(`Full API response for step ${step}:`, response);
+
+        let newQuestions = JSON.parse(response.data.questions);
+        if (!Array.isArray(newQuestions) || newQuestions.length === 0) {
+          throw new Error('Invalid API response: No questions generated');
+        }
+        setGeneratedQuestions(prevQuestions => [...prevQuestions, ...newQuestions]);
+      } catch (error) {
+        console.error(`Error in generateQuarter for step ${step}:`, error);
+        if (retryCount < 1) {
+          console.log(`Retrying step ${step}...`);
+          return generateQuarter(step, retryCount + 1);
+        } else {
+          throw error;
+        }
       }
+
+      setProgress(quarterEnd);
+      setProgressText(`${quarterEnd}%`);
+    };
+
+    // Generate questions for each quarter
+    for (let i = 1; i <= 4; i++) {
+      await generateQuarter(i);
     }
-  };
-  const handleGenerateQuestions = () => {
-    if (generatedQuestions.length > 0) {
-      setShowPreview(true);
-    } else {
-      generateQuestions();
+
+    // Check if we need an extra step
+    if (generatedQuestions.length < 40) {
+      console.log("Not enough questions generated. Running an extra step...");
+      await generateQuarter(5);
     }
-  };
+
+    setShowPreview(true);
+  } catch (error) {
+    console.error('Error in generateQuestions:', error);
+    alert('An error occurred while generating questions. Please try again.');
+  } finally {
+    setGenerating(false);
+    setProgress(100);
+    setProgressText('100%');
+  }
+};
+
+const handleGenerateQuestions = () => {
+  if (generatedQuestions.length > 0) {
+    setShowPreview(true);
+  } else {
+    generateQuestions();
+  }
+};
+
 
   const handleSaveQuestions = () => {
     setGeneratedQuestions(generatedQuestions);
   };
 
-  const calculateScore = (difficulty, isCorrect, streak) => {
-    let score = 0;
-    switch (difficulty) {
-      case 'hard':
-        score = isCorrect ? 3 : -1;
-        break;
-      case 'medium':
-        score = isCorrect ? 2 : -2;
-        break;
-      case 'easy':
-        score = isCorrect ? 1 : -1;
-        break;
-      default:
-        break;
-    }
-
-    if (isCorrect) {
-      score += 0.5 * streak;
-    }
-
-    return score;
-  };
+  
   useEffect(() => {
     const fetchClassName = async () => {
       const classDocRef = doc(db, 'classes', classId);
@@ -660,7 +602,7 @@ const [questionCount, setQuestionCount] = useState(0);
       padding: '10px',
       paddingLeft: '25px',
       outline: 'none',
-      border: '6px solid #F4F4F4',
+      border: '4px solid #F4F4F4',
       borderRadius: '10px',
       fontFamily: "'Radio Canada', sans-serif",
       fontWeight: 'bold',
@@ -681,8 +623,8 @@ const [questionCount, setQuestionCount] = useState(0);
   </span>
 </div>
             <div style={{ width: '810px', display: 'flex' }}>
-              <div style={{ marginBottom: '20px', width: '790px', height: '320px', borderRadius: '10px', border: '4px solid #F4F4F4' }}>
-                <div style={{ width: '730px', marginLeft: '20px', height: '80px', borderBottom: '6px solid lightgrey', display: 'flex', position: 'relative', alignItems: 'center', borderRadius: '0px', padding: '10px' }}>
+              <div style={{ marginBottom: '20px', width: '790px', height: '200px', borderRadius: '10px', border: '4px solid #F4F4F4' }}>
+                <div style={{ width: '730px', marginLeft: '20px', height: '80px', borderBottom: '4px solid lightgrey', display: 'flex', position: 'relative', alignItems: 'center', borderRadius: '0px', padding: '10px' }}>
                   <h1 style={{ fontSize: '30px', color: 'black', width: '300px', paddingLeft: '0px' }}>Timer:</h1>
                   {timerOn ? (
                     <div style={{ display: 'flex', alignItems: 'center', position: 'relative', marginLeft: '30px' }}>
@@ -694,7 +636,7 @@ const [questionCount, setQuestionCount] = useState(0);
                           width: '50px',
                           textAlign: 'center',
                           fontWeight: 'bold',
-                          border: '6px solid transparent',
+                          border: '4px solid transparent',
                           outline: 'none',
                           borderRadius: '5px',
                           fontSize: '30px',
@@ -727,7 +669,7 @@ const [questionCount, setQuestionCount] = useState(0);
                     onChange={() => setTimerOn(!timerOn)}
                   />
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', height: '80px', width: '750px', marginLeft: '20px', borderBottom: '6px solid lightgrey', position: 'relative', marginTop: '0px', paddingBottom: '20px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', height: '80px', width: '750px', marginLeft: '20px', borderBottom: '0px solid lightgrey', position: 'relative', marginTop: '0px', paddingBottom: '20px' }}>
                   <label style={{ fontSize: '30px', color: 'black', marginLeft: '10px', marginRight: '38px', marginTop: '13px', fontFamily: "'Radio Canada', sans-serif", fontWeight: 'bold' }}>Feedback: </label>
                   <div style={{ display: 'flex', justifyContent: 'space-around', width: '500px', marginLeft: '100px', alignItems: 'center', marginTop: '20px' }}>
                     <div
@@ -771,40 +713,7 @@ const [questionCount, setQuestionCount] = useState(0);
                     </div>
                   </div>
                 </div>
-                <div style={{ width: '750px', height: '80px', border: '6px solid transparent', display: 'flex', position: 'relative', alignItems: 'center', borderRadius: '10px', padding: '10px' }}>
-                  <h1 style={{ fontSize: '30px', color: 'black', width: '400px', paddingLeft: '20px' }}>Choices Per Question</h1>
-                  <div style={{ marginLeft: 'auto', marginTop: '45px', display: 'flex', position: 'relative', alignItems: 'center' }}>
-                    {[2, 3, 4, 5].map((num) => (
-                      <button
-                        key={num}
-                        onClick={() => {
-                          if (selectedOptions.includes(num)) {
-                            setSelectedOptions(selectedOptions.filter(n => n !== num));
-                          } else {
-                            setSelectedOptions([...selectedOptions, num]);
-                          }
-                        }}
-                        style={{
-                          width: '85px',
-                          height: '40px',
-                          marginLeft: '20px',
-                          marginTop: '-45px',
-                          backgroundColor: selectedOptions.includes(num) ? optionStyles[num].background : 'white',
-                          border: selectedOptions.includes(num) ? `5px solid ${optionStyles[num].color}` : '6px solid lightgrey',
-                          borderRadius: '105px',
-                          cursor: 'pointer',
-                          transition: 'all 0.3s ease',
-                        }}
-                      >
-                        <h1 style={{
-                          fontSize: '24px',
-                          color: selectedOptions.includes(num) ? optionStyles[num].color : 'black',
-                          margin: 0,
-                        }}>{num}</h1>
-                      </button>
-                    ))}
-                  </div>
-                </div>
+                
               </div>
             </div>
             <div style={{ width: '770px', padding: '10px', border: '4px solid #F4F4F4', borderRadius: '10px' }}>
@@ -937,79 +846,67 @@ const [questionCount, setQuestionCount] = useState(0);
                   {/* Questions Section */}
                   <div style={{ width: '730px', background: 'lightgrey', height: '3px', marginLeft: '20px', marginTop: '20px' }}></div>
                   {/* Source Section */}
+
+
+                  <div style={{ width: '750px', height: '80px', border: '4px solid transparent', display: 'flex', position: 'relative', alignItems: 'center', borderRadius: '10px', padding: '10px', marginLeft: '-10px' }}>
+                  <h1 style={{ fontSize: '30px', color: 'black', width: '400px', paddingLeft: '20px' }}>Choices Per Question</h1>
+                  <div style={{ marginLeft: 'auto', marginTop: '45px', display: 'flex', position: 'relative', alignItems: 'center' }}>
+                    {[2, 3, 4, 5].map((num) => (
+                      <button
+                        key={num}
+                        onClick={() => {
+                          if (selectedOptions.includes(num)) {
+                            setSelectedOptions(selectedOptions.filter(n => n !== num));
+                          } else {
+                            setSelectedOptions([...selectedOptions, num]);
+                          }
+                        }}
+                        style={{
+                          width: '85px',
+                          height: '40px',
+                          marginLeft: '20px',
+                          marginTop: '-45px',
+                          backgroundColor: selectedOptions.includes(num) ? optionStyles[num].background : 'white',
+                          border: selectedOptions.includes(num) ? `5px solid ${optionStyles[num].color}` : '6px solid lightgrey',
+                          borderRadius: '105px',
+                          cursor: 'pointer',
+                          transition: 'all 0.3s ease',
+                        }}
+                      >
+                        <h1 style={{
+                          fontSize: '24px',
+                          color: selectedOptions.includes(num) ? optionStyles[num].color : 'black',
+                          margin: 0,
+                        }}>{num}</h1>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div style={{ width: '730px', background: 'lightgrey', height: '3px', marginLeft: '20px', marginTop: '0px' }}></div>
+                
+
                   <div style={{ width: '740px', marginLeft: '20px', }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px', marginTop: '30px' }}>
-                      {['text'].map((option) => (
-                        <button
-                          key={option}
-                          onClick={() => setSourceOption(option)}
-                          style={{
-                            width: '30%',
-                            padding: '10px',
-                            fontWeight: 'BOLD',
-                            fontSize: '20px',
-                            backgroundColor: sourceOption === option ? 'black' : 'lightgrey',
-                            color: sourceOption === option ? 'white' : 'grey',
-                            marginBottom: '20px',
-                            border: 'none',
-                            borderRadius: '10px',
-                            cursor: 'pointer'
-                          }}
-                        >
-                          {option.charAt(0).toUpperCase() + option.slice(1)}
-                        </button>
-                      ))}
-                    </div>
-                    {sourceOption === 'text' && (
-                      <textarea
-                        placeholder="Paste source here"
-                        value={sourceText}
-                        onChange={(e) => setSourceText(e.target.value)}
-                        style={{
-                          width: '688px',
-                          height: '100px',
-                          fontSize: '16px',
-                          background: '#F1F1F1',
-                          borderLeft: '10px solid #f1f1f1',
-                          borderBottom: '20px solid #f1f1f1',
-                          borderTop: '0px solid #f1f1f1',
-                          outline: 'none', padding: '20px',
-                          borderRadius: '10px',
-                          resize: 'vertical'
-                        }}
-                      />
-                    )}
-                    {sourceOption === 'pdf' && (
-                      <input
-                        type="file"
-                        accept=".pdf"
-                        onChange={(e) => {
-                          // Handle PDF file upload
-                        }}
-                        style={{
-                          width: '100%',
-                          padding: '10px',
-                          fontSize: '16px',
-                          border: '4px solid #F4F4F4',
-                          borderRadius: '10px'
-                        }}
-                      />
-                    )}
-                    {sourceOption === 'youtube' && (
-                      <input
-                        type="text"
-                        placeholder="Paste YouTube link"
-                        value={youtubeLink}
-                        onChange={(e) => setYoutubeLink(e.target.value)}
-                        style={{
-                          width: '715px',
-                          padding: '10px',
-                          fontSize: '16px',
-                          border: '4px solid #F4F4F4',
-                          borderRadius: '10px'
-                        }}
-                      />
-                    )}
+               
+                   
+               <textarea
+                 placeholder="Paste source here"
+                 value={sourceText}
+                 onChange={(e) => setSourceText(e.target.value)}
+                 style={{
+                   width: '688px',
+                   height: '100px',
+                   marginTop: '30px',
+                   fontSize: '16px',
+                   background: '#F4F4F4',
+                   padding: '20px 20px',
+                   border: 'none',
+                   outline: 'none',
+                   borderRadius: '10px',
+                   resize: 'vertical'
+                 }}
+               />
+             
 
                     {/* Additional Instructions Section */}
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '-15px' }}>
@@ -1055,10 +952,7 @@ const [questionCount, setQuestionCount] = useState(0);
                       />
                     )}
                     {/* Generate Questions Button */}
-                    {sourceOption && (
-                      (sourceOption === 'text' && sourceText) ||
-                      (sourceOption === 'youtube' && youtubeLink)
-                    ) && Number(questionBank) >= Number(questionStudent) && (
+                    {sourceText.trim() !== '' && Number(questionBank) >= Number(questionStudent) && (
                       <div style={{ display: 'flex', alignItems: 'center', marginTop: '20px' }}>
                         <button
                           onClick={handleGenerateQuestions}

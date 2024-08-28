@@ -1,23 +1,25 @@
 const functions = require('firebase-functions');
 const { Anthropic } = require('@anthropic-ai/sdk');
 const cors = require('cors')({origin: true});
+const admin = require('firebase-admin');
+admin.initializeApp();
 
-exports.dummyFunction = functions.https.onRequest((req, res) => {
-    return cors(req, res, async () => {
-        if (req.method !== "POST") {
-            return res.status(400).send("Please send a POST request");
-        }
+exports.GenerateSAQ = functions.https.onRequest((req, res) => {
+  return cors(req, res, async () => {
+      if (req.method !== "POST") {
+          return res.status(400).send("Please send a POST request");
+      }
 
-        const { sourceText, questionCount,additionalInstructions } = req.body;
+      const { sourceText, questionCount, additionalInstructions, classId,teacherId } = req.body;
 
-        // Retrieve the API key from Firebase Function Configuration
-        const ANTHROPIC_API_KEY = functions.config().anthropic.key;
+      // Retrieve the API key from Firebase Function Configuration
+      const ANTHROPIC_API_KEY = functions.config().anthropic.key;
 
-        const anthropic = new Anthropic({
-            apiKey: ANTHROPIC_API_KEY,
-        });
+      const anthropic = new Anthropic({
+          apiKey: ANTHROPIC_API_KEY,
+      });
 
-        try {
+      try {
           let prompt = `Generate ${questionCount} questions and expected responses from the following source. Each question should have an expected response (not more than 10 words, not in complete sentence format). If there are multiple expected responses, separate them by commas. If there are more factual responses than listed, add "etc."`;
 
           if (additionalInstructions) {
@@ -28,18 +30,18 @@ exports.dummyFunction = functions.https.onRequest((req, res) => {
 
 Provide the output as a valid JSON array where each object has "question" and "expectedResponse" fields. The entire response should be parseable as JSON. Here's the exact format to use:
 
-  [
-    {
-      "question": "string",
-      "expectedResponse": "string"
-    },
-    {
-      "question": "string",
-      "expectedResponse": "string"
-    },
-    ...
-  ]
- 
+[
+  {
+    "question": "string",
+    "expectedResponse": "string"
+  },
+  {
+    "question": "string",
+    "expectedResponse": "string"
+  },
+  ...
+]
+
 
 Generate questions and their expected responses based on this source: ${sourceText}
 
@@ -57,29 +59,79 @@ remember that your max output is 4096 tokens so dont try to generate over that a
               ]
           });
 
-            console.log("Raw API response:", JSON.stringify(response, null, 2));
+          console.log("Raw API response:", JSON.stringify(response, null, 2));
 
-            let cleanedResponse = response.content[0].text.trim();
-            if (cleanedResponse.startsWith("```json")) {
-                cleanedResponse = cleanedResponse.replace(/```json|```/g, "").trim();
-            }
+          let cleanedResponse = response.content[0].text.trim();
+          if (cleanedResponse.startsWith("```json")) {
+              cleanedResponse = cleanedResponse.replace(/```json|```/g, "").trim();
+          }
 
-            let questions;
-            try {
-                questions = JSON.parse(cleanedResponse);
-            } catch (parseError) {
-                console.error("Error parsing JSON:", parseError);
-                console.log("Cleaned content:", cleanedResponse);
-                throw new Error("Failed to parse API response as JSON");
-            }
+          let questions;
+          try {
+              questions = JSON.parse(cleanedResponse);
+          } catch (parseError) {
+              console.error("Error parsing JSON:", parseError);
+              console.log("Cleaned content:", cleanedResponse);
+              throw new Error("Failed to parse API response as JSON");
+          }
 
-            res.json({ questions });
-        } catch (error) {
-            console.error("Anthropic API Error:", error);
-            res.status(500).json({ error: error.message });
-        }
-    });
+          // Calculate token usage
+          const inputTokens = response.usage.input_tokens;
+          const outputTokens = response.usage.output_tokens;
+    
+          // Get current timestamp
+          const timestamp = admin.firestore.Timestamp.now();
+    
+          // Get current month and year
+          const currentDate = new Date();
+          const monthYear = `${currentDate.getMonth() + 1}${currentDate.getFullYear()}`;
+    
+          // Create a batch write
+          const batch = admin.firestore().batch();
+    
+          // Update class document
+          const classRef = admin.firestore().collection('classes').doc(classId);
+          batch.update(classRef, {
+            geninput: admin.firestore.FieldValue.increment(inputTokens),
+            genoutput: admin.firestore.FieldValue.increment(outputTokens),
+            [`${monthYear}Input`]: admin.firestore.FieldValue.increment(inputTokens),
+            [`${monthYear}Output`]: admin.firestore.FieldValue.increment(outputTokens),
+            usageHistory: admin.firestore.FieldValue.arrayUnion({
+              timestamp: timestamp,
+              inputTokens: inputTokens,
+              outputTokens: outputTokens,
+              function: 'GenerateSAQ',
+              teacherId: teacherId
+            })
+          });
+    
+          // Update teacher document
+          const teacherRef = admin.firestore().collection('teachers').doc(teacherId);
+          batch.update(teacherRef, {
+            geninput: admin.firestore.FieldValue.increment(inputTokens),
+            genoutput: admin.firestore.FieldValue.increment(outputTokens),
+            [`${monthYear}Input`]: admin.firestore.FieldValue.increment(inputTokens),
+            [`${monthYear}Output`]: admin.firestore.FieldValue.increment(outputTokens),
+            usageHistory: admin.firestore.FieldValue.arrayUnion({
+              timestamp: timestamp,
+              inputTokens: inputTokens,
+              outputTokens: outputTokens,
+              function: 'GenerateSAQ',
+              classId: classId
+            })
+          });
+    
+          // Commit the batch
+          await batch.commit();
+
+          res.json({ questions, inputTokens, outputTokens });
+      } catch (error) {
+          console.error("Anthropic API Error:", error);
+          res.status(500).json({ error: error.message });
+      }
+  });
 });
+
 
 
 
@@ -89,7 +141,7 @@ exports.GenerateAMCQstep1 = functions.https.onRequest((req, res) => {
             return res.status(400).send("Please send a POST request");
         }
 
-        const { sourceText, selectedOptions, additionalInstructions } = req.body;
+        const { sourceText, selectedOptions, additionalInstructions, classId, teacherId } = req.body;
 
         const ANTHROPIC_API_KEY = functions.config().anthropic.key;
 
@@ -152,7 +204,59 @@ const response = await anthropic.messages.create({
     ]
 });
 
-res.status(200).send(response.content[0].text);
+const inputTokens = response.usage.input_tokens;
+const outputTokens = response.usage.output_tokens;
+
+// Get current timestamp
+const timestamp = admin.firestore.Timestamp.now();
+
+// Get current month and year
+const currentDate = new Date();
+const monthYear = `${currentDate.getMonth() + 1}${currentDate.getFullYear()}`;
+
+// Create a batch write
+const batch = admin.firestore().batch();
+
+// Update class document
+const classRef = admin.firestore().collection('classes').doc(classId);
+batch.update(classRef, {
+  geninput: admin.firestore.FieldValue.increment(inputTokens),
+  genoutput: admin.firestore.FieldValue.increment(outputTokens),
+  [`${monthYear}Input`]: admin.firestore.FieldValue.increment(inputTokens),
+  [`${monthYear}Output`]: admin.firestore.FieldValue.increment(outputTokens),
+  usageHistory: admin.firestore.FieldValue.arrayUnion({
+    timestamp: timestamp,
+    inputTokens: inputTokens,
+    outputTokens: outputTokens,
+    function: 'GenerateAMCQ1.1',
+    teacherId: teacherId
+  })
+});
+
+// Update teacher document
+const teacherRef = admin.firestore().collection('teachers').doc(teacherId);
+batch.update(teacherRef, {
+  geninput: admin.firestore.FieldValue.increment(inputTokens),
+  genoutput: admin.firestore.FieldValue.increment(outputTokens),
+  [`${monthYear}Input`]: admin.firestore.FieldValue.increment(inputTokens),
+  [`${monthYear}Output`]: admin.firestore.FieldValue.increment(outputTokens),
+  usageHistory: admin.firestore.FieldValue.arrayUnion({
+    timestamp: timestamp,
+    inputTokens: inputTokens,
+    outputTokens: outputTokens,
+    function: 'GenerateAMCQ1.1',
+    classId: classId
+  })
+});
+
+// Commit the batch
+await batch.commit();
+
+res.status(200).json({ 
+    questions: response.content[0].text,
+    inputTokens: inputTokens,
+    outputTokens: outputTokens
+});
 } catch (error) {
 console.error("Error generating questions:", error);
 res.status(500).json({ error: error.message });
@@ -160,13 +264,16 @@ res.status(500).json({ error: error.message });
 });
 });
 
+
+
+
 exports.GenerateAMCQstep2 = functions.https.onRequest((req, res) => {
     return cors(req, res, async () => {
         if (req.method !== "POST") {
             return res.status(400).send("Please send a POST request");
         }
 
-        const { sourceText, selectedOptions, additionalInstructions, previousQuestions } = req.body;
+        const { sourceText, selectedOptions, additionalInstructions, previousQuestions, classId, teacherId } = req.body;
 
         const ANTHROPIC_API_KEY = functions.config().anthropic.key;
 
@@ -225,7 +332,59 @@ const response = await anthropic.messages.create({
     ]
 });
 
-res.status(200).send(response.content[0].text);
+const inputTokens = response.usage.input_tokens;
+const outputTokens = response.usage.output_tokens;
+
+// Get current timestamp
+const timestamp = admin.firestore.Timestamp.now();
+
+// Get current month and year
+const currentDate = new Date();
+const monthYear = `${currentDate.getMonth() + 1}${currentDate.getFullYear()}`;
+
+// Create a batch write
+const batch = admin.firestore().batch();
+
+// Update class document
+const classRef = admin.firestore().collection('classes').doc(classId);
+batch.update(classRef, {
+  geninput: admin.firestore.FieldValue.increment(inputTokens),
+  genoutput: admin.firestore.FieldValue.increment(outputTokens),
+  [`${monthYear}Input`]: admin.firestore.FieldValue.increment(inputTokens),
+  [`${monthYear}Output`]: admin.firestore.FieldValue.increment(outputTokens),
+  usageHistory: admin.firestore.FieldValue.arrayUnion({
+    timestamp: timestamp,
+    inputTokens: inputTokens,
+    outputTokens: outputTokens,
+    function: 'GenerateAMCQ1x',
+    teacherId: teacherId
+  })
+});
+
+// Update teacher document
+const teacherRef = admin.firestore().collection('teachers').doc(teacherId);
+batch.update(teacherRef, {
+  geninput: admin.firestore.FieldValue.increment(inputTokens),
+  genoutput: admin.firestore.FieldValue.increment(outputTokens),
+  [`${monthYear}Input`]: admin.firestore.FieldValue.increment(inputTokens),
+  [`${monthYear}Output`]: admin.firestore.FieldValue.increment(outputTokens),
+  usageHistory: admin.firestore.FieldValue.arrayUnion({
+    timestamp: timestamp,
+    inputTokens: inputTokens,
+    outputTokens: outputTokens,
+    function: 'GenerateAMCQ1x',
+    classId: classId
+  })
+});
+
+// Commit the batch
+await batch.commit();
+
+res.status(200).json({ 
+    questions: response.content[0].text,
+    inputTokens: inputTokens,
+    outputTokens: outputTokens
+});
 } catch (error) {
 console.error("Error generating questions:", error);
 res.status(500).json({ error: error.message });
@@ -233,59 +392,171 @@ res.status(500).json({ error: error.message });
 });
 });
 
+
+
+
+
+
 exports.GenerateMCQ = functions.https.onRequest((req, res) => {
-    return cors(req, res, async () => {
-        if (req.method !== "POST") {
-            return res.status(400).send("Please send a POST request");
-        }
-
-        try {
-            const { willThisWork } = req.body;
-
-            // Example grading logic
-            let result;
-            if (willThisWork === 'Sample text for testing') {
-                result = 'Correct';
-            } else {
-                result = 'Incorrect';
-            }
-
-            res.status(200).send({ result });
-        } catch (error) {
-            console.error('Error grading SAQ:', error);
-            res.status(500).send('Internal Server Error');
-        }
-    });
-});
-exports.GenerateASAQ = functions.https.onRequest((req, res) => {
   return cors(req, res, async () => {
-      if (req.method !== "POST") {
-          return res.status(400).send("Please send a POST request");
+    if (req.method !== "POST") {
+      return res.status(400).send("Please send a POST request");
+    }
+
+    const { sourceText, selectedOptions, additionalInstructions, classId, teacherId, questionCount, feedback } = req.body;
+
+    const ANTHROPIC_API_KEY = functions.config().anthropic.key;
+
+    const anthropic = new Anthropic({
+      apiKey: ANTHROPIC_API_KEY,
+    });
+
+    try {
+      let prompt = `
+      Generate ${questionCount} multiple choice questions based on the provided source. Each question should have a number of choices randomly selected from ${selectedOptions.join(', ')}. Only 1 answer per question should be correct. Each choice must be 40 characters or less.${feedback ? " Provide a concise 1-2 sentence explanation for each choice that explains why it is correct or incorrect, offering specific insights from the source material." : ""}
+
+      Format your response as a valid JSON array of question objects. Each object should have the following structure:
+      {
+        "choices": <number of choices>,
+        "correct": "<letter of correct answer>",
+        "question": "<question text>",
+        "a": "<choice A text>",
+        "b": "<choice B text>",
+        ${feedback ? `
+        "explanation_a": "<concise explanation for choice A>",
+        "explanation_b": "<concise explanation for choice B>",
+        ` : ""}
+        ...
       }
+      Guidelines:
 
-      const { sourceText, additionalInstructions } = req.body;
+      -Choose number of choices randomly from: ${selectedOptions.join(', ')}
+      -Only 1 correct answer per question
+      -All choices must be 40 characters or less
+      ${feedback ? "-Provide 1-2 sentence explanation for each choice" : ""}
+      -Base all content strictly on the source material
+      -No phrases like "The source states" in choices/explanations
+      -No external information or assumptions
+      -Use proper JSON formatting (quotes, commas)
+      -Do not exceed 4096 tokens
 
-      // Retrieve the API key from Firebase Function Configuration
-      const ANTHROPIC_API_KEY = functions.config().anthropic.key;
+      Source: ${sourceText}
+      ${additionalInstructions ? `Additional instructions: ${additionalInstructions}` : ''}
 
-      const anthropic = new Anthropic({
-          apiKey: ANTHROPIC_API_KEY,
+      IMPORTANT: Return ONLY the JSON array of question objects in absolutely perfect format. No other text.
+      `
+
+      const response = await anthropic.messages.create({
+        model: "claude-3-haiku-20240307",
+        max_tokens: 4096,
+        messages: [
+          {
+            role: "user",
+            content: prompt
+          }
+        ]
       });
 
-      try {
-        let prompt = `
-        Generate 40 questions and expected responses from the provided source. Each question should 
-        have an expected response (not more than 10 words, not in complete sentence format). If there
-         are multiple expected responses, separate them by commas. If there are more factual 
-         responses than listed, add "etc."`;
+      const inputTokens = response.usage.input_tokens;
+      const outputTokens = response.usage.output_tokens;
 
-        if (additionalInstructions) {
-            prompt += ` Additional instructions regarding source or question generation: ${additionalInstructions}`;
-        }
+      // Get current timestamp
+      const timestamp = admin.firestore.Timestamp.now();
 
-        prompt += `
+      // Get current month and year
+      const currentDate = new Date();
+      const monthYear = `${currentDate.getMonth() + 1}${currentDate.getFullYear()}`;
 
-Your output must be a valid JSON array containing exactly 45 objects, with 12 easy questions, 13 medium questions, and 20 hard questions. Each object should have "question", "difficulty", and "expectedResponse" fields.
+      // Create a batch write
+      const batch = admin.firestore().batch();
+
+      // Update class document
+      const classRef = admin.firestore().collection('classes').doc(classId);
+      batch.update(classRef, {
+        geninput: admin.firestore.FieldValue.increment(inputTokens),
+        genoutput: admin.firestore.FieldValue.increment(outputTokens),
+        [`${monthYear}Input`]: admin.firestore.FieldValue.increment(inputTokens),
+        [`${monthYear}Output`]: admin.firestore.FieldValue.increment(outputTokens),
+        usageHistory: admin.firestore.FieldValue.arrayUnion({
+          timestamp: timestamp,
+          inputTokens: inputTokens,
+          outputTokens: outputTokens,
+          function: 'GenerateMCQ',
+          teacherId: teacherId
+        })
+      });
+
+      // Update teacher document
+      const teacherRef = admin.firestore().collection('teachers').doc(teacherId);
+      batch.update(teacherRef, {
+        geninput: admin.firestore.FieldValue.increment(inputTokens),
+        genoutput: admin.firestore.FieldValue.increment(outputTokens),
+        [`${monthYear}Input`]: admin.firestore.FieldValue.increment(inputTokens),
+        [`${monthYear}Output`]: admin.firestore.FieldValue.increment(outputTokens),
+        usageHistory: admin.firestore.FieldValue.arrayUnion({
+          timestamp: timestamp,
+          inputTokens: inputTokens,
+          outputTokens: outputTokens,
+          function: 'GenerateMCQ',
+          classId: classId
+        })
+      });
+
+      // Commit the batch
+      await batch.commit();
+
+      res.status(200).json({ 
+        questions: response.content[0].text,
+        inputTokens: inputTokens,
+        outputTokens: outputTokens
+      });
+    } catch (error) {
+      console.error("Error generating questions:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+});
+
+
+
+
+exports.GenerateASAQ = functions.https.onRequest((req, res) => {
+  return cors(req, res, async () => {
+    if (req.method !== "POST") {
+      return res.status(400).send("Please send a POST request");
+    }
+
+    const { sourceText, additionalInstructions, classId, teacherId } = req.body;
+
+    // Retrieve the API key from Firebase Function Configuration
+    const ANTHROPIC_API_KEY = functions.config().anthropic.key;
+
+    const anthropic = new Anthropic({
+      apiKey: ANTHROPIC_API_KEY,
+    });
+
+    try {
+      let prompt = `
+      Generate 40 questions and expected responses from the provided source. Each question should 
+      have an expected response (not more than 10 words, not in complete sentence format). If there
+       are multiple expected responses, separate them by commas. If there are more factual 
+       responses than listed, add "etc."`;
+
+      if (additionalInstructions) {
+        prompt += ` Additional instructions regarding source or question generation: ${additionalInstructions}`;
+      }
+
+      prompt += `
+
+Your output must be a valid JSON array containing exactly 45 objects, with 12 easy questions,
+ 13 medium questions, and 20 hard questions.
+ 
+-Easy questions : Basic recall and understanding
+-Medium questions : Application and some analysis
+-Hard questions : Complex analysis or synthesis.
+
+ In the array each object should have "question", "difficulty", 
+ and "expectedResponse" fields.
 Important:
 
 Provide ONLY the JSON array in your response, with no additional text before or after.
@@ -311,20 +582,154 @@ Here's the exact format to use:
 
 
 Generate questions and their expected responses based on this source: ${sourceText}
-Your reponse must have 12 easy questions, 13 medium questions, and 15 hard questions.
-Remember to only include the JSON array in your response, with no additional text, Remember that you must  add commas between all property-value pairs within each object to make a valid json array,
-remember that your max output is 4096 tokens so dont try to generate over that as you might get cut off Provide the output as a valid JSON array- with the proper loacation of "s and ,s'`;
+Your response must have 12 easy questions, 13 medium questions, and 15 hard questions.
+Remember to only include the JSON array in your response, with no additional text, 
+Remember that you must  add commas between all property-value pairs within each object to make a 
+valid json array, remember that your max output is 4096 tokens so dont try to generate 
+over that as you might get cut off Provide the output as a valid JSON array- with the proper 
+location of "s and ,s'`;
 
-        const response = await anthropic.messages.create({
-            model: "claude-3-haiku-20240307",
-            max_tokens: 4096,
-            messages: [
-                {
-                    role: "user",
-                    content: prompt
-                }
-            ]
-        });
+      const response = await anthropic.messages.create({
+        model: "claude-3-haiku-20240307",
+        max_tokens: 4096,
+        messages: [
+          {
+            role: "user",
+            content: prompt
+          }
+        ]
+      });
+
+      console.log("Raw API response:", JSON.stringify(response, null, 2));
+
+      let cleanedResponse = response.content[0].text.trim();
+      if (cleanedResponse.startsWith("```json")) {
+        cleanedResponse = cleanedResponse.replace(/```json|```/g, "").trim();
+      }
+
+      let questions;
+      try {
+        questions = JSON.parse(cleanedResponse);
+      } catch (parseError) {
+        console.error("Error parsing JSON:", parseError);
+        console.log("Cleaned content:", cleanedResponse);
+        throw new Error("Failed to parse API response as JSON");
+      }
+
+      const inputTokens = response.usage.input_tokens;
+      const outputTokens = response.usage.output_tokens;
+
+      // Get current timestamp
+      const timestamp = admin.firestore.Timestamp.now();
+
+      // Get current month and year
+      const currentDate = new Date();
+      const monthYear = `${currentDate.getMonth() + 1}${currentDate.getFullYear()}`;
+
+      // Create a batch write
+      const batch = admin.firestore().batch();
+
+      // Update class document
+      const classRef = admin.firestore().collection('classes').doc(classId);
+      batch.update(classRef, {
+        geninput: admin.firestore.FieldValue.increment(inputTokens),
+        genoutput: admin.firestore.FieldValue.increment(outputTokens),
+        [`${monthYear}Input`]: admin.firestore.FieldValue.increment(inputTokens),
+        [`${monthYear}Output`]: admin.firestore.FieldValue.increment(outputTokens),
+        usageHistory: admin.firestore.FieldValue.arrayUnion({
+          timestamp: timestamp,
+          inputTokens: inputTokens,
+          outputTokens: outputTokens,
+          function: 'GenerateASAQ',
+          teacherId: teacherId
+        })
+      });
+
+      // Update teacher document
+      const teacherRef = admin.firestore().collection('teachers').doc(teacherId);
+      batch.update(teacherRef, {
+        geninput: admin.firestore.FieldValue.increment(inputTokens),
+        genoutput: admin.firestore.FieldValue.increment(outputTokens),
+        [`${monthYear}Input`]: admin.firestore.FieldValue.increment(inputTokens),
+        [`${monthYear}Output`]: admin.firestore.FieldValue.increment(outputTokens),
+        usageHistory: admin.firestore.FieldValue.arrayUnion({
+          timestamp: timestamp,
+          inputTokens: inputTokens,
+          outputTokens: outputTokens,
+          function: 'GenerateASAQ',
+          classId: classId
+        })
+      });
+
+      // Commit the batch
+      await batch.commit();
+      res.json({ questions, inputTokens, outputTokens });
+    } catch (error) {
+      console.error("Anthropic API Error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+});
+
+
+exports.RegenerateSAQ = functions.https.onRequest((req, res) => {
+  return cors(req, res, async () => {
+      if (req.method !== "POST") {
+          return res.status(400).send("Please send a POST request");
+      }
+
+      const { sourceText, questionCount, QuestionsPreviouslyGenerated, instructions, classId, teacherId } = req.body;
+
+      // Retrieve the API key from Firebase Function Configuration
+      const ANTHROPIC_API_KEY = functions.config().anthropic.key;
+
+      const anthropic = new Anthropic({
+          apiKey: ANTHROPIC_API_KEY,
+      });
+
+      try {
+          let prompt = `Generate ${questionCount} questions and expected responses from the 
+          following source. Each question should have an expected response
+           (not more than 10 words, not in complete sentence format). 
+           If there are multiple expected responses, separate them by commas. 
+           If there are more factual responses than listed, add "etc."`;
+
+          prompt += `
+
+Provide the output as a valid JSON array where each object has "question" and "expectedResponse" fields. The entire response should be parseable as JSON. Here's the exact format to use:
+
+[
+  {
+    "question": "string",
+    "expectedResponse": "string"
+  },
+  {
+    "question": "string",
+    "expectedResponse": "string"
+  },
+  ...
+]
+
+
+Generate questions and their expected responses based on this source: ${sourceText}
+
+In a previous response you generated the following questions:' ${QuestionsPreviouslyGenerated}'
+
+The user wants the new questions to be ${instructions} relative to the old questions
+
+Remember to only include the JSON array in your response, with no additional text, Remember that you must  add commas between all property-value pairs within each object to make a valid json array,
+remember that your max output is 4096 tokens so dont try to generate over that as you might get cut off Provide the output as a valid JSON array- with the proper location of "s and ,s'`;
+
+          const response = await anthropic.messages.create({
+              model: "claude-3-haiku-20240307",
+              max_tokens: 4096,
+              messages: [
+                  {
+                      role: "user",
+                      content: prompt
+                  }
+              ]
+          });
 
           console.log("Raw API response:", JSON.stringify(response, null, 2));
 
@@ -342,13 +747,206 @@ remember that your max output is 4096 tokens so dont try to generate over that a
               throw new Error("Failed to parse API response as JSON");
           }
 
-          res.json({ questions });
-      } catch (error) {
+          const inputTokens = response.usage.input_tokens;
+          const outputTokens = response.usage.output_tokens;
+    
+          // Get current timestamp
+          const timestamp = admin.firestore.Timestamp.now();
+    
+          // Get current month and year
+          const currentDate = new Date();
+          const monthYear = `${currentDate.getMonth() + 1}${currentDate.getFullYear()}`;
+    
+          // Create a batch write
+          const batch = admin.firestore().batch();
+    
+          // Update class document
+          const classRef = admin.firestore().collection('classes').doc(classId);
+          batch.update(classRef, {
+            geninput: admin.firestore.FieldValue.increment(inputTokens),
+            genoutput: admin.firestore.FieldValue.increment(outputTokens),
+            [`${monthYear}Input`]: admin.firestore.FieldValue.increment(inputTokens),
+            [`${monthYear}Output`]: admin.firestore.FieldValue.increment(outputTokens),
+            usageHistory: admin.firestore.FieldValue.arrayUnion({
+              timestamp: timestamp,
+              inputTokens: inputTokens,
+              outputTokens: outputTokens,
+              function: 'RegenerateSAQ',
+              teacherId: teacherId
+            })
+          });
+    
+          // Update teacher document
+          const teacherRef = admin.firestore().collection('teachers').doc(teacherId);
+          batch.update(teacherRef, {
+            geninput: admin.firestore.FieldValue.increment(inputTokens),
+            genoutput: admin.firestore.FieldValue.increment(outputTokens),
+            [`${monthYear}Input`]: admin.firestore.FieldValue.increment(inputTokens),
+            [`${monthYear}Output`]: admin.firestore.FieldValue.increment(outputTokens),
+            usageHistory: admin.firestore.FieldValue.arrayUnion({
+              timestamp: timestamp,
+              inputTokens: inputTokens,
+              outputTokens: outputTokens,
+              function: 'RegenerateSAQ',
+              classId: classId
+            })
+          });
+    
+          // Commit the batch
+          await batch.commit();
+    
+          res.json({ questions, inputTokens, outputTokens });
+        } catch (error) {
           console.error("Anthropic API Error:", error);
           res.status(500).json({ error: error.message });
+        }
+      });
+    });
+exports.RegenerateASAQ = functions.https.onRequest((req, res) => {
+  return cors(req, res, async () => {
+    if (req.method !== "POST") {
+      return res.status(400).send("Please send a POST request");
+    }
+
+    const { sourceText, QuestionsPreviouslyGenerated, instructions, classId, teacherId } = req.body;
+
+    // Retrieve the API key from Firebase Function Configuration
+    const ANTHROPIC_API_KEY = functions.config().anthropic.key;
+
+    const anthropic = new Anthropic({
+      apiKey: ANTHROPIC_API_KEY,
+    });
+
+    try {
+      let prompt = ` Your output must be a valid JSON array containing exactly 45 objects, with 12 easy questions,
+ 13 medium questions, and 20 hard questions.
+ 
+-Easy questions : Basic recall and understanding
+-Medium questions : Application and some analysis
+-Hard questions : Complex analysis or synthesis.
+
+ In the array each object should have "question", "difficulty", 
+ and "expectedResponse" fields.
+Important:
+
+Provide ONLY the JSON array in your response, with no additional text before or after.
+Ensure all property-value pairs within each object are separated by commas.
+Use proper JSON formatting with correct placement of quotation marks and commas.
+Do not include any explanatory text, preamble, or conclusion.
+Here's the exact format to use:
+
+
+[
+  {
+    "question": "string",
+    "difficulty": "string",
+    "expectedResponse": "string"
+  },
+  {
+    "question": "string",
+    "difficulty": "string",
+    "expectedResponse": "string"
+  },
+  ...
+]
+
+
+Generate questions and their expected responses based on this source: ${sourceText}
+Your response must have 12 easy questions, 13 medium questions, and 15 hard questions.
+Remember to only include the JSON array in your response, with no additional text, Remember that you must  add commas between all property-value pairs within each object to make a valid json array,
+remember that your max output is 4096 tokens so dont try to generate over that as you might get cut off Provide the output as a valid JSON array- with the proper location of "s and ,s
+
+In a previous response, these questions were generated: ${QuestionsPreviouslyGenerated}
+
+The user wants the new questions to be ${instructions} relative to the old questions.
+REMEMBER THAT NO MATTER WHAT YOU HAVE TO RETURN EXACTLY 40 questions, if user asks for a difficulty or group of questions to be edited you still have to provide the other questions so that there is 40 questions.
+Remember to only include the JSON array in your response, with no additional text. Remember that you must add commas between all property-value pairs within each object to make a valid JSON array. Remember that your max output is 4096 tokens, so don't try to generate over that as you might get cut off. Provide the output as a valid JSON array with the proper location of quotation marks and commas.`;
+
+      const response = await anthropic.messages.create({
+        model: "claude-3-haiku-20240307",
+        max_tokens: 4096,
+        messages: [
+          {
+            role: "user",
+            content: prompt
+          }
+        ]
+      });
+
+      console.log("Raw API response:", JSON.stringify(response, null, 2));
+
+      let cleanedResponse = response.content[0].text.trim();
+      if (cleanedResponse.startsWith("```json")) {
+        cleanedResponse = cleanedResponse.replace(/```json|```/g, "").trim();
       }
+
+      let questions;
+      try {
+        questions = JSON.parse(cleanedResponse);
+      } catch (parseError) {
+        console.error("Error parsing JSON:", parseError);
+        console.log("Cleaned content:", cleanedResponse);
+        throw new Error("Failed to parse API response as JSON");
+      }
+
+      const inputTokens = response.usage.input_tokens;
+      const outputTokens = response.usage.output_tokens;
+
+      // Get current timestamp
+      const timestamp = admin.firestore.Timestamp.now();
+
+      // Get current month and year
+      const currentDate = new Date();
+      const monthYear = `${currentDate.getMonth() + 1}${currentDate.getFullYear()}`;
+
+      // Create a batch write
+      const batch = admin.firestore().batch();
+
+      // Update class document
+      const classRef = admin.firestore().collection('classes').doc(classId);
+      batch.update(classRef, {
+        geninput: admin.firestore.FieldValue.increment(inputTokens),
+        genoutput: admin.firestore.FieldValue.increment(outputTokens),
+        [`${monthYear}Input`]: admin.firestore.FieldValue.increment(inputTokens),
+        [`${monthYear}Output`]: admin.firestore.FieldValue.increment(outputTokens),
+        usageHistory: admin.firestore.FieldValue.arrayUnion({
+          timestamp: timestamp,
+          inputTokens: inputTokens,
+          outputTokens: outputTokens,
+          function: 'RegenerateASAQ',
+          teacherId: teacherId
+        })
+      });
+
+      // Update teacher document
+      const teacherRef = admin.firestore().collection('teachers').doc(teacherId);
+      batch.update(teacherRef, {
+        geninput: admin.firestore.FieldValue.increment(inputTokens),
+        genoutput: admin.firestore.FieldValue.increment(outputTokens),
+        [`${monthYear}Input`]: admin.firestore.FieldValue.increment(inputTokens),
+        [`${monthYear}Output`]: admin.firestore.FieldValue.increment(outputTokens),
+        usageHistory: admin.firestore.FieldValue.arrayUnion({
+          timestamp: timestamp,
+          inputTokens: inputTokens,
+          outputTokens: outputTokens,
+          function: 'RegenerateASAQ',
+          classId: classId
+        })
+      });
+
+      // Commit the batch
+      await batch.commit();
+
+      res.json({ questions, inputTokens, outputTokens });
+    } catch (error) {
+      console.error("Anthropic API Error:", error);
+      res.status(500).json({ error: error.message });
+    }
   });
 });
+
+
+
 exports.GradeSAQ = functions.https.onRequest((req, res) => {
     return cors(req, res, async () => {
       if (req.method !== "POST") {
@@ -509,177 +1107,6 @@ Here are the questions to grade:`;
     });
   });
 
-  exports.RegenerateSAQ = functions.https.onRequest((req, res) => {
-    return cors(req, res, async () => {
-        if (req.method !== "POST") {
-            return res.status(400).send("Please send a POST request");
-        }
-
-        const { sourceText, questionCount, QuestionsPreviouslyGenerated, instructions } = req.body;
-
-        // Retrieve the API key from Firebase Function Configuration
-        const ANTHROPIC_API_KEY = functions.config().anthropic.key;
-
-        const anthropic = new Anthropic({
-            apiKey: ANTHROPIC_API_KEY,
-        });
-
-        try {
-          let prompt = `Generate ${questionCount} questions and expected responses from the following source. Each question should have an expected response (not more than 10 words, not in complete sentence format). If there are multiple expected responses, separate them by commas. If there are more factual responses than listed, add "etc."`;
-
-         
-
-          prompt += `
-
-Provide the output as a valid JSON array where each object has "question" and "expectedResponse" fields. The entire response should be parseable as JSON. Here's the exact format to use:
-
-  [
-    {
-      "question": "string",
-      "expectedResponse": "string"
-    },
-    {
-      "question": "string",
-      "expectedResponse": "string"
-    },
-    ...
-  ]
- 
-
-Generate questions and their expected responses based on this source: ${sourceText}
-
-In a previous response you generated the following questions:' ${QuestionsPreviouslyGenerated}'
-
-The user wants the new questiuons to be ${ instructions } relative to the old questions
-
-Remember to only include the JSON array in your response, with no additional text, Remember that you must  add commas between all property-value pairs within each object to make a valid json array,
-remember that your max output is 4096 tokens so dont try to generate over that as you might get cut off Provide the output as a valid JSON array- with the proper loacation of "s and ,s'`;
-
-          const response = await anthropic.messages.create({
-              model: "claude-3-haiku-20240307",
-              max_tokens: 4096,
-              messages: [
-                  {
-                      role: "user",
-                      content: prompt
-                  }
-              ]
-          });
-
-            console.log("Raw API response:", JSON.stringify(response, null, 2));
-
-            let cleanedResponse = response.content[0].text.trim();
-            if (cleanedResponse.startsWith("```json")) {
-                cleanedResponse = cleanedResponse.replace(/```json|```/g, "").trim();
-            }
-
-            let questions;
-            try {
-                questions = JSON.parse(cleanedResponse);
-            } catch (parseError) {
-                console.error("Error parsing JSON:", parseError);
-                console.log("Cleaned content:", cleanedResponse);
-                throw new Error("Failed to parse API response as JSON");
-            }
-
-            res.json({ questions });
-        } catch (error) {
-            console.error("Anthropic API Error:", error);
-            res.status(500).json({ error: error.message });
-        }
-    });
-});
-exports.RegenerateASAQ = functions.https.onRequest((req, res) => {
-  return cors(req, res, async () => {
-    if (req.method !== "POST") {
-      return res.status(400).send("Please send a POST request");
-    }
-
-    const { sourceText, QuestionsPreviouslyGenerated, instructions } = req.body;
-
-    // Retrieve the API key from Firebase Function Configuration
-    const ANTHROPIC_API_KEY = functions.config().anthropic.key;
-
-    const anthropic = new Anthropic({
-      apiKey: ANTHROPIC_API_KEY,
-    });
-
-    try {
-      let prompt = ` Generate 40 questions and expected responses from the provided source. Each question should 
-        have an expected response (not more than 10 words, not in complete sentence format). If there
-         are multiple expected responses, separate them by commas. If there are more factual 
-         responses than listed, add "etc."
-
-Your output must be a valid JSON array containing exactly 45 objects, with 12 easy questions, 13 medium questions, and 20 hard questions. Each object should have "question", "difficulty", and "expectedResponse" fields.
-Important:
-
-Provide ONLY the JSON array in your response, with no additional text before or after.
-Ensure all property-value pairs within each object are separated by commas.
-Use proper JSON formatting with correct placement of quotation marks and commas.
-Do not include any explanatory text, preamble, or conclusion.
-Here's the exact format to use:
-
-
-[
-  {
-    "question": "string",
-    "difficulty": "string",
-    "expectedResponse": "string"
-  },
-  {
-    "question": "string",
-    "difficulty": "string",
-    "expectedResponse": "string"
-  },
-  ...
-]
-
-
-Generate questions and their expected responses based on this source: ${sourceText}
-Your reponse must have 12 easy questions, 13 medium questions, and 15 hard questions.
-Remember to only include the JSON array in your response, with no additional text, Remember that you must  add commas between all property-value pairs within each object to make a valid json array,
-remember that your max output is 4096 tokens so dont try to generate over that as you might get cut off Provide the output as a valid JSON array- with the proper loacation of "s and ,s
-
-In a previous response, these questions were generated: ${QuestionsPreviouslyGenerated}
-
-The user wants the new questions to be ${instructions} relative to the old questions.
-REMBER THAT NO MATTER WHAT YOU HAVE TO RETURN EXACTLY 40 questions, if user asks for a difficulty or gropup of questions to be edited you still have to provide the oother questions so that there is 40 questions.
-Remember to only include the JSON array in your response, with no additional text. Remember that you must add commas between all property-value pairs within each object to make a valid JSON array. Remember that your max output is 4096 tokens, so don't try to generate over that as you might get cut off. Provide the output as a valid JSON array with the proper location of quotation marks and commas.`;
-
-      const response = await anthropic.messages.create({
-        model: "claude-3-haiku-20240307",
-        max_tokens: 4096,
-        messages: [
-          {
-            role: "user",
-            content: prompt
-          }
-        ]
-      });
-
-      console.log("Raw API response:", JSON.stringify(response, null, 2));
-
-      let cleanedResponse = response.content[0].text.trim();
-      if (cleanedResponse.startsWith("```json")) {
-        cleanedResponse = cleanedResponse.replace(/```json|```/g, "").trim();
-      }
-
-      let questions;
-      try {
-        questions = JSON.parse(cleanedResponse);
-      } catch (parseError) {
-        console.error("Error parsing JSON:", parseError);
-        console.log("Cleaned content:", cleanedResponse);
-        throw new Error("Failed to parse API response as JSON");
-      }
-
-      res.json({ questions });
-    } catch (error) {
-      console.error("Anthropic API Error:", error);
-      res.status(500).json({ error: error.message });
-    }
-  });
-});
 
 exports.RegradeSAQ = functions.https.onRequest((req, res) => {
   return cors(req, res, async () => {

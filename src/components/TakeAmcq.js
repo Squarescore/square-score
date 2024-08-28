@@ -34,17 +34,20 @@ const TakeAmcq = () => {
   const [maxScore, setMaxScore] = useState(100);
   const [classId, setClassId] = useState(null);
   const navigate = useNavigate();
-  const [choiceHeights, setChoiceHeights] = useState({});
   const choiceRefs = useRef({});
+  
+  const [choiceHeights, setChoiceHeights] = useState({});
 
   useEffect(() => {
     Object.keys(choiceRefs.current).forEach(choice => {
       if (choiceRefs.current[choice]) {
-        const height = choiceRefs.current[choice].offsetHeight;
+        const height = choiceRefs.current[choice].scrollHeight;
         setChoiceHeights(prev => ({ ...prev, [choice]: height }));
       }
     });
   }, [currentQuestion, displayFormat]);
+
+  
   useEffect(() => {
     Object.keys(choiceRefs.current).forEach(choice => {
       if (choiceRefs.current[choice]) {
@@ -53,6 +56,8 @@ const TakeAmcq = () => {
       }
     });
   }, [currentQuestion, displayFormat]);
+
+
   // Cheating detection
   useEffect(() => {
     document.addEventListener('contextmenu', (e) => e.preventDefault());
@@ -242,7 +247,11 @@ const TakeAmcq = () => {
           }, 2000);
         }
       } else {
-        moveToNextQuestion(isCorrect);
+        setShowFeedback(true);
+        setTimeout(() => {
+          setShowFeedback(false);
+          moveToNextQuestion(isCorrect);
+        }, 1500);
       }
     } else {
       alert("Your typed answer doesn't match the selected answer. Please try again.");
@@ -388,8 +397,16 @@ const TakeAmcq = () => {
     }
   };
 
+  const handleEndTest = () => {
+    if (window.confirm('Are you sure you want to submit this assignment?')) {
+      endTest();
+    }
+  };
   const isRetypedAnswerCorrect = () => {
-    return retypedAnswer.toLowerCase() === currentQuestion[currentQuestion.correct].toLowerCase();
+    const correctAnswer = currentQuestion[currentQuestion.correct].toLowerCase();
+    const userAnswer = retypedAnswer.toLowerCase();
+    return correctAnswer === userAnswer || (Math.abs(correctAnswer.length - userAnswer.length) <= 1 && 
+           (correctAnswer.includes(userAnswer) || userAnswer.includes(correctAnswer)));
   };
 
   const handleTyping = (e) => {
@@ -415,7 +432,86 @@ const TakeAmcq = () => {
 
   if (!assignment || !currentQuestion) return <div>Loading...</div>;
 
-  
+  const renderChoice = (choice) => {
+    const style = getChoiceStyle(choice);
+    const content = currentQuestion[choice];
+    const needsSecondLine = choiceHeights[choice] > 30;
+    return (
+      <div
+      key={choice}
+      onClick={() => handleAnswerSelect(choice)}
+      style={{
+        width: displayFormat === 'grid' ? '42%' : '90%',
+        margin: displayFormat === 'grid' ? '10px 2%' : '5px auto',
+        padding: '0px',
+        background: style.background,
+        color: style.color,
+        border: selectedAnswer === choice ? `5px solid ${style.color}` : '6px solid transparent',
+        borderRadius: '10px',
+        cursor: 'pointer',
+        userSelect: 'none',
+        position: 'relative',
+        display: 'flex',
+        alignItems: 'center',
+        height: 'auto',
+        minHeight: 'fit-content',
+      }}
+    >
+      <p
+        ref={el => choiceRefs.current[choice] = el}
+        style={{
+          fontWeight: 'bold',
+          fontSize: displayFormat === 'grid' ? '20px' : '16px',
+          textAlign: 'left',
+          margin: 0,
+          padding: '10px',
+          color: selectedAnswer === choice ? 'grey' : style.color,
+          userSelect: 'none',
+          pointerEvents: 'none',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          display: '-webkit-box',
+          WebkitLineClamp: displayFormat === 'grid' ? 4 : 2,
+          WebkitBoxOrient: 'vertical',
+          wordBreak: 'break-word',
+        }}
+      >
+        {content} 
+      </p>
+    
+      {selectedAnswer === choice && (
+        <textarea
+          id={`textarea-${choice}`}
+          value={typedAnswer}
+          onChange={handleTyping}
+          style={{
+            fontFamily: "'Radio Canada', sans-serif",
+            fontWeight: 'bold',
+            position: 'absolute',
+            top: '10px',
+            left: '0',
+            width: '100%',
+            height: '100%',
+            fontSize: displayFormat === 'grid' ? '20px' : '16px',
+            textAlign: 'left',
+            border: 'none',
+            outline: 'none',
+            background: 'transparent',
+            color: style.color,
+            resize: 'none',
+            overflow: 'auto',
+            padding: '10px',
+            whiteSpace: 'pre-wrap',
+            wordBreak: 'break-word',
+            boxSizing: 'border-box',
+          }}
+        />
+      )}
+    </div>
+    );
+  };
+
+
   return (
     <div style={{ marginTop: '100px', marginLeft: 'auto', marginRight: 'auto', fontFamily: "'Radio Canada', sans-serif", textAlign: 'center' }}>
       <button
@@ -439,7 +535,7 @@ const TakeAmcq = () => {
         }}
         onMouseEnter={(e) => (e.target.style.transform = 'scale(1.01)')}
         onMouseLeave={(e) => (e.target.style.transform = 'scale(1)')}
-        onClick={endTest}
+        onClick={handleEndTest}
       >
         Submit
       </button>
@@ -703,91 +799,22 @@ const TakeAmcq = () => {
                 margin: '0 auto',
               }}
             >
-            {Object.keys(currentQuestion)
-  .filter((key) => key.match(/^[a-z]$/))
-  .map((choice) => {
-    const style = getChoiceStyle(choice);
-    return (
-      <div
-        key={choice}
-        onClick={() => handleAnswerSelect(choice)}
+            <div
         style={{
-          width: displayFormat === 'grid' ? '42%' : '90%',
-          margin: displayFormat === 'grid' ? '10px 2%' : '5px auto',
-          padding: '10px',
-          background: style.background,
-          color: style.color,
-          border: selectedAnswer === choice ? `5px solid ${style.color}` : '6px solid transparent',
-          borderRadius: '10px',
-          cursor: 'pointer',
-          userSelect: 'none',
-          position: 'relative',
-          height: displayFormat === 'grid' ? '100px' : 'auto',
-          maxHeight: displayFormat === 'grid' ? '100px' : '80px',
-          overflow: 'auto',
           display: 'flex',
-          alignItems: 'center',
+          flexDirection: displayFormat === 'grid' ? 'row' : 'column',
+          flexWrap: displayFormat === 'grid' ? 'wrap' : 'nowrap',
+          justifyContent: 'center',
+          width: '100%',
+          position: 'relative',
+          margin: '0 auto',
         }}
       >
-        <p
-          ref={el => choiceRefs.current[choice] = el}
-          style={{
-            fontWeight: 'bold',
-            fontSize: displayFormat === 'grid' ? '20px' : '16px',
-            textAlign: 'left',
-            margin: 0,
-            color: selectedAnswer === choice ? 'grey' : style.color,
-            position: 'absolute',
-            top: '10px',
-            left: '10px',
-            right: '10px',
-            bottom: '10px',
-            userSelect: 'none',
-            pointerEvents: 'none',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            display: '-webkit-box',
-            WebkitLineClamp: displayFormat === 'grid' ? 4 : 3,
-            WebkitBoxOrient: 'vertical',
-            wordBreak: 'break-word',
-          }}
-        >
-          {currentQuestion[choice]}
-        </p>
-
-        {selectedAnswer === choice && (
-          <textarea
-            id={`textarea-${choice}`}
-            value={typedAnswer}
-            onChange={handleTyping}
-            style={{
-              fontFamily: "'Radio Canada', sans-serif",
-              fontWeight: 'bold',
-              position: 'absolute',
-              top: '0',
-              left: '0',
-              width: '100%',
-              height: '100%',
-              fontSize: displayFormat === 'grid' ? '20px' : '16px',
-              textAlign: 'left',
-              border: 'none',
-              outline: 'none',
-              background: 'transparent',
-              color: style.color,
-              resize: 'none',
-              overflow: 'auto',
-              padding: '10px',
-              whiteSpace: 'pre-wrap',
-              wordBreak: 'break-word',
-              boxSizing: 'border-box',
-            }}
-          />
-        )}
+        {Object.keys(currentQuestion)
+          .filter((key) => key.match(/^[a-z]$/))
+          .map(renderChoice)}
       </div>
-    );
-  })
-}
-
+ 
             </div>
           </div>
         </div>
@@ -810,15 +837,17 @@ const TakeAmcq = () => {
           Check
         </button>
         <AnimatePresence>
-          {showFeedback && (
-            <motion.div
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.2 }}
-              style={{ width: '1020px', position: 'fixed', top: '100px', background: 'white', height: '700px', padding: '20px' }}
-            >
-              {selectedAnswer === currentQuestion.correct ? (
+        {showFeedback && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.2 }}
+            style={{ width: '1020px', position: 'fixed', top: '100px', background: 'white', height: '700px', padding: '20px' }}
+          >
+            {assignment.feedback === 'instant' ? (
+              // Existing instant feedback logic
+              selectedAnswer === currentQuestion.correct ? (
                 <div>
                   <Confetti
                     width={window.innerWidth}
@@ -862,31 +891,6 @@ const TakeAmcq = () => {
                     />
                   </div>
                 </div>
-              ) : assignment.feedback === 'at completion' ? (
-                <div style={{ marginTop: '100px' }}>
-                  <img style={{ width: '100px' }} src="/bigRedx.png" />
-                  <button
-                    style={{
-                      width: '200px',
-                      backgroundColor: '#000AFF',
-                      height: '50px',
-                      borderRadius: '10px',
-                      color: 'white',
-                      cursor: 'pointer',
-                      border: 'none',
-                      fontFamily: "'Radio Canada', sans-serif",
-                      fontWeight: 'bold',
-                      fontSize: '30px',
-                      position: 'absolute',
-                      bottom: '40px',
-                      left: '50%',
-                      transform: 'translateX(-50%)',
-                    }}
-                    onClick={() => moveToNextQuestion(false)}
-                  >
-                    Next
-                  </button>
-                </div>
               ) : (
                 <>
                   <div style={{ marginTop: '100px' }}>
@@ -927,9 +931,63 @@ const TakeAmcq = () => {
                     </button>
                   </div>
                 </>
-              )}
-            </motion.div>
-          )}
+              )
+            ) : (
+              // New non-instant feedback logic
+              selectedAnswer === currentQuestion.correct ? (
+                <div>
+                  <Confetti
+                    width={window.innerWidth}
+                    height={window.innerHeight}
+                    recycle={false}
+                    numberOfPieces={100}
+                    confettiSource={{
+                      x: window.innerWidth * 0.37,
+                      y: window.innerHeight * 0.28,
+                      w: 30,
+                      h: 0,
+                    }}
+                    colors={['#A3F2ED', '#AEF2A3', '#F8CFFF', '#FFECA8', '#FFD1D1']}
+                    initialVelocityY={20}
+                    initialVelocityX={5}
+                    gravity={0.18}
+                    tweenDuration={400}
+                    spread={1080}
+                    run={showConfetti}
+                  />
+                  <div
+                    style={{
+                      width: '200px',
+                      height: '200px',
+                      borderRadius: '200px',
+                      marginTop: '20%',
+                      border: '20px solid #00B512',
+                      marginLeft: 'auto',
+                      marginRight: 'auto',
+                    }}
+                  >
+                    <img
+                      style={{
+                        width: '130px',
+                        borderRadius: '200px',
+                        marginTop: '50px',
+                        marginLeft: '20px',
+                      }}
+                      src="/greenCheck.png"
+                      alt="Correct"
+                    />
+                  </div>
+                  <h1 style={{ fontSize: '60px', color: '#00B512' }}>Correct!</h1>
+                </div>
+              ) : (
+                <div style={{ marginTop: '100px' }}>
+                  <img style={{ width: '100px' }} src="/bigRedx.png" />
+                  <h1 style={{ fontSize: '60px', color: '#FF0000' }}>Incorrect</h1>
+                </div>
+              )
+            )}
+          </motion.div>
+        )}
           {showExplanation && (
             <motion.div
               initial={{ opacity: 0, y: -10 }}
