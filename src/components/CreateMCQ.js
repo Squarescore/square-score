@@ -89,6 +89,34 @@ const [progressText, setProgressText] = useState('');
 const [questionCount, setQuestionCount] = useState(0);
   const navigate = useNavigate();
 
+  const convertToDateTime = (date) => {
+    return formatDate(new Date(date));
+  };
+      
+  const formatDate = (date) => {
+    const options = {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true,
+      timeZoneName: 'short'
+    };
+    
+    const formattedDate = date.toLocaleString('en-US', options);
+    
+    // Remove commas and adjust the format
+    return formattedDate
+      .replace(',', '') // Remove the comma after the day of week
+      .replace(',', '') // Remove the comma after the day
+      .replace(' at ', ' ') // Remove 'at'
+      .replace(/(\d{1,2}):(\d{2}):00/, '$1:$2') // Remove seconds
+      .replace(' PM', ' PM ') // Add space before timezone
+      .replace(' AM', ' AM '); // Add space before timezone
+  };
+
   const toggleAdditionalInstructions = () => {
     setShowAdditionalInstructions(!showAdditionalInstructions);
     if (showAdditionalInstructions) {
@@ -285,25 +313,15 @@ const [questionCount, setQuestionCount] = useState(0);
       timerOn,
       feedback,
       retype,
-      assignDate: assignDate.toISOString(),
-      dueDate: dueDate.toISOString(),
+     assignDate: formatDate(assignDate),
+    dueDate: formatDate(dueDate),
       selectedStudents: Array.from(selectedStudents),
       questionBank: Number(questionBank),
       questionStudent: Number(questionStudent),
       saveAndExit,
       lockdown,
       createdAt: serverTimestamp(),
-      questions: generatedQuestions.map(question => ({
-        questionId: question.questionId || `question_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-        question: question.question || '',
-        choices: Array.isArray(question.choices) ? question.choices.map(choice => ({
-          choiceText: choice.text || choice.choiceText || '',
-          isCorrect: choice.isCorrect || false,
-          feedback: choice.feedback || ''
-        })) : [],
-        
-      })),
-      sourceText,
+      questions: generatedQuestions,
       additionalInstructions
     };
   
@@ -328,36 +346,53 @@ const [questionCount, setQuestionCount] = useState(0);
       alert(`Error saving draft: ${error.message}. Please try again.`);
     }
   };
-  
+
+   
   const saveAssignment = async () => {
+
     const finalAssignmentId = assignmentId.startsWith('DRAFT') ? assignmentId.slice(5) : assignmentId;
   
+    const formatQuestion = (question) => {
+      const choiceKeys = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
+      const formattedQuestion = {
+        questionId: question.questionId || `question_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        question: question.question || question.question || '',
+        difficulty: question.difficulty || 'medium',
+        correct: question.correct || '',
+        choices: question.choices || choiceKeys.filter(key => question[key]).length
+      };
+  
+      // Add individual choice texts and explanations
+      choiceKeys.forEach(key => {
+        if (question[key]) {
+          formattedQuestion[key] = question[key];
+          formattedQuestion[`explanation_${key}`] = question[`explanation_${key}`] || '';
+        }
+      });
+  
+      return formattedQuestion;
+    };
+  
+
     const assignmentData = {
+      assignmentId: finalAssignmentId, 
       classId,
       assignmentName,
       timer: timerOn ? Number(timer) : 0,
       timerOn,
       feedback,
       retype,
-      assignDate: assignDate.toISOString(),
-      dueDate: dueDate.toISOString(),
+      assignDate: formatDate(assignDate),
+    dueDate: formatDate(dueDate),
       selectedStudents: Array.from(selectedStudents),
       questionBank: Number(questionBank),
       questionStudent: Number(questionStudent),
       saveAndExit,
       lockdown,
       createdAt: serverTimestamp(),
-      questions: generatedQuestions.map(question => ({
-        questionId: question.questionId || `question_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-        question: question.question || '',
-        choices: Array.isArray(question.choices) ? question.choices.map(choice => ({
-          choiceText: choice.text || choice.choiceText || '',
-          isCorrect: choice.isCorrect || false,
-          feedback: choice.feedback || ''
-        })) : [],
-        
-      })),
-      sourceText,
+    
+      questions: generatedQuestions.map(formatQuestion),
+    
       additionalInstructions
     };
   
@@ -403,6 +438,9 @@ const [questionCount, setQuestionCount] = useState(0);
     }
   };
   
+
+
+
   const loadDraft = async (draftId) => {
     const draftRef = doc(db, 'drafts', draftId);
     const draftDoc = await getDoc(draftRef);
@@ -413,13 +451,13 @@ const [questionCount, setQuestionCount] = useState(0);
       setTimerOn(data.timerOn || false);
       setFeedback(data.feedback || false);
       setRetype(data.retype || false);
-      
-      if (data.assignDate) {
-        setAssignDate(new Date(data.assignDate));
-      }
+      const loadedAssignDate = data.assignDate ? new Date(data.assignDate) : new Date();
+      setAssignDate(loadedAssignDate);
       
       if (data.dueDate) {
         setDueDate(new Date(data.dueDate));
+      } else {
+        setDueDate(new Date(loadedAssignDate.getTime() + 48 * 60 * 60 * 1000));
       }
   
       setSelectedStudents(new Set(data.selectedStudents || []));
@@ -427,12 +465,12 @@ const [questionCount, setQuestionCount] = useState(0);
       setQuestionStudent(data.questionStudent?.toString() || '');
       setSaveAndExit(data.saveAndExit || true);
       setLockdown(data.lockdown || false);
-      setSourceText(data.sourceText || '');
       setAdditionalInstructions(data.additionalInstructions || '');
   
       if (data.questions && data.questions.length > 0) {
         setGeneratedQuestions(data.questions);
         setQuestionsGenerated(true);
+        
       }
     }
   };
@@ -566,7 +604,7 @@ const [questionCount, setQuestionCount] = useState(0);
                           width: '50px',
                           textAlign: 'center',
                           fontWeight: 'bold',
-                          border: '6px solid transparent',
+                          border: '4px solid transparent',
                           outline: 'none',
                           borderRadius: '5px',
                           fontSize: '30px',
@@ -780,7 +818,7 @@ const [questionCount, setQuestionCount] = useState(0);
 
         <div style={{ width: '730px', background: 'lightgrey', height: '3px', marginLeft: '20px', marginTop: '20px' }}></div>
                   
-                  <div style={{ width: '750px', height: '80px', border: '6px solid transparent', display: 'flex', position: 'relative', alignItems: 'center', borderRadius: '10px', padding: '10px', marginLeft: '-15px' }}>
+                  <div style={{ width: '750px', height: '80px', border: '4px solid transparent', display: 'flex', position: 'relative', alignItems: 'center', borderRadius: '10px', padding: '10px', marginLeft: '-15px' }}>
                   <h1 style={{ fontSize: '30px', color: 'black', width: '400px', paddingLeft: '20px' }}>Choices Per Question</h1>
                   <div style={{ marginLeft: 'auto', marginTop: '45px', display: 'flex', position: 'relative', alignItems: 'center' }}>
                     {[2, 3, 4, 5].map((num) => (
@@ -799,7 +837,7 @@ const [questionCount, setQuestionCount] = useState(0);
                           marginLeft: '20px',
                           marginTop: '-45px',
                           backgroundColor: selectedOptions.includes(num) ? optionStyles[num].background : 'white',
-                          border: selectedOptions.includes(num) ? `5px solid ${optionStyles[num].color}` : '6px solid lightgrey',
+                          border: selectedOptions.includes(num) ? `5px solid ${optionStyles[num].color}` : '4px solid lightgrey',
                           borderRadius: '105px',
                           cursor: 'pointer',
                           transition: 'all 0.3s ease',
@@ -917,8 +955,8 @@ const [questionCount, setQuestionCount] = useState(0);
                           {generating ? 'Generating...' : generatedQuestions.length > 0 ? 'Preview Questions' : 'Generate Questions'}
                         </button>
                         {generating && (
-                          <ProgressBar progress={progress} text={progressText} />
-                        )}
+      <div className="loader" style={{ marginLeft: '20px' }}></div>
+    )}
                       </div>
                     )}
                   </div>

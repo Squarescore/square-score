@@ -89,7 +89,15 @@ const TeacherHome = () => {
   const getRandomColor = () => {
     return hoverColors[Math.floor(Math.random() * hoverColors.length)];
   };
+  const handleButtonHover = (e) => {
+    if (e.currentTarget === e.target) {
+      e.currentTarget.style.boxShadow = '0px 4px 4px 0px rgba(0, 0, 0, 0.25)';
+    }
+  };
 
+  const handleButtonLeave = (e) => {
+    e.currentTarget.style.boxShadow = 'none';
+  };
   const hoverColors = [
     { background: '#F8CFFF', border: '#E01FFF' },
     { background: '#A3F2ED', border: '#4BD682' },
@@ -153,7 +161,7 @@ const TeacherHome = () => {
     <div style={{width: '100%', background: '#4BD682', height: '6px'}}></div>
     <div style={{
       backgroundColor: '#AEF2A3',
-      border: '6px solid #4BD682',
+      border: '10px solid #4BD682',
       borderBottomLeftRadius: '20px',
       borderTop: '0px',
       borderBottomRightRadius: '20px',
@@ -175,7 +183,7 @@ const TeacherHome = () => {
           fontFamily: "'Radio Canada', sans-serif",
           fontWeight: 'BOLD',
           height: '30px',
-          border: '6px solid #CE7C00',
+          border: '4px solid #CE7C00',
           borderRadius: '5px',
           marginRight: '10px',
           cursor: 'pointer'
@@ -192,7 +200,7 @@ const TeacherHome = () => {
           fontFamily: "'Radio Canada', sans-serif",
           fontWeight: 'BOLD',
           height: '30px',
-          border: '6px solid #4BD682',
+          border: '4px solid #4BD682',
           borderRadius: '5px',
           cursor: 'pointer'
         }}
@@ -243,7 +251,7 @@ zIndex: '100'
                 onChange={(e) => setSchoolCode(e.target.value)}
               style={{  fontFamily: "'rajdhani', sans-serif", fontSize: '100px', borderTopLeftRadius: '20px', borderTopRightRadius: '20px', background: "rgb(230,230,230,.4)",
                  width: '440px',paddingLeft: '60px',paddingRight: '60px', paddingTop: '10px', paddingBottom: '10px', fontWeight: 'bold',
-                  textAlign: 'Left', borderColor: 'transparent',borderBottom: '6px solid lightgrey',
+                  textAlign: 'Left', borderColor: 'transparent',borderBottom: '4px solid lightgrey',
                    outline: 'none', }} />  
               <br />
               <button
@@ -350,47 +358,39 @@ zIndex: '100'
                 </h1>
             
                 <button 
-                  onClick={() => navigate(`/class/${classItem.id}`)} 
-                  style={{ 
-                    marginLeft: 'auto',
-                    marginRight: 'auto',
-                    flex: 1,
-                    fontWeight: 'bold',
-                    width: '280px',
-                    height: '140px',
-                    justifyContent: 'center',
-                    display: 'flex',
-                    backgroundColor: 'transparent',  
-                    color: 'grey', 
-                    cursor: 'pointer',
-                    border: '6px solid #F4F4F4', 
-                    borderRadius: '15px', 
-                    lineHeight: '60px',
-                    textAlign: 'center',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    fontSize: '45px',
-                    transition: '.2s', 
-                    position: 'relative',
-                    zIndex: '1',
-                    marginTop:'0px',
-                    fontFamily: "'rajdhani', sans-serif",
-                    transform: 'scale(1)',
-                  }}
-                  onMouseEnter={(e) => {
-                    const color = getRandomColor();
-                    e.target.style.boxShadow = '0px 4px 4px 0px rgba(0, 0, 0, 0.25)';
-                   
-                  }}
-                  onMouseLeave={(e) => {
-                    
-                    e.target.style.boxShadow = 'none';
-                   
-                  }}
-                  className="hoverableButton"
-                >
-                  {classItem.className}
-                </button>
+                    onClick={() => navigate(`/class/${classItem.id}`)} 
+                    style={{ 
+                      marginLeft: 'auto',
+                      marginRight: 'auto',
+                      flex: 1,
+                      fontWeight: 'bold',
+                      width: '280px',
+                      height: '140px',
+                      justifyContent: 'center',
+                      display: 'flex',
+                      backgroundColor: 'transparent',  
+                      color: 'grey', 
+                      cursor: 'pointer',
+                      border: '4px solid #F4F4F4', 
+                      borderRadius: '15px', 
+                      lineHeight: '90px',
+                      textAlign: 'center',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      fontSize: '45px',
+                      transition: '.2s', 
+                      position: 'relative',
+                      zIndex: '1',
+                      marginTop:'0px',
+                      fontFamily: "'rajdhani', sans-serif",
+                      transform: 'scale(1)',
+                    }}
+                    onMouseEnter={handleButtonHover}
+                    onMouseLeave={handleButtonLeave}
+                    className="hoverableButton"
+                  >
+                    <h1 style={{fontSize: '45px', marginTop: '40px'}}>{classItem.className}</h1>
+                  </button>
               </div>
                );
               })
@@ -407,7 +407,7 @@ zIndex: '100'
            textDecoration: 'none',
             backgroundColor: '#AEF2A3' , 
             marginBottom: '100px',
-           border: '5px solid #45B434',
+           border: '4px solid #45B434',
             marginLeft: '32px',
             
             fontSize: '20px', 
@@ -449,7 +449,7 @@ zIndex: '100'
             style={{
               marginRight: 'auto',
               backgroundColor: '#9CACFF',
-              border: '5px solid #020CFF',
+              border: '4px solid #020CFF',
               color: '#020CFF',
               borderRadius: '10px',
               padding: '20px 20px',

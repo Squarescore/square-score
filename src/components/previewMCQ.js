@@ -86,7 +86,7 @@ const PreviewMCQ = ({ questions, onBack, onNext }) => {
           <div style={{ width: '100%', display: 'flex', marginBottom: '30px' }}>
           
             <div style={{ width: '1000px', border: '7px solid lightgrey', marginLeft: 'auto', position: 'relative', borderRadius: '20px'}}>
-              <h1 style={{ fontSize: '25px', color: 'grey', width: '160px', textAlign: 'center', background: '#f4f4f4', border: '6px solid white', padding: '5px', borderRadius: '10px', position: 'absolute', top: '-50px', left: '150px' }}>Question</h1>
+              <h1 style={{ fontSize: '25px', color: 'grey', width: '160px', textAlign: 'center', background: '#f4f4f4', border: '4px solid white', padding: '5px', borderRadius: '10px', position: 'absolute', top: '-50px', left: '150px' }}>Question</h1>
               <p style={{ width: '90%', marginLeft: 'auto', marginRight: 'auto', fontSize: '25px', fontWeight: 'bold' }}>{question.question}</p>
             </div>
           </div>

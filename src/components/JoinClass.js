@@ -123,7 +123,7 @@ const JoinClass = () => {
       <input type="text"  placeholder='Code' onChange={e => setClassCode(e.target.value)} required 
       style={{  fontFamily: "'rajdhani', sans-serif", fontSize: '100px', borderTopLeftRadius: '20px', borderTopRightRadius: '20px', background: "rgb(200,200,200,.4)",
        width: '440px',paddingLeft: '60px',paddingRight: '60px', paddingTop: '10px', paddingBottom: '10px', fontWeight: 'bold',
-        textAlign: 'Left', borderColor: 'transparent',borderBottom: '6px solid lightgrey',
+        textAlign: 'Left', borderColor: 'transparent',borderBottom: '4px solid lightgrey',
          outline: 'none', }} />
       <button 
             type="submit" 

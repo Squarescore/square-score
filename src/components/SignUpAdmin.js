@@ -5,13 +5,13 @@ import { db, auth } from "./firebase"; // Adjust the path to your firebase confi
 import { useNavigate } from 'react-router-dom'; // Import the navigate hook
 import './BackgroundDivs.css'; // Import the CSS file
 
-const SignUp = () => {
+const SignUpAdmin = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
-  const [role, setRole] = useState(''); // Default role
+  const [role, setRole] = useState('admin'); // Default role
   const [error, setError] = useState(null);
   const navigate = useNavigate(); // Initialize the navigate function
   const [showPopup, setShowPopup] = useState(false); // New state variable
@@ -200,53 +200,10 @@ className="white-background" style={{width: '1000px', marginLeft: 'auto', border
         <h1 style={{ fontWeight: 'Bold',
            color: 'black', fontSize: '95px', fontFamily: "'Rajdhani', sans-serif", 
             padding: '0px', backgroundColor: 'transparent', marginTop: '-10px',
-             marginLeft: '50px',width: '370px', marginBottom: '100px'}}>Sign Up</h1>
+             marginLeft: '50px',width: '870px', marginBottom: '150px'}}>Create Admin Account</h1>
         <form onSubmit={handleSignUp}>
         <div style={{ display: 'flex', justifyContent: 'space-between', width: '60%',marginLeft: '37%',marginBottom: '40px' , marginTop: '-180px'}}>
-            <button 
-              type="button"
-              onClick={() => toggleRole('student')}
-              style={{ 
-                flex: 1, 
-                marginLeft: '22px',
-                marginRight: '20px',
-                backgroundColor: role === 'student' ? '#627BFF' : 'transparent',
-                color:  role === 'student' ? 'white' : 'black',
-                borderColor: 'transparent',
-                padding: '5px 20px',
-                fontSize: '25px', 
-                fontWeight: 'bold',
-                border: '5px solid transparent',
-                cursor: 'pointer',
-                fontFamily: "'Radio Canada', sans-serif",
-                borderRadius: '10px',
-                transition: '.2s',
-              }}
-            >
-              Student
-            </button>
-            <button 
-              type="button"
-              onClick={() => toggleRole('teacher')}
-              style={{ 
-                flex: 1, 
-                marginLeft: '-2px',
-                marginRight: '20px',
-                backgroundColor: role === 'teacher' ? '#FCCA18' : 'transparent',
-                color:  role === 'teacher' ? 'white' : 'black',
-                borderColor: 'transparent',
-                padding: '5px 20px',
-                fontSize: '25px', 
-                fontWeight: 'bold',
-                border: '5px solid transparent',
-                cursor: 'pointer',
-                fontFamily: "'Radio Canada', sans-serif",
-                borderRadius: '10px',
-                transition: '.2s',
-              }}
-            >
-              Teacher
-            </button>
+           
          
             </div>
           <div style={{ width: '90%', marginLeft: 'auto', marginRight: 'auto',}}>
@@ -444,7 +401,34 @@ className="white-background" style={{width: '1000px', marginLeft: 'auto', border
               Passwords do not match
             </p>
           )}
-        
+          <div style={{position: 'absolute', bottom: '50px', right: '-60px'}}>
+          <div style={{ position: 'relative', width: '410px', marginBottom: '20px' }}>
+                <input 
+                      type="Referal Code" 
+                      placeholder="Referal Code" 
+                      
+                      onFocus={() => handleInputFocus('password')}
+                      onBlur={(e) => handleInputBlur('password', e.target.value)}
+                   
+                  style={{ 
+                    width: '200px',  
+                    padding: '20px', 
+                    border: '0px solid lightgrey', 
+                    color: 'black',
+                    borderRadius: '10px', 
+                    outline: 'none', 
+                    fontWeight: 'bold',
+                    backdropFilter: 'blur(7px)',
+                    fontSize: '20px',
+                    boxShadow: ' 0px 4px 4px 0px rgba(0, 0, 0, 0.25)',
+                    backgroundColor: 'rgb(255,255,255,.5)', 
+                    fontFamily: "'Radio Canada', sans-serif",
+                  }}
+                />
+                 {inputStyles.referralCode && <label style={{ position: 'absolute', top: '-10px', left: '15px', backgroundColor: 'white', padding: '0 10px',  borderTopRightRadius: '3px', borderTopLeftRadius: '3px', 
+                fontFamily: "'Radio Canada', sans-serif", fontWeight: 'bold', height: '10px' }}>Referral Code</label>}
+        </div>
+          </div>
             {isFormComplete() && (
               <div style={{display: 'flex', marginTop: '20px'}}>
                 <button onClick={handleSignUp}
@@ -472,13 +456,13 @@ className="white-background" style={{width: '1000px', marginLeft: 'auto', border
                   />
                 </button>
                 <p style={{ fontFamily: "'Radio Canada', sans-serif", color: 'black', marginLeft: '40px', fontSize: '20px', width: '300px'}}>
-                  By Signing up you agree to SquareScore's <a href="/TermsofService" style={{ color: 'blue' }}>terms of service</a>  and <a href="/PrivacyPolicy" style={{ color: 'blue' }}>Privacy Policy</a>
+                  By Signing up you agree to our <a href="/TermsofService" style={{ color: 'blue' }}>terms of service</a>
                 </p>
               </div>
             )}
           </div>
         </form>
-        {error && <p style={{ color: 'red', marginTop: '20px' }}>{error}</p>}w
+        {error && <p style={{ color: 'red', marginTop: '20px' }}>{error}</p>}
       </div>
       {showPopup && (
         <div style={{
@@ -509,4 +493,4 @@ className="white-background" style={{width: '1000px', marginLeft: 'auto', border
   );
 };
 
-export default SignUp;
+export default SignUpAdmin;

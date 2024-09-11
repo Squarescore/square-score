@@ -12,7 +12,7 @@ return (
     <div style={
         {position: 'absolute',width: '100%',
         height: '100px', bottom: '-110px',
-        borderTop: '5px solid lightgrey',
+        borderTop: '4px solid lightgrey',
         backgroundColor: 'white' 
         }}>
 
@@ -32,7 +32,7 @@ marginRight: 'auto',display: 'flex', flexDirection: 'row', marginTop: '50px'}}>
 </div>
 <div style={{width: '50%', backgroundColor: ' white', height: '200px', flexDirection: 'column',display: 'flex',}}>
 <h4 style={{fontWeight:'bold', fontSize: '16px', marginBottom: '0px'}}>Legal</h4>
-<Link style={{...foot}}>Privacy Policy</Link>
+<Link   to="/PrivacyPolicy" style={{...foot}}>Privacy Policy</Link>
 <Link to="/termsofservice"style={{...foot}}>Terms of Service</Link>
 </div>
 

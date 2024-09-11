@@ -6,6 +6,7 @@ import LogIn from './components/LogIn';
 import Loader from './components/Loader';
 import SignUp from './components/SignUp';
 import StudentHome from './components/StudentHome';
+import TakeMCQ from './components/TakeMCQ';
 import TeacherHome from './components/TeacherHome';
 import AdminHome from './components/AdminHome';
 import TeacherClassHome from './components/TeacherClassHome';
@@ -13,7 +14,7 @@ import TeacherAssignmentHome from './components/TeacherAssignmentHome';
 import CreateAssignment from './components/CreateSAQ';
 import SAQA from './components/CreateASAQ';
 import Participants from './components/Participants';
-import Assignments from './components/Assignments';
+import Assignments from './components/TeacherAssignments';
 import TeacherReview from './components/TeacherReview';
 import TeacherPreview from './components/PreviewSAQ';
 import CreateClass from './components/CreateClass';
@@ -23,6 +24,8 @@ import TakeTest from './components/TakeSAQ';
 import TeacherStudentResults from './components/TeacherStudentResults';
 import SelectStudents from './components/SelectStudents';
 import TeacherResults from './components/ResultsSAQ';
+import StudentResultsMCQ from './components/StudentResultsMCQ';
+import TeacherStudentResultsMCQ from './components/TeacherStudentResultsMCQ';
 import TeacherStudentResultsAMCQ from './components/TeacherStudentResultsAMCQ';
 import StudentResults from './components/StudentResults';
 import TeacherResultsAMCQ from './components/ResultsAMCQ';
@@ -39,10 +42,11 @@ import TeacherStudentGrades from './components/TeacherStudentGrades';
 import TakeASAQ from './components/TakeASAQ';
 import TakeAmcq from './components/TakeAmcq';
 import TeacherResultsASAQ from './components/ResultsASAQ';
-
+import PrivacyPolicy from './components/PrivacyPolicy';
 import TeacherResultsMCQ from './components/ResultsMCQ';
 import AdminUB from './components/AdminUB';
 import TeacherLogs from './components/TeacherLogs';
+import SignUpAdmin from './components/SignUpAdmin';
 function App() {
   const [user, setUser] = useState(null);
   const [userRole, setUserRole] = useState(null); // State for storing user role
@@ -150,6 +154,7 @@ useEffect(() => {
               } 
             />
  <Route path="/termsofservice" element={<TermsOfService />} />
+ <Route path="/privacyPolicy" element={<PrivacyPolicy />} />
 
 
  <Route path="/admin-ub" element={<AdminUB />} />
@@ -171,6 +176,7 @@ useEffect(() => {
         <Route path="/class/:classId/Assignments" element={<Assignments currentPage="Grades"/>} />
         <Route path="/class/:classId/student/:studentUid/grades" element={<TeacherStudentGrades currentPage="Grades"/>} />
         <Route path="/teacherStudentResults/:assignmentId/:studentUid/:classId" element={<TeacherStudentResults currentPage="Grades"/>} />
+        <Route path="/teacherStudentResultsMCQ/:assignmentId/:studentUid/:classId" element={<TeacherStudentResultsMCQ currentPage="Grades"/>} />
         <Route path="/teacherStudentResultsAMCQ/:assignmentId/:studentUid/:classId" element={<TeacherStudentResultsAMCQ currentPage="Grades"/>} />
         
         <Route path="/class/:classId/assignment/:assignmentId/TeacherResults" element={<TeacherResults />} />
@@ -200,11 +206,14 @@ useEffect(() => {
         <Route path="/studentassignments/:classId" element={<StudentAssignments />} />
         <Route path="/taketests/:assignmentId" element={<TakeTest />} />
         
+        <Route path="/takeMCQ/:assignmentId" element={<TakeMCQ/>} />
         <Route path="/takeASAQ/:assignmentId" element={<TakeASAQ/>} />
         <Route path="/takeAmcq/:assignmentId" element={<TakeAmcq/>} />
         <Route path="/joinclass" element={<JoinClass />} />  
         <Route path="/studentresults/:assignmentId/:studentUid/:classId" element={<StudentResults/>} />
         <Route path="/studentresultsAMCQ/:assignmentId/:studentUid/:classId" element={<StudentResultsAMCQ/>} />
+        
+        <Route path="/studentresultsMCQ/:assignmentId/:studentUid/:classId" element={<StudentResultsMCQ/>} />
         
         </Routes>
         ) : (
@@ -225,7 +234,10 @@ useEffect(() => {
             element={<Auth />}
             onEnter={handleUnauthenticatedRoute} 
           />
-            <Route path="/termsofservice" element={<TermsOfService />} />
+            <Route path="/termsofservice" element={<TermsOfService />} 
+            />
+            
+            <Route path="/privacyPolicy" element={<PrivacyPolicy />} />
           <Route
             path="/login"
             element={<LogIn />} 
@@ -235,7 +247,12 @@ useEffect(() => {
             path="/signup"
             element={<SignUp />}
             onEnter={handleUnauthenticatedRoute} />
+             <Route
+            path="/signupadmin"
+            element={<SignUpAdmin />}
+            onEnter={handleUnauthenticatedRoute} />
         </Routes>
+        
       )}
     </Router>
     </div>

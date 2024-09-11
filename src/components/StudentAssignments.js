@@ -89,6 +89,7 @@ const [confirmAssignment, setConfirmAssignment] = useState(null);
     fetchClassData();
   }, [classId, studentUid]);
 
+
   useEffect(() => {
     const fetchAssignments = async () => {
       try {
@@ -113,6 +114,8 @@ const [confirmAssignment, setConfirmAssignment] = useState(null);
               assignmentDocRef = doc(db, 'assignments(Amcq)', assignmentId);
             } else if (assignmentId.endsWith('ASAQ')) {
               assignmentDocRef = doc(db, 'assignments(Asaq)', assignmentId);
+            } else if (assignmentId.endsWith('MCQ')) {
+              assignmentDocRef = doc(db, 'assignments(mcq)', assignmentId);
             } else {
               assignmentDocRef = doc(db, 'assignments(saq)', assignmentId);
             } 
@@ -140,6 +143,8 @@ const [confirmAssignment, setConfirmAssignment] = useState(null);
 
     fetchAssignments();
   }, [classId, studentUid]);
+
+
   const isActiveAssignment = (assignment) => {
     const now = new Date();
     const assignDateTime = new Date(assignment.assignDate);
@@ -154,8 +159,7 @@ const [confirmAssignment, setConfirmAssignment] = useState(null);
     if (now < assignDateTime) return 'grey';
     if (now > dueDateTime) return 'red';
     return '#AEF2A3'; // Light green for active assignments
-  };
-  useEffect(() => {
+  }; useEffect(() => {
     const fetchCompletedAssignments = async () => {
       const saqGradesQuery = query(
         collection(db, 'grades(saq)'),
@@ -168,16 +172,24 @@ const [confirmAssignment, setConfirmAssignment] = useState(null);
         where('studentUid', '==', studentUid),
         where('classId', '==', classId)
       );
-  
-      const [saqSnapshot, amcqSnapshot] = await Promise.all([
+
+      const mcqGradesQuery = query(
+        collection(db, 'grades(mcq)'),
+        where('studentUid', '==', studentUid),
+        where('classId', '==', classId)
+      );
+      
+      const [saqSnapshot, amcqSnapshot, mcqSnapshot] = await Promise.all([
         getDocs(saqGradesQuery),
-        getDocs(amcqGradesQuery)
+        getDocs(amcqGradesQuery),
+        getDocs(mcqGradesQuery)
       ]);
   
       const saqGrades = saqSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), type: 'SAQ' }));
       const amcqGrades = amcqSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), type: 'AMCQ' }));
+      const mcqGrades = mcqSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), type: 'MCQ' }));
   
-      const allGrades = [...saqGrades, ...amcqGrades].sort((a, b) => b.submittedAt.toDate() - a.submittedAt.toDate());
+      const allGrades = [...saqGrades, ...amcqGrades, ...mcqGrades].sort((a, b) => b.submittedAt.toDate() - a.submittedAt.toDate());
       setCompletedAssignments(allGrades);
     };
   
@@ -187,6 +199,7 @@ const [confirmAssignment, setConfirmAssignment] = useState(null);
   const handleBack = () => {
     navigate(-1);
   };
+  
   const navigateToTest = async (assignmentId, type, assignDate, dueDate, assignmentName, saveAndExit) => {
     const now = new Date();
     const assignDateTime = new Date(assignDate);
@@ -214,10 +227,11 @@ const [confirmAssignment, setConfirmAssignment] = useState(null);
     setConfirmAssignment({ id: assignmentId, type, assignmentName, saveAndExit });
     setShowConfirm(true);
   };
+
 const getAssignmentStyle = (assignment) => {
   const borderColor = getBorderColor(assignment);
   return {
-    border: `6px solid ${borderColor}`,
+    border: `4px solid ${borderColor}`,
     cursor: borderColor === '#AEF2A3' ? 'pointer' : 'not-allowed',
     opacity: borderColor === '#AEF2A3' ? 1 : 0.5
   };
@@ -349,7 +363,10 @@ const getAssignmentStyle = (assignment) => {
   const renderCompletedAssignments = () => {
     return completedAssignments.map(grade => {
       const isAMCQ = grade.type === 'AMCQ';
+      const isSAQ = grade.type === 'SAQ';
+      const isMCQ = grade.type === 'MCQ';
       const percentage = Math.round(isAMCQ ? grade.SquareScore : grade.percentageScore);
+      const percentageMCQ = Math.round((isMCQ ? grade.rawTotalScore / grade.maxRawScore: 0) * 100);
       const letterGrade = getLetterGrade(percentage);
       
       if (isAMCQ) {
@@ -359,7 +376,7 @@ const getAssignmentStyle = (assignment) => {
             backgroundColor: 'white', 
             fontFamily: "'Radio Canada', sans-serif",
             transition: '.4s',
-            border: grade.viewable ? '6px solid #54AAA4' : '6px solid lightgrey',
+            border: grade.viewable ? '4px solid #54AAA4' : '4px solid lightgrey',
             listStyleType: 'none',
             marginTop: '20px', 
             height: '100px',
@@ -439,7 +456,7 @@ const getAssignmentStyle = (assignment) => {
               display: 'flex',
               transform: 'translateY(-50%)', 
               backgroundColor: '#A3F2ED',
-              border: '6px solid #54AAA4',
+              border: '4px solid #54AAA4',
               borderRadius: '0 15px 15px 0',
               fontFamily: "'Radio Canada', sans-serif",
               alignItems: 'center', 
@@ -452,7 +469,7 @@ const getAssignmentStyle = (assignment) => {
             </button>}
           </li>
         );
-      } else {
+      } else if (isSAQ) {
         // Original SAQ layout
 
 
@@ -465,7 +482,7 @@ const getAssignmentStyle = (assignment) => {
             backgroundColor: 'white', 
             fontFamily: "'Radio Canada', sans-serif",
             transition: '.4s',
-            border: grade.viewable ? '6px solid #54AAA4' : '6px solid lightgrey',
+            border: grade.viewable ? '4px solid #54AAA4' : '4px solid lightgrey',
             listStyleType: 'none',
             textAlign: 'center', 
             marginTop: '20px', 
@@ -495,7 +512,7 @@ const getAssignmentStyle = (assignment) => {
                 transform: 'translateY(-50%)', 
                 color: 'white',
                 backgroundColor: '#A3F2ED',
-                border: '6px solid #54AAA4',
+                border: '4px solid #54AAA4',
                 borderRadius: '15px',
                 marginBottom: '5px',
                 borderTopLeftRadius: '0px',
@@ -553,6 +570,115 @@ const getAssignmentStyle = (assignment) => {
             </div>
           </li>
         );
+      }
+      else if (isMCQ){
+
+
+
+        return (
+          <li key={grade.id} style={{ 
+            fontSize: '40px', 
+            color: 'black', 
+            backgroundColor: 'white', 
+            fontFamily: "'Radio Canada', sans-serif",
+            transition: '.4s',
+            border: grade.viewable ? '4px solid #54AAA4' : '4px solid lightgrey',
+            listStyleType: 'none',
+            textAlign: 'center', 
+            marginTop: '20px', 
+            height: '69px',
+        marginLeft: '-40px',
+            padding: '10px', 
+            borderRadius: '15px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            position: 'relative',
+            borderTopRightRadius: grade.viewable ? '0px' : '15px',
+            borderBottomRightRadius: grade.viewable ? '0px' : '15px',
+          }}>
+            <div style={{display: 'flex'}}>
+              {grade.viewable && 
+              <button style={{
+                fontWeight: 'bold',
+                position: 'absolute', 
+                right: '-57px', 
+                top: '50%', 
+                width: '60px',
+                cursor: 'pointer',
+                height: '101px',
+                padding: '10px 20px 10px 20px',
+                display: 'flex',
+                transform: 'translateY(-50%)', 
+                color: 'white',
+                backgroundColor: '#A3F2ED',
+                border: '4px solid #54AAA4',
+                borderRadius: '15px',
+                marginBottom: '5px',
+                borderTopLeftRadius: '0px',
+                borderBottomLeftRadius: '0px',
+                fontFamily: "'Radio Canada', sans-serif",
+                alignItems: 'center', 
+                justifyContent: 'center' 
+              }} onClick={() => navigate(`/studentresultsmcq/${grade.assignmentId}/${studentUID}/${classId}`)}>
+                <img style={{width: '30px', cursor: 'pointer', transform: 'scale(1)', transition: '.3s'}}
+                  onMouseEnter={(e) => { e.target.style.transform = 'scale(1.06)'; }}
+                  onMouseLeave={(e) => { e.target.style.transform = 'scale(1)'; }} 
+                  src='/gradesarrow.png'/>
+              </button>}
+              <div style={{marginLeft: '10px', width: '800px', textAlign: 'left'}}>
+                <h1 style={{color: 'black', fontSize: '25px', marginLeft: '5px'}}>
+                  {grade.assignmentName}
+                </h1>  
+                <div style={{display: 'flex', position: 'relative', alignItems: 'center', marginTop: '-30px'}}>
+                  <p style={{ fontWeight: 'bold', width: '23px',  textAlign: 'center',fontSize: '22px', backgroundColor: '#566DFF', height: '23px', border: '4px solid #003BD4', lineHeight: '23px', color: 'white', borderRadius: '7px', fontFamily: "'Radio Canada', sans-serif" }}>
+                    {letterGrade}
+                  </p>
+                  <h1 style={{color: 'grey', fontSize: '24px', marginLeft: '40px'}}>
+                  {percentageMCQ}%
+                  </h1>
+                  <span style={{ fontSize: '20px', marginLeft: '40px',fontFamily: "'Radio Canada', sans-serif", fontWeight: 'bold', marginRight: '-10px', color: grade.viewable ? '#54AAA4' : '#009006' }}>
+                    {grade.viewable ? 'Reviewable' : 'Completed'}
+                  </span>
+                  <h1 style={{color: 'grey', fontSize: '20px',textAlign: 'left',fontWeight: 'normal', marginLeft: '30px'}}>
+                  Submitted:  {grade.submittedAt ? new Date(grade.submittedAt.toDate()).toLocaleString(undefined, {
+                    year: 'numeric',
+                    month: 'numeric',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    hour12: true
+                  }) : 'N/A'}
+                </h1>
+                <span style={{
+                  position: 'absolute',
+                  right: '65px',
+                  bottom: '20px',
+                  fontWeight: 'bold',
+                  width: '60px',
+                  marginTop: '0px',
+                  fontSize: '30px',
+                  fontFamily: "'Radio Canada', sans-serif",
+                  color: 'green',
+                }}>
+                  MCQ
+                </span>
+                </div>
+              </div>
+         
+              
+            </div>
+          </li>
+        );
+        
+      
+
+
+
+
+
+
+
       }
     });
   };
@@ -731,7 +857,7 @@ const getAssignmentStyle = (assignment) => {
     fontFamily: "'Radio Canada', sans-serif",
     fontSize: '20px',
     fontWeight: 'bold',
-    border: '6px solid #2BB514',
+    border: '4px solid #2BB514',
     overflow: 'hidden',
     display: 'flex',
     justifyContent: 'center',
@@ -762,15 +888,17 @@ const getAssignmentStyle = (assignment) => {
       {showConfirm && (
   <RetroConfirm 
     onConfirm={() => {
-      setShowConfirm(false);
-      if (confirmAssignment.type === 'AMCQ') {
-        navigate(`/TakeAmcq/${confirmAssignment.id}`);
-      } else if (confirmAssignment.type === 'ASAQ') {
-        navigate(`/TakeAsaq/${confirmAssignment.id}`);
-      } else {
-        navigate(`/taketests/${confirmAssignment.id}`);
-      }
-    }}
+       setShowConfirm(false);
+            if (confirmAssignment.type === 'AMCQ') {
+              navigate(`/TakeAmcq/${confirmAssignment.id}`);
+            } else if (confirmAssignment.type === 'ASAQ') {
+              navigate(`/TakeAsaq/${confirmAssignment.id}`);
+            } else if (confirmAssignment.type === 'MCQ') {
+              navigate(`/TakeMcq/${confirmAssignment.id}`);
+            } else {
+              navigate(`/taketests/${confirmAssignment.id}`);
+            }
+          }}
     onCancel={() => setShowConfirm(false)}
     assignmentName={confirmAssignment ? confirmAssignment.assignmentName : ''}
     saveAndExit={confirmAssignment ? confirmAssignment.saveAndExit : false}

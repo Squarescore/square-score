@@ -17,7 +17,6 @@ const TeacherResultsMCQ = () => {
   const [grades, setGrades] = useState({});
   const [hoveredStatus, setHoveredStatus] = useState(null);
   const [hoveredStudent, setHoveredStudent] = useState(null);
-  const [showQuestionContent, setShowQuestionContent] = useState(false);
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [resetStatus, setResetStatus] = useState({});
@@ -28,7 +27,7 @@ const TeacherResultsMCQ = () => {
   const [students, setStudents] = useState([]);
     const { classId, assignmentId } = useParams();
     const [showOverlay, setShowOverlay] = useState(false);
-    
+    const assignmentDataRef = useRef(null);
   const [showSettings, setShowSettings] = useState(false);
   const [assignmentSettings, setAssignmentSettings] = useState({
     assignDate: null,
@@ -44,7 +43,7 @@ const TeacherResultsMCQ = () => {
   const navigate = useNavigate();
   useEffect(() => {
     const fetchAssignmentSettings = async () => {
-      const assignmentRef = doc(db, 'assignments(saq)', assignmentId);
+      const assignmentRef = doc(db, 'assignments(MCQ)', assignmentId);
       const assignmentDoc = await getDoc(assignmentRef);
       if (assignmentDoc.exists()) {
         const data = assignmentDoc.data();
@@ -66,7 +65,7 @@ const TeacherResultsMCQ = () => {
   }, [assignmentId]);
 
   const updateAssignmentSetting = async (setting, value) => {
-    const assignmentRef = doc(db, 'assignments(saq)', assignmentId);
+    const assignmentRef = doc(db, 'assignments(MCQ)', assignmentId);
     const updateData = { [setting]: value };
     
     if (setting === 'scaleMin' || setting === 'scaleMax') {
@@ -90,7 +89,7 @@ const TeacherResultsMCQ = () => {
       <div style={{width: '150px', position: 'absolute', top: '-6px', left: '10px', height: '32px', background: 'lightgrey'}}></div>
       <div style={{
         marginLeft: '10px',
-        border: '6px solid lightgrey',
+        border: '4px solid lightgrey',
         background: 'white',
         borderRadius: '10px',
         padding: '20px',
@@ -139,7 +138,7 @@ const TeacherResultsMCQ = () => {
         </div>
   
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
-          <div style={{display: 'flex', alignItems: 'center', border: '6px solid #f4f4f4', borderRadius: '10px', width: '400px', height: '70px'}}>
+          <div style={{display: 'flex', alignItems: 'center', border: '4px solid #f4f4f4', borderRadius: '10px', width: '400px', height: '70px'}}>
             <h3 style={{lineHeight: '30px', marginLeft: '20px', marginRight: '20px',     fontFamily: "'Radio Canada', sans-serif",}}>Timer</h3>
             <div style={{ display: 'flex', alignItems: 'center' }}>
               <input
@@ -169,7 +168,7 @@ const TeacherResultsMCQ = () => {
             </div>
           </div>
   
-          <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', border: '6px solid #f4f4f4', borderRadius: '10px', width: '275px', height: '70px', padding: '0 20px'}}>
+          <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', border: '4px solid #f4f4f4', borderRadius: '10px', width: '275px', height: '70px', padding: '0 20px'}}>
             <h3 style={{    fontFamily: "'Radio Canada', sans-serif",}}>Half Credit</h3>
             <input
               type="checkbox"
@@ -182,7 +181,7 @@ const TeacherResultsMCQ = () => {
   
         <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '10px' }}>
           
-          <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', border: '6px solid #f4f4f4', borderRadius: '10px', width: '50%', height: '60px', padding: '0 20px'}}>
+          <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', border: '4px solid #f4f4f4', borderRadius: '10px', width: '50%', height: '60px', padding: '0 20px'}}>
             <h3 style={{    fontFamily: "'Radio Canada', sans-serif",}}>Lockdown</h3>
             <input
               type="checkbox"
@@ -191,7 +190,7 @@ const TeacherResultsMCQ = () => {
               onChange={(e) => updateAssignmentSetting('lockdown', e.target.checked)}
             />
           </div>
-          <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', border: '6px solid #f4f4f4', borderRadius: '10px', width: '35%', height: '60px', padding: '0 20px'}}>
+          <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', border: '4px solid #f4f4f4', borderRadius: '10px', width: '35%', height: '60px', padding: '0 20px'}}>
             <h3 style={{    fontFamily: "'Radio Canada', sans-serif",}}>Save & Exit</h3>
             <input
               type="checkbox"
@@ -208,22 +207,33 @@ const TeacherResultsMCQ = () => {
   const navigateToStudentGrades = (studentUid) => {
     navigate(`/class/${classId}/student/${studentUid}/grades`);
   };
-  // Fetch assignment data
-  const fetchAssignmentData = async () => {
-    try {
-      const assignmentRef = doc(db, 'assignments(mcq)', assignmentId);
-      const assignmentDoc = await getDoc(assignmentRef);
-      if (assignmentDoc.exists()) {
-        setAssignmentData(assignmentDoc.data());
-      } else {
-        console.log("No such document!");
-      }
-    } catch (error) {
-      console.error("Error fetching assignment data:", error);
-    }
-  };
 
+  const calculateLetterGrade = (percentage) => {
+    if (percentage >= 90) return 'A';
+    if (percentage >= 80) return 'B';
+    if (percentage >= 70) return 'C';
+    if (percentage >= 60) return 'D';
+    return 'F';
+  };
+  // Fetch assignment data
+  
   useEffect(() => {
+    const fetchAssignmentData = async () => {
+      try {
+        const assignmentRef = doc(db, 'assignments(mcq)', assignmentId);
+        const assignmentDoc = await getDoc(assignmentRef);
+        if (assignmentDoc.exists()) {
+          const data = assignmentDoc.data();
+          setAssignmentData(data);
+          assignmentDataRef.current = data;
+        } else {
+          console.log("No such document!");
+        }
+      } catch (error) {
+        console.error("Error fetching assignment data:", error);
+      }
+    };
+
     fetchAssignmentData();
   }, [assignmentId]);
   useEffect(() => {
@@ -303,26 +313,29 @@ const TeacherResultsMCQ = () => {
         let totalScore = 0;
         let totalGradesCount = 0;
     
+        // Fetch assignment data to get questionStudent
+        const assignmentRef = doc(db, 'assignments(mcq)', assignmentId);
+        const assignmentDoc = await getDoc(assignmentRef);
+        const questionStudent = assignmentDoc.data().questionStudent;
+    
         gradesSnapshot.forEach((doc) => {
           const gradeData = doc.data();
+          const percentageScore = (gradeData.rawTotalScore / gradeData.maxRawScore ) * 100;
           fetchedGrades[gradeData.studentUid] = {
             submittedAt: gradeData.submittedAt,
-            SquareScore: gradeData.SquareScore,
+            rawTotalScore: gradeData.rawTotalScore,
+            percentageScore: percentageScore,
             viewable: gradeData.viewable || false,
           };
     
-          if (gradeData.percentageScore !== undefined) {
-            totalScore += gradeData.percentageScore;
-            totalGradesCount++;
-          }
+          totalScore += percentageScore;
+          totalGradesCount++;
         });
     
         setGrades(fetchedGrades);
     
         const classAverage = totalGradesCount > 0 ? (totalScore / totalGradesCount).toFixed(2) : 'N/A';
         
-        const assignmentRef = doc(db, 'assignments(mcq)', assignmentId);
-        const assignmentDoc = await getDoc(assignmentRef);
         if (assignmentDoc.exists()) {
           await updateDoc(assignmentRef, { classAverage: parseFloat(classAverage) });
         } else {
@@ -335,6 +348,7 @@ const TeacherResultsMCQ = () => {
       setLoading(false);
     }
   };
+
 
   useEffect(() => {
     const fetchData = async () => {
@@ -378,22 +392,7 @@ const TeacherResultsMCQ = () => {
     fetchAssignmentStatus();
   }, [students, assignmentId]);
 
-  // Handlers
-  const calculateLetterGrade = (percentage) => {
-    if (percentage >= 90) return 'A';
-    if (percentage >= 80) return 'B';
-    if (percentage >= 70) return 'C';
-    if (percentage >= 60) return 'D';
-    return 'F';
-  };
 
-  const calculatePercentage = (grade, totalQuestions) => {
-    return Math.floor((grade / totalQuestions) * 100);
-  };
-
-  const closeResetModal = () => {
-    setResetStudent(null);
-  };
 
   const formatDate = (dateString) => {
     if (!dateString) return 'No date provided';
@@ -513,9 +512,7 @@ const TeacherResultsMCQ = () => {
     }
   };
 
-  const openResetModal = (student) => {
-    setResetStudent(student);
-  };
+
 
   const toggleAllViewable = async () => {
     const newViewableStatus = !allViewable;
@@ -711,147 +708,145 @@ const TeacherResultsMCQ = () => {
       </div>
     );
   }; 
+  const QuestionBankModal = ({ onClose, setShowQuestionBank, setShowOverlay }) => {
+    const [hoveredOptions, setHoveredOptions] = useState({});
+    const modalRef = useRef(null);
+    const questions = assignmentDataRef.current?.questions || [];
 
-const QuestionBankModal = ({ questions, onClose, setShowQuestionBank, setShowOverlay }) => {
-  const [hoveredOptions, setHoveredOptions] = useState({});
-  const modalRef = useRef(null);
+    const [isVisible, setIsVisible] = useState(false);
+    const optionStyles = {
+      a: { background: '#A3F2ED', color: '#00645E' },
+      b: { background: '#AEF2A3', color: '#006428' },
+      c: { background: '#F8CFFF', color: '#E01FFF' },
+      d: { background: '#FFECA8', color: '#CE7C00' },
+      e: { background: '#FFD1D1', color: '#FF0000' },
+      f: { background: '#627BFF', color: '#020CFF' },
+      g: { background: '#E3BFFF', color: '#8364FF' },
+      h: { background: '#9E9E9E', color: '#000000' }
+    };
   
-  const [isVisible, setIsVisible] = useState(false);
-  const optionStyles = {
-    a: { background: '#A3F2ED', color: '#00645E' },
-    b: { background: '#AEF2A3', color: '#006428' },
-    c: { background: '#F8CFFF', color: '#E01FFF' },
-    d: { background: '#FFECA8', color: '#CE7C00' },
-    e: { background: '#FFD1D1', color: '#FF0000' },
-  };
-
-  const handleOptionHover = (index, option) => {
-    setHoveredOptions(prev => ({
-      ...prev,
-      [index]: option
-    }));
-  };
-
-  const handleMouseLeave = () => {
-    setShowQuestionBank(false);
-    setShowOverlay(false);
-  };
-
-  useEffect(() => {
-    const timer = setTimeout(() => setIsVisible(true), 300);
-    return () => clearTimeout(timer);
-  }, []);
-
-
-  return (
-    <div style={{ 
-      position: 'fixed', 
-      top: '70px',
-      right: '15px',
-      height: 'calc(100vh - 95px)',
-      width: '700px',  
-      backgroundColor: 'white', 
-      borderLeft: '15px solid #FCCA18',
-      borderBottom: '15px solid #FCCA18',
-      borderBottomLeftRadius: '30px',
-      overflow: 'hidden',
-      zIndex: 1000,
-      transition: 'all 0.3s ease-in-out',
-      opacity: isVisible ? 1 : 0,
-      visibility: isVisible ? 'visible' : 'hidden',
-      
-    }}
-    
-    onMouseLeave={handleMouseLeave}
-    >
-      {isVisible && (
-   <>
-      <div style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        padding: '20px',
-        borderBottom: '1px solid #e0e0e0',
+    const handleOptionHover = (index, option) => {
+      setHoveredOptions(prev => ({
+        ...prev,
+        [index]: option
+      }));
+    };
+  
+    const handleMouseLeave = () => {
+      setShowQuestionBank(false);
+      setShowOverlay(false);
+    };
+  
+    useEffect(() => {
+      const timer = setTimeout(() => setIsVisible(true), 300);
+      return () => clearTimeout(timer);
+    }, []);
+  
+    return (
+      <div style={{ 
+        position: 'fixed', 
+        top: '70px',
+        right: '15px',
+        height: 'calc(100vh - 95px)',
+        width: '700px',  
+        backgroundColor: 'white', 
+        borderLeft: '15px solid green',
+        borderBottom: '15px solid #green',
+        borderBottomLeftRadius: '30px',
+        overflow: 'hidden',
+        zIndex: 1000,
+        transition: 'all 0.3s ease-in-out',
+        opacity: isVisible ? 1 : 0,
+        visibility: isVisible ? 'visible' : 'hidden',
       }}
+      onMouseLeave={handleMouseLeave}
       >
-         <button onClick={onClose} style={{ 
-          backgroundColor: 'transparent', 
-          border: 'none', 
-          fontSize: '24px', 
-         
-          cursor: 'pointer' 
-        }}>×</button>
-        <h2 style={{ 
-          fontSize: '50px', 
-          fontWeight: 'bold', 
-          fontFamily: "'Rajdhani', sans-serif",
-          margin: 0,
-          marginRight: '269px',
-          marginTop: '-21px',
-        
-        }}>Questions</h2>
-       
-      </div>
-      <div ref={modalRef} style={{
-        height: 'calc(100% - 80px)',
-        overflowY: 'auto',
-        padding: '0 20px',
-        scrollbarWidth: 'thin',
-        scrollbarColor: '#888 #f1f1f1',
-      }}>
-        {questions.map((question, index) => (
-          <div key={index} style={{ marginBottom: '20px', borderBottom: '1px solid #ccc', paddingBottom: '10px', textAlign: 'left' }}>
-            <p style={{ fontSize: '14px', color: '#666', fontFamily: "'Radio Canada', sans-serif", fontWeight: 'bold' }}>
-              Difficulty: {question.difficulty}
-            </p>
-            <h3 style={{ fontSize: '30px', fontWeight: 'bold', fontFamily: "'Radio Canada', sans-serif", width: '100%' }}>
-              {question.question}
-            </h3>
-            <ul style={{ listStyleType: 'none', padding: 0 }}>
-              {['a', 'b', 'c', 'd'].slice(0, question.choices).map((option) => (
-                <li 
-                  key={option} 
-                  style={{ 
-                    marginBottom: '15px', 
-                    padding: '10px', 
-                    backgroundColor: optionStyles[option].background,
-                    color: optionStyles[option].color,
-                    borderRadius: '5px',
-                    cursor: 'pointer',
-                    fontFamily: "'Radio Canada', sans-serif",
-                    fontWeight: 'bold',
-                    width: '600px',
-                    transition: 'all 0.3s',
-                    boxShadow: option === question.correct ? '0 4px 4px rgb(0,200,0,.25)' : 
-                               (hoveredOptions[index] === option ? '0 4px 4px rgb(100,0,0,.25)' : 'none'),
-                  }}
-                  onMouseEnter={() => handleOptionHover(index, option)}
-                  onMouseLeave={() => handleOptionHover(index, null)}
-                >
-                  {question[option]}
-                  {option === question.correct && ' ✓'}
-                </li>
+        {isVisible && (
+          <>
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              padding: '20px',
+              borderBottom: '1px solid #e0e0e0',
+            }}>
+              <button onClick={onClose} style={{ 
+                backgroundColor: 'transparent', 
+                border: 'none', 
+                fontSize: '24px', 
+                cursor: 'pointer' 
+              }}>×</button>
+              <h2 style={{ 
+                fontSize: '50px', 
+                fontWeight: 'bold', 
+                fontFamily: "'Rajdhani', sans-serif",
+                margin: 0,
+                marginRight: '269px',
+                marginTop: '-21px',
+              }}>Questions</h2>
+            </div>
+            <div ref={modalRef} style={{
+              height: 'calc(100% - 80px)',
+              overflowY: 'auto',
+              padding: '0 20px',
+              scrollbarWidth: 'thin',
+              scrollbarColor: '#888 #f1f1f1',
+            }}>
+              {questions.map((question, index) => (
+                <div key={index} style={{ marginBottom: '20px', borderBottom: '1px solid #ccc', paddingBottom: '10px', textAlign: 'left' }}>
+                  <h3 style={{ fontSize: '30px', fontWeight: 'bold', fontFamily: "'Radio Canada', sans-serif", width: '100%' }}>
+                    {question.question}
+                  </h3>
+                  <ul style={{ listStyleType: 'none', padding: 0 }}>
+                    {Object.keys(question).filter(key => key.match(/^[a-h]$/)).map((option) => {
+                      if (question[option]) {
+                        return (
+                          <li 
+                            key={option} 
+                            style={{ 
+                              marginBottom: '15px', 
+                              padding: '10px', 
+                              backgroundColor: optionStyles[option].background,
+                              color: optionStyles[option].color,
+                              borderRadius: '5px',
+                              cursor: 'pointer',
+                              fontFamily: "'Radio Canada', sans-serif",
+                              fontWeight: 'bold',
+                              width: '600px',
+                              transition: 'all 0.3s',
+                              boxShadow: option === question.correct ? '0 4px 4px rgb(0,200,0,.25)' : 
+                                         (hoveredOptions[index] === option ? '0 4px 4px rgb(100,0,0,.25)' : 'none'),
+                            }}
+                            onMouseEnter={() => handleOptionHover(index, option)}
+                            onMouseLeave={() => handleOptionHover(index, null)}
+                          >
+                            {question[option]}
+                            {option === question.correct && ' ✓'}
+                          </li>
+                        );
+                      }
+                      return null;
+                    })}
+                  </ul>
+                  {hoveredOptions[index] && (
+                    <p style={{ 
+                      fontSize: '14px', 
+                      color: hoveredOptions[index] === question.correct ? '#4CAF50' : '#ff4d4d', 
+                      width: '100%', 
+                      fontFamily: "'Radio Canada', sans-serif", 
+                      fontWeight: 'bold' 
+                    }}>
+                      Explanation: {question[`explanation_${hoveredOptions[index]}`]}
+                    </p>
+                  )}
+                </div>
               ))}
-            </ul>
-            {hoveredOptions[index] && hoveredOptions[index] !== question.correct && (
-              <p style={{ fontSize: '14px', color: '#ff4d4d', width: '100%', fontFamily: "'Radio Canada', sans-serif", fontWeight: 'bold' }}>
-                Explanation: {question[`explanation_${hoveredOptions[index]}`]}
-              </p>
-            )}
-            {(hoveredOptions[index] === question.correct || !hoveredOptions[index]) && (
-              <p style={{ fontSize: '14px', color: '#4CAF50', width: '100%', fontFamily: "'Radio Canada', sans-serif", fontWeight: 'bold' }}>
-                Explanation: {question[`explanation_${question.correct}`]}
-              </p>
-            )}
-          </div>
-        ))}
-      </div>
-      </>
+            </div>
+          </>
         )}
-    </div>
-  );
-};
-
+      </div>
+    );
+  };
 
 
 
@@ -872,7 +867,7 @@ const QuestionBankModal = ({ questions, onClose, setShowQuestionBank, setShowOve
         zIndex: 99
       }}>
         <div style={{
-          border: '15px solid #FCCA18',
+          border: '15px solid green',
           padding: '5px',
           zIndex: 100,
           boxShadow: '0px 4px 4px 0px rgba(0, 0, 0, 0.25)',
@@ -907,7 +902,7 @@ const QuestionBankModal = ({ questions, onClose, setShowQuestionBank, setShowOve
           }}>
             Questions
           </h2>
-          {showQuestionBank && assignmentData && (
+          {showQuestionBank && assignmentDataRef.current && (
   <QuestionBankModal 
     questions={assignmentData.questions} 
     onClose={() => {
@@ -973,7 +968,7 @@ const QuestionBankModal = ({ questions, onClose, setShowQuestionBank, setShowOve
           height: '50px',
           borderRadius: '10px',
           fontWeight: 'bold',
-          border: '6px solid lightgrey',
+          border: '4px solid lightgrey',
           background: 'lightgrey',
           cursor: 'pointer',
           color: 'black',
@@ -985,7 +980,7 @@ const QuestionBankModal = ({ questions, onClose, setShowQuestionBank, setShowOve
           <img style={{width:'30px', opacity: '40%'}} src='/Settings.png'/>
           <p style={{marginTop: '12px', marginLeft:'10px', color: 'grey'}}>Settings</p>
         </button>
-<div style={{width: '280px', fontSize: '20px', height:'45px', borderRadius: '10px', fontWeight: 'bold',  border: '6px solid #F4F4F4', background:' white', cursor: 'pointer', display:'flex',
+<div style={{width: '280px', fontSize: '20px', height:'45px', borderRadius: '10px', fontWeight: 'bold',  border: '4px solid #F4F4F4', background:' white', cursor: 'pointer', display:'flex',
 alignItems: 'center',
 marginLeft: '10px',
 transition: '.3s',
@@ -1010,7 +1005,7 @@ transition: '.3s',
           height: '50px',
           borderRadius: '10px',
           fontWeight: 'bold',
-          border: '6px solid #54AAA4',
+          border: '4px solid #54AAA4',
           background: '#A3F2ED ',
           cursor: 'pointer',
           color: '#54AAA4',
@@ -1085,191 +1080,149 @@ transition: '.3s',
 
       <ul>
         {students.map((student) => (
-          <li key={student.uid} className="student-item" style={{
-            width: '780px',
-            height: '80px',
-            alignItems: 'center',
-            display: 'flex',
-            justifyContent: 'space-between',
-            marginRight: 'auto',
-            marginLeft: 'auto',
-            border: '6px solid #F4F4F4',
-            backgroundColor: 'white',
-            borderRadius: '10px',
-            padding: '10px',
-            marginBottom: '20px',
+          <li key={student.uid} className="student-item" style={{ 
+            width: '780px', 
+            height: '80px', 
+            alignItems: 'center', 
+            display: 'flex', 
+            justifyContent: 'space-between', 
+            marginRight: 'auto', 
+            marginLeft: 'auto', 
+             border: '4px solid #F4F4F4', 
+            backgroundColor: 'white', 
+            borderRadius: '10px', 
+            padding: '10px', 
+            marginBottom: '20px', 
             position: 'relative',
-            zIndex: '0',
+            zIndex: '2', 
+        }}
+        onMouseEnter={() => setHoveredStudent(student.uid)}
+        
+        onMouseLeave={() => setHoveredStudent(null)}
+    
+        
+        >  <div style={{ marginLeft: '20px', width: '400px' }}>
+        <div 
+          style={{ 
+            display: 'flex', 
+            marginBottom: '10px', 
+            cursor: 'pointer',
+            transition: 'color 0.3s'
           }}
-          onMouseEnter={() => setHoveredStudent(student.uid)}
-          onMouseLeave={() => setHoveredStudent(null)}
-          > 
-            <div style={{
-              width: '60px',
-              height: '55px',
-              border: '7px solid #566DFF',
-              backgroundColor: '#003BD4',
-              borderRadius: '15px'
-            }}>
-              <p style={{
-                fontWeight: 'bold',
-                width: '40px',
-                marginTop: '8px',
-                marginRight: 'auto',
-                marginLeft: 'auto',
-                fontSize: '25px',
-                backgroundColor: 'white',
-                height: '40px',
-                lineHeight: '45px',
-                color: 'black',
-                borderRadius: '3px',
-                fontFamily: "'Rajdhani', sans-serif",
-                textAlign: 'center'
-              }}>
-                {grades[student.uid] && grades[student.uid].SquareScore !== undefined 
-                  ? grades[student.uid].SquareScore 
-                  : '—'}
-              </p>
-            </div>
-            <div style={{ marginLeft: '20px', width: '400px', marginTop: '-15px' }}>
-            <div 
-      style={{ 
-        display: 'flex', 
-        marginBottom: '-15px', 
-        cursor: 'pointer',
-        transition: 'color 0.3s'
-      }}
-      onClick={() => navigateToStudentGrades(student.uid)}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.color = 'blue';
-        e.currentTarget.style.textDecoration = 'underline';
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.color = 'inherit';
-        e.currentTarget.style.textDecoration = 'none';
-      }}
+          onClick={() => navigateToStudentGrades(student.uid)}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.color = 'blue';
+            e.currentTarget.style.textDecoration = 'underline';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.color = 'inherit';
+            e.currentTarget.style.textDecoration = 'none';
+          }}
+        >
+          <h3 style={{ fontWeight: 'normal', color: 'inherit', fontFamily: "'Radio Canada', sans-serif", fontSize: '23px' }}>{student.lastName},</h3>
+          <h3 style={{ fontWeight: 'bold', color: 'inherit', fontFamily: "'Radio Canada', sans-serif", fontSize: '23px', marginLeft: '10px' }}>{student.firstName}</h3>
+        </div>
+                  <div style={{ fontWeight: 'bold', textAlign: 'center', color: 'black', fontFamily: "'Poppins', sans-serif", marginTop: '-40px' }}>
+                  {grades[student.uid] ? (
+      <div style={{ display: 'flex', alignItems: 'center' }}>
+        <p style={{ fontWeight: 'bold', width: '23px', fontSize: '22px', backgroundColor: '#566DFF', height: '23px', border: '4px solid #003BD4', lineHeight: '23px', color: 'white', borderRadius: '7px', fontFamily: "'Radio Canada', sans-serif" }}>
+          {calculateLetterGrade(grades[student.uid].percentageScore)}
+        </p>
+        <p style={{ fontSize: '22px', color: 'lightgrey', marginLeft: '30px' }}>
+          {`${Math.round(grades[student.uid].percentageScore)}%`}
+        </p>
+        <button style={{ backgroundColor: 'transparent', color: resetStatus[student.uid] === 'success' ? 'lightgreen' : 'red', cursor: 'pointer', borderColor: 'transparent', fontFamily: "'Radio Canada', sans-serif", fontWeight: 'bold', fontSize: '22px', marginLeft: '30px' }} onClick={() => handleReset(student.uid)}>
+          {resetStatus[student.uid] === 'success' ? 'Success' : 'Reset'}
+        </button>
+      </div>
+    ) : (
+      <div style={{ display: 'flex', alignItems: 'center' }}>
+        <p style={{ fontWeight: 'bold', width: '23px', fontSize: '22px', backgroundColor: '#566DFF', height: '23px', border: '4px solid #003BD4', lineHeight: '23px', color: 'white', borderRadius: '7px', fontFamily: "'Radio Canada', sans-serif" }}>
+          Z
+        </p>
+        <p style={{ fontSize: '22px', color: 'lightgrey', marginLeft: '30px' }}>
+          00%
+        </p>
+        <button style={{ backgroundColor: 'transparent', color: resetStatus[student.uid] === 'success' ? 'lightgreen' : 'red', cursor: 'pointer', borderColor: 'transparent', fontFamily: "'Radio Canada', sans-serif", fontWeight: 'bold', fontSize: '22px', marginLeft: '30px' }} onClick={() => handleReset(student.uid)}>
+          {resetStatus[student.uid] === 'success' ? 'Success' : 'Reset'}
+        </button>
+      </div>
+    )}
+                      
+                  </div>
+                </div>
+                <div style={{ color: 'lightgrey', width: '400px', display: 'flex'}}>
+                  <div style={{}}>
+                  <h1 style={{ fontSize: '22px', fontFamily: "'Radio Canada', sans-serif", fontWeight: 'normal' }}>
+              Completed: {grades[student.uid] && grades[student.uid].submittedAt ? 
+                new Date(grades[student.uid].submittedAt.toDate()).toLocaleString(undefined, {
+                  year: 'numeric',
+                  month: 'numeric',
+                  day: 'numeric',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                  hour12: true
+                }) : 'Not completed'}
+            </h1>
+            <h1 style={{ 
+      fontSize: '22px', 
+      fontFamily: "'Radio Canada', sans-serif", 
+      fontWeight: 'bold',
+      color: getStatusColor(assignmentStatuses[student.uid]),
+      textTransform: assignmentStatuses[student.uid] === 'Completed' ? 'uppercase' : 'capitalize',
+      cursor: assignmentStatuses[student.uid] === 'Paused' ? 'pointer' : 'default'
+    }}
+    onMouseEnter={() => assignmentStatuses[student.uid] === 'Paused' && setHoveredStatus(student.uid)}
+    onMouseLeave={() => setHoveredStatus(null)}
+    onClick={() => assignmentStatuses[student.uid] === 'Paused' && togglePauseAssignment(student.uid)}
     >
-      <h3 style={{ fontWeight: 'normal', color: 'inherit', fontFamily: "'Radio Canada', sans-serif", fontSize: '23px' }}>{student.lastName},</h3>
-      <h3 style={{ fontWeight: 'bold', color: 'inherit', fontFamily: "'Radio Canada', sans-serif", fontSize: '23px', marginLeft: '10px' }}>{student.firstName}</h3>
-    </div>
-              <button style={{
-                backgroundColor: 'transparent',
-                color: resetStatus[student.uid] === 'success' ? 'lightgreen' : 'red',
-                cursor: 'pointer',
-                borderColor: 'transparent',
-                fontFamily: "'Radio Canada', sans-serif",
-                fontWeight: 'bold',
-                fontSize: '22px',
-                marginLeft: '-10px',
-              }} onClick={() => handleReset(student.uid)}>
-                {resetStatus[student.uid] === 'success' ? 'Success' : 'Reset'}
-              </button>
-            </div>
-            <div style={{
-              color: 'lightgrey',
-              width: '400px',
-              display: 'flex'
-            }}>
-              <div>
-                <h1 style={{
-                  fontSize: '22px',
-                  fontFamily: "'Radio Canada', sans-serif",
-                  fontWeight: 'normal'
-                }}>
-                  Completed: {grades[student.uid] && grades[student.uid].submittedAt ? 
-                    new Date(grades[student.uid].submittedAt.toDate()).toLocaleString(undefined, {
-                      year: 'numeric',
-                      month: 'numeric',
-                      day: 'numeric',
-                      hour: '2-digit',
-                      minute: '2-digit',
-                      hour12: true
-                    }) : 'Not completed'}
-                </h1>
-                <h1 style={{
-                  fontSize: '22px',
-                  fontFamily: "'Radio Canada', sans-serif",
-                  fontWeight: 'bold',
-                  color: getStatusColor(assignmentStatuses[student.uid]),
-                  textTransform: assignmentStatuses[student.uid] === 'Completed' ? 'uppercase' : 'capitalize',
-                  cursor: assignmentStatuses[student.uid] === 'Paused' ? 'pointer' : 'default'
-                }}
-                onMouseEnter={() => assignmentStatuses[student.uid] === 'Paused' && setHoveredStatus(student.uid)}
-                onMouseLeave={() => setHoveredStatus(null)}
-                onClick={() => assignmentStatuses[student.uid] === 'Paused' && togglePauseAssignment(student.uid)}>
-                  {hoveredStatus === student.uid && assignmentStatuses[student.uid] === 'Paused' 
-                    ? 'Unpause' 
-                    : assignmentStatuses[student.uid]}
-                </h1>
-              </div>
-              <span style={{
-                position: 'absolute',
-                right: '15px',
-                top: '60px',
-                cursor: 'pointer',
-                fontWeight: 'bold',
-                width: '60px',
-                marginTop: '0px',
-                fontSize: '25px',
-                fontFamily: "'Radio Canada', sans-serif",
-                color: 'green'
-              }}>
-                MCQ
-              </span>
-              <span style={{
-                position: 'absolute',
-                right: '-38px',
-                top: '45px',
-                fontSize: '25px',
-                cursor: 'pointer',
-                fontWeight: 'bold',
-                width: '60px',
-                marginTop: '0px',
-                fontFamily: "'Radio Canada', sans-serif",
-                color: '#FCCA18'
-              }}>
-                *
-              </span> 
-            </div>
-            <div className="tooltip">
-              <span className="tooltiptext">
-                Resetting assignments lets students take assignment again, it also assigns the assignment to new students
-              </span>
-            </div>
-            {hoveredStudent === student.uid && (
-              <div className="student-arrow" style={{
-                position: 'absolute',
-                right: '-78px',
-                top: '-6px',
-                height: '80px',
-                width: '50px',
-                padding: '10px',
-                zIndex: '1',
-                backgroundColor: '#A3F2ED',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                border: '6px solid #54AAA4',
-                borderBottomRightRadius: '10px',
-                borderTopRightRadius: '10px',
-                cursor: 'pointer',
-              }}
-              onClick={(e) => {
-                e.stopPropagation();
-                navigate(`/teacherStudentResultsMCQ/${assignmentId}/${student.uid}/${classId}`);
-              }}>
-                <img 
-                  src='/GradesArrow.png'
-                  alt="View student results"
-                  style={{ 
-                    width: '30px', 
-                  }}
-                />
-              </div>
-            )}
-          </li>
-        ))}
-      </ul>
+      {hoveredStatus === student.uid && assignmentStatuses[student.uid] === 'Paused' 
+        ? 'Unpause' 
+        : assignmentStatuses[student.uid]}
+    </h1>
+                  </div>
+              <h1 style={{fontSize: '25px',position: 'absolute', right: '25px', bottom: '-6px', color: 'green', fontWeight: 'bold', fontFamily: "'Radio Canada', sans-serif"}}>MCQ</h1>
+                </div>
+    
+              
+      
+                {hoveredStudent === student.uid && (
+                  <div
+                    className="student-arrow"
+                    style={{
+                      position: 'absolute',
+                      right: '-80px',
+                      top: '-4px',
+                      height: '78px',
+                      width: '50px',
+                      padding: '11px',
+                      zIndex: '1',
+                      backgroundColor: '#A3F2ED',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      border: '4px solid #54AAA4',
+                      borderBottomRightRadius: '10px',
+                      borderTopRightRadius: '10px',
+                      cursor: 'pointer',
+                    }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      navigate(`/teacherStudentResultsMCQ/${assignmentId}/${student.uid}/${classId}`);
+                    }}
+                  >
+                    <img 
+                      src='/GradesArrow.png'
+                      alt="View student results"
+                      style={{ 
+                        width: '30px', 
+                      }}
+                    />
+                  </div>
+                )}
+              </li>
+            ))}
+          </ul>
 
      
       {showOverlay && (

@@ -6,8 +6,10 @@ import { db } from './firebase';
 import { AnimatePresence } from 'framer-motion';
 import CustomDateTimePicker from './CustomDateTimePickerResults';
 import 'react-datepicker/dist/react-datepicker.css';
+import ExportModal from './ExportModal';
 const TeacherResultsAMCQ = () => {
   // State hooks
+  const [showExportModal, setShowExportModal] = useState(false);
   const [allViewable, setAllViewable] = useState(false);
   const [assignmentData, setAssignmentData] = useState(null);
   const [assignmentName, setAssignmentName] = useState('');
@@ -17,7 +19,7 @@ const TeacherResultsAMCQ = () => {
   const [grades, setGrades] = useState({});
   const [hoveredStatus, setHoveredStatus] = useState(null);
   const [hoveredStudent, setHoveredStudent] = useState(null);
-  const [showQuestionContent, setShowQuestionContent] = useState(false);
+  const assignmentDataRef = useRef(null);
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [resetStatus, setResetStatus] = useState({});
@@ -44,7 +46,7 @@ const TeacherResultsAMCQ = () => {
   const navigate = useNavigate();
   useEffect(() => {
     const fetchAssignmentSettings = async () => {
-      const assignmentRef = doc(db, 'assignments(saq)', assignmentId);
+      const assignmentRef = doc(db, 'assignments(Amcq)', assignmentId);
       const assignmentDoc = await getDoc(assignmentRef);
       if (assignmentDoc.exists()) {
         const data = assignmentDoc.data();
@@ -66,15 +68,10 @@ const TeacherResultsAMCQ = () => {
   }, [assignmentId]);
 
   const updateAssignmentSetting = async (setting, value) => {
-    const assignmentRef = doc(db, 'assignments(saq)', assignmentId);
+    const assignmentRef = doc(db, 'assignments(Amcq)', assignmentId);
     const updateData = { [setting]: value };
     
-    if (setting === 'scaleMin' || setting === 'scaleMax') {
-      updateData.scale = {
-        min: setting === 'scaleMin' ? value : assignmentSettings.scaleMin,
-        max: setting === 'scaleMax' ? value : assignmentSettings.scaleMax,
-      };
-    }
+ 
 
     await updateDoc(assignmentRef, updateData);
     setAssignmentSettings(prev => ({ ...prev, [setting]: value }));
@@ -90,7 +87,7 @@ const TeacherResultsAMCQ = () => {
       <div style={{width: '150px', position: 'absolute', top: '-6px', left: '10px', height: '32px', background: 'lightgrey'}}></div>
       <div style={{
         marginLeft: '10px',
-        border: '6px solid lightgrey',
+        border: '4px solid lightgrey',
         background: 'white',
         borderRadius: '10px',
         padding: '20px',
@@ -139,7 +136,7 @@ const TeacherResultsAMCQ = () => {
         </div>
   
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
-          <div style={{display: 'flex', alignItems: 'center', border: '6px solid #f4f4f4', borderRadius: '10px', width: '400px', height: '70px'}}>
+          <div style={{display: 'flex', alignItems: 'center', border: '4px solid #f4f4f4', borderRadius: '10px', width: '400px', height: '70px'}}>
             <h3 style={{lineHeight: '30px', marginLeft: '20px', marginRight: '20px',     fontFamily: "'Radio Canada', sans-serif",}}>Timer</h3>
             <div style={{ display: 'flex', alignItems: 'center' }}>
               <input
@@ -169,7 +166,7 @@ const TeacherResultsAMCQ = () => {
             </div>
           </div>
   
-          <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', border: '6px solid #f4f4f4', borderRadius: '10px', width: '275px', height: '70px', padding: '0 20px'}}>
+          <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', border: '4px solid #f4f4f4', borderRadius: '10px', width: '275px', height: '70px', padding: '0 20px'}}>
             <h3 style={{    fontFamily: "'Radio Canada', sans-serif",}}>Half Credit</h3>
             <input
               type="checkbox"
@@ -182,7 +179,7 @@ const TeacherResultsAMCQ = () => {
   
         <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '10px' }}>
           
-          <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', border: '6px solid #f4f4f4', borderRadius: '10px', width: '50%', height: '60px', padding: '0 20px'}}>
+          <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', border: '4px solid #f4f4f4', borderRadius: '10px', width: '50%', height: '60px', padding: '0 20px'}}>
             <h3 style={{    fontFamily: "'Radio Canada', sans-serif",}}>Lockdown</h3>
             <input
               type="checkbox"
@@ -191,7 +188,7 @@ const TeacherResultsAMCQ = () => {
               onChange={(e) => updateAssignmentSetting('lockdown', e.target.checked)}
             />
           </div>
-          <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', border: '6px solid #f4f4f4', borderRadius: '10px', width: '35%', height: '60px', padding: '0 20px'}}>
+          <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', border: '4px solid #f4f4f4', borderRadius: '10px', width: '35%', height: '60px', padding: '0 20px'}}>
             <h3 style={{    fontFamily: "'Radio Canada', sans-serif",}}>Save & Exit</h3>
             <input
               type="checkbox"
@@ -214,7 +211,9 @@ const TeacherResultsAMCQ = () => {
       const assignmentRef = doc(db, 'assignments(Amcq)', assignmentId);
       const assignmentDoc = await getDoc(assignmentRef);
       if (assignmentDoc.exists()) {
-        setAssignmentData(assignmentDoc.data());
+        const data = assignmentDoc.data();
+        setAssignmentData(data);
+        assignmentDataRef.current = data;
       } else {
         console.log("No such document!");
       }
@@ -236,15 +235,10 @@ const TeacherResultsAMCQ = () => {
       try {
         console.log("Fetching assignment with ID:", assignmentId);
         
-        const assignmentQuery = query(
-          collection(db, 'assignments(Amcq)'),
-          where('assignmentId', '==', assignmentId)
-        );
+        const assignmentRef = doc(db, 'assignments(Amcq)', assignmentId);
+        const assignmentDoc = await getDoc(assignmentRef);
         
-        const querySnapshot = await getDocs(assignmentQuery);
-        
-        if (!querySnapshot.empty) {
-          const assignmentDoc = querySnapshot.docs[0];
+        if (assignmentDoc.exists()) {
           const assignmentData = assignmentDoc.data();
           const name = assignmentData.assignmentName;
           const dueDate = assignmentData.dueDate;
@@ -253,7 +247,9 @@ const TeacherResultsAMCQ = () => {
           setAssignmentName(name);
           setAssignDate(assignDate ? new Date(assignDate) : null);
           setDueDate(dueDate ? new Date(dueDate) : null);
-        } 
+        } else {
+          console.log("No such document!");
+        }
       } catch (error) {
         console.error("Error fetching assignment name:", error);
       }
@@ -712,10 +708,10 @@ const TeacherResultsAMCQ = () => {
     );
   }; 
 
-const QuestionBankModal = ({ questions, onClose, setShowQuestionBank, setShowOverlay }) => {
-  const [hoveredOptions, setHoveredOptions] = useState({});
+  const QuestionBankModal = ({ onClose, setShowQuestionBank, setShowOverlay }) => {
+    const [hoveredOptions, setHoveredOptions] = useState({});
   const modalRef = useRef(null);
-  
+  const questions = assignmentDataRef.current?.questions || [];
   const [isVisible, setIsVisible] = useState(false);
   const optionStyles = {
     a: { background: '#A3F2ED', color: '#00645E' },
@@ -907,7 +903,8 @@ const QuestionBankModal = ({ questions, onClose, setShowQuestionBank, setShowOve
           }}>
             Questions
           </h2>
-          {showQuestionBank && assignmentData && (
+          {showQuestionBank && assignmentDataRef.current && (
+     
   <QuestionBankModal 
     questions={assignmentData.questions} 
     onClose={() => {
@@ -937,7 +934,7 @@ const QuestionBankModal = ({ questions, onClose, setShowQuestionBank, setShowOve
       <button style={{position: 'absolute', top: '10px', right: '-62px', zIndex: '1', background: 'transparent', border: 'none', 
         cursor: 'pointer'
       }}
-    
+      onClick={() => setShowExportModal(true)}
       ><img style={{width: '30px'}} src='/Export.png'/></button>
       </div>
         
@@ -945,7 +942,7 @@ const QuestionBankModal = ({ questions, onClose, setShowQuestionBank, setShowOve
         
       </div>
 
-      
+      {showExportModal && <ExportModal />}
 {isAssignModalOpen && (
   <AssignModal 
     students={students}
@@ -973,7 +970,7 @@ const QuestionBankModal = ({ questions, onClose, setShowQuestionBank, setShowOve
           height: '50px',
           borderRadius: '10px',
           fontWeight: 'bold',
-          border: '6px solid lightgrey',
+          border: '4px solid lightgrey',
           background: 'lightgrey',
           cursor: 'pointer',
           color: 'black',
@@ -985,7 +982,7 @@ const QuestionBankModal = ({ questions, onClose, setShowQuestionBank, setShowOve
           <img style={{width:'30px', opacity: '40%'}} src='/Settings.png'/>
           <p style={{marginTop: '12px', marginLeft:'10px', color: 'grey'}}>Settings</p>
         </button>
-<div style={{width: '280px', fontSize: '20px', height:'45px', borderRadius: '10px', fontWeight: 'bold',  border: '6px solid #F4F4F4', background:' white', cursor: 'pointer', display:'flex',
+<div style={{width: '280px', fontSize: '20px', height:'45px', borderRadius: '10px', fontWeight: 'bold',  border: '4px solid #F4F4F4', background:' white', cursor: 'pointer', display:'flex',
 alignItems: 'center',
 marginLeft: '10px',
 transition: '.3s',
@@ -1010,7 +1007,7 @@ transition: '.3s',
           height: '50px',
           borderRadius: '10px',
           fontWeight: 'bold',
-          border: '6px solid #54AAA4',
+          border: '4px solid #54AAA4',
           background: '#A3F2ED ',
           cursor: 'pointer',
           color: '#54AAA4',
@@ -1093,7 +1090,7 @@ transition: '.3s',
             justifyContent: 'space-between',
             marginRight: 'auto',
             marginLeft: 'auto',
-            border: '6px solid #F4F4F4',
+            border: '4px solid #F4F4F4',
             backgroundColor: 'white',
             borderRadius: '10px',
             padding: '10px',
@@ -1240,7 +1237,7 @@ transition: '.3s',
               <div className="student-arrow" style={{
                 position: 'absolute',
                 right: '-78px',
-                top: '-6px',
+                top: '-4px',
                 height: '80px',
                 width: '50px',
                 padding: '10px',
@@ -1249,7 +1246,7 @@ transition: '.3s',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                border: '6px solid #54AAA4',
+                border: '4px solid #54AAA4',
                 borderBottomRightRadius: '10px',
                 borderTopRightRadius: '10px',
                 cursor: 'pointer',

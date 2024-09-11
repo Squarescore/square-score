@@ -106,7 +106,7 @@ function TeacherStudentResultsAMCQ() {
                 style={{
                     fontFamily: "'Radio Canada', sans-serif",
                     marginBottom: '20px',
-                    border: '3px solid #F4F4F4',
+                    border: isCorrect ? '4px solid #F4F4F4' : '4px solid #F2A3A3',
                     borderRadius: '15px',
                     padding: '0px 20px',
                     width: '800px',
@@ -120,7 +120,7 @@ function TeacherStudentResultsAMCQ() {
                     <p style={{
                         fontWeight: 'bold',
                         fontSize: '25px',
-                        color: isCorrect ? 'black' : 'red',
+                        color: 'black',
                         marginRight: '10px',
                         flex: 1,
                     }}>
@@ -163,31 +163,35 @@ function TeacherStudentResultsAMCQ() {
 
                                         <div style={{ display: 'flex'}}>
                             <div style={{width: '380px'}}>
-                         <h1 style={{color: 'darkgreen', fontSize: '28px', marginTop: '0px',  fontFamily: '"Rajdhani", sans-serif'}}>Student Answer</h1>
-                        <p style={{fontSize: '20px',color: 'darkgreen',width: '320px'}} >{questionData.choiceContent}</p>
+                         <h1 style={{color: '#2BB514', fontSize: '28px', marginTop: '0px',  fontFamily: '"Radio Canada", sans-serif',marginLeft: '20px'}}>
+                            Student Answer</h1>
+                        <p style={{fontSize: '20px', color: '#2BB514', width: '320px', marginLeft: '20px', fontWeight: 'bold' }} >
+                            
+                            {questionData.choiceContent}</p>
                         </div>
                        
-                              <div style={{width: '400px', marginLeft: '20px'}}>
+                              <div style={{width: '370px', marginLeft: '20px'}}>
 
-                                <h1 style={{ fontSize: '28px', marginTop: '0px', fontFamily: '"Rajdhani", sans-serif',color: 'green',}}>
+                                <h1 style={{ fontSize: '28px', marginTop: '0px', fontFamily: '"Radio Canada", sans-serif', color: 'black' }}>
                                     Explanation</h1>
 
-                            <p style={{fontSize: '20px',color: 'green', }}>
+                            <p style={{ fontSize: '20px', color: 'grey'  }}>
                                  {questionData.correctExplanation}</p>
 
                             </div>
                             </div>
                         ) : (
-                            <div>
-                            <div style={{ display: 'flex'}}>
-                            <div style={{width: '380px'}}>
-                         <h1 style={{color: 'darkred', fontSize: '28px', marginTop: '0px',  fontFamily: '"Rajdhani", sans-serif'}}>Student Answer</h1>
-                        <p style={{fontSize: '20px',color: 'darkRed', width: '320px'}} >{questionData.choiceContent}</p>
+                            <div style={{paddingBottom: '30px'}}>
+                            <div style={{ display: 'flex',borderBottom: '4px solid lightgrey' , paddingBottom: '30px'}}>
+                            <div style={{width: '380px', borderRadius: '15px', background: '#F2A3A3', border: '10px solid #B51414'}}>
+                         <h1 style={{  color: 'darkred', fontSize: '28px', marginTop: '10px', fontFamily: '"Radio Canada", sans-serif', marginLeft: '20px' }}>
+                            Student Answer</h1>
+                        <p style={{fontSize: '20px', marginLeft: '20px', color: 'darkRed', width: '320px', fontWeight: 'bold'}} >{questionData.choiceContent}</p>
                         </div>
                        
-                              <div style={{width: '400px', marginLeft: '20px'}}>
+                              <div style={{width: '370px', marginLeft: '20px' }}>
 
-                                <h1 style={{ fontSize: '28px', marginTop: '0px', fontFamily: '"Rajdhani", sans-serif',color: 'grey',}}>
+                                <h1 style={{  fontSize: '28px', marginTop: '0px', fontFamily: '"Radio Canada", sans-serif', color: 'black'}}>
                                     Explanation</h1>
 
                             <p style={{fontSize: '20px',color: 'grey',}}>
@@ -200,17 +204,17 @@ function TeacherStudentResultsAMCQ() {
 
 
                             <div style={{ display: 'flex', marginTop: '40px'}}>
-                            <div style={{width: '380px'}}>
-                         <h1 style={{color: 'darkgreen', fontSize: '28px', marginTop: '0px',  fontFamily: '"Rajdhani", sans-serif'}}>Correct Answer</h1>
-                        <p style={{fontSize: '20px',color: 'darkgreen',width: '320px'}} >{questionData.correctContent}</p>
+                            <div style={{ width: '380px', borderRadius: '15px', background: '#AEF2A3', border: '10px solid #2BB514'}}>
+                         <h1 style={{color: '#2BB514', fontSize: '28px', marginTop: '10px', fontFamily: '"Radio Canada", sans-serif',marginLeft: '20px' }}>Correct Answer</h1>
+                        <p style={{fontSize: '20px', color: '#2BB514', fontWeight: 'bold', width: '320px', marginLeft: '20px'}} >{questionData.correctContent}</p>
                         </div>
                        
-                              <div style={{width: '400px', marginLeft: '20px'}}>
+                              <div style={{width: '370px', marginLeft: '20px'}}>
 
-                                <h1 style={{ fontSize: '28px', marginTop: '0px', fontFamily: '"Rajdhani", sans-serif',color: 'green',}}>
+                                <h1 style={{fontSize: '28px', marginTop: '0px', fontFamily: '"Radio Canada", sans-serif', color: 'black' }}>
                                     Explanation</h1>
 
-                            <p style={{fontSize: '20px',color: 'green', }}>
+                            <p style={{fontSize: '20px', color: 'grey'}}>
                                  {questionData.correctExplanation}</p>
 
                             </div>
@@ -315,7 +319,7 @@ function TeacherStudentResultsAMCQ() {
                         marginRight: 'auto',
                         borderRadius: '100px',
                         fontSize: '30px',
-                        border: '6px solid #F4F4F4',
+                        border: '4px solid #F4F4F4',
                         alignItems: 'center',
                         justifyContent: 'space-around'
                     }}

@@ -151,51 +151,66 @@ exports.GenerateAMCQstep1 = functions.https.onRequest((req, res) => {
 
         try {
             let prompt = `
-            Generate 10 multiple choice questions based on the provided source. Each question should have a number of choices randomly selected from ${selectedOptions.join(', ')}. Only 1 answer per question should be correct. Each choice must be 40 characters or less. Provide a concise 1-2 sentence explanation for each choice that explains why it is correct or incorrect, offering specific insights from the source material.
+           
+Generate 10 multiple-choice questions based on the provided source. Each question should have a number of choices randomly selected from ${selectedOptions.join(', ')}. 
+Only 1 answer per question should be correct. 
+Provide a concise 1-2 sentence explanation for each choice that explains why it is correct or incorrect, offering specific insights from the source material. 
+Explanations should directly state facts or analyze information rather than referencing the source document. 
+Therefore NEVER include the words source or passage in explanations rather explain it as if you were the source
 
 Questions should be clearly differentiated by difficulty:
-- 3 Easy questions: Focus on basic recall and understanding of key concepts.
-- 3 Medium questions: Require application of knowledge and some analysis.
-- 4 Hard questions: Involve complex analysis, evaluation, or synthesis of multiple concepts.
+- 3 Easy questions: basic recall found exactly in source - should be able to "fill in the blank" exactly as in the source. Easy question choices should be less than 6 words.
+- 3 Medium questions: Recall of information not word for word as in the source but rephrased. Medium  question choices should be less than 6 words.
+- 4 Hard questions: analysis - cause and effect, causation, general concepts etc. Hard question Choices should be less than 10 words.
 
-Format your response as a valid JSON array of question objects. Each object should have the following structure:
-{
-  "difficulty": "Easy|Medium|Hard",
-  "choices": <number of choices>,
-  "correct": "<letter of correct answer>",
-  "question": "<question text>",
-  "a": "<choice A text>",
-  "b": "<choice B text>",
-  ...,
-  "explanation_a": "<concise explanation for choice A>",
-  "explanation_b": "<concise explanation for choice B>",
+IMPORTANT: Return ONLY the JSON array of question objects in absolutely perfect format. Never include an introductory phrase like "here are 10 multiple choice questions.." as this will break my code.
+[
+  {
+    "difficulty": "Easy|Medium|Hard",
+    "choices": 0,
+    "correct": "a",
+    "question": "Question text here",
+    "a": "Choice A text",
+    "b": "Choice B text",
+    "c": "Choice C text",
+    "d": "Choice D text",
+    "explanation_a": "Explanation for choice A",
+    "explanation_b": "Explanation for choice B",
+    "explanation_c": "Explanation for choice C",
+    "explanation_d": "Explanation for choice D"
+  },
   ...
-}
-Guidelines:
+]
+Note that this format example includes 4 choices and explanations but you are allowed to have  2,3,4,5 choices, 
+simply remember that the last choice shouldn't have a comma after it as it would break proper json formatting, 
+the 10th question section should also not have a comma after it as this would too break json format, remember proper placement of {}
 
--Choose number of choices randomly from: ${selectedOptions.join(', ')}
--Only 1 correct answer per question
--All choices must be 40 characters or less
--Provide 1-2 sentence explanation for each choice
--3 Easy, 3 Medium, 4 Hard questions
--Easy question base: Basic recall and understanding
--Medium question base: Application and some analysis
--Hard question base: Complex analysis or synthesis
--Base all content strictly on the source material
--No phrases like "The source states" in choices/explanations
--No external information or assumptions
--Use proper JSON formatting (quotes, commas)
--Do not exceed 4096 tokens
+Guidelines:
+- Therefore NEVER include the words source or passage in explanations rather explain it as if you were the source
+- Each choice must be 12 words or less, this is important that you do for all difficulties of question
+- Choose number of choices randomly from: ${selectedOptions.join(', ')}
+- Only 1 correct answer per question
+- All choices must be less than 15 words, easy questions should have the shortest choices, make sure the correct answer is not always the longest
+- don't include "" within explanations
+- Provide 1-2 sentence explanation for each choice
+- Base all content strictly on the source material
+- No phrases like "The source states" in choices/explanations
+- No external information or assumptions
+- Use proper JSON formatting (quotes, commas)
+- Do not exceed 2096 tokens
+- Therefore NEVER include the words source or passage in explanations rather explain it as if you were the source
+- Never mention the "passage" or "source" in explanations
 
 Source: ${sourceText}
 ${additionalInstructions ? `Additional instructions: ${additionalInstructions}` : ''}
 
-IMPORTANT: Return ONLY the JSON array of question objects in absolutely perfect format. No other text.
+IMPORTANT: Return ONLY the JSON array of question objects in absolutely perfect format. You must Never include an introductory phrase like "here are 10 multiple choice questions.." as this will break my code.
 
 `
 const response = await anthropic.messages.create({
     model: "claude-3-haiku-20240307",
     max_tokens: 4096,
+    temperature: 0.7,
     messages: [
         {
             role: "user",
@@ -283,47 +298,72 @@ exports.GenerateAMCQstep2 = functions.https.onRequest((req, res) => {
 
         try {
             let prompt = ` 
-            Generate 10 multiple choice questions based on the provided source. Return ONLY a JSON array of question objects with no additional text or explanation.
-Format your response as a valid JSON array of question objects. Each object should have the following structure:
-{
-  "difficulty": "Easy|Medium|Hard",
-  "choices": <number of choices>,
-  "correct": "<letter of correct answer>",
-  "question": "<question text>",
-  "a": "<choice A text>",
-  "b": "<choice B text>",
-  ...,
-  "explanation_a": "<concise explanation for choice A>",
-  "explanation_b": "<concise explanation for choice B>",
+           Generate 10 multiple-choice questions based on the provided source. Each question should have a number of choices randomly selected from ${selectedOptions.join(', ')}. 
+Only 1 answer per question should be correct. 
+Provide a concise 1-2 sentence explanation for each choice that explains why it is correct or incorrect, offering specific insights from the source material. 
+Explanations should directly state facts or analyze information rather than referencing the source document. 
+Therefore NEVER include the words source or passage in explanations rather explain it as if you were the source
+
+Questions should be clearly differentiated by difficulty:
+- 3 Easy questions: basic recall found exactly in source - should be able to "fill in the blank" exactly as in the source. Easy question choices should be less than 6 words.
+- 3 Medium questions: Recall of information not word for word as in the source but rephrased. Medium  question choices should be less than 6 words.
+- 4 Hard questions: analysis - cause and effect, causation, general concepts etc. Hard question Choices should be less than 10 words.
+
+IMPORTANT: Return ONLY the JSON array of question objects in absolutely perfect format. Never include an introductory phrase like "here are 10 multiple choice questions.." as this will break my code.
+[
+  {
+    "difficulty": "Easy|Medium|Hard",
+    "choices": 0,
+    "correct": "a",
+    "question": "Question text here",
+    "a": "Choice A text",
+    "b": "Choice B text",
+    "c": "Choice C text",
+    "d": "Choice D text",
+    "explanation_a": "Explanation for choice A",
+    "explanation_b": "Explanation for choice B",
+    "explanation_c": "Explanation for choice C",
+    "explanation_d": "Explanation for choice D"
+  },
   ...
-}
+]
+Note that this format example includes 4 choices and explanations but you are allowed to have  2,3,4,5 choices, 
+simply remember that the last choice shouldn't have a comma after it as it would break proper json formatting, 
+the 10th question section should also not have a comma after it as this would too break json format, remember proper placement of {}
 
 Guidelines:
+- Therefore NEVER include the words source or passage in explanations rather explain it as if you were the source
+- Each choice must be 12 words or less, this is important that you do for all difficulties of question
+- Choose number of choices randomly from: ${selectedOptions.join(', ')}
+- Only 1 correct answer per question
+- All choices must be less than 15 words, easy questions should have the shortest choices, make sure the correct answer is not always the longest
+- don't include "" within explanations
+- Provide 1-2 sentence explanation for each choice
+- Base all content strictly on the source material
+- No phrases like "The source states" in choices/explanations
+- No external information or assumptions
+- Use proper JSON formatting (quotes, commas)
+- Follow Choice word limits - 5 words for easy, 10 words for medium, 15 words for hard
+- Do not repeat questions that were already generated, each question should be unique
+- Do not exceed 2096 tokens
+- Follow Choice word limits - 5 words for easy, 10 words for medium, 15 words for hard
+- Do not repeat questions that were already generated, each question should be unique
+- Therefore NEVER include the words source or passage in explanations rather explain it as if you were the source
+- Never mention the "passage" or "source" in explanations
 
--Choose number of choices randomly from: ${selectedOptions.join(', ')}
--Only 1 correct answer per question
--All choices must be 40 characters or less
--Provide 1-2 sentence explanation for each choice
--3 Easy, 3 Medium, 4 Hard questions
--Easy question base: Basic recall and understanding
--Medium question base: Application and some analysis
--Hard question base: Complex analysis or synthesis
--Base all content strictly on the source material
--No phrases like "The source states" in choices/explanations
--No external information or assumptions
--Use proper JSON formatting (quotes, commas)
--Do not exceed 4096 tokens
 
-Use this source: ${sourceText}
+Source: ${sourceText}
 ${additionalInstructions ? `Additional instructions: ${additionalInstructions}` : ''}
 
-IMPORTANT: Return ONLY the JSON array of question objects in absolutely perfect format. No other text.
+Note that some questions have already been generated, be sure not to repeat a question here are the questions that have been generated so far
+- Do not repeat questions that were already generated, each question should be unique${JSON.stringify(previousQuestions)}
 
-Note that some questions have already been generated, be sure not to repeat a question here are the questions that have been generated so far${JSON.stringify(previousQuestions)}`;
+- Do not repeat questions that were already generated, each question should be unique`;
 
 const response = await anthropic.messages.create({
     model: "claude-3-haiku-20240307",
     max_tokens: 4096,
+    temperature: 0.7,
     messages: [
         {
             role: "user",

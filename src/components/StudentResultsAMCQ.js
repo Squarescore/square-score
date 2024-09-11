@@ -234,7 +234,7 @@ function StudentResultsAMCQ() {
                     marginRight: 'auto',
                     borderRadius: '100px',
                     fontSize: '30px',
-                    border: '6px solid #F4F4F4',
+                    border: '4px solid #F4F4F4',
                     alignItems: 'center',
                     justifyContent: 'space-around'
                 }}>

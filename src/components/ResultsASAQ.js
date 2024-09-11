@@ -74,7 +74,7 @@ const TeacherResultsASAQ = () => {
       <div style={{width: '150px', position: 'absolute', top: '-6px', left: '10px', height: '32px', background: 'lightgrey'}}></div>
       <div style={{
         marginLeft: '10px',
-        border: '6px solid lightgrey',
+        border: '4px solid lightgrey',
         background: 'white',
         borderRadius: '10px',
         padding: '20px',
@@ -112,7 +112,7 @@ const TeacherResultsASAQ = () => {
         </div>
   
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
-          <div style={{display: 'flex', alignItems: 'center', border: '6px solid #f4f4f4', borderRadius: '10px', width: '400px', height: '70px'}}>
+          <div style={{display: 'flex', alignItems: 'center', border: '4px solid #f4f4f4', borderRadius: '10px', width: '400px', height: '70px'}}>
             <h3 style={{lineHeight: '30px', marginLeft: '20px', marginRight: '20px',     fontFamily: "'Radio Canada', sans-serif",}}>Timer</h3>
             <div style={{ display: 'flex', alignItems: 'center' }}>
               <input
@@ -142,7 +142,7 @@ const TeacherResultsASAQ = () => {
             </div>
             
           </div>
-          <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', border: '6px solid #f4f4f4', borderRadius: '10px', width: '265px', height: '70px', padding: '0 20px'}}>
+          <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', border: '4px solid #f4f4f4', borderRadius: '10px', width: '265px', height: '70px', padding: '0 20px'}}>
             <h3 style={{    fontFamily: "'Radio Canada', sans-serif",}}>Half Credit</h3>
             <input
               type="checkbox"
@@ -156,7 +156,7 @@ const TeacherResultsASAQ = () => {
   
         <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '10px' }}>
          
-          <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', border: '6px solid #f4f4f4', borderRadius: '10px', width: '305px', height: '60px', padding: '0 20px'}}>
+          <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', border: '4px solid #f4f4f4', borderRadius: '10px', width: '305px', height: '60px', padding: '0 20px'}}>
             <h3 style={{    fontFamily: "'Radio Canada', sans-serif",}}>Lockdown</h3>
             <input
               type="checkbox"
@@ -165,7 +165,7 @@ const TeacherResultsASAQ = () => {
               onChange={(e) => updateAssignmentSetting('lockdown', e.target.checked)}
             />
           </div>
-          <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', border: '6px solid #f4f4f4', borderRadius: '10px', width: '320px', height: '60px', padding: '0 20px'}}>
+          <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', border: '4px solid #f4f4f4', borderRadius: '10px', width: '320px', height: '60px', padding: '0 20px'}}>
             <h3 style={{    fontFamily: "'Radio Canada', sans-serif",}}>Save & Exit</h3>
             <input
               type="checkbox"
@@ -581,7 +581,7 @@ const navigateToStudentGrades = (studentUid) => {
                   marginBottom: '20px',
                   padding: '0px',
                   backgroundColor: 'white',
-                  border: '6px solid #627BFF',
+                  border: '4px solid #627BFF',
                   borderRadius: '20px',
                   display: 'flex',
                 }}
@@ -1078,7 +1078,7 @@ const navigateToStudentGrades = (studentUid) => {
           height: '50px',
           borderRadius: '10px',
           fontWeight: 'bold',
-          border: '6px solid lightgrey',
+          border: '4px solid lightgrey',
           background: 'lightgrey',
           cursor: 'pointer',
           color: 'black',
@@ -1096,7 +1096,7 @@ const navigateToStudentGrades = (studentUid) => {
           height:'45px', 
           borderRadius: '10px', 
           fontWeight: 'bold',  
-          border: '6px solid #F4F4F4', 
+          border: '4px solid #F4F4F4', 
           background:' white', 
           cursor: 'pointer', 
           display:'flex',
@@ -1119,7 +1119,7 @@ const navigateToStudentGrades = (studentUid) => {
           height: '50px',
           borderRadius: '10px',
           fontWeight: 'bold',
-          border: '6px solid #54AAA4',
+          border: '4px solid #54AAA4',
           background: '#A3F2ED ',
           cursor: 'pointer',
           color: '#54AAA4',
@@ -1144,7 +1144,7 @@ const navigateToStudentGrades = (studentUid) => {
     justifyContent: 'space-between',
     marginRight: 'auto',
     marginLeft: 'auto',
-    border: '6px solid #F4F4F4',
+    border: '4px solid #F4F4F4',
     backgroundColor: 'white',
     borderRadius: '10px',
     padding: '10px',
@@ -1291,7 +1291,7 @@ const navigateToStudentGrades = (studentUid) => {
                 style={{
                   position: 'absolute',
                   right: '-80px',
-                  top: '-6px',
+                  top: '-4px',
                   height: '78px',
                   width: '50px',
                   padding: '11px',
@@ -1300,7 +1300,7 @@ const navigateToStudentGrades = (studentUid) => {
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  border: '6px solid #54AAA4',
+                  border: '4px solid #54AAA4',
                   borderBottomRightRadius: '10px',
                   borderTopRightRadius: '10px',
                   cursor: 'pointer',

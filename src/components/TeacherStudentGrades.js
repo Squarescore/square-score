@@ -26,16 +26,22 @@ function TeacherStudentGrades() {
         where('studentUid', '==', studentUid),
         where('classId', '==', classId)
       );
-  
-      const [saqSnapshot, amcqSnapshot] = await Promise.all([
+      const mcqGradesQuery = query(
+        collection(db, 'grades(mcq)'),
+        where('studentUid', '==', studentUid),
+        where('classId', '==', classId)
+      );
+      const [saqSnapshot, amcqSnapshot, mcqSnapshot] = await Promise.all([
         getDocs(saqGradesQuery),
-        getDocs(amcqGradesQuery)
+        getDocs(amcqGradesQuery),
+        getDocs(mcqGradesQuery)
       ]);
   
       const saqGrades = saqSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), type: 'SAQ' }));
       const amcqGrades = amcqSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), type: 'AMCQ' }));
+      const mcqGrades = mcqSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), type: 'MCQ' }));
   
-      const allGrades = [...saqGrades, ...amcqGrades].sort((a, b) => b.submittedAt.toDate() - a.submittedAt.toDate());
+      const allGrades = [...saqGrades, ...amcqGrades,...mcqGrades].sort((a, b) => b.submittedAt.toDate() - a.submittedAt.toDate());
       setGrades(allGrades);
     };
   
@@ -58,6 +64,9 @@ function TeacherStudentGrades() {
       navigate(`/teacherStudentResults/${assignmentId}/${studentUid}/${classId}`);
     } else if (gradeType === 'AMCQ') {
       navigate(`/teacherStudentResultsAMCQ/${assignmentId}/${studentUid}/${classId}`);
+    }
+    else if (gradeType === 'MCQ') {
+      navigate(`/teacherStudentResultsMCQ/${assignmentId}/${studentUid}/${classId}`);
     }
   };
 
@@ -129,15 +138,19 @@ function TeacherStudentGrades() {
           )}
           {filteredGrades.map(grade => {
             const isAMCQ = grade.type === 'AMCQ';
+            const isSAQ = grade.type === 'SAQ';
+            const isMCQ = grade.type === 'MCQ';
             const percentage = Math.round(isAMCQ ? grade.SquareScore : grade.percentageScore);
+            const percentageMCQ = Math.round((isMCQ ? grade.rawTotalScore / grade.maxRawScore: 0) * 100);
             const letterGrade = getLetterGrade(percentage);
-                  
+            const letterGradeMCQ = getLetterGrade(percentageMCQ);
+
             const commonStyles = {
               color: 'black', 
               backgroundColor: 'white', 
               fontFamily: "'Radio Canada', sans-serif",
               transition: 'all 0.3s ease',
-              border: hoveredGrade === grade.id ? '6px solid #54AAA4' : '6px solid lightgrey',
+              border: hoveredGrade === grade.id ? '4px solid #54AAA4' : '4px solid lightgrey',
               listStyleType: 'none',
               marginTop: '20px', 
               marginLeft: '0px',
@@ -222,7 +235,7 @@ function TeacherStudentGrades() {
                       display: 'flex',
                       transform: 'translateY(-50%)', 
                       backgroundColor: '#A3F2ED',
-                      border: '6px solid #54AAA4',
+                      border: '4px solid #54AAA4',
                       borderRadius: '0 15px 15px 0',
                       fontFamily: "'Radio Canada', sans-serif",
                       alignItems: 'center', 
@@ -238,7 +251,7 @@ function TeacherStudentGrades() {
                   )}
                 </li>
               );
-            } else {
+            } else if (isSAQ){
               return (
                 <li key={grade.id} 
                 style={{ 
@@ -318,7 +331,7 @@ function TeacherStudentGrades() {
                       transform: 'translateY(-50%)', 
                       color: 'white',
                       backgroundColor: '#A3F2ED',
-                      border: '6px solid #54AAA4',
+                      border: '4px solid #54AAA4',
                       borderRadius: '15px',
                       marginBottom: '5px',
                       borderTopLeftRadius: '0px',
@@ -337,6 +350,116 @@ function TeacherStudentGrades() {
                   )}
                 </li>
               );
+            }
+            else if (isMCQ){
+
+
+
+              return (
+                <li key={grade.id} style={{ 
+                  ...commonStyles,
+                  fontSize: '40px', 
+                  textAlign: 'center', 
+                  height: '69px',
+                  padding: '10px', 
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                }} onMouseEnter={() => setHoveredGrade(grade.id)}
+                onMouseLeave={() => setHoveredGrade(null)}
+            >
+                  <div style={{display: 'flex', width: '100%'}}>
+                    <div style={{marginLeft: '10px', width: '800px', textAlign: 'left'}}>
+                      <h1 style={{color: 'black', fontSize: '25px', marginLeft: '5px'}}>
+                        {grade.assignmentName}
+                      </h1>  
+                      <div style={{display: 'flex', position: 'relative', alignItems: 'center', marginTop: '-30px'}}>
+                        <p style={{
+                          fontWeight: 'bold',
+                          width: '23px',
+                          textAlign: 'center',
+                          fontSize: '22px',
+                          backgroundColor: '#566DFF',
+                          height: '23px',
+                          border: '4px solid #003BD4',
+                          lineHeight: '23px',
+                          color: 'white',
+                          borderRadius: '7px',
+                          fontFamily: "'Radio Canada', sans-serif"
+                        }}>{letterGradeMCQ}
+                        </p>
+                        <h1 style={{color: 'grey', fontSize: '24px', marginLeft: '40px'}}>
+                        {percentageMCQ}%
+                        </h1>
+                      
+                        <h1 style={{color: 'grey', fontSize: '20px', textAlign: 'left', fontWeight: 'normal', marginLeft: '30px'}}>
+                          Submitted: {grade.submittedAt ? new Date(grade.submittedAt.toDate()).toLocaleString(undefined, {
+                            year: 'numeric',
+                            month: 'numeric',
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                            hour12: true
+                          }) : 'N/A'}
+                        </h1>
+                        <span style={{
+                          position: 'absolute',
+                          right: '30px',
+                          bottom: '20px',
+                          fontWeight: 'bold',
+                          width: '60px',
+                          marginTop: '0px',
+                          fontSize: '30px',
+                          fontFamily: "'Radio Canada', sans-serif",
+                          color: 'green',
+                        }}>
+                          MCQ
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  {hoveredGrade === grade.id && (
+                    <button style={{
+                      fontWeight: 'bold',
+                      position: 'absolute', 
+                      right: '-57px', 
+                      top: '50%', 
+                      width: '60px',
+                      cursor: 'pointer',
+                      height: '101px',
+                      padding: '10px 20px 10px 20px',
+                      display: 'flex',
+                      transform: 'translateY(-50%)', 
+                      color: 'white',
+                      backgroundColor: '#A3F2ED',
+                      border: '4px solid #54AAA4',
+                      borderRadius: '15px',
+                      marginBottom: '5px',
+                      borderTopLeftRadius: '0px',
+                      borderBottomLeftRadius: '0px',
+                      fontFamily: "'Radio Canada', sans-serif",
+                      alignItems: 'center', 
+                      justifyContent: 'center',
+                      transition: 'all 0.3s ease',
+                      opacity: hoveredGrade === grade.id ? 1 : 0,
+                    }} onClick={() => navigateToResults(grade.assignmentId, grade.type)}>
+                      <img style={{width: '30px', cursor: 'pointer', transform: 'scale(1)', transition: '.3s'}}
+                        onMouseEnter={(e) => { e.target.style.transform = 'scale(1.06)'; }}
+                        onMouseLeave={(e) => { e.target.style.transform = 'scale(1)'; }} 
+                        src='/gradesarrow.png' alt="View details"/>
+                    </button>
+                  )}
+                </li>
+              );
+              
+            
+      
+      
+      
+      
+      
+      
+      
             }
           })}
           </ul>

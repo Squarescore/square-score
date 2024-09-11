@@ -331,7 +331,7 @@ const Navbar = ({ userType, currentPage, firstName, lastName }) => {
                                                 <div style={{
                                                     width: '268px',
                                                     height: '30px',
-                                                    border: `6px solid ${periodStyle.color}`,
+                                                    border: `4px solid ${periodStyle.color}`,
                                                     backgroundColor: periodStyle.background,
                                                     color: periodStyle.color,
                                                     borderTopLeftRadius: '15px',
@@ -351,7 +351,7 @@ const Navbar = ({ userType, currentPage, firstName, lastName }) => {
                                                 <div style={{
                                                     width: '268px',
                                                     height: '90px',
-                                                    border: '6px solid #F4F4F4',
+                                                    border: '4px solid #F4F4F4',
                                                     borderTop: 'none',
                                                     borderBottomLeftRadius: '15px',
                                                     borderBottomRightRadius: '15px',

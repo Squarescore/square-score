@@ -446,7 +446,7 @@ const TakeAmcq = () => {
         padding: '0px',
         background: style.background,
         color: style.color,
-        border: selectedAnswer === choice ? `5px solid ${style.color}` : '6px solid transparent',
+        border: selectedAnswer === choice ? `5px solid ${style.color}` : '4px solid transparent',
         borderRadius: '10px',
         cursor: 'pointer',
         userSelect: 'none',

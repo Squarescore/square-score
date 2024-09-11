@@ -218,7 +218,7 @@ const AdminHome = () => {
 fontSize: '50px',
 paddingBottom: '20px',
 fontFamily: "'Rajdhani', sans-serif",
-borderBottom: '6px solid lightgrey'
+borderBottom: '4px solid lightgrey'
 
             }}
             >
@@ -330,7 +330,7 @@ const buttonStyle = {
   padding: '10px',
   backgroundColor: '#AEF2A3',
   color: '#45B434',
-  border: '5px solid #45B434',
+  border: '4px solid #45B434',
   borderRadius: '10px',
   fontSize: '18px',
   fontWeight: 'bold',

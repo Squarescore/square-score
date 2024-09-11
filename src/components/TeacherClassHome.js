@@ -349,7 +349,7 @@ backgroundColor: 'rgb(50,50,50)',
             <div style={{width: '1000px',marginLeft: 'auto', marginRight: 'auto',  }}>
             <div style={{
               backgroundColor: getNotificationStyles(assignmentFormat).background,
-              border: `6px solid ${getNotificationStyles(assignmentFormat).border}`,
+              border: `4px solid ${getNotificationStyles(assignmentFormat).border}`,
               borderBottomLeftRadius: '20px',
               
              marginTop: '0px',
@@ -373,7 +373,7 @@ backgroundColor: 'rgb(50,50,50)',
                   fontFamily: "'Radio Canada', sans-serif",
                   fontWeight: 'BOLD',
                   height: '30px',
-                  border: `6px solid ${getNotificationStyles(assignmentFormat).buttonBorder}`,
+                  border: `4px solid ${getNotificationStyles(assignmentFormat).buttonBorder}`,
                   borderRadius: '5px',
                   marginRight: '10px',
                   cursor: 'pointer'
@@ -390,7 +390,7 @@ backgroundColor: 'rgb(50,50,50)',
                   fontFamily: "'Radio Canada', sans-serif",
                   fontWeight: 'BOLD',
                   height: '30px',
-                  border: `6px solid ${getNotificationStyles(assignmentFormat).border}`,
+                  border: `4px solid ${getNotificationStyles(assignmentFormat).border}`,
                   borderRadius: '5px',
                   cursor: 'pointer'
                 }}

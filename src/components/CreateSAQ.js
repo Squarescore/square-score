@@ -194,8 +194,8 @@ function CreateAssignment() {
         min: scaleMin,
         max: scaleMax,
       },
-      assignDate: assignDate.toISOString(),
-      dueDate: dueDate.toISOString(),
+      assignDate: formatDate(assignDate),
+      dueDate: formatDate(dueDate),
       selectedStudents: Array.from(selectedStudents),
       saveAndExit,
       lockdown,
@@ -247,26 +247,33 @@ function CreateAssignment() {
     await batch.commit();
   };
 
-  const convertToDateTime = (date) => {
-    const dateOptions = {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    };
+ const convertToDateTime = (date) => {
+  return formatDate(new Date(date));
+};
     
-    const timeOptions = {
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: true,
-      timeZoneName: 'short'
-    };
-    
-    const dateString = new Date(date).toLocaleDateString('en-US', dateOptions);
-    const timeString = new Date(date).toLocaleTimeString('en-US', timeOptions);
-    
-    return `${dateString.replace(/,/g, '')} ${timeString}`;
+const formatDate = (date) => {
+  const options = {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: true,
+    timeZoneName: 'short'
   };
+  
+  const formattedDate = date.toLocaleString('en-US', options);
+  
+  // Remove commas and adjust the format
+  return formattedDate
+    .replace(',', '') // Remove the comma after the day of week
+    .replace(',', '') // Remove the comma after the day
+    .replace(' at ', ' ') // Remove 'at'
+    .replace(/(\d{1,2}):(\d{2}):00/, '$1:$2') // Remove seconds
+    .replace(' PM', ' PM ') // Add space before timezone
+    .replace(' AM', ' AM '); // Add space before timezone
+};
 
   const GenerateSAQ = async ( sourceText, questionCount, additionalInstructions, classId) => {
     try {
@@ -342,8 +349,8 @@ function CreateAssignment() {
       assignmentName,
       timer: timerOn ? timer : 0,
       halfCredit,
-      assignDate: convertToDateTime(assignDate),
-      dueDate: convertToDateTime(dueDate),
+      assignDate: formatDate(assignDate),
+    dueDate: formatDate(dueDate),
       scale: {
         min: scaleMin,
         max: scaleMax,

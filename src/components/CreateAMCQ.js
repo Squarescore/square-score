@@ -11,6 +11,7 @@ import axios from 'axios';
 import { auth } from './firebase';
 import { updateDoc } from 'firebase/firestore';
 import { arrayRemove } from 'firebase/firestore';
+
 const dropdownContentStyle = `
   .dropdown-content {
     max-height: 0;
@@ -46,6 +47,7 @@ const loaderStyle = `
 `;
 
 const MCQA = () => {
+  const [questionsLoaded, setQuestionsLoaded] = useState(false);
 
   const [assignmentName, setAssignmentName] = useState('');
   const [timer, setTimer] = useState('60');
@@ -57,14 +59,12 @@ const MCQA = () => {
   const [selectedOptions, setSelectedOptions] = useState([4]);
   const [saveAndExit, setSaveAndExit] = useState(true);
   const [lockdown, setLockdown] = useState(false);
-  const [assignDate, setAssignDate] = useState(new Date());
   const [questionsGenerated, setQuestionsGenerated] = useState(false);
   const [teacherId, setTeacherId] = useState(null);
-  const [dueDate, setDueDate] = useState(() => {
-    const date = new Date();
-    date.setHours(date.getHours() + 48);
-    return date;
-  })
+  const [assignDate, setAssignDate] = useState(new Date());
+
+  const [dueDate, setDueDate] = useState(new Date(new Date().getTime() + 48 * 60 * 60 * 1000)); // 48 hours from now
+
   
   const [draftId, setDraftId] = useState(null);
   const [sourceOption, setSourceOption] = useState(null);
@@ -85,6 +85,10 @@ const MCQA = () => {
 const [progressText, setProgressText] = useState('');
   const navigate = useNavigate();
 
+  useEffect(() => {
+    // Set due date to 48 hours after assign date whenever assign date changes
+    setDueDate(new Date(assignDate.getTime() + 48 * 60 * 60 * 1000));
+  }, [assignDate]);
   const toggleAdditionalInstructions = () => {
     setShowAdditionalInstructions(!showAdditionalInstructions);
     if (showAdditionalInstructions) {
@@ -133,7 +137,6 @@ const [progressText, setProgressText] = useState('');
       setSelectedOptions([4]);
     }
   }, [selectedOptions]);
-
   const ProgressBar = ({ progress, text }) => (
     <div style={{ width: '300px', marginLeft: '20px' }}>
       <div style={{
@@ -143,10 +146,10 @@ const [progressText, setProgressText] = useState('');
         overflow: 'hidden'
       }}>
         <div style={{
-          width: `${progress}%`,
+          width: `${Math.min(progress, 100)}%`,
           height: '100%',
           backgroundColor: '#020CFF',
-          transition: 'width 0.5s ease-in-out'
+          transition: 'width 0.1s ease-in-out'
         }}></div>
       </div>
       <div style={{ textAlign: 'center', marginTop: '5px', fontSize: '14px', color: '#666' }}>
@@ -166,118 +169,161 @@ const [progressText, setProgressText] = useState('');
     });
     await batch.commit();
   };
-const parseQuestions = (response) => {
-  let data = response.data;
+
+
   
-  if (typeof data === 'object' && data !== null) {
-    return Array.isArray(data) ? data : [data];
-  }
+  const parseQuestions = (response) => {
+    let data = response.data;
 
-  if (typeof data === 'string') {
-    try {
-      const parsedData = JSON.parse(data);
-      return Array.isArray(parsedData) ? parsedData : [parsedData];
-    } catch (error) {
-      console.error("Error parsing full response:", error);
-      
-      const match = data.match(/\[[\s\S]*\]/);
-      if (match) {
-        try {
-          const extractedJson = JSON.parse(match[0]);
-          return Array.isArray(extractedJson) ? extractedJson : [extractedJson];
-        } catch (innerError) {
-          console.error("Error parsing extracted JSON:", innerError);
+    for (let i = 0; i < 2; i++) {  // Loop exactly twice
+        // If data is an object with a 'questions' property, use that
+        if (typeof data === 'object' && data !== null && data.questions) {
+            data = data.questions;
         }
-      }
-    }
-  }
 
-  console.error("Failed to parse response. Raw data:", data);
-  return [];
+        // If data is a string, try to parse it
+        if (typeof data === 'string') {
+            try {
+                data = JSON.parse(data);
+            } catch (error) {
+                console.error("Error parsing response. Full response text:", data);
+                return [];
+            }
+        }
+
+        // Ensure data is an array
+        if (!Array.isArray(data)) {
+            data = [data];
+        }
+
+        // Filter out any non-object elements
+        data = data.filter(item => typeof item === 'object' && item !== null);
+
+        if (data.length === 0) {
+            console.error("Failed to parse response. Full response text:", response.data);
+            return [];
+        }
+
+        // Clean the data by removing inner quotes (global replace)
+        data = data.map(question => {
+            for (let key in question) {
+                if (typeof question[key] === 'string') {
+                    // Remove all inner double quotes
+                    question[key] = question[key].replace(/"/g, '');
+                }
+            }
+            return question;
+        });
+
+        // After the first pass, set response.data to the cleaned data
+        response.data = data;
+    }
+
+    return data;
 };
 
- 
-
-  
-  
 const generateQuestions = async () => {
   const baseUrl = 'https://us-central1-square-score-ai.cloudfunctions.net';
-  
+  const maxRetries = 3;
+  const quarterDuration = 40000; // 40 seconds per quarter
+  const progressIncrement = 0.095; // 0.25% increment every 100ms
+
   try {
-    setGenerating(true);
-    setProgress(0);
-    setProgressText('0%');
-    setGeneratedQuestions([]); // Clear previous questions
+      setGenerating(true);
+      setProgress(0);
+      setProgressText('0%');
+      setGeneratedQuestions([]);
 
-    const generateQuarter = async (step, retryCount = 0) => {
-      const quarterStart = (step - 1) * 24;
-      const quarterEnd = step * 24;
-      
-      try {
-        const response = await axios.post(
-          step === 1 ? `${baseUrl}/GenerateAMCQstep1` : `${baseUrl}/GenerateAMCQstep2`,
-          {
-            sourceText,
-            selectedOptions,
-            additionalInstructions,
-            classId,
-            teacherId,
-            ...(step !== 1 && { previousQuestions: generatedQuestions })
+      const updateProgress = (start, end) => {
+          let currentProgress = start;
+          const interval = setInterval(() => {
+              if (currentProgress < end) {
+                  currentProgress += progressIncrement;
+                  setProgress(currentProgress);
+                  setProgressText(`${Math.round(currentProgress)}%`);
+              } else {
+                  clearInterval(interval);
+              }
+          }, 100);
+          return interval;
+      };
+
+      const generateQuarter = async (step) => {
+          const quarterStart = (step - 1) * 25;
+          const quarterEnd = step * 25;
+          let progressInterval = updateProgress(quarterStart, quarterEnd - 1);
+
+          for (let attempt = 1; attempt <= maxRetries; attempt++) {
+              try {
+                  const response = await axios.post(
+                      step === 1 ? `${baseUrl}/GenerateAMCQstep1` : `${baseUrl}/GenerateAMCQstep2`,
+                      {
+                          sourceText,
+                          selectedOptions,
+                          additionalInstructions,
+                          classId,
+                          teacherId,
+                          ...(step !== 1 && { previousQuestions: generatedQuestions })
+                      }
+                  );
+
+                  clearInterval(progressInterval);
+                  setProgress(quarterEnd);
+                  setProgressText(`${quarterEnd}%`);
+
+                  // Modified to process questions through parseQuestions twice
+                  let newQuestions = parseQuestions({ data: parseQuestions(response) });
+                  if (newQuestions.length === 0) {
+                      throw new Error('Invalid API response: No questions generated');
+                  }
+                  setGeneratedQuestions(prevQuestions => [...prevQuestions, ...newQuestions]);
+                  break;
+              } catch (error) {
+                  console.error(`Error in generateQuarter for step ${step}, attempt ${attempt}:`, error);
+                  clearInterval(progressInterval);
+                  setProgress(quarterStart);
+                  setProgressText(`${quarterStart}%`);
+
+                  if (attempt === maxRetries) {
+                      throw new Error(`Failed to generate questions for step ${step} after ${maxRetries} attempts`);
+                  } else {
+                      console.log(`Retrying step ${step} (Attempt ${attempt + 1}/${maxRetries})...`);
+                      await new Promise(resolve => setTimeout(resolve, 1000));
+                      progressInterval = updateProgress(quarterStart, quarterEnd - 1);
+                  }
+              }
           }
-        );
-        
-        console.log(`Full API response for step ${step}:`, response);
+      };
 
-        let newQuestions = JSON.parse(response.data.questions);
-        if (!Array.isArray(newQuestions) || newQuestions.length === 0) {
-          throw new Error('Invalid API response: No questions generated');
-        }
-        setGeneratedQuestions(prevQuestions => [...prevQuestions, ...newQuestions]);
-      } catch (error) {
-        console.error(`Error in generateQuarter for step ${step}:`, error);
-        if (retryCount < 1) {
-          console.log(`Retrying step ${step}...`);
-          return generateQuarter(step, retryCount + 1);
-        } else {
-          throw error;
-        }
+      for (let i = 1; i <= 4; i++) {
+          await generateQuarter(i);
       }
 
-      setProgress(quarterEnd);
-      setProgressText(`${quarterEnd}%`);
-    };
+      if (generatedQuestions.length < 40) {
+          console.log("Not enough questions generated. Running an extra step...");
+          setProgress(75);
+          setProgressText("75% - Generating additional questions");
+          await generateQuarter(5);
+      }
 
-    // Generate questions for each quarter
-    for (let i = 1; i <= 4; i++) {
-      await generateQuarter(i);
-    }
-
-    // Check if we need an extra step
-    if (generatedQuestions.length < 40) {
-      console.log("Not enough questions generated. Running an extra step...");
-      await generateQuarter(5);
-    }
-
-    setShowPreview(true);
+      setShowPreview(true);
   } catch (error) {
-    console.error('Error in generateQuestions:', error);
-    alert('An error occurred while generating questions. Please try again.');
+      console.error('Error in generateQuestions:', error);
+      alert('An error occurred while generating questions. Please try again.');
   } finally {
-    setGenerating(false);
-    setProgress(100);
-    setProgressText('100%');
+      setGenerating(false);
+      setProgress(100);
+      setProgressText('100%');
   }
 };
 
-const handleGenerateQuestions = () => {
-  if (generatedQuestions.length > 0) {
-    setShowPreview(true);
-  } else {
-    generateQuestions();
-  }
-};
-
-
+  const handleGenerateQuestions = () => {
+    if (questionsLoaded || generatedQuestions.length > 0) {
+      setShowPreview(true);
+    } else if (sourceText.trim() !== '') {
+      generateQuestions();
+    }
+  };
   const handleSaveQuestions = () => {
     setGeneratedQuestions(generatedQuestions);
   };
@@ -306,89 +352,13 @@ const handleGenerateQuestions = () => {
       loadDraft(assignmentId.slice(5));
     }
   }, [classId, assignmentId]);
-  const saveDraft = async () => {
-    const draftData = {
-      classId,
-      assignmentName,
-      timer: timerOn ? Number(timer) : 0,
-      timerOn,
-      feedback,
-      selectedOptions,
-      assignDate: assignDate.toISOString(),
-      dueDate: dueDate.toISOString(),
-      selectedStudents: Array.from(selectedStudents),
-      saveAndExit,
-      lockdown,
-      createdAt: serverTimestamp(),
-      questions: generatedQuestions.map(question => {
-        // Ensure the question object has the expected structure
-        const formattedQuestion = {
-          questionId: question.questionId || `question_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-          question: question.question || question.question|| '',
-          choices: question.choices.map(choice => ({
-            choiceText: choice.text,
-            isCorrect: choice.isCorrect,
-            feedback: choice.feedback
-          })),
-          difficulty: question.difficulty || 'medium'
-        };
-
-        // Handle different possible structures of choices
-        if (Array.isArray(question.choices)) {
-          formattedQuestion.choices = question.choices.map(choice => ({
-            choiceText: choice.text || choice.choiceText || '',
-            isCorrect: choice.isCorrect || false,
-            feedback: choice.feedback || ''
-          }));
-        } else if (typeof question.choices === 'object') {
-          // If choices is an object, convert it to an array
-          formattedQuestion.choices = Object.values(question.choices).map(choice => ({
-            choiceText: choice.text || choice.choiceText || '',
-            isCorrect: choice.isCorrect || false,
-            feedback: choice.feedback || ''
-          }));
-        }
-
-        return formattedQuestion;
-      }),
-      sourceOption,
-      sourceText,
-      youtubeLink,
-      questionBank,
-      questionStudent,
-      additionalInstructions
-    };
-
-    const newDraftId = draftId || `${classId}+${Date.now()}+AMCQ`;
-    const draftRef = doc(db, 'drafts', newDraftId);
-    
-    try {
-      await setDoc(draftRef, draftData);
-
-      // Update the class document with the new draft ID
-      const classRef = doc(db, 'classes', classId);
-      await updateDoc(classRef, {
-        [`assignment(amcq)`]: arrayUnion(newDraftId)
-      });
-
-      setDraftId(newDraftId);
-      
-      navigate(`/class/${classId}/Assignments`, {
-        state: { showDrafts: true, newDraftId: newDraftId }
-      });
-    } catch (error) {
-      console.error("Error saving draft:", error);
-      alert(`Error saving draft: ${error.message}. Please try again.`);
-    }
-  };
-
   const loadDraft = async (draftId) => {
     const draftRef = doc(db, 'drafts', draftId);
     const draftDoc = await getDoc(draftRef);
     if (draftDoc.exists) {
       const data = draftDoc.data();
       setAssignmentName(data.assignmentName || '');
-      setTimer(data.timer || '');
+      setTimer(data.timer?.toString() || '60');
       setTimerOn(data.timerOn || false);
       setFeedback(data.feedback || 'instant');
       setSelectedOptions(data.selectedOptions || [4]);
@@ -403,7 +373,7 @@ const handleGenerateQuestions = () => {
       }
 
       setSelectedStudents(new Set(data.selectedStudents || []));
-      setSaveAndExit(data.saveAndExit || true);
+      setSaveAndExit(data.saveAndExit !== undefined ? data.saveAndExit : true);
       setLockdown(data.lockdown || false);
       setSourceOption(data.sourceOption || null);
       setSourceText(data.sourceText || '');
@@ -416,9 +386,85 @@ const handleGenerateQuestions = () => {
       if (data.questions && data.questions.length > 0) {
         setGeneratedQuestions(data.questions);
         setQuestionsGenerated(true);
+        setQuestionsLoaded(true);
       }
     }
-  };const saveAssignment = async () => {
+  };
+
+  const saveDraft = async () => {
+    const draftData = {
+      classId,
+      assignmentName,
+      timer: timerOn ? Number(timer) : 0,
+      timerOn,
+      feedback,
+      selectedOptions,
+      assignDate: formatDate(assignDate),
+      dueDate: formatDate(dueDate),
+      selectedStudents: Array.from(selectedStudents),
+      saveAndExit,
+      lockdown,
+      createdAt: serverTimestamp(),
+      questions: generatedQuestions,
+      sourceOption,
+      sourceText,
+      youtubeLink,
+      questionBank,
+      questionStudent,
+      additionalInstructions
+    };
+  
+    const newDraftId = draftId || `${classId}+${Date.now()}+AMCQ`;
+    const draftRef = doc(db, 'drafts', newDraftId);
+    
+    try {
+      await setDoc(draftRef, draftData);
+  
+      // Update the class document with the new draft ID
+      const classRef = doc(db, 'classes', classId);
+      await updateDoc(classRef, {
+        [`assignment(amcq)`]: arrayUnion(newDraftId)
+      });
+  
+      setDraftId(newDraftId);
+      
+      navigate(`/class/${classId}/Assignments`, {
+        state: { showDrafts: true, newDraftId: newDraftId }
+      });
+    } catch (error) {
+      console.error("Error saving draft:", error);
+      alert(`Error saving draft: ${error.message}. Please try again.`);
+    }
+  };
+  const convertToDateTime = (date) => {
+    return formatDate(new Date(date));
+  };
+      
+  const formatDate = (date) => {
+    const options = {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true,
+      timeZoneName: 'short'
+    };
+    
+    const formattedDate = date.toLocaleString('en-US', options);
+    
+    // Remove commas and adjust the format
+    return formattedDate
+      .replace(',', '') // Remove the comma after the day of week
+      .replace(',', '') // Remove the comma after the day
+      .replace(' at ', ' ') // Remove 'at'
+      .replace(/(\d{1,2}):(\d{2}):00/, '$1:$2') // Remove seconds
+      .replace(' PM', ' PM ') // Add space before timezone
+      .replace(' AM', ' AM '); // Add space before timezone
+  };
+
+  const saveAssignment = async () => {
     // Remove 'DRAFT' prefix from assignmentId if it exists
     const finalAssignmentId = assignmentId.startsWith('DRAFT') ? assignmentId.slice(5) : assignmentId;
   
@@ -447,8 +493,8 @@ const handleGenerateQuestions = () => {
       classId,
       assignmentName,
       timer: timerOn ? Number(timer) : 0,
-      assignDate: assignDate.toString(),
-      dueDate: dueDate.toString(),
+      assignDate: formatDate(assignDate),
+      dueDate: formatDate(dueDate),
       selectedOptions: selectedOptions.map(option => typeof option === 'object' ? option.value : option),
       selectedStudents: Array.from(selectedStudents),
       feedback,
@@ -478,10 +524,10 @@ const handleGenerateQuestions = () => {
         // Update the class document
         const classRef = doc(db, 'classes', classId);
         await updateDoc(classRef, {
-          [`assignment(amcq)`]: arrayRemove(assignmentId) // Remove the draft ID (with DRAFT prefix)
+          [`assignments(Amcq)`]: arrayRemove(assignmentId) // Remove the draft ID (with DRAFT prefix)
         });
         await updateDoc(classRef, {
-          [`assignment(amcq)`]: arrayUnion(finalAssignmentId) // Add the final assignment ID
+          [`assignments(Amcq)`]: arrayUnion(finalAssignmentId) // Add the final assignment ID
         });
       }
   
@@ -867,7 +913,7 @@ const handleGenerateQuestions = () => {
                           marginLeft: '20px',
                           marginTop: '-45px',
                           backgroundColor: selectedOptions.includes(num) ? optionStyles[num].background : 'white',
-                          border: selectedOptions.includes(num) ? `5px solid ${optionStyles[num].color}` : '6px solid lightgrey',
+                          border: selectedOptions.includes(num) ? `5px solid ${optionStyles[num].color}` : '4px solid lightgrey',
                           borderRadius: '105px',
                           cursor: 'pointer',
                           transition: 'all 0.3s ease',
@@ -952,43 +998,45 @@ const handleGenerateQuestions = () => {
                       />
                     )}
                     {/* Generate Questions Button */}
-                    {sourceText.trim() !== '' && Number(questionBank) >= Number(questionStudent) && (
-                      <div style={{ display: 'flex', alignItems: 'center', marginTop: '20px' }}>
-                        <button
-                          onClick={handleGenerateQuestions}
-                          disabled={generating}
-                          style={{
-                            width: '300px',
-                            fontWeight: 'bold',
-                            height: '50px',
-                            padding: '10px',
-                            fontSize: '24px',
-                            backgroundColor: generating ? 'lightgrey' : generatedQuestions.length > 0 ? '#4CAF50' : '#020CFF',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '10px',
-                            cursor: generating ? 'default' : 'pointer',
-                            transition: 'box-shadow 0.3s ease, background-color 0.3s ease',
-                            boxShadow: generating ? 'none' : '0 4px 6px rgba(0, 0, 0, 0.1)',
-                          }}
-                          onMouseEnter={(e) => {
-                            if (!generating) {
-                              e.target.style.boxShadow = '0 6px 8px rgba(0, 0, 0, 0.2)';
-                            }
-                          }}
-                          onMouseLeave={(e) => {
-                            if (!generating) {
-                              e.target.style.boxShadow = '0 4px 6px rgba(0, 0, 0, 0.1)';
-                            }
-                          }}
-                        >
-                          {generating ? 'Generating...' : generatedQuestions.length > 0 ? 'Preview Questions' : 'Generate Questions'}
-                        </button>
-                        {generating && (
-                          <ProgressBar progress={progress} text={progressText} />
-                        )}
-                      </div>
-                    )}
+                    <div style={{ display: 'flex', alignItems: 'center', marginTop: '20px' }}>
+  <button
+    onClick={handleGenerateQuestions}
+    disabled={generating || (sourceText.trim() === '' && generatedQuestions.length === 0)}
+    style={{
+      width: '300px',
+      fontWeight: 'bold',
+      height: '50px',
+      padding: '10px',
+      fontSize: '24px',
+      backgroundColor: generating ? 'lightgrey' : 
+                     (questionsLoaded || generatedQuestions.length > 0) ? '#4CAF50' : 
+                     (sourceText.trim() === '') ? 'lightgrey' : '#020CFF',
+      color: 'white',
+      border: 'none',
+      borderRadius: '10px',
+      cursor: (generating || (sourceText.trim() === '' && generatedQuestions.length === 0)) ? 'default' : 'pointer',
+      transition: 'box-shadow 0.3s ease, background-color 0.3s ease',
+      boxShadow: generating ? 'none' : '0 4px 6px rgba(0, 0, 0, 0.1)',
+    }}
+    onMouseEnter={(e) => {
+      if (!generating && !(sourceText.trim() === '' && generatedQuestions.length === 0)) {
+        e.target.style.boxShadow = '0 6px 8px rgba(0, 0, 0, 0.2)';
+      }
+    }}
+    onMouseLeave={(e) => {
+      if (!generating && !(sourceText.trim() === '' && generatedQuestions.length === 0)) {
+        e.target.style.boxShadow = '0 4px 6px rgba(0, 0, 0, 0.1)';
+      }
+    }}
+  >
+    {generating ? 'Generating...' : 
+     (questionsLoaded || generatedQuestions.length > 0) ? 'Preview Questions' : 
+     'Generate Questions'}
+  </button>
+  {generating && (
+    <ProgressBar progress={progress} text={progressText} />
+  )}
+</div>
                   </div>
                 </div>
               </div>

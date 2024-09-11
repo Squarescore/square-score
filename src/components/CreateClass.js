@@ -295,7 +295,7 @@ const CreateClass = () => {
       fontSize: '30px', 
       borderRadius: '50%',
       backgroundColor: 'white', 
-       border: '6px solid #F4F4F4',  
+       border: '4px solid #F4F4F4',  
       lineHeight: '30px',
       textAlign: 'center',  
       color: 'black',
@@ -346,7 +346,7 @@ const CreateClass = () => {
       top: '117px',
       right: '5px',
       width: '500px',padding: '20px 30px', fontWeight: 'bold', height: '10px', marginTop: '-50px',
-                  border: '6px solid #F4C10A ', paddingRight: '40px', borderRadius: '10px',
+                  border: '4px solid #F4C10A ', paddingRight: '40px', borderRadius: '10px',
                   fontSize: '20px',  fontFamily: "'Radio Canada', sans-serif",
                   
                   outline: 'none', transition: 'all 0.3s ease',
