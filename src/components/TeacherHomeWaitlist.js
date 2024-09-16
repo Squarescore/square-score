@@ -9,14 +9,20 @@ import { useAuthState } from 'react-firebase-hooks/auth';
 import { useCollection } from 'react-firebase-hooks/firestore';
 import HomeNavbar from './HomeNavbar';
 import FooterAuth from './FooterAuth'; // Make sure this file exists in the same directory
-const TeacherHome = () => {
+const TeacherHomeWaitlist = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [user] = useAuthState(auth);
   const [teacherData, setTeacherData] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
+  const [accessModalOpen, setAccessModalOpen] = useState(false);
   const [schoolCode, setSchoolCode] = useState('');
- 
+  const [userRole, setUserRole] = useState(null);
+  const [hasAccess, setHasAccess] = useState(null);
+  const [accessKey, setAccessKey] = useState('');
+  const [accessError, setAccessError] = useState('');
+  const [validationSuccess, setValidationSuccess] = useState(false);
+
   const [successMessage, setSuccessMessage] = useState('');
   const [newClassId, setNewClassId] = useState('');
   useEffect(() => {
@@ -31,7 +37,51 @@ const TeacherHome = () => {
     };
     fetchTeacherData();
   }, [user]);
+  const handleAccessKeySubmit = async () => {
+    setAccessError('');
+    setValidationSuccess(false);
+    try {
+      // Query for the access key
+      const keysQuery = query(collection(db, 'ACCESS KEYS'), where('ACCESS KEY', '==', accessKey));
+      const keySnapshot = await getDocs(keysQuery);
 
+      if (keySnapshot.empty) {
+        setAccessError('Invalid access key.');
+        return;
+      }
+
+      const keyDoc = keySnapshot.docs[0];
+      const keyData = keyDoc.data();
+
+      // Check if the key has already been used
+      if (keyData.teacher) {
+        setAccessError('This access key has already been used.');
+        return;
+      }
+
+      // Update the access key document with the teacher's ID
+      await updateDoc(doc(db, 'ACCESS KEYS', keyDoc.id), {
+        teacher: user.uid
+      });
+
+      // Update the teacher's document to grant access
+      await updateDoc(doc(db, 'teachers', user.uid), {
+        hasAccess: true
+      });
+
+      // Set success state and message
+      setValidationSuccess(true);
+      setSuccessMessage('Your key has been validated. Refresh the page to start your SquareScore journey!');
+      
+      // Close the modal after a short delay
+      setTimeout(() => {
+        setAccessModalOpen(false);
+      }, 3000);
+    } catch (error) {
+      console.error('Error validating access key:', error);
+      setAccessError('An error occurred. Please try again.');
+    }
+  };
   const handleJoinOrganization = async () => {
     try {
       const schoolsQuery = query(collection(db, 'schools'), where('joinCode', '==', schoolCode));
@@ -76,46 +126,6 @@ const TeacherHome = () => {
     }
   }, [location, navigate]);
 
-  const handleDismiss = () => {
-    setSuccessMessage('');
-    setNewClassId('');
-  };
-  
-  const handleAddStudents = () => {
-    setSuccessMessage('');
-    setNewClassId('');
-    navigate(`/class/${newClassId}/participants`);
-  };
-  const getRandomColor = () => {
-    return hoverColors[Math.floor(Math.random() * hoverColors.length)];
-  };
-  const handleButtonHover = (e) => {
-    if (e.currentTarget === e.target) {
-      e.currentTarget.style.boxShadow = '0px 4px 4px 0px rgba(0, 0, 0, 0.25)';
-    }
-  };
-
-  const handleButtonLeave = (e) => {
-    e.currentTarget.style.boxShadow = 'none';
-  };
-  const hoverColors = [
-    { background: '#F8CFFF', border: '#E01FFF' },
-    { background: '#A3F2ED', border: '#4BD682' },
-    { background: '#AEF2A3', border: '#006428' },
-    { background: '#FFECA8', border: '#CE7C00' },
-    { background: '#627BFF', border: '#020CFF' }
-  ];
-  
-  const periodStyles = {
-    1: { background: '#A3F2ED', color: '#1CC7BC' },
-        2: { background: '#F8CFFF', color: '#E01FFF' },
-        3: { background: '#FFCEB2', color: '#FD772C' },
-        4: { background: '#FFECA9', color: '#F0BC6E' },
-        5: { background: '#AEF2A3', color: '#4BD682' },
-        6: { background: '#BAA9FF', color: '#8364FF' },
-        7: { background: '#8296FF', color: '#3D44EA' },
-        8: { background: '#FF8E8E', color: '#D23F3F' }
-  };
 
 
   const classesRef = collection(db, 'classes');
@@ -133,6 +143,49 @@ const TeacherHome = () => {
     <div style={{  display: 'flex', flexDirection: 'column', backgroundColor: 'white', flexWrap: 'wrap' }}>
      <HomeNavbar userType="teacher" />
       <main style={{ flexGrow: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: '10px', backgroundColor: 'white', marginBottom: '230px' }}>
+      
+      
+      
+      {successMessage && (
+  <div style={{
+    position: 'fixed',
+    top: '70px',
+    zIndex: '10000',
+    left: '0',
+    right: '0',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center'
+  }}>
+    <div style={{width: '100%', background: '#4BD682', height: '6px'}}></div>
+    <div style={{
+      backgroundColor: '#AEF2A3',
+      border: '6px solid #4BD682',
+      borderBottomLeftRadius: '20px',
+      borderTop: '0px',
+      borderBottomRightRadius: '20px',
+      padding: '0px 20px',
+      height: '40px',
+      display: 'flex',
+      alignItems: 'center',
+      marginTop: '-6px',
+      marginBottom: '20px',
+      whiteSpace: 'nowrap'
+    }}>
+      <p style={{ color: '#45B434', fontWeight: 'bold', marginRight: '20px' }}>{successMessage}</p>
+    
+    </div>
+  </div>
+)}
+      
+      
+      
+      
+      
+      
+      
+      
+      
         {loading && <p>Loading...</p>}
         {error && <p>Error: {error.message}</p>}
 
@@ -147,77 +200,18 @@ const TeacherHome = () => {
           marginLeft: 'auto',
           marginRight: 'auto'
           }}>
-            {successMessage && (
-  <div style={{
-    position: 'fixed',
-    top: '70px',
-    zIndex: '10000',
-    left: '0',
-    right: '0',
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center'
-  }}>
-    <div style={{width: '100%', background: '#4BD682', height: '6px'}}></div>
-    <div style={{
-      backgroundColor: '#AEF2A3',
-      border: '10px solid #4BD682',
-      borderBottomLeftRadius: '20px',
-      borderTop: '0px',
-      borderBottomRightRadius: '20px',
-      padding: '0px 20px',
-      height: '40px',
-      display: 'flex',
-      alignItems: 'center',
-      marginTop: '0px',
-      marginBottom: '20px',
-      whiteSpace: 'nowrap'
-    }}>
-      <p style={{ color: '#45B434', fontWeight: 'bold', marginRight: '20px' }}>{successMessage}</p>
-      <button
-        onClick={handleAddStudents}
-        style={{
-          backgroundColor: '#FFECA9',
-          color: '#CE7C00',
-          fontSize: '16px',
-          fontFamily: "'Radio Canada', sans-serif",
-          fontWeight: 'BOLD',
-          height: '30px',
-          border: '4px solid #CE7C00',
-          borderRadius: '5px',
-          marginRight: '10px',
-          cursor: 'pointer'
-        }}
-      >
-        Add Students
-      </button>
-      <button
-        onClick={handleDismiss}
-        style={{
-          backgroundColor: 'white',
-          color: '#4BD682',
-          fontSize: '16px',
-          fontFamily: "'Radio Canada', sans-serif",
-          fontWeight: 'BOLD',
-          height: '30px',
-          border: '4px solid #4BD682',
-          borderRadius: '5px',
-          cursor: 'pointer'
-        }}
-      >
-        Dismiss
-      </button>
-    </div>
-  </div>
-)}
+           
 
-<div style={{ fontFamily: "'Rajdhani', sans-serif",width: '90%', display: 'flex',marginLeft: '32px', fontSize: '60px',  marginTop: '0px', height: '70px',
+<div style={{ fontFamily: "'Rajdhani', sans-serif", fontSize: '50px',  marginTop: '0px', height: '70px',
   marginBottom: '100px',
 }}>
             <h4 style={{
-             
-            }}>Your Classes</h4>
-          
+             fontSize: '55px'
+            }}>You have successfully joined our waitlist!</h4>
+          <p style={{fontSize: '30px', fontFamily: '"Radio Canada", sans-serif', marginTop: '-40px'}}>We are rolling out access to a few teachers at a time by order of the waitlist, when it is your turn, our team will email you an access key that you can input here, if your school is a pilot school, enter your school code for access </p>
+         
+          <p style={{fontSize: '30px', fontFamily: '"Radio Canada", sans-serif', fontWeight: 'bold'}}>Thank you for your support! </p>
+        
           </div>  
        
 
@@ -297,136 +291,117 @@ zIndex: '100'
         )}
 
 
+
+{accessModalOpen && (
+          <div style={{
+            position: 'fixed',
+            top: '0',
+            left: '0',
+            right: '0',
+            bottom: '0',
+            backdropFilter: 'blur(15px)',
+            backgroundColor: 'rgba(255, 255, 255, 0.8)',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+zIndex: '100'
+          }}>
+            <div style={{
+              backgroundColor: 'transparent',
+              padding: '20px',
+              borderRadius: '10px',
+              textAlign: 'center',
+            }}>
+              <h3
+             
+              style={{ fontSize: '80px', fontFamily: '"rajdhani", sans-serif', marginTop:' -50px', marginBottom: '0px'}}
+              >Access Key</h3>
+              <input
+                type="text"
+                value={accessKey}
+                onChange={(e) => setAccessKey(e.target.value)}
+              style={{  fontFamily: "'rajdhani', sans-serif", fontSize: '30px',background: "white", borderRadius: '20px', border: '4px solid lightgrey',
+                 width: '500px',paddingLeft: '20px',paddingRight: '20px', paddingTop: '10px', paddingBottom: '10px', fontWeight: 'bold',
+                  textAlign: 'Left', 
+                   outline: 'none', }} />  
+              <br />
+              <button
+               onClick={handleAccessKeySubmit}
+                style={{ 
+                  padding: '10px 20px', 
+                  background: '#FFEC87', color: '#FC8518',
+                  border: '5px solid #FC8518',
+                    borderRadius: '15px',
+                     cursor: 'pointer', 
+                    marginTop: '30px',
+                     fontFamily: "'Radio Canada', sans-serif",
+                     fontWeight: 'bold',
+                     fontSize: '30px',
+                     width: '45%',
+                     marginRight: '10px' }}
+              >
+                Validate Key
+              </button>
+              <button
+                onClick={() => setAccessModalOpen(false)}
+                style={{ 
+
+                  padding: '10px 20px', 
+                  backgroundColor: '#f4f4f4',
+              border: '5px solid lightgrey',
+              color: 'grey',
+                    borderRadius: '15px',
+                     cursor: 'pointer', 
+                    marginTop: '30px',
+                     fontFamily: "'Radio Canada', sans-serif",
+                     fontWeight: 'bold',
+                     fontSize: '30px',
+                     width: '45%',
+                     marginRight: '10px'
+                 }}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
+
    
-            {classes && classes
-          .sort((a, b) => a.className.localeCompare(b.className)) // Sort alphabetically by className
-          .map((classItem, index) => {
-            const periodNumber = parseInt(classItem.className.split(' ')[1]);
-            const periodStyle = periodStyles[periodNumber] || { background: '#F4F4F4', color: 'grey' };
-            return (
-              <div key={classItem.id} style={{ 
-                marginBottom: '10px',
-                width: '300px',
-                marginLeft:'32px',
-                display: 'inline-block',
-                flexDirection: 'column',
-                flexWrap: 'wrap',
-                alignItems: 'center', 
-                fontFamily: "'Poppins', sans-serif" ,
-                position: 'relative',
-                marginTop: '20px', 
-              }}>
-                <h1 style={{
-                  fontSize: '16px',
-                  height: '50px',
-                  marginLeft: 'auto',
-                  
-                  marginRight: 'auto',
-                  fontFamily: "'Radio Canada', sans-serif",
-                  textAlign: 'center',
-                  marginBottom: '-27px',
-                  zIndex: '20',
-                  color: 'grey',
-                  position: 'relative',
-                  fontWeight: 'lighter',
-                  backgroundColor: 'transparent',
-                  alignItems: 'center',
-                  lineHeight: '1',
-                  display: 'flex',
-                  justifyContent: 'center'
-                }}>
-                  <p style={{
-                    width: '268px',
-                    border: `6px solid ${periodStyle.color}`,
-                    backgroundColor: periodStyle.background,
-                    paddingLeft: '0px',
-                    paddingRight: '0px',
-                    marginLeft: '0px',
-                    height: '30px',
-                    fontWeight: 'bold',
-                    color: periodStyle.color,
-                    lineHeight: '30px',
-                    borderTopLeftRadius: '15px',
-                    borderTopRightRadius: '15px',
-                   
-                  }}>
-                    <p style={{marginTop: '0px',  overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',width: '250px', background: 'tranparent', marginLeft: 'auto', marginRight: 'auto'}}>{classItem.classChoice}</p>
-                    
-                  </p>
-                </h1>
-            
-                <button 
-                    onClick={() => navigate(`/class/${classItem.id}`)} 
-                    style={{ 
-                      marginLeft: 'auto',
-                      marginRight: 'auto',
-                      flex: 1,
-                      fontWeight: 'bold',
-                      width: '280px',
-                      height: '140px',
-                      justifyContent: 'center',
-                      display: 'flex',
-                      backgroundColor: 'transparent',  
-                      color: 'grey', 
-                      cursor: 'pointer',
-                      border: '4px solid #F4F4F4', 
-                      borderRadius: '15px', 
-                      lineHeight: '90px',
-                      textAlign: 'center',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      fontSize: '45px',
-                      transition: '.2s', 
-                      position: 'relative',
-                      zIndex: '1',
-                      marginTop:'0px',
-                      fontFamily: "'rajdhani', sans-serif",
-                      transform: 'scale(1)',
-                    }}
-                    onMouseEnter={handleButtonHover}
-                    onMouseLeave={handleButtonLeave}
-                    className="hoverableButton"
-                  >
-                    <h1 style={{fontSize: '45px', marginTop: '40px'}}>{classItem.className}</h1>
-                  </button>
-              </div>
-               );
-              })
-            }
 </div>
 
 
 
 
-
-<div style={{width: '1000px', marginRight: 'auto', marginLeft: 'auto', marginTop: '30px', display: 'flex'}}>
-        <Link to="/createclass" style={{
-          marginRight: 'auto', 
-           textDecoration: 'none',
-            backgroundColor: '#AEF2A3' , 
-            marginBottom: '100px',
-           border: '4px solid #45B434',
-            marginLeft: '32px',
-            
-            fontSize: '20px', 
-            transition: '.3s', 
-            color: '#45B434',
-             borderRadius: '10px',
-              padding: '10px 20px', 
-             
-               width: '145px', 
-               textAlign: 'center', 
-               fontWeight: 'bold' }}
-          onMouseEnter={(e) => {
-            e.target.style.opacity = '90%';
-            e.target.style.boxShadow = ' 0px 4px 4px 0px rgba(0, 0, 0, 0.25)';
-        }}
-        onMouseLeave={(e) => {
-            e.target.style.opacity = '100%';
-            e.target.style.boxShadow = ' none ';
-        }}>Create Class +</Link>
+<div style={{width: '1000px', marginLeft: 'auto', marginRight: 'auto',}}>
+<div style={{width: '400px', marginRight: 'auto',  marginTop: '300px', display: 'flex'}}>
+<button
+            onClick={() => setAccessModalOpen(true)}
+            style={{
+              marginRight: 'auto',
+              background: '#FFEC87', color: '#FC8518',
+              border: '5px solid #FC8518',
+              borderRadius: '10px',
+              padding: '20px 20px',
+              height: '40px',
+              fontWeight: 'bold',
+              cursor: 'pointer',
+             marginTop: '0px',
+             lineHeight: '0px',
+             marginLeft: 'auto',
+              fontSize: '20px',
+              transition: '.3s',
+            }}
+            onMouseEnter={(e) => {
+              e.target.style.opacity = '90%';
+              e.target.style.boxShadow = ' 0px 4px 4px 0px rgba(0, 0, 0, 0.25)';
+          }}
+          onMouseLeave={(e) => {
+              e.target.style.opacity = '100%';
+              e.target.style.boxShadow = ' none ';
+          }}
+          >
+            Enter Access Key
+          </button>
           {teacherData && teacherData.school ? (
          <div
          style={{ 
@@ -438,7 +413,8 @@ zIndex: '100'
            fontSize: '30px',  color: 'lightgrey' }}>
             
          <h4 style={{ 
-            marginLeft: '-400px',
+          marginRight: 'auto', 
+            marginLeft: 'auto',
             fontFamily: "'Rajdhani', sans-serif",
             marginTop: '0px', 
              fontSize: '30px',  color: 'lightgrey' }}> {teacherData.school}</h4>
@@ -458,7 +434,7 @@ zIndex: '100'
               cursor: 'pointer',
              marginTop: '0px',
              lineHeight: '0px',
-             marginLeft: '-570px',
+             marginLeft: 'auto',
               fontSize: '20px',
               transition: '.3s',
             }}
@@ -478,7 +454,7 @@ zIndex: '100'
 
         </div>
        
-
+        </div>
 
 
 
@@ -501,4 +477,4 @@ zIndex: '100'
   
 };
 
-export default TeacherHome;
+export default TeacherHomeWaitlist;

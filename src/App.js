@@ -19,6 +19,7 @@ import TeacherReview from './components/TeacherReview';
 import TeacherPreview from './components/PreviewSAQ';
 import CreateClass from './components/CreateClass';
 import JoinClass from './components/JoinClass';
+import TeacherHomeWaitlist from './components/TeacherHomeWaitlist';
 import StudentAssignments from './components/StudentAssignments';
 import TakeTest from './components/TakeSAQ';
 import TeacherStudentResults from './components/TeacherStudentResults';
@@ -50,6 +51,8 @@ import SignUpAdmin from './components/SignUpAdmin';
 function App() {
   const [user, setUser] = useState(null);
   const [userRole, setUserRole] = useState(null); // State for storing user role
+  const [hasAccess, setHasAccess] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   const handleSignOut = () => {
     const auth = getAuth();
@@ -81,50 +84,87 @@ function App() {
         console.error("Error in persistence setting", error);
       });
   }, []);
+  
+  useEffect(() => {
+    const fetchUserRole = async () => {
+      if (user) {
+        setLoading(true);
+        let userDocRef = doc(db, 'students', user.uid);
+        let userProfile = await getDoc(userDocRef);
 
-useEffect(() => {
-  const fetchUserRole = async () => {
-    if (user) {
-      let userDocRef = doc(db, 'students', user.uid);
-      let userProfile = await getDoc(userDocRef);
+        if (!userProfile.exists()) {
+          userDocRef = doc(db, 'teachers', user.uid);
+          userProfile = await getDoc(userDocRef);
+          
+          if (!userProfile.exists()) {
+            userDocRef = doc(db, 'admin', user.uid);
+            userProfile = await getDoc(userDocRef);
+          }
+        }
 
-      if (!userProfile.exists()) {
-        userDocRef = doc(db, 'teachers', user.uid);
-        userProfile = await getDoc(userDocRef);
+        if (userProfile.exists()) {
+          const userData = userProfile.data();
+          if (userDocRef.path.startsWith('students')) {
+            setUserRole('student');
+          } else if (userDocRef.path.startsWith('teachers')) {
+            setUserRole('teacher');
+            setHasAccess(userData.hasAccess === true);
+          } else if (userDocRef.path.startsWith('admin')) {
+            setUserRole('admin');
+          }
+        }
+        setLoading(false);
       }
+    };
 
-      const role = userDocRef.path.startsWith('students') ? 'student' : 'teacher';
-      setUserRole(role);
-      console.log("User Role: ", role); // Log the user's role
-    }
-  };
+    fetchUserRole();
+  }, [user]);
 
-  fetchUserRole();
-}, [user]);
 
+  if (user && userRole === 'teacher' && hasAccess === null) {
+    return (
+      <div style={{
+        position: 'absolute',
+        top: '50%',
+        left: '50%',
+        transform: 'translate(-50%, -50%)',
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+      }}>
+        <div className="lds-ripple"><div></div><div></div></div>
+      </div>
+    );
+  }
 
   return (
-    <div style={{ fontFamily: "'Poppins', sans-serif"}}>
+    <div style={{ fontFamily: "'Radio Canada', sans-serif"}}>
     <Router>
       
       {user ? (
-          userRole ? ( // Add this check
+          userRole ? ( 
            
             <Routes>
-            <Route 
-              path="/" 
-              element={
-                <Navigate 
-                  to={
-                    userRole === 'student' 
-                      ? "/studenthome" 
-                      : userRole === 'teacher' 
-                        ? "/teacherhome" 
-                        : "/adminhome"
-                  } 
-                />
-              } 
-            />
+         {userRole === 'teacher' && hasAccess === false ? (
+                <Route path="*" element={<TeacherHomeWaitlist />} />
+              ) : (
+                <>
+                  <Route 
+                    path="/" 
+                    element={
+                      <Navigate 
+                        to={
+                          userRole === 'student' 
+                            ? "/studenthome" 
+                            : userRole === 'teacher' 
+                              ? (hasAccess ? "/teacherhome" : "/teacher-waitlist")
+                              : "/adminhome"
+                        } 
+                      />
+                    } 
+                  />
+                        <Route path="/adminhome" element={<AdminHome />} />
+               
             <Route 
               path="/login" 
               element={
@@ -133,7 +173,7 @@ useEffect(() => {
                     userRole === 'student' 
                       ? "/studenthome" 
                       : userRole === 'teacher' 
-                        ? "/teacherhome" 
+                        ? (hasAccess ? "/teacherhome" : "/teacher-waitlist")
                         : "/adminhome"
                   } 
                 />
@@ -147,7 +187,7 @@ useEffect(() => {
                     userRole === 'student' 
                       ? "/studenthome" 
                       : userRole === 'teacher' 
-                        ? "/teacherhome" 
+                        ? (hasAccess ? "/teacherhome" : "/teacher-waitlist")
                         : "/adminhome"
                   } 
                 />
@@ -156,7 +196,8 @@ useEffect(() => {
  <Route path="/termsofservice" element={<TermsOfService />} />
  <Route path="/privacyPolicy" element={<PrivacyPolicy />} />
 
-
+ <Route path="/adminhome" element={<AdminHome />} />
+                
  <Route path="/admin-ub" element={<AdminUB />} />
  <Route path="/teacher-logs/:teacherId" element={<TeacherLogs />} /> {/* Implement this component separately */}
    
@@ -214,7 +255,8 @@ useEffect(() => {
         <Route path="/studentresultsAMCQ/:assignmentId/:studentUid/:classId" element={<StudentResultsAMCQ/>} />
         
         <Route path="/studentresultsMCQ/:assignmentId/:studentUid/:classId" element={<StudentResultsMCQ/>} />
-        
+        </>
+            )}
         </Routes>
         ) : (
           <div style={{position: 'absolute',

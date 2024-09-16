@@ -116,9 +116,9 @@ const Auth = () => {
             </div>
             <div style={{ width: '280px', display: 'flex', position: 'fixed', right: '20px' }}>
               <Link to="/signup" style={{
-                height: '0px', marginTop: '20px', lineHeight: '2px', borderRadius: '10px',
-                fontWeight: 'bold', background: '#F4C10A', border: '8px solid #F4C10A',
-                textDecoration: 'none', color: 'white', width: '80px', marginLeft: '30px',
+                height: '10px', marginTop: '20px', lineHeight: '10px', borderRadius: '8px',
+                fontWeight: 'bold', background: '#FFEC87', border: '4px solid #FC8518 ', color: '#FC8518 ',
+                textDecoration: 'none', width: '80px', marginLeft: '30px',
                 padding: '10px', textAlign: 'center', transition: '.2s',
                 fontFamily: "'Radio Canada', sans-serif", fontSize: '18px'
               }}
@@ -131,9 +131,9 @@ const Auth = () => {
                 e.target.style.boxShadow = 'none';
               }}>Sign up</Link>
               <Link to="/login" style={{
-                height: '0px', marginTop: '20px', lineHeight: '2px', borderRadius: '10px',
-                fontWeight: 'bold', background: '#627BFF', border: '8px solid #627BFF',
-                textDecoration: 'none', color: 'white', width: '50px', marginLeft: '30px',
+                height: '10px', marginTop: '20px', lineHeight: '10px', borderRadius: '8px',
+                fontWeight: 'bold', background: '#99B6FF', border: '4px solid #020CFF', color: '#020CFF',
+                textDecoration: 'none', width: '60px', marginLeft: '10px',
                 padding: '10px', textAlign: 'center', transition: '.2s',
                 fontFamily: "'Radio Canada', sans-serif", fontSize: '18px'
               }}
@@ -158,9 +158,9 @@ const Auth = () => {
           <div style={{ width: '800px', marginTop: '-20px', borderRadius: '5px', display: 'flex' }}>
             <Link to="/signup"  style={{
               height: '70px', lineHeight: '70px', marginTop: '20px', marginBottom: '20px',
-              background: '#F4C10A', color: 'white', fontWeight: 'bold', display: 'block',
-              width: '450px',  textDecoration: 'none',
-              borderRadius: '10px', textAlign: 'center', transition: '.3s', marginLeft: '50px',
+              background: '#FFEC87', color: '#FC8518', fontWeight: 'bold', display: 'block',
+              width: '450px',  textDecoration: 'none', border: '6px solid #FC8518',
+              borderRadius: '15px', textAlign: 'center', transition: '.3s', marginLeft: '50px',
               fontFamily: "'Radio Canada', sans-serif", fontSize: '40px'
             }}
             onMouseEnter={(e) => {
@@ -173,10 +173,10 @@ const Auth = () => {
             }}>Sign up for free</Link>
 
             <Link to="/login"  style={{
-              height: '60px', lineHeight: '60px', marginTop: '20px', marginBottom: '20px',
-              background: '#627BFF', border: '8px solid #627BFF', color: 'white', fontWeight: 'bold',
+              height: '70px', lineHeight: '70px', marginTop: '20px', marginBottom: '20px',
+              background: '#99B6FF', border: '6px solid #020CFF', color: '#020CFF', fontWeight: 'bold',
               display: 'block', width: '250px', marginLeft: 'auto', marginRight: 'auto',
-              textDecoration: 'none', borderRadius: '10px', textAlign: 'center',
+              textDecoration: 'none', borderRadius: '15px', textAlign: 'center',
               transition: '.3s', fontFamily: "'Radio Canada', sans-serif", fontSize: '40px'
             }}
             onMouseEnter={(e) => {

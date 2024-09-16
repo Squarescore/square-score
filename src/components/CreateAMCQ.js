@@ -222,101 +222,92 @@ const [progressText, setProgressText] = useState('');
     return data;
 };
 
+
 const generateQuestions = async () => {
   const baseUrl = 'https://us-central1-square-score-ai.cloudfunctions.net';
   const maxRetries = 3;
-  const quarterDuration = 40000; // 40 seconds per quarter
-  const progressIncrement = 0.095; // 0.25% increment every 100ms
+  const progressIncrement = 0.5;
 
   try {
-      setGenerating(true);
-      setProgress(0);
-      setProgressText('0%');
-      setGeneratedQuestions([]);
+    setGenerating(true);
+    setProgress(0);
+    setProgressText('0%');
+    setGeneratedQuestions([]);
 
-      const updateProgress = (start, end) => {
-          let currentProgress = start;
-          const interval = setInterval(() => {
-              if (currentProgress < end) {
-                  currentProgress += progressIncrement;
-                  setProgress(currentProgress);
-                  setProgressText(`${Math.round(currentProgress)}%`);
-              } else {
-                  clearInterval(interval);
-              }
-          }, 100);
-          return interval;
-      };
-
-      const generateQuarter = async (step) => {
-          const quarterStart = (step - 1) * 25;
-          const quarterEnd = step * 25;
-          let progressInterval = updateProgress(quarterStart, quarterEnd - 1);
-
-          for (let attempt = 1; attempt <= maxRetries; attempt++) {
-              try {
-                  const response = await axios.post(
-                      step === 1 ? `${baseUrl}/GenerateAMCQstep1` : `${baseUrl}/GenerateAMCQstep2`,
-                      {
-                          sourceText,
-                          selectedOptions,
-                          additionalInstructions,
-                          classId,
-                          teacherId,
-                          ...(step !== 1 && { previousQuestions: generatedQuestions })
-                      }
-                  );
-
-                  clearInterval(progressInterval);
-                  setProgress(quarterEnd);
-                  setProgressText(`${quarterEnd}%`);
-
-                  // Modified to process questions through parseQuestions twice
-                  let newQuestions = parseQuestions({ data: parseQuestions(response) });
-                  if (newQuestions.length === 0) {
-                      throw new Error('Invalid API response: No questions generated');
-                  }
-                  setGeneratedQuestions(prevQuestions => [...prevQuestions, ...newQuestions]);
-                  break;
-              } catch (error) {
-                  console.error(`Error in generateQuarter for step ${step}, attempt ${attempt}:`, error);
-                  clearInterval(progressInterval);
-                  setProgress(quarterStart);
-                  setProgressText(`${quarterStart}%`);
-
-                  if (attempt === maxRetries) {
-                      throw new Error(`Failed to generate questions for step ${step} after ${maxRetries} attempts`);
-                  } else {
-                      console.log(`Retrying step ${step} (Attempt ${attempt + 1}/${maxRetries})...`);
-                      await new Promise(resolve => setTimeout(resolve, 1000));
-                      progressInterval = updateProgress(quarterStart, quarterEnd - 1);
-                  }
-              }
+    // Function to update progress (unchanged)
+    const updateProgress = (start, end) => {
+      let currentProgress = start;
+      const interval = setInterval(() => {
+        if (currentProgress < end) {
+          currentProgress += progressIncrement;
+          setProgress(currentProgress);
+          setProgressText(`${Math.round(currentProgress)}%`);
+        } else {
+          clearInterval(interval);
+        }
+      }, 100);
+      return interval;
+    };
+    const generateQuestionsForDifficulty = async (difficulty) => {
+      let attempt = 1;
+      const endpoint = `${baseUrl}/GenerateAMCQ${difficulty}`;
+      
+      while (attempt <= maxRetries) {
+        try {
+          const response = await axios.post(endpoint, {
+            sourceText,
+            selectedOptions,
+            additionalInstructions,
+            classId,
+            teacherId,
+          });
+          console.log(`${difficulty} Questions Response:`, response.data);
+          
+          // Extract questions from the nested structure
+          const questions = response.data.questions.questions;
+          
+          if (!Array.isArray(questions) || questions.length === 0) {
+            throw new Error('Invalid API response: No questions generated');
           }
-      };
-
-      for (let i = 1; i <= 4; i++) {
-          await generateQuarter(i);
+          return questions; // Return the array of questions
+        } catch (error) {
+          console.error(`Error in generate${difficulty}Questions, attempt ${attempt}:`, error);
+          if (attempt === maxRetries) {
+            throw new Error(`Failed to generate ${difficulty.toLowerCase()} questions after ${maxRetries} attempts`);
+          } else {
+            attempt++;
+            await new Promise(resolve => setTimeout(resolve, 1000));
+          }
+        }
       }
+    };
 
-      if (generatedQuestions.length < 40) {
-          console.log("Not enough questions generated. Running an extra step...");
-          setProgress(75);
-          setProgressText("75% - Generating additional questions");
-          await generateQuarter(5);
-      }
+    const progressInterval = updateProgress(0, 90);
 
-      setShowPreview(true);
+    const [easyQuestions, mediumQuestions, hardQuestions] = await Promise.all([
+      generateQuestionsForDifficulty('Easy'),
+      generateQuestionsForDifficulty('Medium'),
+      generateQuestionsForDifficulty('Hard'),
+    ]);
+
+    clearInterval(progressInterval);
+    setProgress(100);
+    setProgressText('100%');
+
+    // Combine all questions into a single flattened array
+    const allQuestions = [...easyQuestions, ...mediumQuestions, ...hardQuestions];
+
+    // Shuffle the combined array
+
+    setGeneratedQuestions(allQuestions);
+    setShowPreview(true);
   } catch (error) {
-      console.error('Error in generateQuestions:', error);
-      alert('An error occurred while generating questions. Please try again.');
+    console.error('Error in generateQuestions:', error);
+    alert('An error occurred while generating questions. Please try again.');
   } finally {
-      setGenerating(false);
-      setProgress(100);
-      setProgressText('100%');
+    setGenerating(false);
   }
 };
-
   const handleGenerateQuestions = () => {
     if (questionsLoaded || generatedQuestions.length > 0) {
       setShowPreview(true);

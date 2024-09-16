@@ -27,6 +27,9 @@ const StudentHome = () => {
   const [classes, setClasses] = useState([]);
   const studentUID = auth.currentUser.uid;
   const [pendingRequests, setPendingRequests] = useState([]);
+  const [showJoinClassModal, setShowJoinClassModal] = useState(false);
+const [classCode, setClassCode] = useState('');
+const [joinClassError, setJoinClassError] = useState('');
   const periodStyles = {
     1: { background: '#A3F2ED', color: '#1CC7BC' },
     2: { background: '#F8CFFF', color: '#E01FFF' },
@@ -63,6 +66,37 @@ const StudentHome = () => {
       navigate('/');
     } catch (error) {
       console.error("Error signing out:", error);
+    }
+  };
+  const handleJoinClass = async (e) => {
+    e.preventDefault();
+    setJoinClassError('');
+    try {
+      const classesRef = collection(db, 'classes');
+      const classQuery = query(classesRef, where('classCode', '==', classCode));
+      const classQuerySnapshot = await getDocs(classQuery);
+
+      if (classQuerySnapshot.empty) {
+        throw new Error('Class not found.');
+      }
+
+      const classDoc = classQuerySnapshot.docs[0];
+      const existingStudents = classDoc.data().students || [];
+      const existingJoinRequests = classDoc.data().joinRequests || [];
+
+      if (existingStudents.includes(studentUID) || existingJoinRequests.includes(studentUID)) {
+        throw new Error('You have already joined or requested to join this class.');
+      }
+
+      const joinRequests = [...existingJoinRequests, studentUID];
+      await updateDoc(doc(db, 'classes', classDoc.id), { joinRequests });
+
+      setShowJoinClassModal(false);
+      setClassCode('');
+      // Optionally, you can update the UI to show the pending request
+      setPendingRequests(prev => [...prev, classDoc.data()]);
+    } catch (err) {
+      setJoinClassError(err.message);
     }
   };
   useEffect(() => {
@@ -227,12 +261,12 @@ const StudentHome = () => {
                     textAlign: 'center',
                     flexDirection: 'column',
                     alignItems: 'center',
-                    fontSize: '35px',
+                    fontSize: '45px',
                     transition: '.2s', 
                     position: 'relative',
                     zIndex: '1',
                     marginTop:'0px',
-                    fontFamily: "'Radio Canada', sans-serif",
+                    fontFamily: "'Rajdhani', sans-serif",
                     transform: 'scale(1)',
                     cursor  : 'pointer'
                   }}
@@ -255,21 +289,26 @@ const StudentHome = () => {
         </div>
 
         <div style={{width: '1000px', marginRight: 'auto', marginLeft: 'auto', marginTop: '30px'}}>
-          <Link to="/joinclass" style={{
-            marginRight: 'auto', 
-            textDecoration: 'none',
-            backgroundColor: '#AEF2A3' , 
-            marginBottom: '100px',
-            border: '5px solid #45B434',
-            marginLeft: '32px',
-            fontSize: '20px', 
-            transition: '.3s', 
-            color: '#45B434',
-            borderRadius: '10px',
-            padding: '10px 20px', 
-            width: '145px', 
-            textAlign: 'center', 
-            fontWeight: 'bold' }}
+          
+   
+      <button
+            onClick={() => setShowJoinClassModal(true)}
+            style={{
+              marginRight: 'auto', 
+              backgroundColor: '#AEF2A3' , 
+              marginBottom: '100px',
+              border: '5px solid #45B434',
+              marginLeft: '32px',
+              fontSize: '20px', 
+              transition: '.3s', 
+              color: '#45B434',
+              borderRadius: '10px',
+              padding: '10px 20px', 
+              width: '200px', 
+              textAlign: 'center', 
+              fontWeight: 'bold',
+              cursor: 'pointer'
+            }}
             onMouseEnter={(e) => {
               e.target.style.opacity = '90%';
               e.target.style.boxShadow = ' 0px 4px 4px 0px rgba(0, 0, 0, 0.25)';
@@ -277,9 +316,93 @@ const StudentHome = () => {
             onMouseLeave={(e) => {
               e.target.style.opacity = '100%';
               e.target.style.boxShadow = ' none ';
-            }}>Join Class </Link>
+            }}
+          >
+            Join Class +
+          </button>
         </div>
       </main>
+
+      {showJoinClassModal && (
+        <div style={{
+          position: 'fixed',
+          top: 70,
+          left: 0,
+          width: '100%',
+          height: '100%',
+          backgroundColor: 'rgba(255, 255, 255, 0.8)',
+          backdropFilter: 'blur(10px)',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          zIndex: 100
+        }}>
+          <div style={{
+            backgroundColor: 'transparent',
+            padding: '20px',
+            borderRadius: '10px',
+            width: '600px'
+          }}>
+            <h2 style={{ fontSize: '80px', fontFamily: '"rajdhani", sans-serif', marginTop:' -100px', marginBottom: '20px', textAlign: 'center' }}>Join Class</h2>
+            <form onSubmit={handleJoinClass}>
+              <input
+                type="text"
+                value={classCode}
+                onChange={(e) => setClassCode(e.target.value)}
+                placeholder=' input code'
+                style={{
+                  fontFamily: "'rajdhani', sans-serif", fontSize: '60px',background: "white", borderRadius: '20px', border: '4px solid lightgrey',
+                width: '360px',paddingLeft: '140px',paddingRight: '60px', paddingTop: '10px', paddingBottom: '10px', fontWeight: 'bold',
+                 textAlign: 'Left', 
+                  outline: 'none',
+                }}
+              />
+              {joinClassError && <p style={{ color: 'red', marginBottom: '10px' }}>{joinClassError}</p>}
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <button
+                  type="submit"
+                  style={{ 
+                    padding: '10px 20px', 
+                    backgroundColor: '#AEF2A3',
+                border: '5px solid #45B434',
+                color: '#45B434',
+                      borderRadius: '15px',
+                       cursor: 'pointer', 
+                      marginTop: '30px',
+                       fontFamily: "'Radio Canada', sans-serif",
+                       fontWeight: 'bold',
+                       fontSize: '30px',
+                       width: '50%',
+                       marginRight: '10px' }}
+                >
+                  Submit Request
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowJoinClassModal(false)}
+                  style={{ 
+  
+                    padding: '10px 20px', 
+                    backgroundColor: '#f4f4f4',
+                border: '5px solid lightgrey',
+                color: 'grey',
+                      borderRadius: '15px',
+                       cursor: 'pointer', 
+                      marginTop: '30px',
+                       fontFamily: "'Radio Canada', sans-serif",
+                       fontWeight: 'bold',
+                       fontSize: '30px',
+                       width: '40%',
+                       marginRight: '5%'
+                   }}
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       <FooterAuth style={{marginTop: '100px'}}/>
     </div>

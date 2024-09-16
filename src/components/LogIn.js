@@ -160,14 +160,24 @@ const Login = () => {
       </div>
 
       <div className="white-background" style={{
-        width: '50%', display: 'flex', flexDirection: 'column', alignItems: 'center', marginLeft: 'auto', marginRight: 'auto', marginTop: '6%', backgroundColor: 'rgba(255,255,255,0.8)', backdropFilter: 'blur(7px)', padding: '40px', borderRadius: '30px'
+        width: '60%', display: 'flex', flexDirection: 'column', alignItems: 'center', marginLeft: 'auto', marginRight: 'auto', marginTop: '6%', backgroundColor: 'rgba(255,255,255,0.8)', backdropFilter: 'blur(7px)', padding: '40px', borderRadius: '30px'
       }}>
         <form onSubmit={handleLogin} style={{ width: '100%' }}>
           <h1 style={{
             color: 'black', fontSize: '80px', fontFamily: "'Rajdhani', sans-serif", textAlign: 'center', fontWeight: 'bold'
           }}>Login</h1>
+          
 
-          <div style={{ width: '100%', marginBottom: '20px', position: 'relative' }}>
+
+
+
+
+
+
+
+<div style={{marginLeft: 'auto', marginRight: 'auto', width: '600px'}}>
+          <div style={{  marginBottom: '20px', position: 'relative' }}>
+            
             <input
               type="email"
               placeholder="Email"
@@ -179,24 +189,23 @@ const Login = () => {
                 e.target.style.borderColor = e.target.value.trim() !== '' ? 'lightgreen' : 'lightgrey';
               }}
               style={{
-                width: '100%', 
+                width: '92%', 
                 padding: '20px', 
                 fontWeight: 'bold',
-                border: '0px solid lightgrey', 
+                border: '3px solid lightgrey', 
                 color: 'black',
                 borderRadius: '10px', 
                 outline: 'none', 
                 backdropFilter: 'blur(7px)',
                 fontSize: '30px',
-                boxShadow: '0px 4px 4px 0px rgba(0, 0, 0, 0.25)',
                 backgroundColor: 'rgb(250,250,250,.5)', 
                 fontFamily: "'Radio Canada', sans-serif"
               }}
             />
-            {inputStyles.email && <label style={{ position: 'absolute', top: '-20px', left: '15px', backgroundColor: 'white', padding: '0 10px', borderTopRightRadius: '3px', borderTopLeftRadius: '3px', fontFamily: "'Radio Canada', sans-serif", fontWeight: 'bold', height: '20px', fontSize: '20px' }}>Email</label>}
+            {inputStyles.email && <label style={{ position: 'absolute', top: '-10px', left: '15px', backgroundColor: 'white', padding: '0 10px', borderTopRightRadius: '3px', borderTopLeftRadius: '3px', fontFamily: "'Radio Canada', sans-serif", fontWeight: 'bold', height: '13px', fontSize: '20px' }}>Email</label>}
           </div>
 
-          <div style={{ width: '100%', marginBottom: '40px', position: 'relative' }}>
+          <div style={{  marginBottom: '40px', position: 'relative' }}>
             <input
               type="password"
               placeholder="Password"
@@ -208,22 +217,21 @@ const Login = () => {
                 e.target.style.borderColor = e.target.value.trim() !== '' ? 'lightgreen' : 'lightgrey';
               }}
               style={{
-                width: '100%', 
+                width: '92%', 
                 padding: '20px', 
                 marginTop: '30px',
                 fontWeight: 'bold',
-                border: '0px solid lightgrey', 
+                border: '3px solid lightgrey', 
                 color: 'black',
                 borderRadius: '10px', 
                 outline: 'none', 
                 backdropFilter: 'blur(7px)',
                 fontSize: '30px',
-                boxShadow: '0px 4px 4px 0px rgba(0, 0, 0, 0.25)',
                 backgroundColor: 'rgb(250,250,250,.5)', 
                 fontFamily: "'Radio Canada', sans-serif",
               }}
             />
-            {inputStyles.password && <label style={{ position: 'absolute', top: '10px', left: '15px', backgroundColor: 'white', padding: '0 10px', borderTopRightRadius: '3px', borderTopLeftRadius: '3px', fontFamily: "'Radio Canada', sans-serif", fontWeight: 'bold', height: '20px', fontSize: '20px' }}>Password</label>}
+            {inputStyles.password && <label style={{ position: 'absolute', top: '20px', left: '15px', backgroundColor: 'white', padding: '0 10px', borderTopRightRadius: '3px', borderTopLeftRadius: '3px', fontFamily: "'Radio Canada', sans-serif", fontWeight: 'bold', height: '13px', fontSize: '20px' }}>Password</label>}
           </div>
 
           <div style={{ display: 'flex' }}>
@@ -232,8 +240,8 @@ const Login = () => {
               style={{
                 width: '240px',
                 marginLeft: '0px',
-                backgroundColor: '#627BFF',
-                border: 'none',
+                background: '#99B6FF', border: '6px solid #020CFF', 
+               
                 height: '50px',
                 borderRadius: '10px',
                 cursor: 'pointer',
@@ -251,19 +259,13 @@ const Login = () => {
                 e.target.style.transform = 'scale(1)';
               }}
             >
-              <h1 style={{ marginTop: '7px', color: 'white', pointerEvents: 'none' }}>Login</h1>
+              <h1 style={{ marginTop: '0px',  pointerEvents: 'none',color: '#020CFF', }}>Login</h1>
             </button>
-            <p style={{ fontFamily: "'Radio Canada', sans-serif", color: 'black', marginLeft: '30px', fontSize: '20px', width: '300px', marginTop: '0px' }}>
-              By logging in you agree to our <a href="/TermsofService" style={{ color: 'blue' }}>terms of service</a>
-            </p>
-          </div>
-        </form>
-
-        <button
+            <button
           onClick={handleForgotPassword}
           style={{
-            marginRight: 'auto',
-            marginTop: '30px',
+            marginLeft: 'auto', 
+            marginTop: '0px',
             backgroundColor: 'transparent',
             border: 'none',
             textDecoration: 'underline',
@@ -276,8 +278,17 @@ const Login = () => {
         >
           Forgot Password?
         </button>
+          </div>
+          </div>
+        </form>
+
+      
+        <p style={{ fontFamily: "'Radio Canada', sans-serif", color: 'black', marginLeft: '0px', fontSize: '16px', width: '600px', marginTop: '20px'}}>
+                  By Logging in you agree to SquareScore's <a href="/TermsofService" style={{ color: 'blue' }}>Terms of Service</a>  and <a href="/PrivacyPolicy" style={{ color: 'blue' }}>Privacy Policy</a>
+                </p>
         {error && <p style={{ color: 'red', marginTop: '20px' }}>{error}</p>}
       </div>
+      
     </div>
   );
 };

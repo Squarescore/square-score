@@ -1,10 +1,9 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { getAuth, createUserWithEmailAndPassword } from "firebase/auth";
-import { doc, setDoc } from "firebase/firestore"; 
 import { db, auth } from "./firebase"; // Adjust the path to your firebase configuration
 import { useNavigate } from 'react-router-dom'; // Import the navigate hook
 import './BackgroundDivs.css'; // Import the CSS file
-
+import { doc, setDoc, serverTimestamp, getDoc, updateDoc } from "firebase/firestore"; 
 const SignUp = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -17,6 +16,10 @@ const SignUp = () => {
   const [showPopup, setShowPopup] = useState(false); // New state variable
   const [navbarBg, setNavbarBg] = useState('rgba(255,255,255,0.7)');
   const [passwordsMatch, setPasswordsMatch] = useState(true);
+  const [referralCode, setReferralCode] = useState('');
+  const [referralError, setReferralError] = useState('');
+  const [isEmailValid, setIsEmailValid] = useState(true);
+
   const [allCriteriaMet, setAllCriteriaMet] = useState(false);
 
   const [passwordCriteria, setPasswordCriteria] = useState({
@@ -25,10 +28,25 @@ const SignUp = () => {
     lowercase: false,
     number: false
   });
+
+  const validateEmail = (email) => {
+    const re = /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
+    return re.test(String(email).toLowerCase());
+  };
+
   const formatName = (name) => {
     // Remove spaces, capitalize first letter, lowercase the rest
     return name.replace(/[^a-zA-Z]/g, '').charAt(0).toUpperCase() + name.slice(1).toLowerCase();
   };
+  const generateReferralCode = () => {
+    const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let result = '';
+    for (let i = 0; i < 7; i++) {
+      result += characters.charAt(Math.floor(Math.random() * characters.length));
+    }
+    return result;
+  };
+
   const handleSignUp = async (e) => {
     e.preventDefault();
 
@@ -52,26 +70,44 @@ const SignUp = () => {
       };
 
       if (role === 'student') {
+        if (referralCode) {
+          const teacherQuery = await getDoc(doc(db, 'teachers', referralCode));
+          if (teacherQuery.exists()) {
+            const teacherData = teacherQuery.data();
+            if (!teacherData.referredTeachers) {
+              teacherData.referredTeachers = [];
+            }
+            teacherData.referredTeachers.push(uid);
+            await updateDoc(doc(db, 'teachers', referralCode), teacherData);
+          } else {
+            setReferralError('Invalid referral code');
+            return;
+          }
+        }
         userProfile.testsTaken = [];
         userProfile.classesIn = [];
         userProfile.grades = [];
         userProfile.questionsCompleted = 0;
         userProfile.reviewedTests = false;
         await setDoc(doc(db, 'students', uid), userProfile);
-        navigate('/studenthome');  // Navigate to student home
+        navigate('/studenthome');
       } else if (role === 'teacher') {
+        const newReferralCode = generateReferralCode();
         userProfile.classesOwned = [];
         userProfile.draftAssignments = [];
         userProfile.testsAssigned = [];
+        userProfile.createdAt = serverTimestamp();
+        userProfile.referralCode = newReferralCode;
+        userProfile.referredTeachers = [];
+        userProfile.hasAccess = false;
         await setDoc(doc(db, 'teachers', uid), userProfile);
-        navigate('/teacherhome');  // Navigate to teacher home
-      }
-      else if (role === 'admin') {
+        navigate('/teacherhome');
+      } else if (role === 'admin') {
         userProfile.school = [];
         userProfile.usage = [];
         userProfile.teachers = [];
         await setDoc(doc(db, 'admin', uid), userProfile);
-        navigate('/adminhome');  // Navigate to teacher home
+        navigate('/adminhome');
       }
 
     } catch (err) {
@@ -196,7 +232,7 @@ const SignUp = () => {
       </div>
 
       <div 
-className="white-background" style={{width: '1000px', marginLeft: 'auto', border: '0px solid lightgrey',marginTop: '150px', marginRight: 'auto',  backgroundColor: 'rgb(255,255,255,.8)',backdropFilter: 'blur(7px)', padding: '40px', borderRadius: '30px'}}>
+className="white-background" style={{width: '1000px', marginLeft: 'auto', height: '700px', border: '0px solid lightgrey',marginTop: '150px', marginRight: 'auto',  backgroundColor: 'rgb(255,255,255,.8)',backdropFilter: 'blur(7px)', padding: '40px', borderRadius: '30px'}}>
         <h1 style={{ fontWeight: 'Bold',
            color: 'black', fontSize: '95px', fontFamily: "'Rajdhani', sans-serif", 
             padding: '0px', backgroundColor: 'transparent', marginTop: '-10px',
@@ -210,13 +246,15 @@ className="white-background" style={{width: '1000px', marginLeft: 'auto', border
                 flex: 1, 
                 marginLeft: '22px',
                 marginRight: '20px',
-                backgroundColor: role === 'student' ? '#627BFF' : 'transparent',
-                color:  role === 'student' ? 'white' : 'black',
-                borderColor: 'transparent',
-                padding: '5px 20px',
+                backgroundColor: role === 'student' ? '#FFEC87' : 'transparent',
+                color:   role === 'student' ? '#FC8518' : 'black',
+                borderColor: role === 'student' ? '#FC8518' : 'transparent',
+               
+                padding: '8px 20px',
                 fontSize: '25px', 
                 fontWeight: 'bold',
-                border: '5px solid transparent',
+                borderWidth: '6px',
+                borderStyle: 'solid',
                 cursor: 'pointer',
                 fontFamily: "'Radio Canada', sans-serif",
                 borderRadius: '10px',
@@ -232,13 +270,15 @@ className="white-background" style={{width: '1000px', marginLeft: 'auto', border
                 flex: 1, 
                 marginLeft: '-2px',
                 marginRight: '20px',
-                backgroundColor: role === 'teacher' ? '#FCCA18' : 'transparent',
-                color:  role === 'teacher' ? 'white' : 'black',
-                borderColor: 'transparent',
-                padding: '5px 20px',
+                backgroundColor: role === 'teacher' ? '#C2D3FF' : 'transparent',
+                color:   role === 'teacher' ? '#020CFF' : 'black',
+                borderColor: role === 'teacher' ? '#020CFF' : 'transparent',
+               
+                padding: '8px 20px',
                 fontSize: '25px', 
                 fontWeight: 'bold',
-                border: '5px solid transparent',
+                borderWidth: '6px',
+                borderStyle: 'solid',
                 cursor: 'pointer',
                 fontFamily: "'Radio Canada', sans-serif",
                 borderRadius: '10px',
@@ -268,20 +308,19 @@ className="white-background" style={{width: '1000px', marginLeft: 'auto', border
                   style={{ 
                     width: '90%', 
                     padding: '20px', 
-                    border: '0px solid lightgrey', 
+                    border: '3px solid lightgrey', 
                     color: 'black',
                     fontWeight: 'bold',
                     borderRadius: '10px', 
                     outline: 'none', 
                     backdropFilter: 'blur(7px)',
                     fontSize: '20px',
-                    boxShadow: ' 0px 4px 4px 0px rgba(0, 0, 0, 0.25)',
                     backgroundColor: 'rgb(250,250,250,.5)', 
                     fontFamily: "'Radio Canada', sans-serif",
                   }}
                 />
-                {inputStyles.firstName && <label style={{ position: 'absolute', top: '-10px', left: '15px', backgroundColor: 'white', padding: '0 10px',  borderTopRightRadius: '3px', borderTopLeftRadius: '3px', 
-                    fontFamily: "'Radio Canada', sans-serif", fontWeight: 'bold', height: '10px'  }}>First Name</label>}
+                {inputStyles.firstName && <label style={{ position: 'absolute', top: '-10px', left: '15px', backgroundColor: 'white', padding: '0 10px',  borderTopRightRadius: '3px', borderTopLeftRadius: '3px', zIndex: '20',
+                    fontFamily: "'Radio Canada', sans-serif", fontWeight: 'bold', height: '13px'  }}>First Name</label>}
               </div>
               <div style={{ position: 'relative', width: '410px', marginBottom: '20px', marginLeft: '20px' }}>
                 <input 
@@ -301,61 +340,61 @@ className="white-background" style={{width: '1000px', marginLeft: 'auto', border
                     padding: '20px', 
                   
                     fontWeight: 'bold',
-                    border: '0px solid lightgrey', 
+                    border: '3px solid lightgrey', 
                     color: 'black',
                     borderRadius: '10px', 
                     outline: 'none', 
                     backdropFilter: 'blur(7px)',
                     fontSize: '20px',
-                    boxShadow: ' 0px 4px 4px 0px rgba(0, 0, 0, 0.25)',
                     backgroundColor: 'rgb(250,250,250,.5)', 
                     fontFamily: "'Radio Canada', sans-serif",
                   }}
                 />
                 {inputStyles.lastName && <label style={{ position: 'absolute', top: '-10px', left: '15px', backgroundColor: 'white', padding: '0 10px',  borderTopRightRadius: '3px', borderTopLeftRadius: '3px', 
-                    fontFamily: "'Radio Canada', sans-serif", fontWeight: 'bold', height: '10px' }}>Last Name</label>}
+                    fontFamily: "'Radio Canada', sans-serif", fontWeight: 'bold', height: '20px' }}>Last Name</label>}
               </div>
             </div> 
-            <div style={{ position: 'relative', width: '855px', marginBottom: '20px' }}>
-              <input 
-                type="email" 
-                placeholder="Email" 
-                value={email}
-                onFocus={() => handleInputFocus('email')}
-                onBlur={(e) => handleInputBlur('email', e.target.value)}
-                onChange={e => {
-                  const newEmail = e.target.value.replace(/\s/g, '');
-                  setEmail(newEmail);
-                  e.target.value = newEmail;
-                  e.target.style.borderColor = newEmail.trim() !== '' ? 'lightgreen' : 'lightgrey';
-                }}
+            <div style={{ position: 'relative', width: '855px', marginBottom: '13px' }}>
+            <input 
+            type="email" 
+            placeholder="Email" 
+            value={email}
+            onFocus={() => handleInputFocus('email')}
+            onBlur={(e) => handleInputBlur('email', e.target.value)}
+            onChange={e => {
+              const newEmail = e.target.value.replace(/\s/g, '');
+              setEmail(newEmail);
+              const isValid = validateEmail(newEmail);
+              setIsEmailValid(isValid);
+              e.target.style.borderColor = newEmail.trim() !== '' 
+                ? (isValid ? 'lightgreen' : 'red') 
+                : 'lightgrey';
+            }}
                 style={{ 
                   width: '98%', 
                   padding: '20px', 
-                  border: '0px solid lightgrey', 
+                  border: '3px solid lightgrey', 
                     color: 'black',
                     fontWeight: 'bold',
                     borderRadius: '10px', 
                     outline: 'none', 
                     backdropFilter: 'blur(10px)',
                     fontSize: '20px',
-                    boxShadow: ' 0px 4px 4px 0px rgba(0, 0, 0, 0.25)',
                     backgroundColor: 'rgb(250,250,250,.5)', 
                     fontFamily: "'Radio Canada', sans-serif",
                 }}
               />
               {inputStyles.email && <label style={{ position: 'absolute', top: '-10px', left: '15px', backgroundColor: 'white', padding: '0 10px',  borderTopRightRadius: '3px', borderTopLeftRadius: '3px', 
-                    fontFamily: "'Radio Canada', sans-serif", fontWeight: 'bold', height: '10px'  }}>Email</label>}
+                    fontFamily: "'Radio Canada', sans-serif", fontWeight: 'bold', height: '13px'  }}>Email</label>}
             </div>
             <div style={{ display: 'flex', 
             
-            backgroundColor: 'rgb(240,240,240,.5)', 
-           boxShadow: ' 0px 4px 4px 0px rgba(0, 0, 0, 0.25)',
+              backgroundColor: 'transparent',
             borderRadius: '10px',
             backdropFilter: 'blur(5px)',
             paddingLeft: '20px',
             paddingRight: '50px',
-            justifyContent: 'space-between', width: '90%', marginTop: '30px', marginBottom: '25px' }}>
+            justifyContent: 'space-between', width: '90%', marginTop: '10px', marginBottom: '25px' }}>
           <h1 style={{fontFamily: "'Radio Canada', sans-serif", fontSize: '20px',
              color: allCriteriaMet ? '#91D487' : 'grey'
           }}>Password Criteria</h1>
@@ -391,20 +430,19 @@ className="white-background" style={{width: '1000px', marginLeft: 'auto', border
                   style={{ 
                     width: '90%',  
                     padding: '20px', 
-                    border: '0px solid lightgrey', 
+                    border: '3px solid lightgrey', 
                     color: 'black',
                     borderRadius: '10px', 
                     outline: 'none', 
                     fontWeight: 'bold',
                     backdropFilter: 'blur(7px)',
                     fontSize: '20px',
-                    boxShadow: ' 0px 4px 4px 0px rgba(0, 0, 0, 0.25)',
                     backgroundColor: 'rgb(255,255,255,.5)', 
                     fontFamily: "'Radio Canada', sans-serif",
                   }}
                 />
                  {inputStyles.password && <label style={{ position: 'absolute', top: '-10px', left: '15px', backgroundColor: 'white', padding: '0 10px',  borderTopRightRadius: '3px', borderTopLeftRadius: '3px', 
-                fontFamily: "'Radio Canada', sans-serif", fontWeight: 'bold', height: '10px' }}>Password</label>}
+                fontFamily: "'Radio Canada', sans-serif", fontWeight: 'bold', height: '13px' }}>Password</label>}
         </div>
            
             <div style={{ position: 'relative', width: '410px', marginBottom: '20px', marginLeft: '20px' }}>
@@ -423,20 +461,20 @@ className="white-background" style={{width: '1000px', marginLeft: 'auto', border
                   width: '100%', 
                   padding: '20px', 
                   fontWeight: 'bold',
-                  border: '0px solid lightgrey', 
+                  border: '3px solid lightgrey', 
                   color: 'black',
                   borderRadius: '10px', 
                   outline: 'none', 
                   backdropFilter: 'blur(7px)',
                   fontSize: '20px',
-                  boxShadow: ' 0px 4px 4px 0px rgba(0, 0, 0, 0.25)',
                   backgroundColor: 'rgb(255,255,255,.5)', 
                   fontFamily: "'Radio Canada', sans-serif",
                 }}
               />
               {inputStyles.confirmPassword && <label style={{ position: 'absolute', top: '-10px', left: '15px', backgroundColor: 'white', padding: '0 10px',  borderTopRightRadius: '3px', borderTopLeftRadius: '3px', 
-              fontFamily: "'Radio Canada', sans-serif", fontWeight: 'bold', height: '10px' }}>Confirm Password</label>}
+              fontFamily: "'Radio Canada', sans-serif", fontWeight: 'bold', height: '13px' }}>Confirm Password</label>}
             </div>
+           
           </div>
           
           {!passwordsMatch && (
@@ -444,9 +482,37 @@ className="white-background" style={{width: '1000px', marginLeft: 'auto', border
               Passwords do not match
             </p>
           )}
-        
+         {role === 'teacher' && (
+          <div style={{  width: '250px', marginBottom: '20px', position: 'absolute', right: '140px', bottom: '80px' }}>
+            <input 
+              type="text" 
+              placeholder="Referral Code (optional)" 
+              value={referralCode}
+              onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
+              maxLength={7}
+              style={{ 
+                width: '250px', 
+                padding: '15px', 
+                border: '3px solid lightgrey', 
+                color: 'black',
+                fontWeight: 'bold',
+                borderRadius: '10px', 
+                outline: 'none', 
+                backdropFilter: 'blur(10px)',
+                fontSize: '16px',
+                backgroundColor: 'rgb(250,250,250,.5)', 
+                fontFamily: "'Radio Canada', sans-serif",
+              }}
+              onFocus={() => handleInputFocus('referralCode')}
+              onBlur={(e) => handleInputBlur('referralCode', e.target.value)}
+            />
+             {inputStyles.referralCode && <label style={{ position: 'absolute', top: '-10px', left: '15px', backgroundColor: 'white', padding: '0 10px',  borderTopRightRadius: '3px', borderTopLeftRadius: '3px', 
+              fontFamily: "'Radio Canada', sans-serif", fontWeight: 'bold', height: '13px' }}>Referral Code</label>}
+            {referralError && <p style={{ color: 'red', marginTop: '5px' }}>{referralError}</p>}
+          </div>
+        )}
             {isFormComplete() && (
-              <div style={{display: 'flex', marginTop: '20px'}}>
+              <div style={{display: 'flex', marginTop: '0px'}}>
                 <button onClick={handleSignUp}
                   type="submit"
                   style={{ 
@@ -478,7 +544,7 @@ className="white-background" style={{width: '1000px', marginLeft: 'auto', border
             )}
           </div>
         </form>
-        {error && <p style={{ color: 'red', marginTop: '20px' }}>{error}</p>}w
+        {error && <p style={{ color: 'red', marginTop: '20px' }}>{error}</p>}
       </div>
       {showPopup && (
         <div style={{

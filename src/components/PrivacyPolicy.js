@@ -18,7 +18,7 @@ function PrivacyPolicy() {
   
 <body>
     <h1>SquareScore Privacy Policy</h1>
-    <p><strong>Last Updated: 29th April, 2024</strong></p>
+    <p><strong>Last Updated: 29th August, 2024</strong></p>
 
     <h2>1. Introduction to the Privacy Policy</h2>
     <p>This Privacy Policy provides detailed information about how SquareScore LLC ("SquareScore," "us," "we," "our") collects, uses, and manages personal information through its website, SquareScore.net, and the SquareScore platform. The policy is applicable to personal data of both teachers and students and demonstrates our commitment to respecting student data privacy laws, supporting FERPA compliance for schools, and adhering to COPPA guidelines. For more information, you can reach out to us at <a href="mailto:privacy.squarescore@gmail.com">privacy.squarescore@gmail.com</a>.</p>

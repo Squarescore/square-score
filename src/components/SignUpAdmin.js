@@ -18,13 +18,18 @@ const SignUpAdmin = () => {
   const [navbarBg, setNavbarBg] = useState('rgba(255,255,255,0.7)');
   const [passwordsMatch, setPasswordsMatch] = useState(true);
   const [allCriteriaMet, setAllCriteriaMet] = useState(false);
-
+  const [isEmailValid, setIsEmailValid] = useState(true);
   const [passwordCriteria, setPasswordCriteria] = useState({
     length: false,
     uppercase: false,
     lowercase: false,
     number: false
   });
+  const validateEmail = (email) => {
+    const re = /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
+    return re.test(String(email).toLowerCase());
+  };
+
   const formatName = (name) => {
     // Remove spaces, capitalize first letter, lowercase the rest
     return name.replace(/[^a-zA-Z]/g, '').charAt(0).toUpperCase() + name.slice(1).toLowerCase();
@@ -198,15 +203,15 @@ const SignUpAdmin = () => {
       <div 
 className="white-background" style={{width: '1000px', marginLeft: 'auto', border: '0px solid lightgrey',marginTop: '150px', marginRight: 'auto',  backgroundColor: 'rgb(255,255,255,.8)',backdropFilter: 'blur(7px)', padding: '40px', borderRadius: '30px'}}>
         <h1 style={{ fontWeight: 'Bold',
-           color: 'black', fontSize: '95px', fontFamily: "'Rajdhani', sans-serif", 
+           color: 'black', fontSize: '50px', fontFamily: "'Rajdhani', sans-serif", 
             padding: '0px', backgroundColor: 'transparent', marginTop: '-10px',
-             marginLeft: '50px',width: '870px', marginBottom: '150px'}}>Create Admin Account</h1>
+             marginLeft: '50px',width: '870px', marginBottom: '170px'}}>Create Admin Account</h1>
         <form onSubmit={handleSignUp}>
         <div style={{ display: 'flex', justifyContent: 'space-between', width: '60%',marginLeft: '37%',marginBottom: '40px' , marginTop: '-180px'}}>
            
          
             </div>
-          <div style={{ width: '90%', marginLeft: 'auto', marginRight: 'auto',}}>
+            <div style={{ width: '90%', marginLeft: 'auto', marginRight: 'auto',}}>
             <div style={{display: 'flex'}}>
               <div style={{ position: 'relative', width: '410px', marginBottom: '20px' }}>
                 <input 
@@ -225,20 +230,19 @@ className="white-background" style={{width: '1000px', marginLeft: 'auto', border
                   style={{ 
                     width: '90%', 
                     padding: '20px', 
-                    border: '0px solid lightgrey', 
+                    border: '3px solid lightgrey', 
                     color: 'black',
                     fontWeight: 'bold',
                     borderRadius: '10px', 
                     outline: 'none', 
                     backdropFilter: 'blur(7px)',
                     fontSize: '20px',
-                    boxShadow: ' 0px 4px 4px 0px rgba(0, 0, 0, 0.25)',
                     backgroundColor: 'rgb(250,250,250,.5)', 
                     fontFamily: "'Radio Canada', sans-serif",
                   }}
                 />
-                {inputStyles.firstName && <label style={{ position: 'absolute', top: '-10px', left: '15px', backgroundColor: 'white', padding: '0 10px',  borderTopRightRadius: '3px', borderTopLeftRadius: '3px', 
-                    fontFamily: "'Radio Canada', sans-serif", fontWeight: 'bold', height: '10px'  }}>First Name</label>}
+                {inputStyles.firstName && <label style={{ position: 'absolute', top: '-10px', left: '15px', backgroundColor: 'white', padding: '0 10px',  borderTopRightRadius: '3px', borderTopLeftRadius: '3px', zIndex: '20',
+                    fontFamily: "'Radio Canada', sans-serif", fontWeight: 'bold', height: '13px'  }}>First Name</label>}
               </div>
               <div style={{ position: 'relative', width: '410px', marginBottom: '20px', marginLeft: '20px' }}>
                 <input 
@@ -258,61 +262,61 @@ className="white-background" style={{width: '1000px', marginLeft: 'auto', border
                     padding: '20px', 
                   
                     fontWeight: 'bold',
-                    border: '0px solid lightgrey', 
+                    border: '3px solid lightgrey', 
                     color: 'black',
                     borderRadius: '10px', 
                     outline: 'none', 
                     backdropFilter: 'blur(7px)',
                     fontSize: '20px',
-                    boxShadow: ' 0px 4px 4px 0px rgba(0, 0, 0, 0.25)',
                     backgroundColor: 'rgb(250,250,250,.5)', 
                     fontFamily: "'Radio Canada', sans-serif",
                   }}
                 />
                 {inputStyles.lastName && <label style={{ position: 'absolute', top: '-10px', left: '15px', backgroundColor: 'white', padding: '0 10px',  borderTopRightRadius: '3px', borderTopLeftRadius: '3px', 
-                    fontFamily: "'Radio Canada', sans-serif", fontWeight: 'bold', height: '10px' }}>Last Name</label>}
+                    fontFamily: "'Radio Canada', sans-serif", fontWeight: 'bold', height: '20px' }}>Last Name</label>}
               </div>
             </div> 
-            <div style={{ position: 'relative', width: '855px', marginBottom: '20px' }}>
-              <input 
-                type="email" 
-                placeholder="Email" 
-                value={email}
-                onFocus={() => handleInputFocus('email')}
-                onBlur={(e) => handleInputBlur('email', e.target.value)}
-                onChange={e => {
-                  const newEmail = e.target.value.replace(/\s/g, '');
-                  setEmail(newEmail);
-                  e.target.value = newEmail;
-                  e.target.style.borderColor = newEmail.trim() !== '' ? 'lightgreen' : 'lightgrey';
-                }}
+            <div style={{ position: 'relative', width: '855px', marginBottom: '13px' }}>
+            <input 
+            type="email" 
+            placeholder="Email" 
+            value={email}
+            onFocus={() => handleInputFocus('email')}
+            onBlur={(e) => handleInputBlur('email', e.target.value)}
+            onChange={e => {
+              const newEmail = e.target.value.replace(/\s/g, '');
+              setEmail(newEmail);
+              const isValid = validateEmail(newEmail);
+              setIsEmailValid(isValid);
+              e.target.style.borderColor = newEmail.trim() !== '' 
+                ? (isValid ? 'lightgreen' : 'red') 
+                : 'lightgrey';
+            }}
                 style={{ 
                   width: '98%', 
                   padding: '20px', 
-                  border: '0px solid lightgrey', 
+                  border: '3px solid lightgrey', 
                     color: 'black',
                     fontWeight: 'bold',
                     borderRadius: '10px', 
                     outline: 'none', 
                     backdropFilter: 'blur(10px)',
                     fontSize: '20px',
-                    boxShadow: ' 0px 4px 4px 0px rgba(0, 0, 0, 0.25)',
                     backgroundColor: 'rgb(250,250,250,.5)', 
                     fontFamily: "'Radio Canada', sans-serif",
                 }}
               />
               {inputStyles.email && <label style={{ position: 'absolute', top: '-10px', left: '15px', backgroundColor: 'white', padding: '0 10px',  borderTopRightRadius: '3px', borderTopLeftRadius: '3px', 
-                    fontFamily: "'Radio Canada', sans-serif", fontWeight: 'bold', height: '10px'  }}>Email</label>}
+                    fontFamily: "'Radio Canada', sans-serif", fontWeight: 'bold', height: '13px'  }}>Email</label>}
             </div>
             <div style={{ display: 'flex', 
             
-            backgroundColor: 'rgb(240,240,240,.5)', 
-           boxShadow: ' 0px 4px 4px 0px rgba(0, 0, 0, 0.25)',
+              backgroundColor: 'transparent',
             borderRadius: '10px',
             backdropFilter: 'blur(5px)',
             paddingLeft: '20px',
             paddingRight: '50px',
-            justifyContent: 'space-between', width: '90%', marginTop: '30px', marginBottom: '25px' }}>
+            justifyContent: 'space-between', width: '90%', marginTop: '10px', marginBottom: '25px' }}>
           <h1 style={{fontFamily: "'Radio Canada', sans-serif", fontSize: '20px',
              color: allCriteriaMet ? '#91D487' : 'grey'
           }}>Password Criteria</h1>
@@ -348,20 +352,19 @@ className="white-background" style={{width: '1000px', marginLeft: 'auto', border
                   style={{ 
                     width: '90%',  
                     padding: '20px', 
-                    border: '0px solid lightgrey', 
+                    border: '3px solid lightgrey', 
                     color: 'black',
                     borderRadius: '10px', 
                     outline: 'none', 
                     fontWeight: 'bold',
                     backdropFilter: 'blur(7px)',
                     fontSize: '20px',
-                    boxShadow: ' 0px 4px 4px 0px rgba(0, 0, 0, 0.25)',
                     backgroundColor: 'rgb(255,255,255,.5)', 
                     fontFamily: "'Radio Canada', sans-serif",
                   }}
                 />
                  {inputStyles.password && <label style={{ position: 'absolute', top: '-10px', left: '15px', backgroundColor: 'white', padding: '0 10px',  borderTopRightRadius: '3px', borderTopLeftRadius: '3px', 
-                fontFamily: "'Radio Canada', sans-serif", fontWeight: 'bold', height: '10px' }}>Password</label>}
+                fontFamily: "'Radio Canada', sans-serif", fontWeight: 'bold', height: '13px' }}>Password</label>}
         </div>
            
             <div style={{ position: 'relative', width: '410px', marginBottom: '20px', marginLeft: '20px' }}>
@@ -380,20 +383,20 @@ className="white-background" style={{width: '1000px', marginLeft: 'auto', border
                   width: '100%', 
                   padding: '20px', 
                   fontWeight: 'bold',
-                  border: '0px solid lightgrey', 
+                  border: '3px solid lightgrey', 
                   color: 'black',
                   borderRadius: '10px', 
                   outline: 'none', 
                   backdropFilter: 'blur(7px)',
                   fontSize: '20px',
-                  boxShadow: ' 0px 4px 4px 0px rgba(0, 0, 0, 0.25)',
                   backgroundColor: 'rgb(255,255,255,.5)', 
                   fontFamily: "'Radio Canada', sans-serif",
                 }}
               />
               {inputStyles.confirmPassword && <label style={{ position: 'absolute', top: '-10px', left: '15px', backgroundColor: 'white', padding: '0 10px',  borderTopRightRadius: '3px', borderTopLeftRadius: '3px', 
-              fontFamily: "'Radio Canada', sans-serif", fontWeight: 'bold', height: '10px' }}>Confirm Password</label>}
+              fontFamily: "'Radio Canada', sans-serif", fontWeight: 'bold', height: '13px' }}>Confirm Password</label>}
             </div>
+           
           </div>
           
           {!passwordsMatch && (
@@ -401,36 +404,9 @@ className="white-background" style={{width: '1000px', marginLeft: 'auto', border
               Passwords do not match
             </p>
           )}
-          <div style={{position: 'absolute', bottom: '50px', right: '-60px'}}>
-          <div style={{ position: 'relative', width: '410px', marginBottom: '20px' }}>
-                <input 
-                      type="Referal Code" 
-                      placeholder="Referal Code" 
-                      
-                      onFocus={() => handleInputFocus('password')}
-                      onBlur={(e) => handleInputBlur('password', e.target.value)}
-                   
-                  style={{ 
-                    width: '200px',  
-                    padding: '20px', 
-                    border: '0px solid lightgrey', 
-                    color: 'black',
-                    borderRadius: '10px', 
-                    outline: 'none', 
-                    fontWeight: 'bold',
-                    backdropFilter: 'blur(7px)',
-                    fontSize: '20px',
-                    boxShadow: ' 0px 4px 4px 0px rgba(0, 0, 0, 0.25)',
-                    backgroundColor: 'rgb(255,255,255,.5)', 
-                    fontFamily: "'Radio Canada', sans-serif",
-                  }}
-                />
-                 {inputStyles.referralCode && <label style={{ position: 'absolute', top: '-10px', left: '15px', backgroundColor: 'white', padding: '0 10px',  borderTopRightRadius: '3px', borderTopLeftRadius: '3px', 
-                fontFamily: "'Radio Canada', sans-serif", fontWeight: 'bold', height: '10px' }}>Referral Code</label>}
-        </div>
-          </div>
+        
             {isFormComplete() && (
-              <div style={{display: 'flex', marginTop: '20px'}}>
+              <div style={{display: 'flex', marginTop: '0px'}}>
                 <button onClick={handleSignUp}
                   type="submit"
                   style={{ 
@@ -455,8 +431,8 @@ className="white-background" style={{width: '1000px', marginLeft: 'auto', border
                     }}
                   />
                 </button>
-                <p style={{ fontFamily: "'Radio Canada', sans-serif", color: 'black', marginLeft: '40px', fontSize: '20px', width: '300px'}}>
-                  By Signing up you agree to our <a href="/TermsofService" style={{ color: 'blue' }}>terms of service</a>
+                <p style={{ fontFamily: "'Radio Canada', sans-serif", color: 'black', marginLeft: '40px', fontSize: '20px', width: '600px'}}>
+                  By Signing up you agree to SquareScore's <a href="/TermsofService" style={{ color: 'blue' }}>terms of service</a>  and <a href="/PrivacyPolicy" style={{ color: 'blue' }}>Privacy Policy</a>
                 </p>
               </div>
             )}

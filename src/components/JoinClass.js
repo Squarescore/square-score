@@ -97,19 +97,7 @@ const JoinClass = () => {
       height: '100vh', display: 'flex', flexDirection: 'column', 
       }}>
           <HomeNavbar userType="student" />
-          {positions.map((pos, index) => (
-      <div
-        key={index}
-        className={`background-div ${getRandomColorClass()}`}
-        style={{
-          top: pos.top,
-          left: pos.left,
-          position: 'absolute',
-          width: '200px',
-          height: '200px',
-        }}
-      />
-    ))}
+        
     <main style={{ flexGrow: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: '200px' }}>
    
     <button 
@@ -118,13 +106,13 @@ const JoinClass = () => {
     <img src="https://static.thenounproject.com/png/1875804-200.png" style={{width: '30px', opacity: '50%'}}/>
     </button>
 
-    <form className="white-background" onSubmit={handleJoinClass} style={{  display: 'flex', flexDirection: 'column', alignItems: 'center', backgroundColor: 'rgb(255,255,255,.8)', backdropFilter: 'blur(5px)', width: '700px', marginTop: '-100PX', }}>
+    <form onSubmit={handleJoinClass} style={{  display: 'flex', flexDirection: 'column', alignItems: 'center',  width: '700px', marginTop: '-100PX', }}>
       <h1 style={{ fontSize: '80px', fontFamily: '"rajdhani", sans-serif'}}>Join Class</h1>
       <input type="text"  placeholder='Code' onChange={e => setClassCode(e.target.value)} required 
-      style={{  fontFamily: "'rajdhani', sans-serif", fontSize: '100px', borderTopLeftRadius: '20px', borderTopRightRadius: '20px', background: "rgb(200,200,200,.4)",
-       width: '440px',paddingLeft: '60px',paddingRight: '60px', paddingTop: '10px', paddingBottom: '10px', fontWeight: 'bold',
-        textAlign: 'Left', borderColor: 'transparent',borderBottom: '4px solid lightgrey',
-         outline: 'none', }} />
+      style={{   fontFamily: "'rajdhani', sans-serif", fontSize: '100px',background: "white", borderRadius: '20px', border: '4px solid lightgrey',
+        width: '440px',paddingLeft: '60px',paddingRight: '60px', paddingTop: '10px', paddingBottom: '10px', fontWeight: 'bold',
+         textAlign: 'Left', 
+          outline: 'none', }} />
       <button 
             type="submit" 
             disabled={!classCode}
