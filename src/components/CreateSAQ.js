@@ -274,72 +274,45 @@ const formatDate = (date) => {
     .replace(' PM', ' PM ') // Add space before timezone
     .replace(' AM', ' AM '); // Add space before timezone
 };
+const GenerateSAQ = async (sourceText, questionCount, additionalInstructions, classId) => {
+  try {
+    const response = await axios.post('https://us-central1-square-score-ai.cloudfunctions.net/GenerateSAQ', {
+      sourceText: sourceText,
+      questionCount: questionCount,
+      additionalInstructions: additionalInstructions,
+      classId: classId,
+      teacherId: teacherId 
+    }, {
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
 
-  const GenerateSAQ = async ( sourceText, questionCount, additionalInstructions, classId) => {
-    try {
-      const response = await axios.post('https://us-central1-square-score-ai.cloudfunctions.net/GenerateSAQ', {
-        sourceText: sourceText,
-        questionCount: questionCount,
-        additionalInstructions: additionalInstructions,
-        classId: classId,
-        teacherId: teacherId 
-      }, {
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      });
-  
-      if (response.status !== 200) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-  
-      const data = response.data;
-      console.log('API response data:', data);
-  
-      let questionsString = data.questions;
-      if (typeof questionsString === 'string') {
-        const jsonMatch = questionsString.match(/```json\s*([\s\S]*?)\s*```/);
-        if (jsonMatch) {
-          questionsString = jsonMatch[1];
-        }
-        try {
-          questionsString = questionsString.trim();
-          const questions = JSON.parse(questionsString);
-          
-          if (Array.isArray(questions)) {
-            const questionsWithIds = questions.map((question, index) => ({
-              questionId: `${assignmentId}(question${index + 1})`,
-              ...question
-            }));
-            console.log('Generated questions:', questionsWithIds);
-            setGeneratedQuestions(questionsWithIds);
-            setQuestionsGenerated(true);
-            return questionsWithIds;
-          } else {
-            console.error("Parsed questions is not an array:", questions);
-            return [];
-          }
-        } catch (error) {
-          console.error('Error parsing questions JSON:', error);
-          console.error('Questions JSON:', questionsString);
-          throw error;
-        }
-      } else if (Array.isArray(data.questions)) {
-        const questionsWithIds = data.questions.map((question, index) => ({
-          questionId: `${assignmentId}(question${index + 1})`,
-          ...question
-        }));
-        console.log('Generated questions:', questionsWithIds);
-        return questionsWithIds;
-      } else {
-        console.error("Unexpected response format:", data);
-        return [];
-      }
-    } catch (error) {
-      console.error("Error calling generateQuestions function:", error);
-      throw error;
+    if (response.status !== 200) {
+      throw new Error(`HTTP error! status: ${response.status}`);
     }
-  };
+
+    const data = response.data;
+    console.log('API response data:', data);
+
+    if (Array.isArray(data)) {
+      const questionsWithIds = data.map((question, index) => ({
+        questionId: `${assignmentId}(question${index + 1})`,
+        ...question
+      }));
+      console.log('Generated questions:', questionsWithIds);
+      setGeneratedQuestions(questionsWithIds);
+      setQuestionsGenerated(true);
+      return questionsWithIds;
+    } else {
+      console.error("Unexpected response format:", data);
+      return [];
+    }
+  } catch (error) {
+    console.error("Error calling generateQuestions function:", error);
+    throw error;
+  }
+};
   const saveAssignment = async () => {
     // Remove 'DRAFT' prefix from assignmentId if it exists
     const finalAssignmentId = assignmentId.startsWith('DRAFT') ? assignmentId.slice(5) : assignmentId;

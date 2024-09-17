@@ -4,15 +4,75 @@ const { OpenAI } = require('openai');
 const cors = require('cors')({origin: true});
 const admin = require('firebase-admin');
 admin.initializeApp();
-
 exports.GenerateSAQ = functions.https.onRequest((req, res) => {
+  return cors(req, res, async () => {
+    if (req.method !== "POST") {
+      return res.status(400).send("Please send a POST request");
+    }
+
+    const { sourceText, questionCount, additionalInstructions, classId,teacherId } = req.body;
+    const OPENAI_API_KEY = functions.config().openai.key;
+
+    const openai = new OpenAI({
+      apiKey: OPENAI_API_KEY,
+    });
+
+    try {
+      let prompt = `
+      Generate ${questionCount} questions and expected responses from the following source. Each question should have an expected response (not more than 10 words, not in complete sentence format). If there are multiple expected responses, separate them by commas. If there are more factual responses than listed, add "etc."
+       `;
+      
+                if (additionalInstructions) {
+                    prompt += ` Additional instructions: ${additionalInstructions}`;
+                }
+      
+                prompt += `
+      
+                When crafting questions:
+                For questions with multiple possible answers, specify the number of items to be included in the response (e.g., "List 3 factors that...").
+                Ensure a mix of question types, including those with single specific answers and those requiring multiple items.
+                Frame questions to reflect the level of detail provided in the source material.
+                Include some questions that examine broader concepts or themes, not just individual facts.
+                Provide the output as a valid JSON array where each object has "question" and "expectedResponse" fields. The entire response should be parseable as JSON. Here's the exact format to use:
+                [ { "question": "string", "expectedResponse": "string" }, { "question": "string", "expectedResponse": "string" }, ... ]
+                Remember to only include the JSON array in your response, with no additional text. 
+                
+                Generate questions and their expected responses based on this source: ${sourceText}
+                INCLUDE NOTHING ELSE IN YOUR RESPONSE OTHER THAN THE CORRECTLY FORMATTED ARRAY
+                `;
+      const response = await openai.chat.completions.create({
+        model: "gpt-4o-mini", 
+        messages: [
+          {
+            role: "system",
+            content:
+              "You are an assistant that grades short answer questions based on given guidelines. Your responses should always be in valid JSON format.",
+          },
+          {
+            role: "user",
+            content: prompt,
+          },
+        ],
+        max_tokens: 2000,
+        temperature: 1, // Set to 0 for deterministic responses
+      });
+
+      const gradingResults = JSON.parse(response.choices[0].message.content);
+
+      res.status(200).json(gradingResults);
+    } catch (error) {
+      console.error("Error grading SAQ:", error);
+      res.status(500).send("Internal Server Error");
+    }
+  });
+});
+exports.GenerateSAQ1 = functions.https.onRequest((req, res) => {
   return cors(req, res, async () => {
       if (req.method !== "POST") {
           return res.status(400).send("Please send a POST request");
       }
 
       const { sourceText, questionCount, additionalInstructions, classId,teacherId } = req.body;
-
       const OPENAI_API_KEY = functions.config().openai.key;
 
       const openai = new OpenAI({
@@ -22,12 +82,9 @@ exports.GenerateSAQ = functions.https.onRequest((req, res) => {
       try {
           let prompt = `
 Generate ${questionCount} questions and expected responses from the following source. Each question should have an expected response (not more than 10 words, not in complete sentence format). If there are multiple expected responses, separate them by commas. If there are more factual responses than listed, add "etc."
+   ${additionalInstructions ? `Additional instructions: ${additionalInstructions}` : ''}    
 
-
-
-          ${additionalInstructions ? `Additional instructions: ${additionalInstructions}` : ''}    
-
- When crafting questions:
+When crafting questions:
 For questions with multiple possible answers, specify the number of items to be included in the response (e.g., "List 3 factors that...").
 Ensure a mix of question types, including those with single specific answers and those requiring multiple items.
 Frame questions to reflect the level of detail provided in the source material.
@@ -45,7 +102,7 @@ INCLUDE NOTHING ELSE IN YOUR RESPONSE OTHER THAN THE CORRECTLY FORMATTED ARRAY
               messages: [
                   {
                       role: "system",
-                      content: "You are a digital textbook that generates Short answer questions based on given instructions. Your responses should always be in valid JSON format."
+                      content: "You are a digital textbook that generates Short Answer questions based on given instructions. Your responses should always be in valid JSON format."
                   },
                   {
                       role: "user",
@@ -57,20 +114,8 @@ INCLUDE NOTHING ELSE IN YOUR RESPONSE OTHER THAN THE CORRECTLY FORMATTED ARRAY
               temperature: 0.7,
           });
 
-      
-          let cleanedResponse = response.content[0].text.trim();
-          if (cleanedResponse.startsWith("```json")) {
-              cleanedResponse = cleanedResponse.replace(/```json|```/g, "").trim();
-          }
+          const questions = JSON.parse(response.choices[0].message.content);
 
-          let questions;
-          try {
-              questions = JSON.parse(cleanedResponse);
-          } catch (parseError) {
-              console.error("Error parsing JSON:", parseError);
-              console.log("Cleaned content:", cleanedResponse);
-              throw new Error("Failed to parse API response as JSON");
-          }
           const inputTokens = response.usage.prompt_tokens;
           const outputTokens = response.usage.completion_tokens;
 
@@ -95,7 +140,7 @@ INCLUDE NOTHING ELSE IN YOUR RESPONSE OTHER THAN THE CORRECTLY FORMATTED ARRAY
                   timestamp: timestamp,
                   inputTokens: inputTokens,
                   outputTokens: outputTokens,
-                  function: 'GenerateSAQ',
+                  function: 'GenerateSAQ1',
                   teacherId: teacherId
               })
           });
@@ -111,7 +156,7 @@ INCLUDE NOTHING ELSE IN YOUR RESPONSE OTHER THAN THE CORRECTLY FORMATTED ARRAY
                   timestamp: timestamp,
                   inputTokens: inputTokens,
                   outputTokens: outputTokens,
-                  function: 'GenerateSAQ',
+                  function: 'GenerateSAQ1',
                   classId: classId
               })
           });
@@ -130,6 +175,7 @@ INCLUDE NOTHING ELSE IN YOUR RESPONSE OTHER THAN THE CORRECTLY FORMATTED ARRAY
       }
   });
 });
+
 exports.GenerateSAQANTHROPIC = functions.https.onRequest((req, res) => {
   return cors(req, res, async () => {
       if (req.method !== "POST") {
@@ -1283,28 +1329,21 @@ exports.RegenerateSAQ = functions.https.onRequest((req, res) => {
       });
 
       try {
-          let prompt = `Generate ${questionCount} questions and expected responses from the 
-          following source. Each question should have an expected response
-           (not more than 10 words, not in complete sentence format). 
-           If there are multiple expected responses, separate them by commas if you want the response to have at least x of those, make that clear in the question. 
-           If there are more factual responses than listed, add "etc."`;
+          let prompt = `Generate ${questionCount} questions and expected responses from the following source. Each question should have an expected response (not more than 10 words, not in complete sentence format). If there are multiple expected responses, separate them by commas. If there are more factual responses than listed, add "etc."
+          `;
 
           prompt += `
 
-Provide the output as a valid JSON array where each object has "question" and "expectedResponse" fields. The entire response should be parseable as JSON. Here's the exact format to use:
 
-[
-  {
-    "question": "string",
-    "expectedResponse": "string"
-  },
-  {
-    "question": "string",
-    "expectedResponse": "string"
-  },
-  ...
-]
-
+          When crafting questions:
+          For questions with multiple possible answers, specify the number of items to be included in the response (e.g., "List 3 factors that...").
+          Ensure a mix of question types, including those with single specific answers and those requiring multiple items.
+          Frame questions to reflect the level of detail provided in the source material.
+          Include some questions that examine broader concepts or themes, not just individual facts.
+          Provide the output as a valid JSON array where each object has "question" and "expectedResponse" fields. The entire response should be parseable as JSON. Here's the exact format to use:
+          [ { "question": "string", "expectedResponse": "string" }, { "question": "string", "expectedResponse": "string" }, ... ]
+          Remember to only include the JSON array in your response, with no additional text. 
+          
 
 Generate questions and their expected responses based on this source: ${sourceText}
 
@@ -1312,8 +1351,7 @@ In a previous response you generated the following questions:' ${QuestionsPrevio
 
 The user wants the new questions to be ${instructions} relative to the old questions
 
-Remember to only include the JSON array in your response, with no additional text, Remember that you must  add commas between all property-value pairs within each object to make a valid json array,
-remember that your max output is 4096 tokens so dont try to generate over that as you might get cut off Provide the output as a valid JSON array- with the proper location of "s and ,s'`;
+INCLUDE NOTHING ELSE IN YOUR RESPONSE OTHER THAN THE CORRECTLY FORMATTED ARRAY`;
 
           const response = await anthropic.messages.create({
               model: "claude-3-haiku-20240307",
