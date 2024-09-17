@@ -153,8 +153,21 @@ const Participants = () => {
     setCurrentClass({ ...currentClass, participants, joinRequests, students }); // Update local state
   };
   const handleRejectStudent = async (studentUID) => {
-    // Similar logic to handleAdmitStudent, just rejecting the student
-    // You may update joinRequests and save it to Firestore
+    const classRef = doc(db, 'classes', classId);
+    
+    // Remove the student from the joinRequests array
+    const updatedJoinRequests = currentClass.joinRequests.filter(req => req.uid !== studentUID);
+    
+    // Update the Firestore document
+    await updateDoc(classRef, { 
+      joinRequests: updatedJoinRequests
+    });
+    
+    // Update the local state
+    setCurrentClass(prevState => ({
+      ...prevState,
+      joinRequests: updatedJoinRequests
+    }));
   };
   const handleBack = () => {
     navigate(-1);

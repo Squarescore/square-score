@@ -194,8 +194,8 @@ const [incorrectCount, setIncorrectCount] = useState(0);
                     </button>
                     {question.score}
                   </div>
-                  <div style={{ width: '23%', backgroundColor: 'white', borderRadius: '20px', border: '10px solid #EAB3FD', position: 'relative', height: `${maxHeight}px`, display: 'flex', flexDirection: 'column', justifyContent: 'center', paddingTop: '20px', paddingBottom: '20px' }}>
-                    <h3 style={{ width: '120px', marginLeft: 'auto', marginRight: 'auto', top: '0px', marginTop: '-28px', left: '70px', position: 'absolute', backgroundColor: '#FCD3FF', borderRadius: '10px', color: '#E01FFF', border: '4px solid white', fontSize: '24px', padding: '5px' }}>
+                  <div style={{ width: '23%', backgroundColor: 'white', borderRadius: '20px', border: '10px solid lightgrey', position: 'relative', height: `${maxHeight}px`, display: 'flex', flexDirection: 'column', justifyContent: 'center', paddingTop: '20px', paddingBottom: '20px' }}>
+                    <h3 style={{ width: '120px', marginLeft: 'auto', marginRight: 'auto', top: '0px', marginTop: '-28px', left: '70px', position: 'absolute', backgroundColor: '#f4f4f4', borderRadius: '10px', color: 'grey', border: '4px solid white', fontSize: '24px', padding: '5px' }}>
                       Question</h3>
                     <p style={{ width: '90%', marginLeft: 'auto', marginRight: 'auto', fontWeight: 'bold', fontSize: '20px' }}>
                       {question.question}</p>
@@ -208,8 +208,8 @@ const [incorrectCount, setIncorrectCount] = useState(0);
                     <p style={{ width: '90%', marginLeft: 'auto', marginRight: 'auto' ,fontWeight: 'bold', fontSize: '20px' }}>
                       {question.studentResponse || "Not provided"}</p>
                   </div>
-                  <div style={{ width: '23%', marginLeft: '1%', backgroundColor: 'white', position: 'relative', borderRadius: '20px', border: '10px solid #B3DBDD', height: `${maxHeight}px`, display: 'flex', flexDirection: 'column', justifyContent: 'center', paddingTop: '20px', paddingBottom: '20px' }}>
-                    <h4 style={{ width: '120px', marginLeft: 'auto', marginRight: 'auto', marginTop: '-28px', backgroundColor: '#00858D', top: '0px', left: '70px', position: 'absolute', borderRadius: '10px', color: 'white', border: '4px solid white', fontSize: '24px', padding: '5px' }}>
+                  <div style={{ width: '23%', marginLeft: '1%', backgroundColor: 'white', position: 'relative', borderRadius: '20px', border: '10px solid #99B6FF', height: `${maxHeight}px`, display: 'flex', flexDirection: 'column', justifyContent: 'center', paddingTop: '20px', paddingBottom: '20px' }}>
+                    <h4 style={{ width: '120px', marginLeft: 'auto', marginRight: 'auto', marginTop: '-28px', backgroundColor: '#020CFF', top: '0px', left: '70px', position: 'absolute', borderRadius: '10px', color: 'grey', border: '4px solid white', fontSize: '24px', padding: '5px' }}>
                       Feedback</h4>
                     <p style={{ width: '90%', marginLeft: 'auto', marginRight: 'auto',}}>
                       {question.feedback || "Not provided"}</p>

@@ -71,15 +71,15 @@ const [joinClassError, setJoinClassError] = useState('');
   const handleJoinClass = async (e) => {
     e.preventDefault();
     setJoinClassError('');
+    const trimmedClassCode = classCode.replace(/\s+/g, ''); // Remove all spaces
     try {
       const classesRef = collection(db, 'classes');
-      const classQuery = query(classesRef, where('classCode', '==', classCode));
+      const classQuery = query(classesRef, where('classCode', '==', trimmedClassCode));
       const classQuerySnapshot = await getDocs(classQuery);
 
       if (classQuerySnapshot.empty) {
         throw new Error('Class not found.');
       }
-
       const classDoc = classQuerySnapshot.docs[0];
       const existingStudents = classDoc.data().students || [];
       const existingJoinRequests = classDoc.data().joinRequests || [];
@@ -357,7 +357,10 @@ const [joinClassError, setJoinClassError] = useState('');
                   outline: 'none',
                 }}
               />
-              {joinClassError && <p style={{ color: 'red', marginBottom: '10px' }}>{joinClassError}</p>}
+              {joinClassError && <p style={{ color: 'red', marginBottom: '10px' }}>{joinClassError}</p>} 
+              
+              <p style={{
+                       fontFamily: "'Radio Canada', sans-serif", fontSize: '20px', fontStyle: 'italic', fontWeight: 'bold', color: 'grey'}} >Caps sensitive. zero and O look similar - try both if applicable</p>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                 <button
                   type="submit"

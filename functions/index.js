@@ -13,6 +13,131 @@ exports.GenerateSAQ = functions.https.onRequest((req, res) => {
 
       const { sourceText, questionCount, additionalInstructions, classId,teacherId } = req.body;
 
+      const OPENAI_API_KEY = functions.config().openai.key;
+
+      const openai = new OpenAI({
+          apiKey: OPENAI_API_KEY,
+      });
+
+      try {
+          let prompt = `
+Generate ${questionCount} questions and expected responses from the following source. Each question should have an expected response (not more than 10 words, not in complete sentence format). If there are multiple expected responses, separate them by commas. If there are more factual responses than listed, add "etc."
+
+
+
+          ${additionalInstructions ? `Additional instructions: ${additionalInstructions}` : ''}    
+
+ When crafting questions:
+For questions with multiple possible answers, specify the number of items to be included in the response (e.g., "List 3 factors that...").
+Ensure a mix of question types, including those with single specific answers and those requiring multiple items.
+Frame questions to reflect the level of detail provided in the source material.
+Include some questions that examine broader concepts or themes, not just individual facts.
+Provide the output as a valid JSON array where each object has "question" and "expectedResponse" fields. The entire response should be parseable as JSON. Here's the exact format to use:
+[ { "question": "string", "expectedResponse": "string" }, { "question": "string", "expectedResponse": "string" }, ... ]
+Remember to only include the JSON array in your response, with no additional text. 
+
+Generate questions and their expected responses based on this source: ${sourceText}
+INCLUDE NOTHING ELSE IN YOUR RESPONSE OTHER THAN THE CORRECTLY FORMATTED ARRAY
+`;
+
+          const response = await openai.chat.completions.create({
+              model: "gpt-4o-mini",
+              messages: [
+                  {
+                      role: "system",
+                      content: "You are a digital textbook that generates Short answer questions based on given instructions. Your responses should always be in valid JSON format."
+                  },
+                  {
+                      role: "user",
+                      content: prompt
+                  }
+              ],
+              response_format: { type: "json_object" },
+              max_tokens: 4096,
+              temperature: 0.7,
+          });
+
+      
+          let cleanedResponse = response.content[0].text.trim();
+          if (cleanedResponse.startsWith("```json")) {
+              cleanedResponse = cleanedResponse.replace(/```json|```/g, "").trim();
+          }
+
+          let questions;
+          try {
+              questions = JSON.parse(cleanedResponse);
+          } catch (parseError) {
+              console.error("Error parsing JSON:", parseError);
+              console.log("Cleaned content:", cleanedResponse);
+              throw new Error("Failed to parse API response as JSON");
+          }
+          const inputTokens = response.usage.prompt_tokens;
+          const outputTokens = response.usage.completion_tokens;
+
+          // Get current timestamp
+          const timestamp = admin.firestore.Timestamp.now();
+
+          // Get current month and year
+          const currentDate = new Date();
+          const monthYear = `${currentDate.getMonth() + 1}${currentDate.getFullYear()}`;
+
+          // Create a batch write
+          const batch = admin.firestore().batch();
+
+          // Update class document
+          const classRef = admin.firestore().collection('classes').doc(classId);
+          batch.update(classRef, {
+              geninput: admin.firestore.FieldValue.increment(inputTokens),
+              genoutput: admin.firestore.FieldValue.increment(outputTokens),
+              [`${monthYear}Input`]: admin.firestore.FieldValue.increment(inputTokens),
+              [`${monthYear}Output`]: admin.firestore.FieldValue.increment(outputTokens),
+              usageHistory: admin.firestore.FieldValue.arrayUnion({
+                  timestamp: timestamp,
+                  inputTokens: inputTokens,
+                  outputTokens: outputTokens,
+                  function: 'GenerateSAQ',
+                  teacherId: teacherId
+              })
+          });
+
+          // Update teacher document
+          const teacherRef = admin.firestore().collection('teachers').doc(teacherId);
+          batch.update(teacherRef, {
+              geninput: admin.firestore.FieldValue.increment(inputTokens),
+              genoutput: admin.firestore.FieldValue.increment(outputTokens),
+              [`${monthYear}Input`]: admin.firestore.FieldValue.increment(inputTokens),
+              [`${monthYear}Output`]: admin.firestore.FieldValue.increment(outputTokens),
+              usageHistory: admin.firestore.FieldValue.arrayUnion({
+                  timestamp: timestamp,
+                  inputTokens: inputTokens,
+                  outputTokens: outputTokens,
+                  function: 'GenerateSAQ',
+                  classId: classId
+              })
+          });
+
+          // Commit the batch
+          await batch.commit();
+
+          res.status(200).json({ 
+              questions: questions,
+              inputTokens: inputTokens,
+              outputTokens: outputTokens
+          });
+      } catch (error) {
+          console.error("Error generating questions:", error);
+          res.status(500).json({ error: error.message });
+      }
+  });
+});
+exports.GenerateSAQANTHROPIC = functions.https.onRequest((req, res) => {
+  return cors(req, res, async () => {
+      if (req.method !== "POST") {
+          return res.status(400).send("Please send a POST request");
+      }
+
+      const { sourceText, questionCount, additionalInstructions, classId,teacherId } = req.body;
+
       // Retrieve the API key from Firebase Function Configuration
       const ANTHROPIC_API_KEY = functions.config().anthropic.key;
 
@@ -21,7 +146,8 @@ exports.GenerateSAQ = functions.https.onRequest((req, res) => {
       });
 
       try {
-          let prompt = `Generate ${questionCount} questions and expected responses from the following source. Each question should have an expected response (not more than 10 words, not in complete sentence format). If there are multiple expected responses, separate them by commas you will expecy to have at least x of those from the student for full credit, make that clear in the question by saying that you want x amount of attributes or things as for the student to know how many to include, note not all qauestions have to be in this style some will be straight forward. If there are more factual responses than listed, add "etc."`;
+          let prompt = `Generate ${questionCount} questions and expected responses from the following source. Each question should have an expected response (not more than 10 words, not in complete sentence format). If there are multiple expected responses, separate them by commas. If there are more factual responses than listed, add "etc."
+`;
 
           if (additionalInstructions) {
               prompt += ` Additional instructions: ${additionalInstructions}`;
@@ -29,25 +155,20 @@ exports.GenerateSAQ = functions.https.onRequest((req, res) => {
 
           prompt += `
 
+Generate 20 questions and expected responses from the following source. Each question should have an expected response (not more than 10 words, not in complete sentence format). If there are multiple expected responses, separate them by commas. If there are more factual responses than listed, add "etc."
+When crafting questions:
+For questions with multiple possible answers, specify the number of items to be included in the response (e.g., "List 3 factors that...").
+Ensure a mix of question types, including those with single specific answers and those requiring multiple items.
+Frame questions to reflect the level of detail provided in the source material.
+Include some questions that examine broader concepts or themes, not just individual facts.
 Provide the output as a valid JSON array where each object has "question" and "expectedResponse" fields. The entire response should be parseable as JSON. Here's the exact format to use:
- 
-[
-  {
-    "question": "string",
-    "expectedResponse": "string"
-  },
-  {
-    "question": "string",
-    "expectedResponse": "string"
-  },
-  ...
-]
-
+[ { "question": "string", "expectedResponse": "string" }, { "question": "string", "expectedResponse": "string" }, ... ]
+Remember to only include the JSON array in your response, with no additional text. 
 
 Generate questions and their expected responses based on this source: ${sourceText}
 
-Remember to only include the JSON array in your response, with no additional text, Remember that you must  add commas between all property-value pairs within each object to make a valid json array,
-remember that your max output is 4096 tokens so dont try to generate over that as you might get cut off Provide the output as a valid JSON array- with the proper loacation of "s and ,s'`;
+
+`;
 
           const response = await anthropic.messages.create({
               model: "claude-3-haiku-20240307",
@@ -1501,7 +1622,7 @@ Student Response: ${q.studentResponse}
           },
         ],
         max_tokens: 2000,
-        temperature: 0, // Set to 0 for deterministic responses
+        temperature: 1, // Set to 0 for deterministic responses
       });
 
       const gradingResults = JSON.parse(response.choices[0].message.content);

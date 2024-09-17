@@ -278,11 +278,13 @@ const { classId } = useParams();
                                         value={question.score}
                                         onChange={(e) => updateGradeAndFeedback(index, Number(e.target.value), question.feedback)}
                                     />
-                                    <div style={{ width: '23%', backgroundColor: 'white', borderRadius: '20px', border: '10px solid #EAB3FD', position: 'relative', height: `${maxHeight}px`, display: 'flex', flexDirection: 'column', justifyContent: 'center', paddingTop: '20px', paddingBottom: '20px' }}>
-                                        <h3 style={{ width: '120px', marginLeft: 'auto', marginRight: 'auto', top: '0px', marginTop: '-28px', left: '70px', position: 'absolute', backgroundColor: '#FCD3FF', borderRadius: '10px', color: '#E01FFF', border: '4px solid white', fontSize: '24px', padding: '5px' }}>
+                                    <div style={{ width: '33%', backgroundColor: 'white', borderRadius: '20px', border: '10px solid lightgrey', position: 'relative', height: `${maxHeight}px`, display: 'flex', flexDirection: 'column', justifyContent: 'center', paddingTop: '20px', paddingBottom: '20px' }}>
+                                        <h3 style={{ width: '120px', marginLeft: 'auto', marginRight: 'auto', top: '0px', marginTop: '-28px', left: '70px', position: 'absolute', backgroundColor: '#f4f4f4', borderRadius: '10px', color: 'grey', border: '4px solid white', fontSize: '24px', padding: '5px' }}>
                                             Question</h3>
-                                        <p style={{ width: '90%', marginLeft: 'auto', marginRight: 'auto', fontWeight: 'bold', fontSize: '20px' }}>
+                                        <p style={{ width: '90%', marginLeft: 'auto', marginRight: 'auto', fontWeight: 'bold', fontSize: '20px', textAlign: 'left', marginBottom: '-10px' }}>
                                             {question.question}</p>
+                                            <p style={{ width: '90%', marginLeft: 'auto', marginRight: 'auto', fontWeight: 'bold', fontSize: '14px', textAlign: 'left', color: 'grey', fontStyle: 'italic'}}>
+                                            Expected: {question.expectedResponse}</p>
                                     </div>
                                     <div style={{ width: '23%', marginLeft: '1%', backgroundColor: 'white', position: 'relative', borderRadius: '20px', height: `${maxHeight}px`, border: `10px solid ${question.score === 2 ? '#00B512' : question.score === 1 ? '#F4C10A' : '#CC0000'}`, display: 'flex', flexDirection: 'column', justifyContent: 'center', paddingTop: '20px', paddingBottom: '20px' }}>
                                         <h4 style={{
@@ -292,10 +294,10 @@ const { classId } = useParams();
                                         <p style={{ width: '90%', marginLeft: 'auto', marginRight: 'auto',fontWeight: 'bold', fontSize: '23px' }}> 
                                             {question.studentResponse || "Not provided"}</p>
                                     </div>
-                                    <div style={{ width: '23%', marginLeft: '1%', backgroundColor: 'white', position: 'relative', borderRadius: '20px', border: '10px solid #B3DBDD', height: `${maxHeight}px`, display: 'flex', flexDirection: 'column', justifyContent: 'center', paddingTop: '20px', paddingBottom: '20px' }}>
-                                        <h4 style={{ width: '120px', marginLeft: 'auto', marginRight: 'auto', marginTop: '-28px', backgroundColor: '#00858D', top: '0px', left: '70px', position: 'absolute', borderRadius: '10px', color: 'white', border: '4px solid white', fontSize: '24px', padding: '5px' }}>Feedback</h4>
+                                    <div style={{ width: '23%', marginLeft: '1%', backgroundColor: 'white', position: 'relative', borderRadius: '20px', border: '10px solid #99B6FF', height: `${maxHeight}px`, display: 'flex', flexDirection: 'column', justifyContent: 'center', paddingTop: '20px', paddingBottom: '20px' }}>
+                                        <h4 style={{ width: '120px', marginLeft: 'auto', marginRight: 'auto', marginTop: '-28px', backgroundColor: '#020CFF', top: '0px', left: '70px', position: 'absolute', borderRadius: '10px', color: 'white', border: '4px solid white', fontSize: '24px', padding: '5px' }}>Feedback</h4>
                                         <textarea
-                                            style={{ width: '90%', marginLeft: 'auto', marginRight: 'auto', borderColor: 'transparent', height: '80%', fontFamily: "'Radio Canada', sans-serif", resize: 'none', fontSize: '13px' }}
+                                            style={{ width: '90%', marginLeft: 'auto', marginRight: 'auto', borderColor: 'transparent', height: '80%', fontFamily: "'Radio Canada', sans-serif", resize: 'none', fontSize: '16px' }}
                                             value={question.feedback || "Not provided"}
                                             onChange={(e) => updateGradeAndFeedback(index, question.score, e.target.value)}
                                         />

@@ -1454,7 +1454,7 @@ transition: '.3s',
         padding: '10px', 
         marginBottom: '20px', 
         position: 'relative',
-        zIndex: '2', 
+        zIndex: '0', 
     }}
     onMouseEnter={() => setHoveredStudent(student.uid)}
     

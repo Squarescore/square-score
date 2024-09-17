@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { db } from './firebase';
 import { doc, collection, updateDoc, where, query, getDocs, getDoc } from 'firebase/firestore';
-
+import Confetti from 'react-confetti';
+import Navbar from './Navbar';
 const TeacherReview = () => {
   const [editingFeedback, setEditingFeedback] = useState(false);
   const { classId, assignmentId } = useParams();
@@ -14,6 +15,7 @@ const TeacherReview = () => {
   const navigate = useNavigate();
   const [assignmentName, setAssignmentName] = useState('');
   const chunkSize = 10;
+  const [isFinished, setIsFinished] = useState(false);
 
   const fetchReviewsNeedingAttention = async () => {
     const gradesCollection = collection(db, 'grades(saq)');
@@ -131,7 +133,7 @@ const TeacherReview = () => {
   };
 
   if (!currentReview) {
-    return <div>No reviews available.</div>;
+    return <div style={{}}>Finished</div>;
   }
 
   const currentQuestion = currentReview.questions[currentIndex];
@@ -164,6 +166,7 @@ const TeacherReview = () => {
   };
   return (
     <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', backgroundColor: 'white'}}>
+       <Navbar userType="teacher" />
       <header style={{     backgroundColor: 'white',
 
 borderRadius: '10px',
@@ -176,14 +179,10 @@ alignItems: 'center',
 justifyContent: 'center',
 position: 'relative',
 margin: '1% auto',
-width: '70%'}}> <button 
-      onClick={handleBack} 
-      style={{ position: 'absolute',left: '20px', textDecoration: 'none',  color: 'black', backgroundColor: 'white', border: 'none', cursor: 'pointer',  }}>
-    <img src="https://static.thenounproject.com/png/1875804-200.png" style={{width: '30px', opacity: '50%'}}/>
-    </button>
+width: '70%'}}> 
     
-    <h1 style={{ fontWeight: 'normal',
-    color: 'black', fontSize: '60px',   fontFamily: "'Rajdhani', sans-serif",fontWeight: 'bold' }}>{assignmentName}</h1>
+    <h1 style={{ 
+    color: 'black', fontSize: '60px', marginTop: '100px',  fontFamily: "'Rajdhani', sans-serif",fontWeight: 'bold' }}>{assignmentName}</h1>
   </header>
 
 
@@ -194,18 +193,20 @@ width: '70%'}}> <button
    <h2 style={{fontSize: '12px', color: 'grey'}}>{reviewCount} flagged Responses remain, Reviewing for {students.find(student => student.uid === currentReview.studentUid)?.name}</h2>
        <div>
 
-       <h4 style={{marginTop: '20px', color:'#E01FFF',marginLeft: 'auto', marginRight: 'auto', marginBottom: '-35px', backgroundColor: 'grey',zIndex: '11', position:'relative', borderRadius: '20px',  background: '#FBD3FF', border: '10px solid white', width: '170px', padding: '0px', fontFamily: "'Radio Canada', sans-serif",fontWeight: 'bold', fontSize: '30px'}}>Question</h4>
-          <div style={{marginLeft: 'auto', marginRight: 'auto', width: '700px',marginBottom: '4%',  backgroundColor: 'white', borderRadius: '30px', color: 'black', border: '7px solid #FBD3FF'}}>
-            <p style={{width: '90%', marginLeft: 'auto', marginRight: 'auto', padding: '20px', fontSize: '30px',
-         fontFamily: "'Radio Canada', sans-serif",fontWeight: 'bold', }}>{currentQuestion.question}</p>
+       <h4 style={{marginTop: '20px', color:'grey',marginLeft: '80px', marginRight: 'auto', marginBottom: '-35px',zIndex: '11', position:'relative', borderRadius: '20px',  backgroundColor: '#f4f4f4', border: '10px solid white', width: '170px', padding: '0px', fontFamily: "'Radio Canada', sans-serif",fontWeight: 'bold', fontSize: '30px'}}>Question</h4>
+          <div style={{marginLeft: 'auto', marginRight: 'auto', width: '85%',marginBottom: '10px',  backgroundColor: 'white', borderRadius: '30px', color: 'black', border: '10px solid #f4f4f4'}}>
+            <p style={{width: '90%', marginLeft: 'auto', marginRight: 'auto', padding: '10px', fontSize: '24px',
+         fontFamily: "'Radio Canada', sans-serif",fontWeight: 'bold', textAlign: 'left',}}>{currentQuestion.question}</p>
+           <p style={{width: '90%', marginLeft: 'auto', marginRight: 'auto', padding: '10px', fontSize: '16px', textAlign: 'left', fontStyle: 'italic', color: 'grey', marginTop: '-30px' ,
+         fontFamily: "'Radio Canada', sans-serif",fontWeight: 'bold', }}>{currentQuestion.expectedResponse}</p>
           </div>
 
-          <h5 style={{marginTop: '20px', marginLeft: 'auto', marginRight: 'auto', marginBottom: '-35px', color: '#54AAA4', backgroundColor: '#A3F2ED', border: '10px solid white',zIndex: '11', position:'relative', borderRadius: '20px', width: '300px', padding: '0px', fontSize: '30px',
+          <h5 style={{marginTop: '20px', marginLeft: '80px', marginRight: 'auto', marginBottom: '-30px', color: '#020CFF', backgroundColor: '#99B6FF', border: '10px solid white',zIndex: '11', position:'relative', borderRadius: '20px', width: '200px', padding: '5px', fontSize: '22px',
          fontFamily: "'Radio Canada', sans-serif",fontWeight: 'bold', }}>Student Answer</h5>
-          <div style={{marginLeft: 'auto', marginRight: 'auto', width: '85%', marginBottom: '4%',  backgroundColor: 'white', borderRadius: '20px', border: '7px solid #54AAA4'}}>
-            <p style={{width: '90%', marginLeft: 'auto', marginRight: 'auto', padding: '10px', fontSize: '20px',
+          <div style={{marginLeft: 'auto', marginRight: 'auto',position: 'relative', width: '85%', marginBottom: '4%',  backgroundColor: 'white', borderRadius: '20px', border: '10px solid #99B6FF'}}>
+            <p style={{width: '90%', marginLeft: 'auto', marginRight: 'auto', padding: '10px', fontSize: '20px', textAlign: 'left',
          fontFamily: "'Radio Canada', sans-serif",fontWeight: 'bold', }}>{currentQuestion.studentResponse || "Not provided"}</p>
-            <p style={{color: 'lightgrey'}}>Points given: {currentQuestion.score}</p>
+            <p style={{color: 'grey', position: 'absolute', padding: '10px', width: '150px', borderRadius: '10px', fontWeight: 'bold', right: '5px', bottom: '-80px', }}> Current Points: {currentQuestion.score}</p>
           </div>
 
 
@@ -213,7 +214,7 @@ width: '70%'}}> <button
 
 
         <h5  style={{marginTop: '20px', 
-        marginLeft: 'auto', marginRight: 'auto',
+        marginLeft: '100px', marginRight: 'auto',
          marginBottom: '-17px', color: 'black', 
          backgroundColor: 'white',
          fontSize: '20px',
@@ -224,7 +225,7 @@ width: '70%'}}> <button
           Feedback</h5>
         <div  onClick={() => setEditingFeedback(true)} style={{marginLeft: 'auto', 
         marginRight: 'auto', width: '85%',
-         marginBottom: '',
+        textAlign: 'left',
            backgroundColor: 'white', 
            borderRadius: '5px',
             border: '4px dotted lightgrey'}}>

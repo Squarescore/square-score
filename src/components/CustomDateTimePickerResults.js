@@ -4,10 +4,14 @@ import 'react-datepicker/dist/react-datepicker.css';
 import './CustomDatePickerResults.css';
 
 const CustomDateTimePicker = ({ selected, onChange }) => {
+  const handleChange = (date) => {
+    onChange(formatDate(date));
+  };
+
   return (
     <DatePicker
       selected={selected}
-      onChange={onChange}
+      onChange={handleChange}
       showTimeSelect
       timeFormat="hh:mm aa"
       timeIntervals={15}
@@ -23,5 +27,30 @@ const CustomDateInput = React.forwardRef(({ value, onClick }, ref) => (
     {value || 'Select Date'}
   </button>
 ));
+
+const formatDate = (date) => {
+  const options = {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: true,
+    timeZoneName: 'short'
+  };
+  
+  const formattedDate = date.toLocaleString('en-US', options);
+  
+  // Remove commas and adjust the format
+  return formattedDate
+    .replace(',', '') // Remove the comma after the day of week
+    .replace(',', '') // Remove the comma after the day
+    .replace(' at ', ' ') // Remove 'at'
+    .replace(/(\d{1,2}):(\d{2}):00/, '$1:$2') // Remove seconds
+    .replace(' PM', ' PM ') // Add space before timezone
+    .replace(' AM', ' AM '); // Add space before timezone
+};
+
 
 export default CustomDateTimePicker;
