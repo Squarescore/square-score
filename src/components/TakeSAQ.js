@@ -271,7 +271,7 @@ const [scaleMax, setScaleMax] = useState(2);
       // Combine grading results with question and student response
       const combinedResults = gradingResults.map((result, index) => ({
         ...result,
-        score: result.score / 2, 
+        score: ((result.score / 2) * (scaleMax - scaleMin) + scaleMin), 
         question: questions[index].text,
         studentResponse: answers[index].answer,
         expectedResponse: questions[index].expectedResponse, 
@@ -283,8 +283,8 @@ const [scaleMax, setScaleMax] = useState(2);
       const maxRawScore = questions.length;
   
       // Apply scaling
-      const scaledScore = ((rawTotalScore / maxRawScore) * (scaleMax - scaleMin)) + scaleMin;
-      const percentageScore = ((scaledScore - scaleMin) / (scaleMax - scaleMin)) * 100;
+      const scaledScore = (rawTotalScore / maxRawScore);
+      const percentageScore = ((rawTotalScore / (maxRawScore*(scaleMax - scaleMin)))  * 100) ;
   
       // Create the grade document
       const gradeDocRef = doc(db, `grades(saq)`, `${assignmentId}_${studentUid}`);
@@ -433,20 +433,70 @@ const [scaleMax, setScaleMax] = useState(2);
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const buttonStyles = {
+  const buttonStylesLeft = {
     default: {
       backgroundColor: 'transparent',
+      marginTop: '-40px',
       cursor: 'default',
       border: 'none',
       width: '80px',
       height: '80px',
+      position: 'fixed',
+      left: '100px'
     },
     active: {
       backgroundColor: 'transparent',
       cursor: 'pointer',
+      marginTop: '-40px',
       border: 'none',
       width: '80px',
       height: '80px',
+        position: 'fixed',
+      left: '100px'
+    }
+  };
+  const arrowStyles = {
+    default: {
+      backgroundColor: '#f4f4f4',
+      color: 'grey',
+      cursor: 'not-allowed',
+      width: '80px',
+      borderRadius: '10px',
+      border: '4px solid lightgrey',
+      fontSize: '40px',
+      height: '50px',
+    },
+    active: {
+      backgroundColor: '#A6FFAF',
+      color: 'darkgreen',
+      cursor: 'pointer',
+      width: '80px',
+      borderRadius: '10px',
+      border: '4px solid #009006',
+      fontSize: '40px',
+      height: '50px',
+    }
+  };
+  const buttonStylesRight = {
+    default: {
+      backgroundColor: 'transparent',
+      marginTop: '-40px',
+      cursor: 'default',
+      border: 'none',
+      width: '80px',
+      height: '80px',
+      position: 'fixed',
+      right: '100px'
+    },
+    active: {
+      backgroundColor: 'transparent',
+      cursor: 'pointer',
+      marginTop: '-40px',
+      border: 'none',
+      width: '80px',
+      height: '80px',
+        position: 'fixed',
+      right: '100px'
     }
   };
 
@@ -587,7 +637,7 @@ const [scaleMax, setScaleMax] = useState(2);
       {questions.length > 0 && (
         <div style={{ width: '1000px', marginLeft: 'auto', marginRight: 'auto', marginTop: '150px', position: 'relative' }}>
           <div style={{
-            backgroundColor: 'white', width: '700px', color: 'black', border: '10px solid #EAB3FD',
+            backgroundColor: 'white', width: '700px', color: 'black', border: '10px solid #9DADFF',
             textAlign: 'center', fontWeight: 'bold', padding: '40px', borderRadius: '30px', fontSize: '30px', position: 'relative',
             marginLeft: 'auto', marginRight: 'auto', marginTop: '40px', fontFamily: "'Radio Canada', sans-serif", userSelect: 'none'
           }}>
@@ -599,9 +649,9 @@ const [scaleMax, setScaleMax] = useState(2);
               left: '50%',
               transform: 'translateX(-50%)',
               position: 'absolute',
-              backgroundColor: '#FCD3FF',
+              backgroundColor: '#9DADFF',
               borderRadius: '20px',
-              color: '#E01FFF',
+              color: '#020CFF',
               border: '10px solid white',
               fontSize: '34px',
               padding: '10px 20px',
@@ -611,22 +661,18 @@ const [scaleMax, setScaleMax] = useState(2);
             </h3>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: '50px' }}>
-            <button
-              style={currentQuestionIndex > 0 ? buttonStyles.active : buttonStyles.default}
-              onClick={currentQuestionIndex > 0 ? () => setCurrentQuestionIndex(prev => prev - 1) : null}
-            >
-              <img
-                src={currentQuestionIndex > 0 ? '/rightgreenarrow.png' : '/rightgreyarrow.png'}
-                alt="Previous"
-                style={{ width: '100%', transform: 'scaleX(-1)', cursor: currentQuestionIndex > 0 ? 'pointer' : 'default' }}
-              />
-            </button>
+          <button
+  style={currentQuestionIndex > 0 ? buttonStylesLeft.active : buttonStylesLeft.default}
+  onClick={currentQuestionIndex > 0 ? () => setCurrentQuestionIndex(prev => prev - 1) : null}
+>
+  <h1 style={currentQuestionIndex > 0 ? arrowStyles.active : arrowStyles.default}>←</h1>
+</button>
             <textarea
               style={{
                 width: '700px',
                 height: '100px',
                 borderRadius: '15px',
-                border: '5px solid lightgrey',
+                border: '5px solid #f4f4f4',
                 marginLeft: 'auto',
                 outline: 'none',
                 marginRight: 'auto',
@@ -640,16 +686,12 @@ const [scaleMax, setScaleMax] = useState(2);
               value={answers.find(a => a.questionId === questions[currentQuestionIndex]?.questionId)?.answer || ''}
               onChange={handleAnswerChange}
             />
-            <button
-              style={currentQuestionIndex < questions.length - 1 ? buttonStyles.active : buttonStyles.default}
-              onClick={currentQuestionIndex < questions.length - 1 ? () => setCurrentQuestionIndex(prev => prev + 1) : null}
-            >
-              <img
-                src={currentQuestionIndex < questions.length - 1 ? '/rightgreenarrow.png' : '/rightgreyarrow.png'}
-                alt="Next"
-                style={{ width: '100%', cursor: currentQuestionIndex < questions.length - 1 ? 'pointer' : 'default' }}
-              />
-            </button>
+       <button
+  style={currentQuestionIndex < questions.length - 1 ? buttonStylesRight.active : buttonStylesRight.default}
+  onClick={currentQuestionIndex < questions.length - 1 ? () => setCurrentQuestionIndex(prev => prev + 1) : null}
+>
+  <h1 style={currentQuestionIndex < questions.length - 1 ? arrowStyles.active : arrowStyles.default}>→</h1>
+</button>
           </div>
           <h3 style={{
             width: '300px',

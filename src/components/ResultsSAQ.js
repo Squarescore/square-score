@@ -7,6 +7,7 @@ import Navbar from './Navbar';
 import { useRef } from 'react';
 import { auth } from './firebase';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useCallback } from 'react';
 import { serverTimestamp } from 'firebase/firestore';
 import CustomDateTimePicker from './CustomDateTimePickerResults';
 import 'react-datepicker/dist/react-datepicker.css';
@@ -315,28 +316,30 @@ const TeacherResults = () => {
     );
   };
 
-  useEffect(() => {
-    const fetchAssignmentSettings = async () => {
-      const assignmentRef = doc(db, 'assignments(saq)', assignmentId);
-      const assignmentDoc = await getDoc(assignmentRef);
-      if (assignmentDoc.exists()) {
-        const data = assignmentDoc.data();
-        setAssignmentSettings({
-          assignDate: data.assignDate ? new Date(data.assignDate) : null,
-          dueDate: data.dueDate ? new Date(data.dueDate) : null,
-          halfCredit: data.halfCredit || false,
-          lockdown: data.lockdown || false,
-          saveAndExit: data.saveAndExit !== undefined ? data.saveAndExit : true,
-          scaleMin: data.scale?.min || '0',
-          scaleMax: data.scale?.max || '2',
-          timer: data.timer || '0',
-          timerOn: data.timer > 0,
-        });
-      }
-    };
+ 
 
-    fetchAssignmentSettings();
+  const fetchAssignmentSettings = useCallback(async () => {
+    const assignmentRef = doc(db, 'assignments(saq)', assignmentId);
+    const assignmentDoc = await getDoc(assignmentRef);
+    if (assignmentDoc.exists()) {
+      const data = assignmentDoc.data();
+      setAssignmentSettings({
+        assignDate: data.assignDate ? new Date(data.assignDate) : null,
+        dueDate: data.dueDate ? new Date(data.dueDate) : null,
+        halfCredit: data.halfCredit || false,
+        lockdown: data.lockdown || false,
+        saveAndExit: data.saveAndExit !== undefined ? data.saveAndExit : true,
+        scaleMin: data.scale?.min || '0',
+        scaleMax: data.scale?.max || '2',
+        timer: data.timer || '0',
+        timerOn: data.timer > 0,
+      });
+    }
   }, [assignmentId]);
+
+  useEffect(() => {
+    fetchAssignmentSettings();
+  }, [fetchAssignmentSettings]);
 
   const updateAssignmentSetting = async (setting, value) => {
     const assignmentRef = doc(db, 'assignments(saq)', assignmentId);
@@ -351,6 +354,9 @@ const TeacherResults = () => {
 
     await updateDoc(assignmentRef, updateData);
     setAssignmentSettings(prev => ({ ...prev, [setting]: value }));
+    
+    // Refresh settings after update
+    fetchAssignmentSettings();
   };
   
   const SettingsSection = () => (
@@ -381,23 +387,27 @@ const TeacherResults = () => {
               fontFamily: "'Radio Canada', sans-serif",
             }}>Assigned:</h3>
             <CustomDateTimePicker
-              selected={assignmentSettings.assignDate}
-              onChange={(date) => updateAssignmentSetting('assignDate', date)}
-            />
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', marginBottom: '10px', borderRadius: '10px', marginLeft: '10px', background: '#F4F4F4' }}>
-            <h3 style={{
-              fontSize: '18px',
-              color: 'grey', 
-              marginLeft: '20px', 
-              marginRight: '-28px',
-              fontFamily: "'Radio Canada', sans-serif",
-            }}>Due:</h3>
-            <CustomDateTimePicker
-              selected={assignmentSettings.dueDate}
-              onChange={(date) => updateAssignmentSetting('dueDate', date)}
-            />
-          </div>
+          selected={assignmentSettings.assignDate}
+          onChange={(date) => updateAssignmentSetting('assignDate', date)}
+          updateAssignmentSetting={updateAssignmentSetting}
+          settingName="assignDate"
+        />
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center', marginBottom: '10px', borderRadius: '10px', marginLeft: '10px', background: '#F4F4F4' }}>
+        <h3 style={{
+          fontSize: '18px',
+          color: 'grey', 
+          marginLeft: '20px', 
+          marginRight: '-28px',
+          fontFamily: "'Radio Canada', sans-serif",
+        }}>Due:</h3>
+        <CustomDateTimePicker
+          selected={assignmentSettings.dueDate}
+          onChange={(date) => updateAssignmentSetting('dueDate', date)}
+          updateAssignmentSetting={updateAssignmentSetting}
+          settingName="dueDate"
+        />
+      </div>
         </div>
   
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>

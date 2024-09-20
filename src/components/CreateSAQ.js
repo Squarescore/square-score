@@ -235,7 +235,7 @@ function CreateAssignment() {
   };
   
 
-  const assignToStudents = async () => {
+  const assignToStudents = async (assignmentId) => {
     const selectedStudentIds = Array.from(selectedStudents);
     const batch = writeBatch(db);
     selectedStudentIds.forEach(studentUid => {
@@ -358,7 +358,7 @@ const GenerateSAQ = async (sourceText, questionCount, additionalInstructions, cl
     if (draftId) {
       const draftRef = doc(db, 'drafts', draftId);
       batch.delete(draftRef);
-
+  
       // Update the class document
       const classRef = doc(db, 'classes', classId);
       batch.update(classRef, {
@@ -368,10 +368,12 @@ const GenerateSAQ = async (sourceText, questionCount, additionalInstructions, cl
         [`assignment(saq)`]: arrayUnion(finalAssignmentId) // Add the final assignment ID
       });
     }
-
+  
     await batch.commit();
   
-    await assignToStudents();
+    // Assign to students (this now works for both new and drafted assignments)
+    await assignToStudents(finalAssignmentId);
+  
     console.log('Assignment saved and draft deleted from Firebase:', assignmentData);
   
     const format = finalAssignmentId.split('+').pop(); // Get the format from the assignment ID
