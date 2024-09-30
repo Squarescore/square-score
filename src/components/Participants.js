@@ -3,6 +3,7 @@ import { auth, db } from './firebase';
 import { collection, query, where, getDocs, updateDoc, doc, getDoc } from "firebase/firestore";
 import { useParams } from 'react-router-dom';
 import { useNavigate } from 'react-router-dom';
+import { Pencil, SquareX, SquareCheck, Users } from 'lucide-react';
 import Navbar from './Navbar';
 const Participants = () => {
   const [currentClass, setCurrentClass] = useState({});
@@ -210,19 +211,19 @@ const Participants = () => {
     <div style={{width: '700px', marginTop: '70px', }}>
       {(currentClass.joinRequests || []).map(student => (
 
-        <div key={student.uid} style={{ width: '700px', display: 'flex', border: '3px dashed lightgrey', borderColor: 'transparent', 
+        <div key={student.uid} style={{ width: '700px', display: 'flex', border: '6px solid #f4f4f4', borderTop: 'none', marginLeft: '-30px',
        
- boxShadow: ' 0px 4px 4px 0px rgba(0, 0, 0, 0.25)', borderBottomRightRadius: '10px',borderBottomLeftRadius: '10px', padding: '10px', marginBottom: '10px', height: '70px' }}>
-           <span style={{backgroundColor: 'transparent', borderColor: 'transparent',fontFamily: "'Poppins', sans-serif", fontSize: '30px', marginTop: '20px', marginLeft: '50px', marginRight: '30px', color: 'grey'}}>Admit</span>
-          <span style={{backgroundColor: 'transparent', borderColor: 'transparent',fontFamily: "'Poppins', sans-serif",  fontSize: '30px', marginTop: '20px',marginRight: '20px'}}>{student.name.split(' ')[1]},</span>
-          <span style={{backgroundColor: 'transparent', borderColor: 'transparent',fontFamily: "'Poppins', sans-serif", fontSize: '30px', marginTop: '20px',marginRight: '20px',  fontWeight: 'bold'}}>{student.name.split(' ')[0]}</span>
-          <span style={{backgroundColor: 'transparent', borderColor: 'transparent',fontFamily: "'Poppins', sans-serif", fontSize: '30px',marginTop: '20px',marginLeft: '10px', color: 'grey'}}>?</span>
+        borderBottomRightRadius: '15px',borderBottomLeftRadius: '15px', padding: '10px', marginBottom: '10px', height: '70px' }}>
+           <span style={{backgroundColor: 'transparent', borderColor: 'transparent',fontFamily: "'Radio Canada', sans-serif", fontSize: '30px', marginTop: '20px', marginLeft: '50px', marginRight: '30px', color: 'grey'}}>Admit</span>
+          <span style={{backgroundColor: 'transparent', borderColor: 'transparent',fontFamily: "'Radio Canada', sans-serif",  fontSize: '30px', marginTop: '20px',marginRight: '20px'}}>{student.name.split(' ')[1]},</span>
+          <span style={{backgroundColor: 'transparent', borderColor: 'transparent',fontFamily: "'Radio Canada', sans-serif", fontSize: '30px', marginTop: '20px',marginRight: '20px',  fontWeight: 'bold'}}>{student.name.split(' ')[0]}</span>
+          <span style={{backgroundColor: 'transparent', borderColor: 'transparent',fontFamily: "'Radio Canada', sans-serif", fontSize: '30px',marginTop: '20px',marginLeft: '10px', color: 'grey'}}>?</span>
           
           <div style={{marginLeft: 'auto', marginRight: '30px', marginTop: '20px'}}>
-            <button style={{backgroundColor: 'transparent', borderColor: 'transparent',fontFamily: "'Poppins', sans-serif", cursor: 'pointer'}} onClick={() => handleAdmitStudent(student)}>                  
-              <img  style={{width: '30px'}} src='/greencheck.png'/></button>
-            <button style={{backgroundColor: 'transparent', borderColor: 'transparent',fontFamily: "'Poppins', sans-serif", cursor: 'pointer', marginLeft: '20px'}} onClick={() => handleRejectStudent(student.uid)}>  \
-               <img  style={{width: '25px'}} src='/redx.png'/></button>
+            <button style={{backgroundColor: 'transparent', borderColor: 'transparent',fontFamily: "'Radio Canada', sans-serif", cursor: 'pointer'}} onClick={() => handleAdmitStudent(student)}>                  
+            <SquareCheck size={40} color="#00b303" strokeWidth={2} /></button>
+            <button style={{backgroundColor: 'transparent', borderColor: 'transparent',fontFamily: "'Radio Canada', sans-serif", cursor: 'pointer', marginLeft: '20px'}} onClick={() => handleRejectStudent(student.uid)}>  \
+            <SquareX size={40} color="#e60000" strokeWidth={2} /></button>
         </div>
         </div>
       ))}
@@ -237,7 +238,7 @@ const Participants = () => {
   </div>
 
   <div style={{width: '750px', display: 'flex', marginLeft: 'auto', marginRight: 'auto', marginTop: '0px', height: '150px'}}>
-    <h1 style={{ fontSize: '60px', marginTop: '30px', width: '30%',  marginRight: '20px',fontFamily: "'Rajdhani', sans-serif", }}>Students</h1>
+    <h1 style={{ fontSize: '70px', marginTop: '30px', width: '270px',  marginRight: '20px',fontFamily: "'Rajdhani', sans-serif", }}>Students</h1>
     <div className="tooltip">
       <button 
         onClick={toggleEditMode}
@@ -253,14 +254,14 @@ const Participants = () => {
           cursor: 'pointer' 
         }}
       >
-        {isEditing ? <h1 style={{marginTop: '50px'}}>Done</h1> : <img  style={{width: '30px' ,marginTop: '50px'}} onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.02)'; }} onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1.0)';}} src='https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT7HHa6KR_jdi0XKUAqb7_N37snVSXDBMIfMZRcqBojvw_BF6VnDN0dflrjsFOoBcGN4_8&usqp=CAU'/>}
+        {isEditing ? <h1 style={{marginTop: '50px'}}>Done</h1> : <div style={{marginTop:'50px'}}><Pencil size={30} color="#8f8f8f" strokeWidth={3} /></div>}
       </button>
    
     </div>
 </div>
 {currentClass.participants && currentClass.participants.length > 0 ? (
         currentClass.participants.map(student => (
-      <div key={student.uid} style={{ zIndex: 10, width: '600px',  marginLeft: '-100px',display: 'flex', flexDirection: 'row',color: 'grey', fontSize: '20px', justifyContent: 'space-between', border: '2px solid #DEDEDE',borderRadius: '10px', padding: '15px', marginBottom: '30px', alignSelf: 'center', backgroundColor: 'white', position: 'relative' }}>
+      <div key={student.uid} style={{ zIndex: 10, width: '600px',  marginLeft: '-100px',display: 'flex', flexDirection: 'row',color: 'grey', fontSize: '20px', justifyContent: 'space-between', border: '4px solid #f4f4f4',borderRadius: '10px', padding: '15px', marginBottom: '30px', alignSelf: 'center', backgroundColor: 'white', position: 'relative' }}>
         <div style={{ width: '50%' }}>
           {timeMultipliers[student.uid] !== 1 && timeMultipliers[student.uid] !== undefined ? (
             <div 
@@ -274,11 +275,11 @@ const Participants = () => {
                 paddingTop: '3px',
                 paddingRight: '4px',
                 height:'20px',
-                backgroundColor: isEditing ?  '#A3F2ED': '#FFF0A1', 
+                backgroundColor: isEditing ?  '#f4f4f4': '#FFF0A1', 
                 width: isEditing ? '175px' : '115px',
                 fontFamily: "'Radio Canada', sans-serif", 
                 marginLeft: '30px', 
-                color: isEditing ? '#48A49E':'#FC8518', 
+                color: isEditing ? 'grey':'#FC8518', 
                 fontWeight: 'bold', 
                 borderTopRightRadius: '5px', 
                 borderTopLeftRadius: '5px', 
@@ -309,7 +310,7 @@ const Participants = () => {
                     step="0.1"
                     value={timeMultipliers[student.uid]}
                     onChange={(e) => handleTimeMultiplierChange(student.uid, e.target.value)}
-                    style={{ width: '50px', height: '16px', color: 'blue',borderRadius: '5px', fontWeight: 'bold', background: 'rgb(72, 164, 158,.5)', outline:'rgb(72, 164, 158)', borderColor: 'transparent'}}
+                    style={{ width: '50px', height: '16px', color: '#FC8518',borderRadius: '5px', border: '2px solid #FC8518', fontWeight: 'bold', background: '#FFF0A1', outline:'rgb(72, 164, 158)', borderColor: 'transparent'}}
                   />
                 ) : (
                   `( Time: ${formatMultiplier(timeMultipliers[student.uid])})`
@@ -331,9 +332,9 @@ const Participants = () => {
                 width: '120px', 
                 fontFamily: "'Radio Canada', sans-serif", 
                 marginLeft: '30px', 
-                border: '4px dashed #48A49E',
+                border: '4px dashed lightgrey',
                 borderBottom: '2px solid TRANSPARENT',
-                color: '#48A49E', 
+                color: 'grey', 
                 fontWeight: 'bold', 
                 borderTopRightRadius: '5px', 
                 borderTopLeftRadius: '5px', 
@@ -362,9 +363,22 @@ const Participants = () => {
           <span style={{ backgroundColor: 'transparent', borderColor: 'transparent', fontSize: '14px', fontFamily: "'Radio Canada', sans-serif", marginLeft: '-20px'}}> {student.email}</span>
         </div>
         {isEditing && (
-          <button style={{ backgroundColor: 'transparent', fontFamily: "'Radio Canada', sans-serif", borderColor: 'transparent', color: 'red', position: 'absolute', right: '-20px', top: '-15px' }} onClick={() => handleRemoveStudent(student.uid)}>
-            <img style={{ width: '30px', cursor: 'pointer' }} src='/redcirclex.png' />
-          </button>
+          <button onClick={() => handleRemoveStudent(student.uid)} style={{ backgroundColor: 'transparent', fontFamily: "'Radio Canada', sans-serif", borderColor: 'transparent', color: 'red', position: 'absolute', right: '-10px', top: '-10px' ,
+           
+           zIndex: '990',
+                  height: '30px', 
+                  width: '30px',
+                  borderRadius: '6px',
+                  background: 'white',
+                  border: 'none',
+                  cursor: 'pointer',
+                  
+                }}
+              >
+                <div style={{marginTop: '-2px', marginLeft: '-4px', }}>
+                <SquareX size={30} color="#e60000" strokeWidth={3} /></div>
+          
+              </button>
         )}
       </div>
   ))

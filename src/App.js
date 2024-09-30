@@ -17,7 +17,6 @@ import Participants from './components/Participants';
 import Assignments from './components/TeacherAssignments';
 import TeacherReview from './components/TeacherReview';
 import TeacherPreview from './components/PreviewSAQ';
-import CreateClass from './components/CreateClass';
 import JoinClass from './components/JoinClass';
 import TeacherHomeWaitlist from './components/TeacherHomeWaitlist';
 import StudentAssignments from './components/StudentAssignments';
@@ -48,11 +47,14 @@ import TeacherResultsMCQ from './components/ResultsMCQ';
 import AdminUB from './components/AdminUB';
 import TeacherLogs from './components/TeacherLogs';
 import SignUpAdmin from './components/SignUpAdmin';
+import PageNotFound from './components/PageNotFound'; // Import the PageNotFound component
+
 function App() {
   const [user, setUser] = useState(null);
   const [userRole, setUserRole] = useState(null); // State for storing user role
   const [hasAccess, setHasAccess] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [authLoading, setAuthLoading] = useState(true); // For authentication state loading
 
   const handleSignOut = () => {
     const auth = getAuth();
@@ -65,6 +67,27 @@ function App() {
       handleSignOut();
     }
   };
+  useEffect(() => {
+    const auth = getAuth();
+  
+    setPersistence(auth, browserLocalPersistence)
+      .then(() => {
+        return onAuthStateChanged(auth, (currentUser) => {
+          if (currentUser) {
+            setUser(currentUser);
+          } else {
+            setUser(null);
+            setUserRole(null);
+          }
+          setAuthLoading(false); // Set authLoading to false here
+        });
+      })
+      .catch((error) => {
+        console.error("Error in persistence setting", error);
+        setAuthLoading(false); // Ensure authLoading is false even if there's an error
+      });
+  }, []);
+  
   useEffect(() => {
     const auth = getAuth();
 
@@ -121,6 +144,25 @@ function App() {
   }, [user]);
 
 
+  if (authLoading || (user && loading)) {
+    return (
+      <div style={{
+        position: 'absolute',
+        top: '50%',
+        left: '50%',
+        transform: 'translate(-50%, -50%)',
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+      }}>
+        <div className="lds-ripple"><div></div><div></div></div>
+        {/* Or use your Loader component */}
+        {/* <Loader /> */}
+      </div>
+    );
+  }
+
+  // If teacher's access is null, show loader
   if (user && userRole === 'teacher' && hasAccess === null) {
     return (
       <div style={{
@@ -136,7 +178,6 @@ function App() {
       </div>
     );
   }
-
   return (
     <div style={{ fontFamily: "'Radio Canada', sans-serif"}}>
     <Router>
@@ -236,7 +277,6 @@ function App() {
         <Route path="/teacherhome" element={<TeacherHome />} />
         <Route path="/adminhome" element={<AdminHome />} />
 
-        <Route path="/createclass" element={<CreateClass />} />
 
 
 
@@ -255,10 +295,12 @@ function App() {
         <Route path="/studentresultsAMCQ/:assignmentId/:studentUid/:classId" element={<StudentResultsAMCQ/>} />
         
         <Route path="/studentresultsMCQ/:assignmentId/:studentUid/:classId" element={<StudentResultsMCQ/>} />
+        <Route path="*" element={<PageNotFound />} />
         </>
             )}
         </Routes>
         ) : (
+          
           <div style={{position: 'absolute',
           top: '50%',
           left: '50%',
@@ -293,6 +335,7 @@ function App() {
             path="/signupadmin"
             element={<SignUpAdmin />}
             onEnter={handleUnauthenticatedRoute} />
+             <Route path="*" element={<PageNotFound />} />
         </Routes>
         
       )}

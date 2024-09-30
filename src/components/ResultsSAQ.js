@@ -10,6 +10,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useCallback } from 'react';
 import { serverTimestamp } from 'firebase/firestore';
 import CustomDateTimePicker from './CustomDateTimePickerResults';
+
+import { Settings, SquareArrowRight, SquareArrowOutUpRight, ArrowRight, SquareX } from 'lucide-react';
 import 'react-datepicker/dist/react-datepicker.css';
 const TeacherResults = () => {
   const [students, setStudents] = useState([]);
@@ -162,7 +164,7 @@ const TeacherResults = () => {
         left: 0,
         right: 0,
         bottom: 0,
-        backgroundColor: 'rgba(250, 250, 250, 0.5)',
+        backgroundColor: 'rgba(250, 250, 250, 0.9)',
         backdropFilter: 'blur(10px)',
         display: 'flex',
         justifyContent: 'center',
@@ -174,9 +176,10 @@ const TeacherResults = () => {
           borderRadius: '30px',
           width: '1000px',
           maxHeight: '80vh',
-          border: '10px solid #EF8FFF',
+          border: '10px solid lightgrey',
           overflow: 'hidden',
           display: 'flex',
+          marginTop: '70px',
           flexDirection: 'column',
           position: 'relative',
         }} onClick={(e) => e.stopPropagation()}>
@@ -196,18 +199,18 @@ const TeacherResults = () => {
               zIndex: 1,
             }}
           >
-            X
+            <SquareX size={40} color="#ababab"  strokeWidth={3}/>
           </button>
           <h2 style={{
             textAlign: 'center',
             padding: '10px',
             margin: 0,
-            backgroundColor: '#F8CFFF',
-            color: '#E01FFF',
+            backgroundColor: '#f4f4f4',
+            color: 'grey',
             
             fontFamily: "'Rajdhani', sans-serif",
             fontSize: '58px',
-            borderBottom: '10px solid #EF8FFF',
+            borderBottom: '10px solid lightgrey',
           }}>
             Export
           </h2>
@@ -217,7 +220,8 @@ const TeacherResults = () => {
             flexWrap: 'wrap',
             justifyContent: 'space-around',
             padding: '20px',
-            overflowY: 'auto'
+         
+            height: '400px',
           }}>
                  
             {teacherClasses.map((classItem) => {
@@ -229,15 +233,20 @@ const TeacherResults = () => {
                   key={classItem.id}
                   onClick={() => handleClassSelect(classItem.id)}
                   style={{
-                    width: '280px',
-                    height: '140px',
+                    width: '272px',
+                    height: '138px',
                     margin: '15px',
                     cursor: 'pointer',
+                    border: selectedClasses.includes(classItem.id) ? '4px solid #AEF2A3' : '4px solid white',
+               
+                    paddingLeft: '4px',
+                    paddingTop: '6px',
+                    borderRadius: '20px',
                     position: 'relative',
                   }}
                 >
                  <div style={{
-                    width: '268px',
+                    width: '260px',
                     height: '30px',
                     border: `4px solid ${periodStyle.color}`,
                     backgroundColor: periodStyle.background,
@@ -257,7 +266,7 @@ const TeacherResults = () => {
                     {classItem.classChoice}
                   </div>
                   <div style={{
-                    width: '268px',
+                    width: '260px',
                     height: '90px',
                     border:'4px solid #f4f4f4',
                     borderTop: 'none',
@@ -272,7 +281,6 @@ const TeacherResults = () => {
                     fontSize: '40px',
                     color: 'grey',
                     transition: '.6s',
-                    boxShadow: selectedClasses.includes(classItem.id) ? '0px 4px 4px 0px rgb(239, 143, 255,.4 )' : 'none',
                   }}>
                     <p style={{ marginTop: '40px' , userSelect: 'none'}}>{classItem.className}</p>
                   </div>
@@ -280,11 +288,9 @@ const TeacherResults = () => {
               );
             })}
           </div>
-          <p style={{width: '900px',marginLeft: 'auto',
-                    fontFamily: "'Radio Canada', sans-serif", marginRight: 'auto', fontWeight: 'bold', color:'#9E9E9E', fontSize: '22px', marginTop: '-15px', marginBottom: '-70px'}}>Exported assignments become drafts in selected classes. To make them available to students, publish them from the Drafts tab on each class's Assignments page.</p>
-              
+         
           <div style={{
-            marginTop: '20px',
+            marginTop: '-30px',
             display: 'flex',
             justifyContent: 'space-between',
             padding: '20px',
@@ -293,15 +299,16 @@ const TeacherResults = () => {
               onClick={handleExport}
               disabled={selectedClasses.length === 0}
               style={{
-                backgroundColor:  '#F8CFFF',
-                color:  selectedClasses.length > 0 ? '#E01FFF' : ' #EF8FFF',
+                backgroundColor:  selectedClasses.length > 0 ? 'white' : ' #f4f4f4',
+                color:  selectedClasses.length > 0 ? 'black' : ' grey',
                 fontSize: '30px',
                 padding: '10px 40px',
               marginLeft: 'auto',
               marginRight: 'auto',
               marginBottom: '-10px',
-              marginTop: '40px',
-                  border: selectedClasses.length > 0 ? '4px solid #E01FFF' : '4px solid #EF8FFF',
+              height: '60px',
+              marginTop: '15px',
+                  border: selectedClasses.length > 0 ? '4px solid black' : '4px solid lightgrey',
                  fontFamily: "'Radio Canada', sans-serif",
                  fontWeight:'bold',
                 borderRadius: '10px',
@@ -310,6 +317,9 @@ const TeacherResults = () => {
             >
               Export
             </button>
+            <p style={{width: '600px',marginLeft: 'auto',
+                    fontFamily: "'Radio Canada', sans-serif", marginRight: 'auto', fontWeight: 'bold', color:'#9E9E9E', fontSize: '20px', }}>Exported assignments appear as drafts in chosen classes. To let students access them, publish from each class's Drafts tab.</p>
+        
           </div>
         </div>
       </div>
@@ -366,20 +376,20 @@ const TeacherResults = () => {
       marginLeft: 'auto', position: 'relative',
       marginTop: '-10px'
     }}>
-      <div style={{width: '150px', position: 'absolute', top: '-6px', left: '10px', height: '32px', background: 'lightgrey'}}></div>
-      <div style={{
+       <div style={{width: '150px', position: 'absolute', top: '8px', left: '10px', height: '16px', background: '#f4f4f4'}}></div>
+       <div style={{
         marginLeft: '10px',
-        border: '4px solid lightgrey',
+        border: '4px solid #f4f4f4',
         background: 'white',
         borderRadius: '10px',
+        borderTopLeftRadius: '0px',
         padding: '20px',
         width: '750px',
         marginTop: '20px',
       
       }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', marginBottom: '10px', borderRadius: '10px', marginLeft: '-5px', background: '#F4F4F4' }}>
-            <h3 style={{
+        <div style={{ display: 'flex', alignItems: 'center', marginBottom: '10px', borderRadius: '10px', marginLeft: '-5px', background: '#F4F4F4' }}>         <h3 style={{
               fontSize: '18px',
               color: 'grey', 
               marginLeft: '20px', 
@@ -777,7 +787,7 @@ const TeacherResults = () => {
       transition: border-color 0.3s;
     }
     .student-item:hover {
-      border-color: #54AAA4 !important;
+      border-color: #020CFF !important;
     }
   `}
 </style>
@@ -917,40 +927,7 @@ const TeacherResults = () => {
             ))}
           </ul>
         </div>
-        <div style={{ 
-          display: 'flex', 
-          justifyContent: 'center', 
-          padding: '20px',
-          borderTop: '1px solid #e0e0e0',
-        }}>
-          <button
-            style={{
-              padding: '5px 10px',
-              background: 'transparent',
-              border: 'none',
-              marginRight: '10px',
-              cursor: currentPage > 1 ? 'pointer' : 'default',
-              opacity: currentPage > 1 ? 1 : 0.5,
-            }}
-            onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-            disabled={currentPage === 1}
-          >
-            <img style={{width: '40px'}} src='/LeftGreenArrow.png' alt="Previous" />
-          </button>
-          <button
-            style={{
-              padding: '5px 10px',
-              background: 'transparent',
-              border: 'none',
-              cursor: currentPage < totalPages ? 'pointer' : 'default',
-              opacity: currentPage < totalPages ? 1 : 0.5,
-            }}
-            onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-            disabled={currentPage === totalPages}
-          >
-            <img style={{width: '40px'}} src='/RightGreenArrow.png' alt="Next" />
-          </button>
-        </div>
+      
       </div>
     );
   };
@@ -1123,7 +1100,7 @@ const TeacherResults = () => {
           borderRadius: '30px',
           width: '1000px',
           maxHeight: '80vh',
-          border: '10px solid #54AAA4',
+          border: '10px solid #FCAC18',
           overflow: 'hidden',
           display: 'flex',
           flexDirection: 'column',
@@ -1140,22 +1117,23 @@ const TeacherResults = () => {
               fontSize: '40px',
               background: 'none',
               border: 'none',
-              color: '#54AAA4',
+              color: '#FCAC18',
               cursor: 'pointer',
               zIndex: 1,
             }}
           >
-            X
+         <div>
+         <SquareX size={50} strokeWidth={3} /></div>
           </button>
           <h2 style={{
             textAlign: 'center',
             padding: '20px',
             margin: 0,
-            backgroundColor: '#A3F2ED ',
-            color: '#54AAA4',
+            backgroundColor: '#FFEF9C ',
+            color: '#FCAC18',
             fontFamily: "'Radio Canada', sans-serif",
             fontSize: '28px',
-            borderBottom: '10px solid #54AAA4',
+            borderBottom: '10px solid #FCAC18',
           }}>
             Assign to New Students
           </h2>
@@ -1274,7 +1252,7 @@ const TeacherResults = () => {
       z-index: 2;
     }
     .student-item:hover {
-      border-color: #54AAA4 !important;
+      border-color: #627BFF !important;
       border-top-right-radius: 0 !important;
       border-bottom-right-radius: 0 !important;
     }
@@ -1312,7 +1290,9 @@ const TeacherResults = () => {
         cursor: 'pointer'
       }}
       onClick={handleExportClick}
-      ><img style={{width: '30px'}} src='/Export.png'/></button>
+      >
+
+<SquareArrowOutUpRight size={40} color="#a1a1a1" strokeWidth={3} />     </button>
       </div>
         
         </div>
@@ -1346,7 +1326,7 @@ const TeacherResults = () => {
             height: '45px',
             width: '45px',
             position: 'absolute',
-            right: '20px',
+            right: '120px',
             fontFamily: "'Radio Canada', sans-serif",
             backgroundColor: 'transparent',
             color: 'white',
@@ -1357,8 +1337,7 @@ const TeacherResults = () => {
             fontsize: '80px',
             marginLeft: '50px'
           }} onClick={goToReview}>
-            <img  style={{width: '40px'}}src='/RightGreenArrow.png'/>
-          </button>
+      <SquareArrowRight size={40} color="#009e2f" strokeWidth={2} /> </button>
         </div>
        
       
@@ -1386,22 +1365,23 @@ const TeacherResults = () => {
         marginLeft: '30px'
       }}>
         <button onClick={() => setShowSettings(!showSettings)} style={{
-          width: '150px',
-          fontSize: '20px',
-          height: '50px',
-          borderRadius: '10px',
-          fontWeight: 'bold',
-          border: '4px solid lightgrey',
-          background: 'lightgrey',
-          cursor: 'pointer',
-          color: 'black',
-          marginLeft: '10px',
-          lineHeight: '10px',
-          transition: '.3s',
-          display: 'flex',
+        width: '150px',
+        fontSize: '20px',
+        height: '50px',
+        borderRadius: '10px',
+        fontWeight: 'bold',
+        border: '4px solid #f4f4f4',
+        background: '#f4f4f4',
+        cursor: 'pointer',
+        color: 'black',
+        marginLeft: '10px',
+        lineHeight: '10px',
+        transition: '.3s',
+        display: 'flex',
         }}>
-          <img style={{width:'30px', opacity: '40%'}} src='/Settings.png'/>
-          <p style={{marginTop: '12px', marginLeft:'10px', color: 'grey'}}>Settings</p>
+             <Settings size={40} color="#8f8f8f" />
+      
+          <p style={{marginTop: '16px', marginLeft:'10px', color: 'grey'}}>Settings</p>
         </button>
 <div style={{width: '280px', fontSize: '20px', height:'45px', borderRadius: '10px', fontWeight: 'bold',  border: '4px solid #F4F4F4', background:' white', cursor: 'pointer', display:'flex',
 alignItems: 'center',
@@ -1428,10 +1408,10 @@ transition: '.3s',
           height: '50px',
           borderRadius: '10px',
           fontWeight: 'bold',
-          border: '4px solid #54AAA4',
-          background: '#A3F2ED ',
+          border: '4px solid #FCAC18',
+          background: '#FFEF9C ',
           cursor: 'pointer',
-          color: '#54AAA4',
+          color: '#FCAC18',
           marginLeft: '10px',
           transition: '.3s',
         }}
@@ -1492,7 +1472,7 @@ transition: '.3s',
       <h3 style={{ fontWeight: 'normal', color: 'inherit', fontFamily: "'Radio Canada', sans-serif", fontSize: '23px' }}>{student.lastName},</h3>
       <h3 style={{ fontWeight: 'bold', color: 'inherit', fontFamily: "'Radio Canada', sans-serif", fontSize: '23px', marginLeft: '10px' }}>{student.firstName}</h3>
     </div>
-              <div style={{ fontWeight: 'bold', textAlign: 'center', color: 'black', fontFamily: "'Poppins', sans-serif", marginTop: '-40px' }}>
+              <div style={{ fontWeight: 'bold', textAlign: 'center', color: 'black', fontFamily: "'Radio Canada', sans-serif", marginTop: '-40px' }}>
               {grades[student.uid] ? (
   <div style={{ display: 'flex', alignItems: 'center' }}>
     <p style={{ fontWeight: 'bold', width: '23px', fontSize: '22px', backgroundColor: '#566DFF', height: '23px', border: '4px solid #003BD4', lineHeight: '23px', color: 'white', borderRadius: '7px', fontFamily: "'Radio Canada', sans-serif" }}>
@@ -1551,12 +1531,12 @@ onClick={() => assignmentStatuses[student.uid] === 'Paused' && togglePauseAssign
     : assignmentStatuses[student.uid]}
 </h1>
               </div>
-          <h1 style={{fontSize: '25px',position: 'absolute', right: '25px', bottom: '-6px', color: '#003BD4', fontWeight: 'bold', fontFamily: "'Radio Canada', sans-serif"}}>SAQ</h1>
+          <h1 style={{fontSize: '25px',position: 'absolute', right: '25px', bottom: '-6px',  color: '#003BD4', fontWeight: 'bold', fontFamily: "'Radio Canada', sans-serif"}}>SAQ</h1>
             </div>
 
           
   
-            {hoveredStudent === student.uid && (
+            {hoveredStudent === student.uid && assignmentStatuses[student.uid] === 'completed' && (
               <div
                 className="student-arrow"
                 style={{
@@ -1567,27 +1547,21 @@ onClick={() => assignmentStatuses[student.uid] === 'Paused' && togglePauseAssign
                   width: '50px',
                   padding: '11px',
                   zIndex: '1',
-                  backgroundColor: '#A3F2ED',
+                  backgroundColor: '#768CFF',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  border: '4px solid #54AAA4',
+                  border: '4px solid #020CFF',
                   borderBottomRightRadius: '10px',
                   borderTopRightRadius: '10px',
                   cursor: 'pointer',
                 }}
                 onClick={(e) => {
                   e.stopPropagation();
-                  navigate(`/teacherStudentResults/${assignmentId}/${student.uid}/${classId}`);
+                  navigateToStudentGrades(student.uid);
                 }}
               >
-                <img 
-                  src='/GradesArrow.png'
-                  alt="View student results"
-                  style={{ 
-                    width: '30px', 
-                  }}
-                />
+                <ArrowRight size={40} color="#020CFF" strokeWidth={3} />
               </div>
             )}
           </li>

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { SquareArrowLeft } from 'lucide-react';
 const PreviewAMCQ = ({ questions, onBack, onNext }) => {
   const [hoveredChoice, setHoveredChoice] = useState(null);
 
@@ -46,8 +47,8 @@ const PreviewAMCQ = ({ questions, onBack, onNext }) => {
   };
 
   return (
-    <div style={{ marginTop: '100px', width: '1000px', marginLeft: 'auto', marginRight: 'auto', fontFamily: "'Radio Canada', sans-serif" }}>
-      <h1 style={{ marginLeft: '40px', fontFamily: "'Radio Canada', sans-serif", color: 'black', fontSize: '60px', display: 'flex' }}>
+    <div style={{ marginTop: '100px', width: '1000px', marginLeft: 'auto', marginRight: 'auto', fontFamily: "'Radio Canada', sans-serif", zIndex: 100 }}>
+      <h1 style={{ marginLeft: '40px', fontFamily: "'Rajdhani', sans-serif", color: 'black', fontSize: '60px', display: 'flex' }}>
         Preview (<h1 style={{ fontSize: '50px', marginTop: '10px', marginLeft: '0px', color: '#009006', display: 'flex' }}> MCQ<h1 style={{ fontSize: '50px', marginTop: '-10px', marginLeft: '0px', color: '#FCCA18', display: 'flex' }}>*</h1> </h1>)
       </h1>
       <button
@@ -72,17 +73,12 @@ const PreviewAMCQ = ({ questions, onBack, onNext }) => {
               transform: 'scale(1)',
               opacity: '100%'
             }}
-            onMouseEnter={(e) => {
-              e.target.style.transform = 'scale(1.04)';
-            }}
-            onMouseLeave={(e) => {
-              e.target.style.transform = 'scale(1)';
-            }}
+         
           >
-            <img src='/LeftGreenArrow.png' style={{width: '75px', transition: '.5s'}} />
+         <SquareArrowLeft size={100} color="#009006" />
           </button>
       {questions.map((question, questionIndex) => (
-        <div key={questionIndex} style={{ borderBottom: '10px solid lightgrey', padding: '20px', marginBottom: '30px' }}>
+        <div key={questionIndex} style={{ borderBottom: '4px solid #f4f4f4', padding: '20px', marginBottom: '30px' }}>
           <div style={{ width: '100%', display: 'flex', marginBottom: '30px' }}>
             <div style={{ 
               width: '20%', 

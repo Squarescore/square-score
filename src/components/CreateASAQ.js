@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { doc, getDoc, writeBatch, arrayUnion, serverTimestamp } from 'firebase/firestore';
+
+import { CalendarCog, SquareDashedMousePointer, Sparkles, GlobeLock,  } from 'lucide-react';
 import { db } from './firebase'; // Ensure the path is correct
 import TeacherPreviewASAQ from './PreviewASAQ';
 import { auth } from './firebase';
@@ -458,7 +460,7 @@ function SAQA() {
     }}
   >
     <img style={{ width: '40px' }} src='/clock.png' />
-    <h1 style={{ fontSize: '30px', marginLeft: '20px', marginRight: 'auto' }}> Dates</h1>
+    <h1 style={{ fontSize: '30px', marginLeft: '20px', marginRight: 'auto',fontFamily: "'Radio Canada', sans-serif" }}> Dates</h1>
     <img
       src={timeDropdownOpen ? '/Up.png' : '/Down.png'}
       alt={timeDropdownOpen ? "Collapse" : "Expand"}
@@ -512,7 +514,7 @@ function SAQA() {
     }}
   >
     <img style={{ width: '40px' }} src='/select.png' />
-    <h1 style={{ fontSize: '30px', marginRight: 'auto', marginLeft: '20px' }}>Select Students</h1>
+    <h1 style={{ fontSize: '30px', marginRight: 'auto', marginLeft: '20px', fontFamily: "'Radio Canada', sans-serif" }}>Select Students</h1>
     <img
       src={studentsDropdownOpen ? '/Up.png' : '/Down.png'}
       alt={studentsDropdownOpen ? "Collapse" : "Expand"}
@@ -550,7 +552,7 @@ function SAQA() {
     }}
   >
     <img style={{ width: '30px', marginRight: '20px', marginLeft: '5px' }} src='/idea.png' />
-    <h1 style={{ fontSize: '30px', marginLeft: '0px', marginRight: 'auto',  }}>Generate Questions</h1>
+    <h1 style={{ fontSize: '30px', marginLeft: '0px', marginRight: 'auto', fontFamily: "'Radio Canada', sans-serif" }}>Generate Questions</h1>
     <img
       src={contentDropdownOpen ? '/Up.png' : '/Down.png'}
       alt={contentDropdownOpen ? "Collapse" : "Expand"}
@@ -714,7 +716,7 @@ function SAQA() {
     }}
   >
     <img style={{ width: '40px' }} src='/astrid.png' />
-    <h1 style={{ fontSize: '30px', marginLeft: '20px', marginRight: 'auto' }}>Security</h1>
+    <h1 style={{ fontSize: '30px', marginLeft: '20px', marginRight: 'auto',fontFamily: "'Radio Canada', sans-serif" }}>Security</h1>
     <img
       src={securityDropdownOpen ? '/Up.png' : '/Down.png'}
       alt={securityDropdownOpen ? "Collapse" : "Expand"}

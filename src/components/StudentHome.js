@@ -194,7 +194,7 @@ const [joinClassError, setJoinClassError] = useState('');
                 flexDirection: 'column',
                 flexWrap: 'wrap',
                 alignItems: 'center', 
-                fontFamily: "'Poppins', sans-serif" ,
+                fontFamily: "'Radio Canada', sans-serif" ,
                 position: 'relative',
                 marginTop: '20px', 
               }}>
@@ -256,8 +256,9 @@ const [joinClassError, setJoinClassError] = useState('');
                     display: 'flex',
                     backgroundColor: 'transparent',  
                     color: 'grey', 
-                    border: '4px solid #F4F4F4', 
+                    
                     borderRadius: '15px', 
+                    lineHeight: '90px',
                     textAlign: 'center',
                     flexDirection: 'column',
                     alignItems: 'center',
@@ -266,18 +267,16 @@ const [joinClassError, setJoinClassError] = useState('');
                     position: 'relative',
                     zIndex: '1',
                     marginTop:'0px',
-                    fontFamily: "'Rajdhani', sans-serif",
+                    cursor: 'pointer',
+                    fontFamily: "'rajdhani', sans-serif",
                     transform: 'scale(1)',
-                    cursor  : 'pointer'
+                    border: '6px solid #F4F4F4', 
                   }}
                   onMouseEnter={(e) => {
-                    e.target.style.boxShadow = '0px 4px 4px 0px rgba(0, 0, 0, 0.25)';
-                   
+                    e.target.style.borderColor = '#E8E8E8';
                   }}
                   onMouseLeave={(e) => {
-                    
-                    e.target.style.boxShadow = 'none';
-                   
+                    e.target.style.borderColor = '#f4f4f4';
                   }}
                   className="hoverableButton"
                 >

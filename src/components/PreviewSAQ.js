@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import TextareaAutosize from 'react-textarea-autosize';
 import axios from 'axios';
-
+import { SquareX, CornerDownRight } from 'lucide-react';
 const TeacherPreview = ({ questionsWithIds, setQuestionsWithIds, sourceText, questionCount, classId, teacherId }) => {
   const containerRef = useRef(null);
   const [showRegenerateDropdown, setShowRegenerateDropdown] = useState(false);
@@ -103,7 +103,7 @@ const TeacherPreview = ({ questionsWithIds, setQuestionsWithIds, sourceText, que
       width: '900px',
       height: '500px',
       marginTop: '-20px',
-      border: '10px solid lightgrey',
+      border: '10px solid #f4f4f4',
       background: 'RGB(255,255,255,.95)',
       backdropFilter: 'blur(5px)',
       borderRadius: '30px',
@@ -239,19 +239,37 @@ const TeacherPreview = ({ questionsWithIds, setQuestionsWithIds, sourceText, que
               />
               <button 
                 onClick={() => handleDeleteQuestion(index)}
-                style={{position: 'absolute', right: '-10px', top: '-5px', background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer'}}
+                style={{position: 'absolute', right: '-10px', top: '-0px', fontSize: '20px', 
+     
+            
+                  zIndex: '990',
+                  height: '30px', 
+                  width: '30px',
+                  borderRadius: '6px',
+                  background: 'white',
+                  border: 'none',
+                  cursor: 'pointer',
+                  
+                }}
               >
-                <img style={{width: '30px'}} src='/redcirclex.png' alt="Delete"/>
+                <div style={{marginTop: '-2px', marginLeft: '-4px', }}>
+                <SquareX size={30} color="#e60000" strokeWidth={3} /></div>
+          
               </button>
             </div>
             
             <div style={{display: 'flex', alignItems: 'center', marginLeft: '50px', position: 'relative', }}>
-              <img style={{width: '50px', height: '31px', marginRight: '20px',marginLeft: '100px', marginTop: '-10px'}} src='/greydownrightarrow.png' alt="Arrow"/>
+           
+           <div style={{marginLeft: '100px'}}>
+
+           <CornerDownRight size={40} color="#c9c9c9" strokeWidth={3} />
+            </div>
               <TextareaAutosize
                 style={{
                   width: '480px',
                   border: '2px solid lightgrey',
                   padding: '15px',
+                  marginLeft: '30px',
                   borderRadius: '10px',
                   fontFamily: "'Radio Canada', sans-serif",
                   resize: 'none',

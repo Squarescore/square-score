@@ -7,6 +7,7 @@ import { AnimatePresence } from 'framer-motion';
 import CustomDateTimePicker from './CustomDateTimePickerResults';
 import 'react-datepicker/dist/react-datepicker.css';
 import ExportModal from './ExportModal';
+import { Settings, ArrowRight, SquareArrowOutUpRight, SquareX } from 'lucide-react';
 const TeacherResultsAMCQ = () => {
   // State hooks
   const [showExportModal, setShowExportModal] = useState(false);
@@ -82,14 +83,15 @@ const TeacherResultsAMCQ = () => {
       width: '780px',
       marginRight: 'auto',
       marginLeft: 'auto', position: 'relative',
-      marginTop: '-10px'
+      marginTop: '-14px'
     }}>
-      <div style={{width: '150px', position: 'absolute', top: '-6px', left: '10px', height: '32px', background: 'lightgrey'}}></div>
+      <div style={{width: '150px', position: 'absolute', top: '10px', left: '10px', height: '12px', background: '#f4f4f4'}}></div>
       <div style={{
         marginLeft: '10px',
-        border: '4px solid lightgrey',
+        border: '4px solid #f4f4f4',
         background: 'white',
         borderRadius: '10px',
+        borderTopLeftRadius: '0px',
         padding: '20px',
         width: '750px',
         marginTop: '20px',
@@ -607,7 +609,7 @@ const TeacherResultsAMCQ = () => {
         left: 0,
         right: 0,
         bottom: 0,
-        backgroundColor: 'rgba(250, 250, 250, 0.5)',
+        backgroundColor: 'rgba(250, 250, 250, 0.9)',
         backdropFilter: 'blur(10px)',
         display: 'flex',
         justifyContent: 'center',
@@ -619,7 +621,7 @@ const TeacherResultsAMCQ = () => {
           borderRadius: '30px',
           width: '1000px',
           maxHeight: '80vh',
-          border: '10px solid #54AAA4',
+          border: '10px solid #FCAC18',
           overflow: 'hidden',
           display: 'flex',
           flexDirection: 'column',
@@ -630,28 +632,29 @@ const TeacherResultsAMCQ = () => {
             style={{
               position: 'absolute',
               top: '10px',
-              right: '20px',
+              right: '10px',
               fontFamily: "'Radio Canada', sans-serif",
               fontWeight: 'bold',
               fontSize: '40px',
               background: 'none',
               border: 'none',
-              color: '#54AAA4',
+              color: '#FCAC18',
               cursor: 'pointer',
               zIndex: 1,
             }}
           >
-            X
+            <div>
+            <SquareX size={50} strokeWidth={3} /></div>
           </button>
           <h2 style={{
             textAlign: 'center',
             padding: '20px',
             margin: 0,
-            backgroundColor: '#A3F2ED ',
-            color: '#54AAA4',
+            backgroundColor: '#FFEF9C ',
+            color: '#FCAC18',
             fontFamily: "'Radio Canada', sans-serif",
             fontSize: '28px',
-            borderBottom: '10px solid #54AAA4',
+            borderBottom: '10px solid #FCAC18',
           }}>
             Assign to New Students
           </h2>
@@ -935,7 +938,9 @@ const TeacherResultsAMCQ = () => {
         cursor: 'pointer'
       }}
       onClick={() => setShowExportModal(true)}
-      ><img style={{width: '30px'}} src='/Export.png'/></button>
+      >
+        <SquareArrowOutUpRight size={30} color="#002feb" strokeWidth={3} />
+   </button>
       </div>
         
         </div>
@@ -970,8 +975,8 @@ const TeacherResultsAMCQ = () => {
           height: '50px',
           borderRadius: '10px',
           fontWeight: 'bold',
-          border: '4px solid lightgrey',
-          background: 'lightgrey',
+          border: '4px solid #f4f4f4',
+          background: '#f4f4f4',
           cursor: 'pointer',
           color: 'black',
           marginLeft: '10px',
@@ -979,8 +984,8 @@ const TeacherResultsAMCQ = () => {
           transition: '.3s',
           display: 'flex',
         }}>
-          <img style={{width:'30px', opacity: '40%'}} src='/Settings.png'/>
-          <p style={{marginTop: '12px', marginLeft:'10px', color: 'grey'}}>Settings</p>
+        <Settings size={40} color="#8f8f8f" />
+          <p style={{marginTop: '16px', marginLeft:'10px', color: 'grey'}}>Settings</p>
         </button>
 <div style={{width: '280px', fontSize: '20px', height:'45px', borderRadius: '10px', fontWeight: 'bold',  border: '4px solid #F4F4F4', background:' white', cursor: 'pointer', display:'flex',
 alignItems: 'center',
@@ -1007,10 +1012,10 @@ transition: '.3s',
           height: '50px',
           borderRadius: '10px',
           fontWeight: 'bold',
-          border: '4px solid #54AAA4',
-          background: '#A3F2ED ',
+          border: '4px solid #FCAC18',
+          background: '#FFEF9C ',
           cursor: 'pointer',
-          color: '#54AAA4',
+          color: '#FCAC18',
           marginLeft: '10px',
           transition: '.3s',
         }}
@@ -1061,7 +1066,7 @@ transition: '.3s',
             z-index: 2;
           }
           .student-item:hover {
-            border-color: #54AAA4 !important;
+            border-color: green !important;
             border-top-right-radius: 0 !important;
             border-bottom-right-radius: 0 !important;
           }
@@ -1242,11 +1247,11 @@ transition: '.3s',
                 width: '50px',
                 padding: '10px',
                 zIndex: '1',
-                backgroundColor: '#A3F2ED',
+                backgroundColor: '#FFEF9C',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                border: '4px solid #54AAA4',
+                border: '4px solid #FCAC18',
                 borderBottomRightRadius: '10px',
                 borderTopRightRadius: '10px',
                 cursor: 'pointer',
@@ -1255,13 +1260,7 @@ transition: '.3s',
                 e.stopPropagation();
                 navigate(`/teacherStudentResultsAMCQ/${assignmentId}/${student.uid}/${classId}`);
               }}>
-                <img 
-                  src='/GradesArrow.png'
-                  alt="View student results"
-                  style={{ 
-                    width: '30px', 
-                  }}
-                />
+               <ArrowRight size={40} color="#FCAC18" strokeWidth={3} />
               </div>
             )}
           </li>

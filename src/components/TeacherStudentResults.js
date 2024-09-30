@@ -4,6 +4,8 @@ import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { db } from './firebase';
 import Navbar from './Navbar';
 import axios from 'axios';
+
+import { SquareCheck, SquareX, SquareSlash} from 'lucide-react';
 function TeacherStudentResults() {
     const { assignmentId, studentUid } = useParams();
     const [assignmentName, setAssignmentName] = useState('');
@@ -131,6 +133,16 @@ const { classId } = useParams();
         fetchResults();
     }, [assignmentId]);
 
+    const recalculateCounts = (questions) => {
+        const correct = questions.filter(q => q.score === results.scaleMax).length;
+        const partial = questions.filter(q => q.score > results.scaleMin && q.score < results.scaleMax).length;
+        const incorrect = questions.filter(q => q.score === results.scaleMin).length;
+        
+        setCorrectCount(correct);
+        setPartialCount(partial);
+        setIncorrectCount(incorrect);
+    };
+
     const updateGradeAndFeedback = async (index, score, feedback) => {
         if (!results) return;
     
@@ -157,6 +169,9 @@ const { classId } = useParams();
                 totalScore: newTotalScore,
                 percentageScore: newPercentageScore
             });
+
+            // Recalculate counts after updating the grade
+            recalculateCounts(updatedQuestions);
         } catch (error) {
             console.error('Error updating grade and feedback:', error);
         }
@@ -182,27 +197,28 @@ const { classId } = useParams();
             <header style={{ backgroundColor: 'white', borderRadius: '10px', color: 'white', marginTop: '-50px', height: '14%', display: 'flex', marginBottom: '-46px', alignItems: 'center', justifyContent: 'center', position: 'relative', margin: '1% auto', width: '70%' }}>
                 <h1 style={{ fontWeight: 'normal', color: 'black', fontSize: '60px', fontFamily: "'Radio Canada', sans-serif" }}></h1>
             </header>
+            {studentName}
             <div style={{ width: '1200px', marginLeft: 'auto', marginTop: '30px', marginRight: 'auto', textAlign: 'center', backgroundColor: 'white', borderRadius: '10px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', marginBottom: '-40px', justifyContent: 'space-around' }}>
-                    <h1 style={{ fontFamily: "'Radio Canada', sans-serif", fontSize: '40px', color: 'grey' }}>
+                <div style={{ display: 'flex', alignItems: 'center', marginBottom: '-10px', justifyContent: 'space-around' }}>
+                    <h1 style={{ fontFamily: "'Rajdhani, sans-serif", fontSize: '40px', color: 'grey' }}>
                         {assignmentName}
-                        <h1 style={{ fontSize: '80px', color: 'black', fontFamily: "'Rajdhani', sans-serif",marginTop: '20px' }}> {studentName}</h1>
                     </h1>
-                </div>
+                    
+              </div>
                 <div style={{ marginBottom: '40px', fontFamily: "'Radio Canada', sans-serif", backgroundColor: 'white', display: 'flex', width: '1000px', height: '70px', marginLeft: 'auto', marginRight: 'auto', borderRadius: '100px',  border: '4px solid #F4F4F4', alignItems: 'center', justifyContent: 'space-around' }}>
                     <div style={{ fontSize: '40px', fontWeight: 'bold', color: 'black', display: 'flex', alignItems: 'center', marginLeft: '100px', justifyContent: 'space-around' }}>
-                        <img style={{ width: '50px', height: '40px' }} src='/greencheck.png' />
-                        <h1 style={{ backgroundColor: 'white', borderRadius: '5px', margin: 'auto', marginLeft: '20px', marginTop: '0px', fontSize: '40px', alignItems: 'center', position: 'relative', fontFamily: "'Radio Canada', sans-serif" }}>
+                    <SquareCheck size={40} color="#00d12a" />
+                    <h1 style={{ backgroundColor: 'white', borderRadius: '5px', margin: 'auto', marginLeft: '20px', marginTop: '0px', fontSize: '40px', alignItems: 'center', position: 'relative', fontFamily: "'Radio Canada', sans-serif" }}>
                             {correctCount}</h1>
                     </div>
                     <div style={{ fontSize: '40px', fontWeight: 'bold', color: 'black', display: 'flex', alignItems: 'center', justifyContent: 'space-around' }}>
-                        <img style={{ width: '40px', height: '40px' }} src='/partial.png' />
-                        <h1 style={{ backgroundColor: 'white', borderRadius: '5px', margin: 'auto', marginLeft: '20px', marginTop: '0px', fontSize: '40px', alignItems: 'center', position: 'relative', fontFamily: "'Radio Canada', sans-serif" }}>
+                    <SquareSlash size={40} color="#ffdd00" />
+                    <h1 style={{ backgroundColor: 'white', borderRadius: '5px', margin: 'auto', marginLeft: '20px', marginTop: '0px', fontSize: '40px', alignItems: 'center', position: 'relative', fontFamily: "'Radio Canada', sans-serif" }}>
                             {partialCount}</h1>
                     </div>
                     <div style={{ fontSize: '40px', fontWeight: 'bold', color: 'black', display: 'flex', alignItems: 'center', justifyContent: 'space-around' }}>
-                        <img style={{ width: '40px', height: '40px' }} src='/redx.png' />
-                        <h1 style={{ backgroundColor: 'white', borderRadius: '5px', margin: 'auto', marginLeft: '20px', marginTop: '0px', fontSize: '40px', alignItems: 'center', position: 'relative', fontFamily: "'Radio Canada', sans-serif" }}>
+                    <SquareX size={40} color="#ff0000" />
+                    <h1 style={{ backgroundColor: 'white', borderRadius: '5px', margin: 'auto', marginLeft: '20px', marginTop: '0px', fontSize: '40px', alignItems: 'center', position: 'relative', fontFamily: "'Radio Canada', sans-serif" }}>
                             {incorrectCount}</h1>
                     </div>
                     <div style={{ fontSize: '40px', fontWeight: 'bold', color: 'black' }}>
@@ -210,7 +226,7 @@ const { classId } = useParams();
                     </div>
                     <div style={{ width: '100px', height: '100px', border: '10px solid #627BFF', borderRadius: '20px', background: '#020CFF', marginTop: '0px', marginRight: '100px' }}>
                         <div style={{ width: '79px', height: '79px', backgroundColor: 'white', borderRadius: '5px', margin: 'auto', marginTop: '10px', justifyContent: 'space-around', fontSize: '60px', alignItems: 'center', position: 'relative', fontFamily: "'Radio Canada', sans-serif" }}>
-                            <h1 style={{ backgroundColor: 'transparent', borderRadius: '5px', marginTop: '11px', justifyContent: 'space-around', fontSize: '60px', alignItems: 'center', position: 'relative', fontFamily: "'Radio Canada', sans-serif" }}>{letterGrade}</h1>
+                            <h1 style={{ backgroundColor: 'transparent', borderRadius: '5px', marginTop: '11px', justifyContent: 'space-around', fontSize: '60px', alignItems: 'center', position: 'relative', fontFamily: "'Rajdhani', sans-serif" }}>{letterGrade}</h1>
                         </div>
                     </div>
                 </div>
@@ -254,7 +270,7 @@ const { classId } = useParams();
                             (question.feedback || "Not provided").length
                         ) * 0.5 + 40;
                         return (
-                            <li key={index} style={{ position: 'relative', fontFamily: "'Poppins', sans-serif", marginBottom: '60px' }}>
+                            <li key={index} style={{ position: 'relative', fontFamily: "'Radio Canada', sans-serif", marginBottom: '60px' }}>
                                 <div style={{ display: 'flex', justifyContent: 'center', fontFamily: "'Radio Canada', sans-serif" }}>
                                     <input
                                         style={{

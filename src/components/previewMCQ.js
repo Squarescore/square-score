@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { SquareArrowLeft } from 'lucide-react';
 const PreviewMCQ = ({ questions, onBack, onNext }) => {
   const [hoveredChoice, setHoveredChoice] = useState(null);
 
@@ -46,7 +47,7 @@ const PreviewMCQ = ({ questions, onBack, onNext }) => {
   };
 
   return (
-    <div style={{ marginTop: '100px', width: '1000px', marginLeft: 'auto', marginRight: 'auto', fontFamily: "'Radio Canada', sans-serif" }}>
+    <div style={{ marginTop: '100px', width: '800px', marginLeft: 'auto', marginRight: 'auto', fontFamily: "'Radio Canada', sans-serif" }}>
       <h1 style={{ marginLeft: '40px', fontFamily: "'Rajdhani', sans-serif", color: 'black', fontSize: '60px', display: 'flex' }}>
         Preview (<h1 style={{ fontSize: '50px', marginTop: '10px', marginLeft: '0px', color: '#009006', display: 'flex' }}> MCQ </h1>)
       </h1>
@@ -58,7 +59,7 @@ const PreviewMCQ = ({ questions, onBack, onNext }) => {
               height: '75px',
               padding: '10px 20px',
               left: '5%',
-              top: '460px',
+              top: '360px',
               bottom: '20px',
               backgroundColor: 'transparent',
               cursor: 'pointer',
@@ -72,14 +73,9 @@ const PreviewMCQ = ({ questions, onBack, onNext }) => {
               transform: 'scale(1)',
               opacity: '100%'
             }}
-            onMouseEnter={(e) => {
-              e.target.style.transform = 'scale(1.04)';
-            }}
-            onMouseLeave={(e) => {
-              e.target.style.transform = 'scale(1)';
-            }}
+        
           >
-            <img src='/LeftGreenArrow.png' style={{width: '75px', transition: '.5s'}} />
+         <SquareArrowLeft size={100} color="#009006" />
           </button>
       {questions.map((question, questionIndex) => (
         <div key={questionIndex} style={{ borderBottom: '10px solid lightgrey', padding: '20px', marginBottom: '30px' }}>

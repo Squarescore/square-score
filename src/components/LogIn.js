@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { getAuth, setPersistence, signInWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth';
 import { browserLocalPersistence } from 'firebase/auth';
 import { Link } from 'react-router-dom';
-
+import { ArrowLeft } from 'lucide-react';
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -155,8 +155,9 @@ const Login = () => {
         <button
           onClick={handleBack}
           style={{ position: 'fixed', fontFamily: "'Radio Canada', sans-serif", left: '20px', top: '20px', textDecoration: 'none', color: 'black', backgroundColor: 'white', border: 'none', cursor: 'pointer' }}>
-          <img src="https://static.thenounproject.com/png/1875804-200.png" style={{ width: '30px', opacity: '50%' }} />
-        </button>
+             <ArrowLeft size={30} color="grey" strokeWidth={2.5} />     </button>
+
+        
       </div>
 
       <div className="white-background" style={{
@@ -248,15 +249,11 @@ const Login = () => {
                 fontFamily: "'Radio Canada', sans-serif",
                 transition: '.2s'
               }}
-              onMouseEnter={(e) => {
-                e.target.style.opacity = '85%';
-                e.target.style.boxShadow = '0px 4px 4px 0px rgba(0, 0, 0, 0.25)';
-                e.target.style.transform = 'scale(1.02)';
+              onMouseEnter={(e) => {     e.target.style.borderColor = '#0008C7';
               }}
               onMouseLeave={(e) => {
-                e.target.style.opacity = '99.5%';
-                e.target.style.boxShadow = 'none';
-                e.target.style.transform = 'scale(1)';
+                e.target.style.borderColor = '#020CFF';
+          
               }}
             >
               <h1 style={{ marginTop: '0px',  pointerEvents: 'none',color: '#020CFF', }}>Login</h1>

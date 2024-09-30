@@ -3,7 +3,7 @@ import { arrayRemove, arrayUnion, doc, getDoc, setDoc, updateDoc, serverTimestam
 import { useParams, useNavigate } from 'react-router-dom';
 import { db, auth } from './firebase';
 import Loader from './Loader';
-
+import { SquareArrowLeft, SquareArrowRight, Eye, EyeOff } from 'lucide-react';
 function TakeTests() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showTimer, setShowTimer] = useState(true);
@@ -550,7 +550,7 @@ const [scaleMax, setScaleMax] = useState(2);
             onClick={toggleTimer}
             style={{
               position: 'absolute',
-              top: '0px',
+              top: '10px',
               left: '-70px',
               backgroundColor: 'transparent',
               border: 'none',
@@ -559,7 +559,7 @@ const [scaleMax, setScaleMax] = useState(2);
               cursor: 'pointer',
             }}
           >
-            {showTimer ? <img style={{ width: '60px', opacity: '90%' }} src='/hidecon.png' /> : <img style={{ width: '60px', opacity: '90%' }} src='/eyecon.png' />}
+            {showTimer ? <EyeOff size={40} color="#9e9e9e" />: <Eye size={40} color="#9e9e9e" />}
           </button>
         </div>
       )}
@@ -661,12 +661,22 @@ const [scaleMax, setScaleMax] = useState(2);
             </h3>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: '50px' }}>
-          <button
-  style={currentQuestionIndex > 0 ? buttonStylesLeft.active : buttonStylesLeft.default}
-  onClick={currentQuestionIndex > 0 ? () => setCurrentQuestionIndex(prev => prev - 1) : null}
->
-  <h1 style={currentQuestionIndex > 0 ? arrowStyles.active : arrowStyles.default}>←</h1>
-</button>
+            <button
+              onClick={() => currentQuestionIndex > 0 && setCurrentQuestionIndex(prev => prev - 1)}
+              style={{
+                backgroundColor: 'transparent',
+                cursor: currentQuestionIndex > 0 ? 'pointer' : 'default',
+                border: 'none',
+                width: '80px',
+                height: '80px',
+                position: 'fixed',
+                left: '100px',
+                marginTop: '-40px'
+              }}
+            >
+              <div><SquareArrowLeft size={80} color={currentQuestionIndex > 0 ? "#009919" : "#ababab"} /></div>
+            </button>
+            
             <textarea
               style={{
                 width: '700px',
@@ -686,13 +696,25 @@ const [scaleMax, setScaleMax] = useState(2);
               value={answers.find(a => a.questionId === questions[currentQuestionIndex]?.questionId)?.answer || ''}
               onChange={handleAnswerChange}
             />
-       <button
-  style={currentQuestionIndex < questions.length - 1 ? buttonStylesRight.active : buttonStylesRight.default}
-  onClick={currentQuestionIndex < questions.length - 1 ? () => setCurrentQuestionIndex(prev => prev + 1) : null}
->
-  <h1 style={currentQuestionIndex < questions.length - 1 ? arrowStyles.active : arrowStyles.default}>→</h1>
-</button>
+            
+            <button
+              onClick={() => currentQuestionIndex < questions.length - 1 && setCurrentQuestionIndex(prev => prev + 1)}
+              style={{
+                backgroundColor: 'transparent',
+                cursor: currentQuestionIndex < questions.length - 1 ? 'pointer' : 'default',
+                border: 'none',
+                width: '80px',
+                height: '80px',
+                position: 'fixed',
+                right: '100px',
+                marginTop: '-40px'
+              }}
+            >
+              <div>       <SquareArrowRight size={80} color={currentQuestionIndex < questions.length - 1 ? "#009919" : "#ababab"} />
+              </div>
+            </button>
           </div>
+
           <h3 style={{
             width: '300px',
             textAlign: 'center',

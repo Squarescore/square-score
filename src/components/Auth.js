@@ -4,6 +4,7 @@ import { Link as ScrollLink } from 'react-scroll';
 import FeatureTicker from './FeatureTicker';
 import FooterAuth from './FooterAuth';
 import './BackgroundDivs.css'; // Import the CSS file
+import { SquareArrowRight } from 'lucide-react';
 const Auth = () => {
   const [navbarBg, setNavbarBg] = useState('rgba(255,255,255,0.7)');
 
@@ -117,18 +118,14 @@ const Auth = () => {
             <div style={{ width: '280px', display: 'flex', position: 'fixed', right: '20px' }}>
               <Link to="/signup" style={{
                 height: '10px', marginTop: '20px', lineHeight: '10px', borderRadius: '8px',
-                fontWeight: 'bold', background: '#FFEC87', border: '4px solid #FC8518 ', color: '#FC8518 ',
+                fontWeight: 'bold', background: '#FFEC87', border: '4px solid #FFAA00 ', color: '#FC8518 ',
                 textDecoration: 'none', width: '80px', marginLeft: '30px',
                 padding: '10px', textAlign: 'center', transition: '.2s',
                 fontFamily: "'Radio Canada', sans-serif", fontSize: '18px'
               }}
-              onMouseEnter={(e) => {
-                e.target.style.opacity = '85%';
-                e.target.style.boxShadow = '0px 4px 4px 0px rgba(0, 0, 0, 0.25)';
+              onMouseEnter={(e) => {     e.target.style.borderColor = '#FC8518';
               }}
-              onMouseLeave={(e) => {
-                e.target.style.opacity = '100%';
-                e.target.style.boxShadow = 'none';
+              onMouseLeave={(e) => {     e.target.style.borderColor = '#FFAA00';
               }}>Sign up</Link>
               <Link to="/login" style={{
                 height: '10px', marginTop: '20px', lineHeight: '10px', borderRadius: '8px',
@@ -137,13 +134,11 @@ const Auth = () => {
                 padding: '10px', textAlign: 'center', transition: '.2s',
                 fontFamily: "'Radio Canada', sans-serif", fontSize: '18px'
               }}
-              onMouseEnter={(e) => {
-                e.target.style.opacity = '85%';
-                e.target.style.boxShadow = '0px 4px 4px 0px rgba(0, 0, 0, 0.25)';
+              onMouseEnter={(e) => {     e.target.style.borderColor = '#0008C7';
               }}
               onMouseLeave={(e) => {
-                e.target.style.opacity = '100%';
-                e.target.style.boxShadow = 'none';
+                e.target.style.borderColor = '#020CFF';
+          
               }}>Login</Link>
             </div>
           </div>
@@ -153,39 +148,33 @@ const Auth = () => {
 
         <div  className="white-background" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '700px', marginTop: '150px' }}>
           
-            <h1 style={{ color: 'black', width: '800px', marginLeft: 'auto', marginRight: 'auto', fontFamily: "'Radio Canada', sans-serif", fontSize: '70px', marginTop: '150px' }}>Empowering students AND teachers with AI</h1>
+            <h1 style={{ color: 'black', width: '800px', marginLeft: 'auto', marginRight: 'auto', fontFamily: "'Radio Canada', sans-serif", fontSize: '70px', marginTop: '100px' }}>Empowering students AND teachers with AI</h1>
          
           <div style={{ width: '800px', marginTop: '-20px', borderRadius: '5px', display: 'flex' }}>
             <Link to="/signup"  style={{
-              height: '70px', lineHeight: '70px', marginTop: '20px', marginBottom: '20px',
+              height: '60px', lineHeight: '60px', marginTop: '20px', marginBottom: '20px',
               background: '#FFEC87', color: '#FC8518', fontWeight: 'bold', display: 'block',
-              width: '450px',  textDecoration: 'none', border: '6px solid #FC8518',
+              width: '440px',  textDecoration: 'none', border: '10px solid #FFAA00',
               borderRadius: '15px', textAlign: 'center', transition: '.3s', marginLeft: '50px',
               fontFamily: "'Radio Canada', sans-serif", fontSize: '40px'
             }}
-            onMouseEnter={(e) => {
-              e.target.style.opacity = '85%';
-              e.target.style.boxShadow = '0px 4px 4px 0px rgba(0, 0, 0, 0.25)';
+            onMouseEnter={(e) => {     e.target.style.borderColor = '#FC8518';
             }}
-            onMouseLeave={(e) => {
-              e.target.style.opacity = '100%';
-              e.target.style.boxShadow = 'none';
+            onMouseLeave={(e) => {     e.target.style.borderColor = '#FFAA00';
             }}>Sign up for free</Link>
 
             <Link to="/login"  style={{
-              height: '70px', lineHeight: '70px', marginTop: '20px', marginBottom: '20px',
-              background: '#99B6FF', border: '6px solid #020CFF', color: '#020CFF', fontWeight: 'bold',
-              display: 'block', width: '250px', marginLeft: 'auto', marginRight: 'auto',
+              height: '60px', lineHeight: '60px', marginTop: '20px', marginBottom: '20px',
+              background: '#99B6FF', border: '10px solid #020CFF', color: '#020CFF', fontWeight: 'bold',
+              display: 'block', width: '240px', marginLeft: 'auto', marginRight: 'auto',
               textDecoration: 'none', borderRadius: '15px', textAlign: 'center',
-              transition: '.3s', fontFamily: "'Radio Canada', sans-serif", fontSize: '40px'
+              transition: '.2s', fontFamily: "'Radio Canada', sans-serif", fontSize: '40px'
             }}
-            onMouseEnter={(e) => {
-              e.target.style.opacity = '85%';
-              e.target.style.boxShadow = '0px 4px 4px 0px rgba(0, 0, 0, 0.25)';
+            onMouseEnter={(e) => {     e.target.style.borderColor = '#0008C7';
             }}
             onMouseLeave={(e) => {
-              e.target.style.opacity = '100%';
-              e.target.style.boxShadow = 'none';
+              e.target.style.borderColor = '#020CFF';
+        
             }}>Login</Link>
 
            
@@ -200,7 +189,8 @@ const Auth = () => {
   early access
 </ScrollLink>  waitlist</h1>
 <Link to="/signupadmin" style={{marginRight: '-100px', background: 'transparent', border: 'none', marginLeft: '20px', cursor: 'pointer', marginTop: '30px'}}>
-<img src='ArrowAuth.png'/>
+
+<div style={{marginTop: '-10px', cursor: 'pointer'}}><SquareArrowRight size={40} color="#0040ff" strokeWidth={3} /></div>
 </Link>
               
             </div>

@@ -4,6 +4,7 @@ import { db, auth } from "./firebase"; // Adjust the path to your firebase confi
 import { useNavigate } from 'react-router-dom'; // Import the navigate hook
 import './BackgroundDivs.css'; // Import the CSS file
 import { doc, setDoc, serverTimestamp, getDoc, updateDoc } from "firebase/firestore"; 
+import { ArrowLeft } from 'lucide-react';
 const SignUp = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -225,9 +226,9 @@ const SignUp = () => {
         <img style={{width: '320px',  marginLeft: 'auto', marginRight: 'auto'}} src="/SquareScore.png" alt="logo" />
         <button 
           onClick={handleBack} 
-          style={{ position: 'fixed',fontFamily: "'Radio Canada', sans-serif",left: '20px', top: '20px', textDecoration: 'none',  color: 'black', backgroundColor: 'white', border: 'none', cursor: 'pointer',  }}>
-          <img src="https://static.thenounproject.com/png/1875804-200.png" style={{width: '30px', opacity: '50%'}}/>
-        </button>
+          style={{ position: 'fixed',fontFamily: "'Radio Canada', sans-serif",left: '20px', top: '20px', textDecoration: 'none',  color: 'black', backgroundColor: 'transparent', border: 'none', cursor: 'pointer',  }}>
+       <ArrowLeft size={30} color="grey" strokeWidth={2.5} />     </button>
+
       </div>
       </div>
 

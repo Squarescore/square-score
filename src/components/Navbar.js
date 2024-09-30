@@ -5,10 +5,16 @@ import { auth, db } from "./firebase";
 import { doc, getDoc, collection, query, where, getDocs } from "firebase/firestore";
 import { signOut } from "firebase/auth";
 import { useLocation } from 'react-router-dom';
-
+import { ArrowLeft, SquarePlus, Users, BookOpenText } from "lucide-react";
+import TeacherAssignmentHomeS from "./TeacherAssignmentHomeS";
+import { setDoc, updateDoc, arrayUnion } from "firebase/firestore";
+import { useRef } from "react";
+import { v4 as uuidv4 } from 'uuid';
 const Navbar = ({ userType, currentPage, firstName, lastName }) => {
     const { classId } = useParams();
     const navigate = useNavigate();
+    const [showCreateDropdown, setShowCreateDropdown] = useState(false);
+    const [selectedFormat, setSelectedFormat] = useState(null);
     const location = useLocation();
     const [showDropdown, setShowDropdown] = useState(false);
     const [userInitials, setUserInitials] = useState("");
@@ -20,9 +26,10 @@ const Navbar = ({ userType, currentPage, firstName, lastName }) => {
     const [isClassNameLoaded, setIsClassNameLoaded] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
     const [isDropdownActive, setIsDropdownActive] = useState(false);
-
+    const timeoutRef = useRef(null);
+    const [isCreateDropdownActive, setIsCreateDropdownActive] = useState(false);
     const [dropdownVisible, setDropdownVisible] = useState(false);
-
+    const [dropdownVisibleCreate, setDropdownVisibleCreate] = useState(false);
     const getCurrentPage = () => {
         const path = location.pathname;
         if (path.includes('/teacherassignmenthome')) return 'Create';
@@ -35,7 +42,62 @@ const Navbar = ({ userType, currentPage, firstName, lastName }) => {
         if (path.includes('/participants')) return 'Students';
         return 'Home'; // default to Home for the main class page
     };
-
+    const handleFormatSelect = async (format) => {
+        setSelectedFormat(format);
+        const newAssignmentId = uuidv4();
+        let assignmentId = `${classId}+${newAssignmentId}+${format}`;
+        let collectionName = '';
+        let classFieldName = '';
+        let navigationPath = '';
+    
+        switch (format) {
+          case 'SAQ':
+            collectionName = 'assignments(saq)';
+            classFieldName = 'assignment(saq)';
+            navigationPath = `/class/${classId}/createassignment/${assignmentId}`;
+            break;
+          case 'ASAQ':
+            collectionName = 'assignments(Asaq)';
+            classFieldName = 'assignment(Asaq)';
+            navigationPath = `/class/${classId}/SAQA/${assignmentId}`;
+            break;
+          case 'MCQ':
+            collectionName = 'assignments(mcq)';
+            classFieldName = 'assignment(mcq)';
+            navigationPath = `/class/${classId}/MCQ/${assignmentId}`;
+            break;
+          case 'AMCQ':
+            collectionName = 'assignments(Amcq)';
+            classFieldName = 'assignment(Amcq)';
+            navigationPath = `/class/${classId}/MCQA/${assignmentId}`;
+            break;
+          default:
+            console.error('Invalid format selected');
+            return;
+        }
+    
+        const assignmentData = {
+          classId,
+          assignmentType: format,
+          isAdaptive: format === 'ASAQ' || format === 'AMCQ',
+          assignmentId
+        };
+        
+        try {
+          const assignmentRef = doc(db, collectionName, assignmentId);
+          await setDoc(assignmentRef, assignmentData);
+        
+          const classRef = doc(db, 'classes', classId);
+          await updateDoc(classRef, {
+            [classFieldName]: arrayUnion(assignmentId)
+          });
+        
+          navigate(navigationPath);
+        } catch (error) {
+          console.error('Error creating assignment:', error);
+          // Handle the error (e.g., show an error message to the user)
+        }
+      };
     useEffect(() => {
         const fetchClasses = async () => {
             setIsLoading(true);
@@ -109,6 +171,40 @@ const Navbar = ({ userType, currentPage, firstName, lastName }) => {
         }
     };
 
+    const activateCreateDropdown = () => {
+        setShowCreateDropdown(true);
+        setIsCreateDropdownActive(true);
+        if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    };
+
+    const deactivateCreateDropdown = () => {
+        if (timeoutRef.current) clearTimeout(timeoutRef.current);
+        timeoutRef.current = setTimeout(() => {
+            setShowCreateDropdown(false);
+            setIsCreateDropdownActive(false);
+        }, 1000);
+    };
+
+    const handleDropdownHover = () => {
+        if (timeoutRef.current) clearTimeout(timeoutRef.current);
+        setShowCreateDropdown(true);
+        setIsCreateDropdownActive(true);
+    };
+
+    const handleDropdownLeave = () => {
+        deactivateCreateDropdown();
+    };
+
+    const toggleCreateDropdown = (e) => {
+        if (e) e.preventDefault();
+        if (showCreateDropdown) {
+            setShowCreateDropdown(false);
+            setIsCreateDropdownActive(false);
+        } else {
+            activateCreateDropdown();
+        }
+    };
+
     const teacherLinkRoutes = {
         'Students': `/class/${classId}/participants`,
         'Assignments': `/class/${classId}/Assignments`,
@@ -167,14 +263,14 @@ const Navbar = ({ userType, currentPage, firstName, lastName }) => {
     };
 
     const periodStyles = {
-        1: { background: '#A3F2ED', color: '#1CC7BC' },
-        2: { background: '#F8CFFF', color: '#E01FFF' },
-        3: { background: '#FFCEB2', color: '#FD772C' },
-        4: { background: '#FFECA9', color: '#F0BC6E' },
-        5: { background: '#AEF2A3', color: '#4BD682' },
-        6: { background: '#BAA9FF', color: '#8364FF' },
-        7: { background: '#8296FF', color: '#3D44EA' },
-        8: { background: '#FF8E8E', color: '#D23F3F' }
+        1: { background: '#A3F2ED', color: '#1CC7BC',borderColor: '#1CC7BC' },
+        2: { background: '#F8CFFF', color: '#E01FFF',borderColor: '#E01FFF'},
+        3: { background: '#FFCEB2', color: '#FD772C',borderColor: '#FD772C' },
+        4: { background: '#FFECA9', color: '#F0BC6E',borderColor: '#F0BC6E' },
+        5: { background: '#AEF2A3', color: '#4BD682',borderColor: '#4BD682'},
+        6: { background: '#BAA9FF', color: '#8364FF',borderColor: '#8364FF' },
+        7: { background: '#8296FF', color: '#3D44EA',borderColor: '#3D44EA' },
+        8: { background: '#FF8E8E', color: '#D23F3F' ,borderColor: '#D23F3F'}
     };
 
     const getPeriodNumber = (className) => {
@@ -183,7 +279,7 @@ const Navbar = ({ userType, currentPage, firstName, lastName }) => {
     };
 
     const homeRoute = userType === 'teacher' ? '/teacherhome' : '/studenthome';
-    const homeIcon = "/home.png";
+    const homeIcon = "/home.svg";
     const logoUrl = "/logo.png";
 
     useEffect(() => {
@@ -211,8 +307,22 @@ const Navbar = ({ userType, currentPage, firstName, lastName }) => {
                 height: '100%',
                 background: 'rgba(240,240,240,.3)',
                 backdropFilter: 'blur(20px)',
-                zIndex: '90',
+                zIndex: '1000',
             }} />}
+               {isCreateDropdownActive && (
+                <div 
+                    style={{
+                        position: 'fixed',
+                        top: '70px',
+                        left: '0px',
+                        width: '100%',
+                        height: '100%',
+                        background: 'rgba(240,240,240,.3)',
+                        backdropFilter: 'blur(20px)',
+                        zIndex: '101',
+                    }} 
+                />
+            )}
             <div style={{
                 position: 'fixed', top: 0, width: '100%', display: 'flex',
                 padding: '0px 0', alignItems: 'center', height: '70px', color: 'grey', zIndex: '1000',
@@ -222,24 +332,23 @@ const Navbar = ({ userType, currentPage, firstName, lastName }) => {
             }}>
                 <button
                     onClick={handleBack}
-                    style={{ position: 'fixed', top: '10px', left: '0px', fontFamily: "'Radio Canada', sans-serif", textDecoration: 'none', color: 'black', border: '0px solid lightgrey', height: '47px', width: '47px', borderRadius: '10px', backgroundColor: 'transparent', marginLeft: '20px', marginRight: '20px', cursor: 'pointer' }}>
-                    <img src="https://static.thenounproject.com/png/1875804-200.png" style={{ width: '30px', opacity: '30%' }} />
-                </button>
+                    style={{ position: 'fixed', top: '12px', left: '0px', fontFamily: "'Radio Canada', sans-serif", textDecoration: 'none', color: 'black', border: '0px solid lightgrey', height: '47px', width: '47px', borderRadius: '10px', backgroundColor: 'transparent', marginLeft: '20px', marginRight: '20px', cursor: 'pointer' }}>
+           <ArrowLeft size={30} color="grey" strokeWidth={2.5} />     </button>
 
                 <div style={{ width: '80%', marginLeft: 'auto', marginRight: 'auto', display: 'flex', alignItems: 'center', }}>
                     <Link to={homeRoute}>
-                        <img src={homeIcon} alt="Home" style={{ width: '25px', marginTop: '-4px', marginRight: '50px', opacity: '80%' }} />
+                        <img src={homeIcon} alt="Home" style={{ width: '25px', marginTop: '0px', marginRight: '50px', opacity: '50%' }} />
                     </Link>
                     {!isLoading ? (
                         <div style={{ display: 'flex', alignItems: 'center', marginRight: '20px' }}>
                             <div
                                 style={{
-                                    height: '38px',
-                                    width: '30px',
+                                    height: '28px',
+                                    width: '20px',
                                     opacity: '50%',
                                     marginRight: '-5px',
                                     borderBottomLeftRadius: '7px',
-                                    borderTopLeftRadius: '7px',
+                                    borderTopLeftRadius: '7px',border: '4px solid',
                                     ...(periodStyles[getPeriodNumber(currentClass)] || periodStyles[1])
                                 }}
                             >
@@ -249,8 +358,8 @@ const Navbar = ({ userType, currentPage, firstName, lastName }) => {
                                         cursor: 'pointer',
                                         transform: showClassDropdown ? 'rotate(180deg)' : 'rotate(0deg)',
                                         userSelect: 'none',
-                                        marginTop: '10px',
-                                        marginLeft: '5px',
+                                        marginTop: '5px',
+                                        marginLeft: '2px',
                                         transition: 'transform .5s ease',
                                         width: '15px', height: '15px',
                                         ...(periodStyles[getPeriodNumber(currentClass)] || periodStyles[1])
@@ -263,14 +372,14 @@ const Navbar = ({ userType, currentPage, firstName, lastName }) => {
                                 to={userType === 'teacher' ? `/class/${classId}` : `/studentassignments/${classId}`}
                                 style={{
                                     fontSize: '22px',
-                                    padding: '5px',
+                                    padding: '0px',
                                     width: '100px',
-                                    paddingRight: '15px',
+                                    paddingRight: '0px',
                                     fontFamily: "'Rajdhani', sans-serif",
                                     fontWeight: 'BOLD',
                                     textAlign: "center",
                                     borderRadius: '7px',
-                                    textDecoration: 'none',
+                                    textDecoration: 'none', border: '4px solid',
                                     ...(periodStyles[getPeriodNumber(currentClass)] || periodStyles[1])
                                 }}
                             >
@@ -280,6 +389,7 @@ const Navbar = ({ userType, currentPage, firstName, lastName }) => {
                     ) : (
                         <div style={{ width: '130px', height: '38px', backgroundColor: 'transparent', borderRadius: '7px' }}></div>
                     )}
+                        
                     {showClassDropdown && (
                         <div
                             style={{
@@ -331,7 +441,7 @@ const Navbar = ({ userType, currentPage, firstName, lastName }) => {
                                                 <div style={{
                                                     width: '268px',
                                                     height: '30px',
-                                                    border: `4px solid ${periodStyle.color}`,
+                                                    border: `6px solid ${periodStyle.color}`,
                                                     backgroundColor: periodStyle.background,
                                                     color: periodStyle.color,
                                                     borderTopLeftRadius: '15px',
@@ -351,8 +461,6 @@ const Navbar = ({ userType, currentPage, firstName, lastName }) => {
                                                 <div style={{
                                                     width: '268px',
                                                     height: '90px',
-                                                    border: '4px solid #F4F4F4',
-                                                    borderTop: 'none',
                                                     borderBottomLeftRadius: '15px',
                                                     borderBottomRightRadius: '15px',
                                                     backgroundColor: 'white',
@@ -363,14 +471,16 @@ const Navbar = ({ userType, currentPage, firstName, lastName }) => {
                                                     fontWeight: 'bold',
                                                     fontSize: '40px',
                                                     color: 'grey',
-                                                    transition: '.6s'
-                                                }}
-                                                    onMouseEnter={(e) => {
-                                                        e.target.style.boxShadow = '0px 4px 4px 0px rgba(0, 0, 0, 0.25)';
-                                                    }}
-                                                    onMouseLeave={(e) => {
-                                                        e.target.style.boxShadow = 'none';
-                                                    }}>
+                                                    transition: '.3s',
+                                                    border: '6px solid #F4F4F4', 
+                                                    borderTop: 'none',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.target.style.borderColor = '#E8E8E8';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.target.style.borderColor = '#f4f4f4';
+                  }}>
                                                     <p style={{ marginTop: '40px' }}
 
 onMouseEnter={(e) => {
@@ -400,25 +510,68 @@ onMouseLeave={(e) => {
 
 
                     {userType === 'teacher' ? (
-                        <div style={{ display: 'flex', justifyContent: 'start', flex: 0.85, gap: '23%', fontSize: '15px', fontFamily: "'Radio Canada', sans-serif", textDecoration: 'none', marginTop: '10px', marginLeft: '100px' }}>
-                            {Object.entries(linkRoutes).map(([linkText, route], index) => (
-                                <Link
-                                    key={index}
-                                    to={route}
-                                    style={{
-                                        fontWeight: getCurrentPage() === linkText ? 'bold' : 'normal',
-                                        textDecoration: 'none',
-                                        color: 'black',
-                                        marginTop: '-5px'
-                                    }}
-                                >
-                                    {linkText}
-                                </Link>
-                            ))}
+                        <div style={{ display: 'flex', justifyContent: 'start', flex: 0.85, gap: '40%', fontSize: '15px', fontFamily: "'Radio Canada', sans-serif", textDecoration: 'none', marginTop: '10px', marginLeft: '100px' }}>
+                                {Object.entries(linkRoutes).map(([linkText, route], index) => (
+                           <div
+                           key={index}
+                           style={{ position: 'relative' }}
+                       >
+                           <Link
+                               to={route}
+                               onClick={(e) => linkText === 'Create' && toggleCreateDropdown(e)}
+                               style={{
+                                   fontWeight: (getCurrentPage() === linkText || (linkText === 'Create' && showCreateDropdown)) ? 'bold' : 'normal',
+                                   textDecoration: 'none',
+                                   color: 'black',
+                                   marginTop: '-5px',
+                                   display: 'flex',
+                                   alignItems: 'center'
+                               }}
+                           >
+                               {linkText}
+                               {linkText === 'Assignments' && <BookOpenText size={20} style={{ marginLeft: '-120px' }} strokeWidth={getCurrentPage() === 'Assignments' ? 2.5 : 2} />}
+                               {linkText === 'Students' && <Users size={20} style={{ marginLeft: '-90px'}} strokeWidth={getCurrentPage() === 'Students' ? 2.5 : 2} />}
+                               {linkText === 'Create' && <SquarePlus size={20} style={{ marginLeft: '-70px' }} strokeWidth={(getCurrentPage() === 'Create' || showCreateDropdown) ? 2.5 : 2} />}
+                           </Link>
+                           {linkText === 'Create' && showCreateDropdown && (
+                               <div 
+                                   style={{
+                                       position: 'fixed',
+                                       top: '70px',
+                                       left: '0',
+                                       width: '100%',
+                                       backgroundColor: 'white',
+                                       boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+                                       zIndex: 999,
+                                       display: 'flex',
+                                       justifyContent: 'center',
+                                       padding: '20px 0',
+                                       overflow: 'hidden',
+                                   }}
+                               >
+                                   <TeacherAssignmentHomeS onFormatSelect={handleFormatSelect} />
+                               </div>
+                           )}
+                         </div>
+                     ))}
                         </div>
                     ) : (
-                        <div style={{ flex: 0.85, display: 'flex', justifyContent: 'center', fontSize: '30px', fontFamily: "'Rajdhani', sans-serif", color: 'grey', marginTop: '0px', fontWeight: 'bold' }}>
-                            {classChoice}
+                        <div style={{ 
+                            position: 'absolute',  
+                            left: '50%', 
+                            transform: 'translateX(-50%)',
+                           
+                            fontSize: '30px', 
+                            fontFamily: "'Rajdhani', sans-serif", 
+                            color: 'grey', 
+                            marginTop: '0px', 
+                            fontWeight: 'bold',
+                            // You might want to add these properties for better control:
+                            whiteSpace: 'nowrap',  // Prevents text wrapping
+                            padding: '5px 10px',   // Adds some space inside the div
+                          }}>
+                           
+                            {classChoice} 
                         </div>
                     )}
 
@@ -447,11 +600,11 @@ onMouseLeave={(e) => {
                             {showDropdown && (
                                 <div style={{
                                     position: 'absolute', marginTop: '130px', right: 25, color: '#020CFF',
-                                    boxShadow: '0px 2px 5px rgba(0, 0, 0, 0.2)', borderRadius: '5px', minWidth: '150px', zIndex: 100
+                                    boxShadow: '0px 2px 5px rgba(0, 0, 0, 0.2)', borderRadius: '5px', minWidth: '150px', zIndex: 1000
                                 }}>
                                     <ul style={{ listStyleType: 'none', padding: 0, margin: 0 }}>
                                         <li onClick={handleLogout} style={{
-                                            padding: '10px 15px', cursor: 'pointer', borderBottom: '1px solid #eee',
+                                            padding: '10px 15px', cursor: 'pointer', borderBottom: '1px solid #eee',zIndex: 1000,
 
                                             display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '16px', color: 'grey', background: 'white'
                                            

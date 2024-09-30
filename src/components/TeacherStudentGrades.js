@@ -3,7 +3,7 @@ import { doc, getDoc, collection, query, where, getDocs } from 'firebase/firesto
 import { db } from './firebase';
 import { useNavigate, useParams } from 'react-router-dom';
 import Navbar from './Navbar';
-
+import { ArrowRight } from 'lucide-react';
 function TeacherStudentGrades() {
   const [grades, setGrades] = useState([]);
   const [studentName, setStudentName] = useState('');
@@ -150,7 +150,7 @@ function TeacherStudentGrades() {
               backgroundColor: 'white', 
               fontFamily: "'Radio Canada', sans-serif",
               transition: 'all 0.3s ease',
-              border: hoveredGrade === grade.id ? '4px solid #54AAA4' : '4px solid lightgrey',
+              border: hoveredGrade === grade.id ? '4px solid #627BFF' : '4px solid lightgrey',
               listStyleType: 'none',
               marginTop: '20px', 
               marginLeft: '0px',
@@ -325,13 +325,13 @@ function TeacherStudentGrades() {
                       top: '50%', 
                       width: '60px',
                       cursor: 'pointer',
-                      height: '101px',
+                      height: '98px',
                       padding: '10px 20px 10px 20px',
                       display: 'flex',
                       transform: 'translateY(-50%)', 
                       color: 'white',
-                      backgroundColor: '#A3F2ED',
-                      border: '4px solid #54AAA4',
+                      backgroundColor: '#768CFF',
+                      border: '4px solid #020CFF',
                       borderRadius: '15px',
                       marginBottom: '5px',
                       borderTopLeftRadius: '0px',
@@ -342,10 +342,8 @@ function TeacherStudentGrades() {
                       transition: 'all 0.3s ease',
                       opacity: hoveredGrade === grade.id ? 1 : 0,
                     }} onClick={() => navigateToResults(grade.assignmentId, grade.type)}>
-                      <img style={{width: '30px', cursor: 'pointer', transform: 'scale(1)', transition: '.3s'}}
-                        onMouseEnter={(e) => { e.target.style.transform = 'scale(1.06)'; }}
-                        onMouseLeave={(e) => { e.target.style.transform = 'scale(1)'; }} 
-                        src='/gradesarrow.png' alt="View details"/>
+                     <div>
+                     <ArrowRight size={40} color="#020CFF" strokeWidth={3} /></div>
                     </button>
                   )}
                 </li>
@@ -426,7 +424,7 @@ function TeacherStudentGrades() {
                       top: '50%', 
                       width: '60px',
                       cursor: 'pointer',
-                      height: '101px',
+                      height: '98px',
                       padding: '10px 20px 10px 20px',
                       display: 'flex',
                       transform: 'translateY(-50%)', 
@@ -443,10 +441,7 @@ function TeacherStudentGrades() {
                       transition: 'all 0.3s ease',
                       opacity: hoveredGrade === grade.id ? 1 : 0,
                     }} onClick={() => navigateToResults(grade.assignmentId, grade.type)}>
-                      <img style={{width: '30px', cursor: 'pointer', transform: 'scale(1)', transition: '.3s'}}
-                        onMouseEnter={(e) => { e.target.style.transform = 'scale(1.06)'; }}
-                        onMouseLeave={(e) => { e.target.style.transform = 'scale(1)'; }} 
-                        src='/gradesarrow.png' alt="View details"/>
+                      <ArrowRight size={40} color="#020CFF" strokeWidth={3} />
                     </button>
                   )}
                 </li>

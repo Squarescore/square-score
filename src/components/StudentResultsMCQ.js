@@ -4,6 +4,7 @@ import { doc, getDoc } from 'firebase/firestore';
 import { db } from './firebase';
 import Navbar from './Navbar';
 import { motion, AnimatePresence } from 'framer-motion';
+import { SquareCheck, SquareX, ChevronUp, ChevronDown,  Square } from 'lucide-react';
 
 function StudentResultsMCQ() {
     const { assignmentId, studentUid } = useParams();
@@ -62,20 +63,7 @@ function StudentResultsMCQ() {
         if (percentage >= 60) return 'D';
         return 'F';
       };
-    const PerformanceCircle = ({ isCorrect, onClick }) => (
-        <div
-            onClick={onClick}
-            style={{
-                width: '20px',
-                height: '20px',
-                borderRadius: '50%',
-                backgroundColor: isCorrect ? 'green' : 'red',
-                display: 'inline-block',
-                margin: '5px',
-                cursor: 'pointer',
-            }}
-        />
-    );
+ 
 
     const renderQuestion = (questionData, index) => {
         const isCorrect = questionData.score > 0;
@@ -90,7 +78,7 @@ function StudentResultsMCQ() {
                 style={{
                     fontFamily: "'Radio Canada', sans-serif",
                     marginBottom: '20px',
-                    border: isCorrect ? '4px solid #F4F4F4' : '4px solid #F2A3A3',
+                    border: '4px solid #F4F4F4' ,
                     borderRadius: '15px',
                     padding: '0px 20px',
                     width: '800px',
@@ -100,21 +88,29 @@ function StudentResultsMCQ() {
                     listStyleType: 'none',
                 }}
             >
-                <div style={{ display: 'flex', alignItems: 'center', marginBottom: '10px' }}>
+                
+                <div style={{ display: 'flex', alignItems: 'center', marginBottom: '0px' }}>
+                <div>
+                    {isCorrect ? 
+                      <SquareCheck size={60} color="#00d12a" /> :  <SquareX size={60} color="#FF0000" />}
+                    </div>
+
+
+
                     <p style={{
                         fontWeight: 'bold',
                         fontSize: '25px',
                         color: 'black',
+                        marginLeft: '20px',
                         marginRight: '10px',
                         flex: 1,
                     }}>
                         {questionData.question}
                     </p>
-                    <img
-                        src={isCorrect ? '/greencheck.png' : '/redx.png'}
-                        alt={isCorrect ? "Correct" : "Incorrect"}
-                        style={{ width: '25px', height: '20px', marginRight: '10px', objectFit: 'contain' }}
-                    />
+                    
+                  
+                    
+                  
                     <button onClick={() => toggleExpanded(index)}
                         
                         style={{
@@ -123,7 +119,7 @@ function StudentResultsMCQ() {
                             cursor: 'pointer',
                             fontSize: '20px',
                         }}>
-                    {isExpanded ? '▲' : '▼'}
+                    {isExpanded ?<ChevronUp size={40} color="#666666" /> : <ChevronDown size={40} color="#666666" />}
                    </button>
                 </div>
                 
@@ -137,73 +133,149 @@ function StudentResultsMCQ() {
                             style={{ overflow: 'hidden' }}
                         >
                             <div style={{ display: 'flex', }}>
-                                {isCorrect ? (
-                                    <div style={{ display: 'flex', paddingBottom: '30px', width: '100%' }}>
-                                        <div style={{ 
-                                            width: hasExplanation ? '380px' : '100%', 
-                                            borderRadius: '15px', 
-                                            background: '#AEF2A3', 
-                                            border: '10px solid #2BB514' 
-                                        }}>
-                                            <h1 style={{ color: '#2BB514', fontSize: '28px', marginTop: '10px', fontFamily: '"Radio Canada", sans-serif', marginLeft: '20px' }}>
-                                                Your Answer
-                                            </h1>
-                                            <p style={{ fontSize: '20px', color: '#2BB514', width: '320px', marginLeft: '20px', fontWeight: 'bold' }}>
-                                                {questionData.choices[questionData.selectedAnswer]}
-                                            </p>
-                                        </div>
-                                        {hasExplanation && (
-                                            <div style={{ width: '370px', marginLeft: '20px' }}>
-                                                <h1 style={{ fontSize: '28px', marginTop: '0px', fontFamily: '"Radio Canada", sans-serif', color: 'black' }}>Explanation</h1>
-                                                <p style={{ fontSize: '20px', color: 'grey' }}>{questionData.explanation}</p>
-                                            </div>
-                                        )}
-                                    </div>
+                            {isCorrect ? (
+  <div style={{ display: 'flex', paddingBottom: '20px', width: '100%', marginTop: '20px' }}>
+    <div style={{
+      width: hasExplanation ? '380px' : '100%',
+      borderRadius: '20px',
+      position: 'relative',
+      border: '8px solid #20BF00',
+       flexDirection: 'column',
+      alignItems: 'center'
+    }}>
+      <h4 style={{
+        width: '150px',
+        marginTop: '-28px',
+        top: '4px',
+        left: '20px',
+        position: 'absolute',
+        background: '#BFFBB6',
+        color: '#20BF00',
+        textAlign: 'center',
+        borderRadius: '10px',
+        border: '4px solid white',
+        fontSize: '20px',
+        padding: '2px'
+      }}>
+        Your Answer
+      </h4>
+      <p style={{
+        fontSize: '18px',
+        color: 'black',
+        width: '320px',
+        marginLeft: '20px',
+        fontWeight: 'bold',     
+      }}>
+        {questionData.choices[questionData.selectedAnswer]}
+      </p>
+    </div>
+    {hasExplanation && (
+      <div style={{width: '370px', marginLeft: '20px' }}>
+
+           <h1 style={{fontSize: '20px', marginTop: '0px', fontFamily: '"Radio Canada", sans-serif', color: 'grey', fontStyle: 'italic' }}>
+                                 
+          Explanation
+        </h1>
+        <p style={{fontSize: '18px',color: 'lightgrey', fontStyle: 'italic'}}>
+                          
+        {questionData.explanation}
+    </p>
+    </div>
+        )}
+    </div>
                                 ) : (
-                                    <div style={{paddingBottom: '30px', width: '100%'}}>
-                                        <div style={{ display: 'flex', borderBottom: '4px solid lightgrey', paddingBottom: '30px' }}>
-                                            <div style={{ 
-                                                width: hasExplanation ? '380px' : '100%', 
-                                                borderRadius: '15px', 
-                                                background: '#F2A3A3', 
-                                                border: '10px solid #B51414'
-                                            }}>
-                                                <h1 style={{ color: 'darkred', fontSize: '28px', marginTop: '10px', fontFamily: '"Radio Canada", sans-serif', marginLeft: '20px' }}>
-                                                    Your Answer
-                                                </h1>
-                                                <p style={{ fontSize: '20px', marginLeft: '20px', color: 'darkRed', width: '320px', fontWeight: 'bold' }}>
-                                                    {questionData.choices[questionData.selectedAnswer]}
+                                    <div style={{paddingBottom: '20px', width: '100%', marginTop:'15px'}}>
+                                        <div style={{ display: 'flex', borderBottom: '4px solid #f4f4f4', paddingBottom: '20px' }}>
+                                        <div style={{
+      width: hasExplanation ? '380px' : '100%',
+      borderRadius: '20px',
+      position: 'relative',
+      border: '8px solid #F60000',
+       flexDirection: 'column',
+      alignItems: 'center'
+    }}>
+      <h4 style={{
+        width: '150px',
+        marginTop: '-28px',
+        top: '4px',
+        left: '20px',
+        position: 'absolute',
+        background: '#FFE4E4',
+        color: '#F60000',
+        textAlign: 'center',
+        borderRadius: '10px',
+        border: '4px solid white',
+        fontSize: '20px',
+        padding: '2px'
+      }}>
+        Your Answer
+      </h4>
+      <p style={{
+        fontSize: '18px',
+        color: 'black',
+        width: '320px',
+        marginLeft: '20px',
+        fontWeight: 'bold',     
+      }}>   {questionData.choices[questionData.selectedAnswer]}
                                                 </p>
                                             </div>
                                             {hasExplanation && (
-                                                <div style={{ width: '370px', marginLeft: '20px' }}>
-                                                    <h1 style={{ fontSize: '28px', marginTop: '0px', fontFamily: '"Radio Canada", sans-serif', color: 'black' }}>
-                                                        Explanation
-                                                    </h1>
-                                                    <p style={{ fontSize: '20px', color: 'grey' }}>{questionData.explanation}</p>
+                                        <div style={{width: '370px', marginLeft: '20px'}}>
+
+                                           <h1 style={{fontSize: '20px', marginTop: '0px', fontFamily: '"Radio Canada", sans-serif', color: 'grey', fontStyle: 'italic' }}>
+                                 
+                                          Explanation
+                                        </h1>
+                                        <p style={{fontSize: '18px', color: 'lightgrey', fontStyle: 'italic' }}>
+                             
+                                      {questionData.explanation}</p>
                                                 </div>
                                             )}
                                         </div>
-                                        <div style={{ display: 'flex', marginTop: '40px' }}>
-                                            <div style={{ 
-                                                width: hasExplanation ? '380px' : '100%', 
-                                                borderRadius: '15px', 
-                                                background: '#AEF2A3', 
-                                                border: '10px solid #2BB514' 
-                                            }}>
-                                                <h1 style={{ color: '#2BB514', fontSize: '28px', marginTop: '10px', fontFamily: '"Radio Canada", sans-serif', marginLeft: '20px' }}>
-                                                    Correct Answer
-                                                </h1>
-                                                <p style={{ fontSize: '20px', color: '#2BB514', fontWeight: 'bold', width: '320px', marginLeft: '20px' }}>
-                                                    {questionData.choices[questionData.correctAnswer]}
+                                        <div style={{ display: 'flex', marginTop: '30px' }}>
+                                        <div style={{
+      width: hasExplanation ? '380px' : '100%',
+      borderRadius: '20px',
+      position: 'relative',
+      border: '8px solid #20BF00',
+       flexDirection: 'column',
+      alignItems: 'center'
+    }}>
+      <h4 style={{
+        width: '150px',
+        marginTop: '-28px',
+        top: '4px',
+        left: '20px',
+        position: 'absolute',
+        background: '#BFFBB6',
+        color: '#20BF00',
+        textAlign: 'center',
+        borderRadius: '10px',
+        border: '4px solid white',
+        fontSize: '20px',
+        padding: '2px'
+      }}>
+        Correct Answer
+      </h4>
+      <p style={{
+        fontSize: '18px',
+        color: 'black',
+        width: '320px',
+        marginLeft: '20px',
+        fontWeight: 'bold',     
+      }}>  {questionData.choices[questionData.correctAnswer]}
                                                 </p>
                                             </div>
                                             {hasExplanation && (
-                                                <div style={{ width: '370px', marginLeft: '20px' }}>
-                                                    <h1 style={{ fontSize: '28px', marginTop: '0px', fontFamily: '"Radio Canada", sans-serif', color: 'black' }}>
-                                                        Explanation
+                                                   <div style={{width: '370px', marginLeft: '20px'}}>
+
+                                                      <h1 style={{fontSize: '20px', marginTop: '0px', fontFamily: '"Radio Canada", sans-serif', color: 'grey', fontStyle: 'italic' }}>
+                                 
+                                                      Explanation
                                                     </h1>
-                                                    <p style={{ fontSize: '20px', color: 'grey' }}>{questionData.explanation}</p>
+                                                    <p style={{fontSize: '18px', color: 'lightgrey', fontStyle: 'italic' }}>
+                             
+                                                   {questionData.explanation}</p>
                                                 </div>
                                             )}
                                         </div>
@@ -219,41 +291,41 @@ function StudentResultsMCQ() {
 
     return (
         <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', backgroundColor: 'white' }}>
-            <Navbar userType="teacher" />
+            <Navbar userType="student" />
       
             <div style={{ /* ... main div styles ... */ }}>
                
 
 
 
-               <div style={{ display: 'flex', alignItems: 'center', marginBottom: '-40px', justifyContent: 'space-around' }}>
-                    <h1 style={{ fontFamily: "'Radio Canada', sans-serif", fontSize: '40px', color: 'grey', width: '1000px', textAlign: 'center', marginTop: '100px' }}>
-                        
-                        <h1 style={{ fontSize: '80px', color: 'black', fontFamily: "'Rajdhani', sans-serif",marginTop: '20px' }}> {assignmentName}</h1>
-                    </h1>
-                </div>
-                <div style={{ marginBottom: '40px', fontFamily: "'Radio Canada', sans-serif", backgroundColor: 'white', display: 'flex', width: '1000px', height: '70px', marginLeft: 'auto', marginRight: 'auto', borderRadius: '100px',  border: '4px solid #F4F4F4', alignItems: 'center', justifyContent: 'space-around' }}>
+            <div style={{ display: 'flex',marginTop: '70px', alignItems: 'center', marginBottom: '-10px', justifyContent: 'space-around' }}>
+                    
+                    <h1 style={{ fontSize: '60px', color: 'black', marginTop: '50px',fontFamily: "'Rajdhani', sans-serif", textAlign: 'left', width: '800px' }}> {assignmentName}</h1>
+               
+            </div>
+                <div style={{ marginBottom: '40px', fontFamily: "'Radio Canada', sans-serif", backgroundColor: 'white', display: 'flex', width: '900px', height: '70px', marginLeft: 'auto', marginRight: 'auto', borderRadius: '15px',  border: '4px solid #F4F4F4', alignItems: 'center',}}>
                    
                 <div style={{ fontSize: '40px', fontWeight: 'bold', color: 'black' }}>
        
                </div>
                    
                    
-                    <div style={{ fontSize: '40px', fontWeight: 'bold', color: 'black', display: 'flex', alignItems: 'center', marginLeft: '0px', justifyContent: 'space-around' }}>
-                        <img style={{ width: '50px', height: '40px' }} src='/greencheck.png' />
+               <div style={{ fontSize: '40px', fontWeight: 'bold', color: 'black', display: 'flex', alignItems: 'center', marginLeft: '50px', justifyContent: 'space-around' }}>
+                    <SquareCheck size={50} color="#00d12a" />
                         <h1 style={{ backgroundColor: 'white', borderRadius: '5px', margin: 'auto', marginLeft: '20px', marginTop: '0px', fontSize: '40px', alignItems: 'center', position: 'relative', fontFamily: "'Radio Canada', sans-serif" }}>
                             {correctCount}</h1>
                     </div>
                     
-                    <div style={{ fontSize: '40px', fontWeight: 'bold', color: 'black', display: 'flex', alignItems: 'center', justifyContent: 'space-around' }}>
-                        <img style={{ width: '40px', height: '40px' }} src='/redx.png' />
+                    <div style={{ fontSize: '40px', fontWeight: 'bold', color: 'black', display: 'flex', alignItems: 'center', justifyContent: 'space-around', marginLeft: '60px', }}>
+                    <SquareX size={50} color="#ff0000" />
                         <h1 style={{ backgroundColor: 'white', borderRadius: '5px', margin: 'auto', marginLeft: '20px', marginTop: '0px', fontSize: '40px', alignItems: 'center', position: 'relative', fontFamily: "'Radio Canada', sans-serif" }}>
                             {incorrectCount}</h1>
                     </div>
-                    <div style={{ fontSize: '40px', fontWeight: 'bold', color: 'black' }}>
+                    
+                    <div style={{ fontSize: '40px', fontWeight: 'bold', color: 'black', marginLeft: '60px',  }}>
                     {Math.round((results.rawTotalScore / results.maxRawScore) * 100)}%
                     </div>
-                    <div style={{ width: '100px', height: '100px', border: '10px solid #627BFF', borderRadius: '20px', background: '#020CFF', marginTop: '0px', marginRight: '-85px', zIndex: '100' }}>
+                    <div style={{ width: '100px', height: '100px', border: '10px solid #627BFF', borderRadius: '20px', background: '#020CFF', marginTop: '0px', marginLeft: 'auto' , marginRight: '125px', zIndex: '100' }}>
                         <div style={{ width: '79px', height: '79px', backgroundColor: 'white', borderRadius: '5px', margin: 'auto', marginTop: '10px', justifyContent: 'space-around', fontSize: '60px', alignItems: 'center', position: 'relative', fontFamily: "'Radio Canada', sans-serif" }}>
                             <h1 style={{ backgroundColor: 'transparent', borderRadius: '5px', marginTop: '11px', justifyContent: 'space-around', fontSize: '60px', textAlign: 'center', alignItems: 'center', position: 'relative', fontFamily: "'Radio Canada', sans-serif" }}>
                             {calculateLetterGrade(Math.round((results.rawTotalScore / results.maxRawScore) * 100))}
@@ -262,23 +334,39 @@ function StudentResultsMCQ() {
                         </div>
                     </div>
                                   
-                <div style={{ fontFamily: "'Radio Canada', sans-serif", background: '#f4f4f4', padding: '15px', borderRadius: '10px', height: '50px', width: '220px', borderTopRightRadius: '100px', borderBottomRightRadius: '100px', marginRight: '-50px',marginBottom: '0px', color: 'grey', fontSize: '20px', fontWeight: 'bold' }}>
-                     <p style={{textAlign: 'left', marginBottom: '0px', marginTop: '0px'}}>
-                    Completed:</p> {new Date(results.submittedAt.toDate()).toLocaleString()}</div>
-                </div>
-                <div style={{display: 'flex', width:'700px',marginLeft: 'auto', marginRight: 'auto', alignItems: 'center', justifyContent: 'center' }}>
-            <div style={{ marginTop: '-20px', }}>
-                    {results.questions.map((question, index) => (
-                        <PerformanceCircle
+             </div>
+
+             <div style={{
+        width: '870px',
+        marginLeft: 'auto',
+        marginTop: '-20px',
+        marginRight: 'auto',
+       
+        textAlign: 'center',
+        backgroundColor: 'white',
+        borderRadius: '10px',
+        position: 'relative'
+      }}>
+               <div style={{position: 'relative', height: '90px'}}>
+                <p style={{ fontFamily: "'Radio Canada', sans-serif", fontSize:'20px', fontWeight: 'bold', marginBottom: '60px', color: 'grey', position:'absolute', left: '40px',top: '-10px'   }}> Completed: {new Date(results.submittedAt.toDate()).toLocaleString()}</p>
+       
+           
+                <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '25px', marginBottom: '40px', position:'absolute', left: '40px', top: '60px'  }}>
+                {results.questions.map((question, index) => (
+                        <Square
                             key={index}
-                            isCorrect={question.score > 0}
+                            color={question.score > 0 ? '#00d12a' : '#FF0000'}
+                            style={{ cursor: 'pointer' }}
+                            strokeWidth={5}
+                            size={20}
                             onClick={() => handleCircleClick(index)}
                         />
                     ))}
                 </div>
-             
-               </div>
+             </div>
+        </div>
 
+          
 
 
               

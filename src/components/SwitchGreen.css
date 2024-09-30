@@ -6,7 +6,7 @@
     appearance: none;
     -webkit-appearance: none;
     border-radius: 10px;
-    background-color: rgba(100, 116, 139, 0.377);
+    background-color: rgba(201, 201, 201, 0.377);
     transition: all .3s ease;
   }
   .greenSwitch:checked {
@@ -15,7 +15,7 @@
   .greenSwitch::before {
     position: absolute;
     content: "";
-    left: calc(4.5rem - 4.20rem);
+    left: calc(4.6rem - 4.30rem);
     top: calc(4.5rem - 4.3rem);
     display: block;
     height: 1.1rem;
@@ -24,7 +24,7 @@
     border: 4px solid rgba(255, 255, 255, 0.527);
     border-radius: 7px;
     background-color: rgba(255, 255, 255, 1);
-   box-shadow:  0px 4px 4px 0px rgba(0, 0, 0, 0.25);
+   box-shadow:  0px 4px 4px 0px rgba(0, 0, 0, 0.15);
     transition: all .3s ease;
   }
   .greenSwitch:hover::before {

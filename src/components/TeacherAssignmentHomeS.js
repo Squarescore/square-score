@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 
-const TeacherAssignmentHome = ({ onFormatSelect }) => {
+const TeacherAssignmentHomeS = ({ onFormatSelect }) => {
   const [selectedFormat, setSelectedFormat] = useState(null);
 
   const formatButtons = [
@@ -12,15 +12,17 @@ const TeacherAssignmentHome = ({ onFormatSelect }) => {
 
   return (
 
-      <div style={{ display: 'flex', gap: '15px', marginTop: '20px', flexWrap: 'wrap', justifyContent: 'center' }}>
+      <div style={{ display: 'flex', marginTop: '20px', flexWrap: 'wrap',  width: '1000px' , gap: '100px', }}>
+        <h1 style={{fontSize: '30px', 
+              fontFamily: "'Rajdhani', sans-serif", color: 'black', marginTop: '5px'}}> Select Format:</h1>
         {formatButtons.map(format => (
           <button
             key={format.value}
             style={{
               padding: '10px',
-              border: selectedFormat === format.value ? `4px solid ${format.color}` : '4px solid #D7D7D7',
+              border: 'none',
               borderRadius: '10px',
-              backgroundColor: 'white',
+              backgroundColor: 'transparent',
               color: format.color,
               height: '50px',
               fontSize: '20px',
@@ -59,4 +61,4 @@ const TeacherAssignmentHome = ({ onFormatSelect }) => {
   );
 };
 
-export default TeacherAssignmentHome;
+export default TeacherAssignmentHomeS;

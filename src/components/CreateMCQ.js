@@ -1,16 +1,24 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { doc, getDoc, setDoc, writeBatch, arrayUnion, serverTimestamp } from 'firebase/firestore';
-import { db } from './firebase'; // Ensure the path is correct
-import Navbar from './Navbar';
-import SelectStudents from './SelectStudents';
-import CustomDateTimePicker from './CustomDateTimePicker';
-import 'react-datepicker/dist/react-datepicker.css';
-import PreviewMCQ from './previewMCQ';
+
 import axios from 'axios';
-import { auth } from './firebase';
-import { updateDoc } from 'firebase/firestore';
-import { arrayRemove } from 'firebase/firestore';
+
+
+import { doc, getDoc, setDoc, writeBatch, arrayUnion, serverTimestamp, arrayRemove, updateDoc} from 'firebase/firestore';
+
+import { db, auth } from './firebase'; // Ensure the path is correct
+
+
+import 'react-datepicker/dist/react-datepicker.css';
+import { v4 as uuidv4 } from 'uuid';
+import {Sparkles,Landmark, Eye, User   } from 'lucide-react';
+
+import Navbar from './Navbar';
+import DateSettings, { formatDate } from './DateSettings';
+import SecuritySettings from './SecuritySettings';
+import SelectStudentsDW from './SelectStudentsDW';
+import PreviewMCQ from './previewMCQ';
+
 const dropdownContentStyle = `
   .dropdown-content {
     max-height: 0;
@@ -49,16 +57,13 @@ const MCQ = () => {
   const [teacherId, setTeacherId] = useState(null);
   const [assignmentName, setAssignmentName] = useState('');
   const [timer, setTimer] = useState('10');
-  const [securityDropdownOpen, setSecurityDropdownOpen] = useState(false);
   const [contentDropdownOpen, setContentDropdownOpen] = useState(false);
   const [timerOn, setTimerOn] = useState(false);
   const [feedback, setFeedback] = useState(false);
   const [retype, setRetype] = useState(false);
-  const [timeDropdownOpen, setTimeDropdownOpen] = useState(false);
   const [selectedOptions, setSelectedOptions] = useState([4]);
   const [saveAndExit, setSaveAndExit] = useState(true);
   const [lockdown, setLockdown] = useState(false);
-  const [optionsCount, setOptionsCount] = useState(4);
   const [assignDate, setAssignDate] = useState(new Date());
   const [questionsGenerated, setQuestionsGenerated] = useState(false);
 
@@ -69,13 +74,10 @@ const MCQ = () => {
   })
   
   const [draftId, setDraftId] = useState(null);
-  const [sourceOption, setSourceOption] = useState(null);
   const [sourceText, setSourceText] = useState('');
-  const [youtubeLink, setYoutubeLink] = useState('');
   
   const [questionBank, setQuestionBank] = useState('10');
   const [questionStudent, setQuestionStudent] = useState('5');
-  const [studentsDropdownOpen, setStudentsDropdownOpen] = useState(false);
   const [className, setClassName] = useState('');
   const [additionalInstructions, setAdditionalInstructions] = useState('');
   const [showAdditionalInstructions, setShowAdditionalInstructions] = useState(false);
@@ -86,37 +88,113 @@ const MCQ = () => {
   const { classId, assignmentId } = useParams();
   const [progress, setProgress] = useState(0);
 const [progressText, setProgressText] = useState('');
-const [questionCount, setQuestionCount] = useState(0);
   const navigate = useNavigate();
 
   const convertToDateTime = (date) => {
     return formatDate(new Date(date));
   };
-      
-  const formatDate = (date) => {
-    const options = {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: true,
-      timeZoneName: 'short'
+  const [selectedFormat, setSelectedFormat] = useState('MCQ');
+  const [showFormatDropdown, setShowFormatDropdown] = useState(false);
+
+
+
+
+
+  const formatOptions = [
+    { label: 'SAQ', color: '#020CFF', hasAsterisk: true, value: 'ASAQ' },
+    { label: 'SAQ', color: '#020CFF', hasAsterisk: false, value: 'SAQ' },
+    { label: 'MCQ', color: '#009006', hasAsterisk: true, value: 'AMCQ' },
+    { label: 'MCQ', color: '#009006', hasAsterisk: false, value: 'MCQ' }
+  ];
+
+  const getDropdownOptions = () => {
+    const currentFormat = formatOptions.find(f => f.value === selectedFormat);
+    const currentFormatBase = selectedFormat.replace(/^A/, '');
+    const alternateCurrentFormat = formatOptions.find(f => 
+      f.label === currentFormatBase && f.hasAsterisk !== (selectedFormat.startsWith('A'))
+    );
+    const otherFormats = formatOptions.filter(f => f.label !== currentFormatBase);
+
+    return { alternateCurrentFormat, currentFormat, otherFormats };
+  };
+  const handleFormatChange = async (newFormat) => {
+    if (newFormat === selectedFormat) return;
+
+    const newAssignmentId = uuidv4();
+    const fullNewAssignmentId = `${classId}+${newAssignmentId}+${newFormat}`;
+    let collectionName = '';
+    let classFieldName = '';
+    let navigationPath = '';
+
+    switch (newFormat) {
+      case 'SAQ':
+        collectionName = 'assignments(saq)';
+        classFieldName = 'assignment(saq)';
+        navigationPath = `/class/${classId}/createassignment/${fullNewAssignmentId}`;
+        break;
+      case 'ASAQ':
+        collectionName = 'assignments(Asaq)';
+        classFieldName = 'assignment(Asaq)';
+        navigationPath = `/class/${classId}/SAQA/${fullNewAssignmentId}`;
+        break;
+      case 'MCQ':
+        collectionName = 'assignments(mcq)';
+        classFieldName = 'assignment(mcq)';
+        navigationPath = `/class/${classId}/MCQ/${fullNewAssignmentId}`;
+        break;
+      case 'AMCQ':
+        collectionName = 'assignments(Amcq)';
+        classFieldName = 'assignment(Amcq)';
+        navigationPath = `/class/${classId}/MCQA/${fullNewAssignmentId}`;
+        break;
+      default:
+        console.error('Invalid format selected');
+        return;
+    }
+
+    const assignmentData = {
+      classId,
+      assignmentType: newFormat,
+      isAdaptive: newFormat === 'ASAQ' || newFormat === 'AMCQ',
+      assignmentId: fullNewAssignmentId,
+      // Add other relevant data from the current assignment
+      assignmentName,
+      timer: timerOn ? Number(timer) : 0,
+      timerOn,
+      feedback,
+      retype,
+      assignDate: formatDate(assignDate),
+      dueDate: formatDate(dueDate),
+      selectedStudents: Array.from(selectedStudents),
+      questionBank: Number(questionBank),
+      questionStudent: Number(questionStudent),
+      saveAndExit,
+      lockdown,
+      createdAt: serverTimestamp(),
+      questions: generatedQuestions,
+      additionalInstructions
     };
-    
-    const formattedDate = date.toLocaleString('en-US', options);
-    
-    // Remove commas and adjust the format
-    return formattedDate
-      .replace(',', '') // Remove the comma after the day of week
-      .replace(',', '') // Remove the comma after the day
-      .replace(' at ', ' ') // Remove 'at'
-      .replace(/(\d{1,2}):(\d{2}):00/, '$1:$2') // Remove seconds
-      .replace(' PM', ' PM ') // Add space before timezone
-      .replace(' AM', ' AM '); // Add space before timezone
+
+    try {
+      // Create new assignment document
+      const assignmentRef = doc(db, collectionName, fullNewAssignmentId);
+      await setDoc(assignmentRef, assignmentData);
+
+      // Update class document
+      const classRef = doc(db, 'classes', classId);
+      await updateDoc(classRef, {
+        [classFieldName]: arrayUnion(fullNewAssignmentId)
+      });
+
+      // Navigate to the new assignment page
+      navigate(navigationPath);
+    } catch (error) {
+      console.error('Error creating new assignment:', error);
+      alert(`Error creating new assignment: ${error.message}. Please try again.`);
+    }
   };
 
+ 
   const toggleAdditionalInstructions = () => {
     setShowAdditionalInstructions(!showAdditionalInstructions);
     if (showAdditionalInstructions) {
@@ -162,26 +240,7 @@ const [questionCount, setQuestionCount] = useState(0);
     }
   }, [selectedOptions]);
 
-  const ProgressBar = ({ progress, text }) => (
-    <div style={{ width: '300px', marginLeft: '20px' }}>
-      <div style={{
-        height: '20px',
-        backgroundColor: '#e0e0e0',
-        borderRadius: '10px',
-        overflow: 'hidden'
-      }}>
-        <div style={{
-          width: `${progress}%`,
-          height: '100%',
-          backgroundColor: '#020CFF',
-          transition: 'width 0.5s ease-in-out'
-        }}></div>
-      </div>
-      <div style={{ textAlign: 'center', marginTop: '5px', fontSize: '14px', color: '#666' }}>
-        {text}
-      </div>
-    </div>
-  );
+  
 
   const assignToStudents = async (assignmentId) => {
     const selectedStudentIds = Array.from(selectedStudents);
@@ -481,6 +540,39 @@ const [questionCount, setQuestionCount] = useState(0);
     4: { background: '#F8CFFF', color: '#E01FFF' },
     5: { background: '#FFECA8', color: '#CE7C00' }
   };
+  const FormatOption = ({ format, onClick, isLast }) => (
+    <div 
+      style={{
+        padding: '5px',
+        width: '190px',
+        textAlign: 'center',
+        fontSize: '30px',
+        cursor: 'pointer',
+        display: 'flex',
+        alignItems: 'center',
+        borderBottom: isLast ? 'none' : '4px solid lightgrey',
+        color: format.color
+      }}
+      onClick={() => onClick(format.value)}
+    >
+      <div style={{ marginLeft: 'auto', marginRight: 'auto', width: '80px', textAlign: 'left'}}>
+        {format.label}
+        {format.hasAsterisk && (
+          <span style={{
+            marginLeft: '5px',
+            color: '#FCCA18',
+            fontWeight: 'bold'
+          }}>*</span>
+        )}
+      </div>
+    </div>
+  );
+
+
+
+
+
+
 
   return (
     <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', backgroundColor: 'white' }}>
@@ -493,7 +585,7 @@ const [questionCount, setQuestionCount] = useState(0);
                 width: '400px',
                 position: 'fixed',
                 right: '-80px',
-                zIndex: '4',
+                zIndex: '100',
                 border: '15px solid #E01FFF',
                 borderRadius: '30px',
                 top: '-40px',
@@ -505,41 +597,84 @@ const [questionCount, setQuestionCount] = useState(0);
             >
               <h1 style={{fontSize: '45px', width: '400px',  marginTop: '100px', marginLeft: '-50px', marginBottom: '0px', fontFamily: "'Rajdhani', sans-serif", }}>Save as Draft</h1>
             </button>
-        <button
-          onClick={handlePrevious}
-          style={{
-            position: 'fixed',
-            width: '75px',
-            height: '75px',
-            padding: '10px 20px',
-            left: '10%',
-            top: '460px',
-            bottom: '20px',
-            backgroundColor: 'transparent',
-            cursor: 'pointer',
-            border: 'none',
-            fontSize: '30px',
-            color: '#45B434',
-            borderRadius: '10px',
-            fontWeight: 'bold',
-            fontFamily: "'Radio Canada', sans-serif",
-            transition: '.5s',
-            transform: 'scale(1)',
-            opacity: '100%'
-          }}
-          onMouseEnter={(e) => {
-            e.target.style.transform = 'scale(1.04)';
-          }}
-          onMouseLeave={(e) => {
-            e.target.style.transform = 'scale(1)';
-          }}
-        >
-          <img src='/LeftGreenArrow.png' style={{ width: '75px', transition: '.5s' }} />
-        </button>
+    
         
-        <h1 style={{ marginLeft: '30px',  fontFamily: "'Rajdhani', sans-serif", color: 'black', fontSize: '80px', display: 'flex', marginBottom: '100px' }}>
-          Create (<h1 style={{ fontSize: '70px', marginTop: '10px', marginLeft: '0px', color: '#009006',display:'flex' }}> MCQ </h1>)
-        </h1>
+        <div style={{ marginLeft: '30px',  fontFamily: "'Rajdhani', sans-serif", color: 'black', fontSize: '80px', display: 'flex',marginTop: '120px', marginBottom: '160px', fontWeight: 'bold' }}>
+        Create (
+          <div 
+            style={{ 
+              fontSize: '70px', 
+              marginTop: '10px', 
+              marginLeft: '10px',
+              marginRight: '10px',
+              color: '#009006',
+              display: 'flex',
+              userSelect: 'none',
+              border: '1px solid #ddd',
+              alignItems: 'center',
+              backgroundColor: '#f4f4f4',
+              borderBottom: showFormatDropdown ? '4px solid lightgrey' : '0px solid grey',
+              padding: '0 15px',
+              borderRadius: showFormatDropdown ? '0' : '10px',
+              cursor: 'pointer',
+              position: 'relative',
+              zIndex: 11,
+              boxShadow: showFormatDropdown ? '0 0 8px rgba(0,0,0,0.1)' : 'none',
+            }}
+            onClick={() => setShowFormatDropdown(!showFormatDropdown)}
+          >
+            {selectedFormat}
+            <h1 style={{fontSize: '30px', marginLeft: '10px', color: 'grey'}}> ▼</h1>
+            {showFormatDropdown && (
+               <>
+               <div style={{
+                 position: 'absolute',
+                 bottom: '100%',
+                 left: 0,
+                 right: 0,
+                 backgroundColor: '#f4f4f4',
+                 border: '1px solid #ddd',
+                 borderRadius: '10px 10px 0 0',
+                 zIndex: 9,
+                 boxShadow: '0 -4px 8px rgba(0,0,0,0.1)'
+               }}>
+                 <FormatOption format={getDropdownOptions().alternateCurrentFormat} onClick={handleFormatChange} />
+               </div>
+               <div style={{
+                 position: 'absolute',
+                 top: '104%',
+                 left: 0,
+                 right: 0,
+                 userSelect: 'none',
+                 backgroundColor: '#f4f4f4',
+                 border: '1px solid #ddd',
+                 borderRadius: '0 0 10px 10px',
+                 zIndex: 1000,
+                 boxShadow: '0 4px 8px rgba(0,0,0,0.1)'
+               }}>
+                 {getDropdownOptions().otherFormats.map((format, index) => (
+                   <FormatOption 
+                     key={format.value} 
+                     format={format} 
+                     onClick={handleFormatChange} 
+                     isLast={index === getDropdownOptions().otherFormats.length - 1} 
+                   />
+                 ))}
+                </div>
+              </>
+            )}
+          </div>
+          )
+        </div>
+
+
+
+
+
+
+
+
+        
         <div style={{ width: '100%', height: 'auto', marginTop: '-200px', border: '10px solid transparent', borderRadius: '30px', padding: '20px' }}>
           <div style={{ width: '810px', marginLeft: 'auto', marginRight: 'auto', marginTop: '30px' }}>
           <div style={{ position: 'relative' }}>
@@ -548,7 +683,7 @@ const [questionCount, setQuestionCount] = useState(0);
       position: 'absolute',
       left: '30px',
       top: '-25px',
-      zIndex: '300',
+      zIndex: '20',
       width: '80px',
       textAlign: 'center',
       backgroundColor: 'white',
@@ -591,9 +726,10 @@ const [questionCount, setQuestionCount] = useState(0);
   </span>
 </div>
             <div style={{ width: '810px', display: 'flex' }}>
-              <div style={{ marginBottom: '20px', width: '790px', height: '320px', borderRadius: '10px', border: '4px solid #F4F4F4' }}>
-                <div style={{ width: '730px', marginLeft: '20px', height: '80px', borderBottom: '4px solid lightgrey', display: 'flex', position: 'relative', alignItems: 'center', borderRadius: '0px', padding: '10px' }}>
-                  <h1 style={{ fontSize: '30px', color: 'black', width: '300px', paddingLeft: '0px' }}>Timer:</h1>
+              <div style={{ marginBottom: '20px', width: '790px', height: '200px', borderRadius: '10px', border: '4px solid #F4F4F4' }}>
+                <div style={{ width: '730px', marginLeft: '20px', height: '80px', borderBottom: '4px solid #f4f4f4', display: 'flex', position: 'relative', alignItems: 'center', borderRadius: '0px', padding: '10px' }}>
+                  <h1 style={{ fontSize: '30px', color: 'black', width: '300px', paddingLeft: '0px' ,
+      fontFamily: "'Radio Canada', sans-serif",}}>Timer:</h1>
                   {timerOn ? (
                     <div style={{ display: 'flex', alignItems: 'center', position: 'relative', marginLeft: '30px' }}>
                       <input
@@ -637,7 +773,11 @@ const [questionCount, setQuestionCount] = useState(0);
                     onChange={() => setTimerOn(!timerOn)}
                   />
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', height: '80px', width: '750px', marginLeft: '20px', borderBottom: '4px solid lightgrey', position: 'relative', marginTop: '0px', paddingBottom: '20px' }}>
+
+
+
+                
+                <div style={{ display: 'flex', alignItems: 'center', height: '80px', width: '750px', marginLeft: '20px',  position: 'relative', marginTop: '0px', paddingBottom: '20px' }}>
           <label style={{ fontSize: '30px', color: 'black', marginLeft: '10px', marginRight: '38px', fontFamily: "'Radio Canada', sans-serif", fontWeight: 'bold', marginTop: '20px' }}>Feedback: </label>
           <div style={{ marginLeft: 'auto', marginRight: '10px', marginTop: '20px' }}>
             <input
@@ -647,11 +787,11 @@ const [questionCount, setQuestionCount] = useState(0);
               onChange={() => setFeedback(!feedback)}
             />
           </div>
-        </div>
-
-        <div style={{ display: 'flex', alignItems: 'center', height: '80px', width: '750px', marginLeft: '20px', borderBottom: '0px solid lightgrey', position: 'relative', marginTop: '0px', paddingBottom: '20px' }}>
-          <label style={{ fontSize: '30px', color: 'black', marginLeft: '10px', marginRight: '38px', fontFamily: "'Radio Canada', sans-serif", fontWeight: 'bold' }}>Retype: </label>
-          <div style={{ marginLeft: 'auto', marginRight: '10px' }}>
+       
+<div style={{width: '4px', background: '#f4f4f4', height: '50px', marginTop: '20px'}}></div>
+        <div style={{ display: 'flex', alignItems: 'center', height: '80px', width: '350px', marginLeft: '20px', position: 'relative', paddingBottom: '20px',  marginTop: '20px'  }}>
+          <label style={{ fontSize: '30px', color: 'black', marginLeft: '10px', marginRight: '38px', fontFamily: "'Radio Canada', sans-serif", fontWeight: 'bold' ,  marginTop: '20px' }}>Retype: </label>
+          <div style={{ marginLeft: 'auto', marginRight: '10px',  marginTop: '20px'  }}>
             <input
               type="checkbox"
               className="greenSwitch"
@@ -660,100 +800,35 @@ const [questionCount, setQuestionCount] = useState(0);
             />
           </div>
         </div>
-              
+        </div>
+
               </div>
             </div>
-            <div style={{ width: '770px', padding: '10px', border: '4px solid #F4F4F4', borderRadius: '10px' }}>
-              <button
-                onClick={() => setTimeDropdownOpen(!timeDropdownOpen)}
-                style={{
-                  width: '100%',
-                  padding: '10px',
-                  fontSize: '30px',
-                  backgroundColor: 'white',
-                  color: 'black',
-                  border: 'none',
-                  cursor: 'pointer',
-                  height: '50px',
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center'
-                }}
-              >
-                <img style={{ width: '40px' }} src='/clock.png' />
-                <h1 style={{ fontSize: '30px', marginLeft: '20px', marginRight: 'auto' }}> Dates</h1>
-                <img
-                  src={timeDropdownOpen ? '/Up.png' : '/Down.png'}
-                  alt={timeDropdownOpen ? "Collapse" : "Expand"}
-                  style={{ width: '20px' }}
-                />
-              </button>
+           
+      
+            <DateSettings
+          assignDate={assignDate}
+          setAssignDate={setAssignDate}
+          dueDate={dueDate}
+          setDueDate={setDueDate}
+        />
 
-              <div className={`dropdown-content ${timeDropdownOpen ? 'open' : ''}`}>
-                <div style={{ marginTop: '10px' }}>
-                  {/* Assign and Due Dates */}
-                  <div style={{ marginTop: '10px', display: 'flex', position: 'relative', alignItems: 'center' }}>
-                    <h1 style={{ marginLeft: '20px' }}>Assign on:</h1>
-                    <div style={{ marginLeft: 'auto', marginRight: '20px' }}>
-                      <CustomDateTimePicker
-                        selected={assignDate}
-                        onChange={(date) => setAssignDate(date)}
-                        label="Assign Date"
-                      />
-                    </div>
-                  </div>
-                  <div style={{ marginTop: '10px', display: 'flex', position: 'relative', alignItems: 'center' }}>
-                    <h1 style={{ marginLeft: '20px' }}>Due on:</h1>
-                    <div style={{ marginLeft: 'auto', marginRight: '20px' }}>
-                      <CustomDateTimePicker
-                        selected={dueDate}
-                        onChange={(date) => setDueDate(date)}
-                        label="Due Date"
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
 
-            <div style={{ width: '770px', padding: '10px', marginTop: '20px', border: '4px solid #F4F4F4', borderRadius: '10px', marginBottom: '20px' }}>
-              <button
-                onClick={() => setStudentsDropdownOpen(!studentsDropdownOpen)}
-                style={{
-                  width: '100%',
-                  padding: '10px',
-                  fontSize: '30px',
-                  height: '50px',
-                  backgroundColor: 'white',
-                  color: 'black',
-                  border: 'none',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center'
-                }}
-              >
-                <img style={{ width: '40px' }} src='/select.png' />
-                <h1 style={{ fontSize: '30px', marginRight: 'auto', marginLeft: '20px' }}>Select Students</h1>
-                <img
-                  src={studentsDropdownOpen ? '/Up.png' : '/Down.png'}
-                  alt={studentsDropdownOpen ? "Collapse" : "Expand"}
-                  style={{ width: '20px' }}
-                />
-              </button>
+          <SecuritySettings
+          saveAndExit={saveAndExit}
+          setSaveAndExit={setSaveAndExit}
+          lockdown={lockdown}
+          setLockdown={setLockdown}
+        />
 
-              <div className={`dropdown-content ${studentsDropdownOpen ? 'open' : ''}`}>
-                <div style={{ marginTop: '10px' }}>
-                  <SelectStudents
-                    classId={classId}
-                    selectedStudents={selectedStudents}
-                    setSelectedStudents={setSelectedStudents}
-                  />
-                </div>
-              </div>
-            </div>
+          <SelectStudentsDW
+          classId={classId}
+          selectedStudents={selectedStudents}
+          setSelectedStudents={setSelectedStudents}
+        />
+
             {showPreview && generatedQuestions && generatedQuestions.length > 0 && (
-              <div style={{ width: '100%', position: 'absolute', zIndex: 100000, background: 'white', top: '70px', left: '0%' }}>
+              <div style={{ width: '100%', position: 'absolute', zIndex: 100, background: 'white', top: '70px', left: '0%' }}>
                 <PreviewMCQ
                   questions={generatedQuestions}
                   onBack={() => setShowPreview(false)}
@@ -779,8 +854,9 @@ const [questionCount, setQuestionCount] = useState(0);
                   alignItems: 'center'
                 }}
               >
-                <img style={{ width: '30px', marginRight: '20px', marginLeft: '5px' }} src='/idea.png' />
-                <h1 style={{ fontSize: '30px', marginLeft: '0px', marginRight: 'auto' }}>Generate Questions</h1>
+                
+              <Sparkles size={40} color="#000000" />    
+                <h1 style={{ fontSize: '30px', marginLeft: '20px', marginRight: 'auto' , fontFamily: "'Radio Canada', sans-serif", }}>Generate Questions</h1>
                 <img
                   src={contentDropdownOpen ? '/Up.png' : '/Down.png'}
                   alt={contentDropdownOpen ? "Collapse" : "Expand"}
@@ -791,32 +867,46 @@ const [questionCount, setQuestionCount] = useState(0);
               <div className={`dropdown-content ${contentDropdownOpen ? 'open' : ''}`}>
                 <div style={{ marginTop: '0px' }}>
                   {/* Questions Section */}
-                  <div style={{ width: '730px', background: 'lightgrey', height: '3px', marginLeft: '20px', marginTop: '20px' }}></div>
-                  
+               
 
                   <div style={{display: 'flex', alignItems: 'center', position: 'relative'}}>
-      <h2 style={{ fontSize: '30px', color: 'black', marginBottom: '10px' , marginLeft: '20px'}}>Question Bank</h2>
+      <h2 style={{ fontSize: '25px', color: '#808080', marginBottom: '10px' , marginLeft: '20px', zIndex: '-1'}}>Questions:</h2>
+    
+      <div style={{display: 'flex', marginLeft: 'auto'}}>
+      <div style={{display: 'flex', }}>
+
+        <div style={{marginTop: '25px', marginRight: '10px'}}> 
+        <Landmark size={40} color="#000000" /></div>
       <input
         type="number"
         placeholder="10"
         value={questionBank}
         onChange={(e) => setQuestionBank(e.target.value)}
-        style={{ width: '60px', fontWeight:'bold',marginBottom: '10px', marginTop: '25px',  marginLeft: 'auto', marginRight: '20px',padding: '10px', fontSize: '30px',  border: '4px solid #F4F4F4', borderRadius: '10px' }}
+        style={{ width: '50px', fontWeight:'bold',marginBottom: '0px', textAlign: 'center' ,fontFamily: "'Radio Canada', sans-serif", marginTop: '25px', marginLeft: 'auto', marginRight: '20px',padding: '0px', paddingLeft: '15px', height: '35px', fontSize: '30px',  border: '4px solid #f4f4f4', borderRadius: '10px' }}
       />
       </div>
-      <div style={{display: 'flex', alignItems: 'center', position: 'relative'}}>
-      <h2 style={{ fontSize: '30px', color: 'black', marginBottom: '10px', marginLeft: '20px' }}>Question Per Student</h2>
-      
+      </div>
+
+      <div style={{display: 'flex', marginLeft: '30px'}}>
+        <div style={{marginTop: '25px', marginRight: '10px'}}> 
+        <User size={40} color="#000000" /></div>
       <input
         type="number"
         placeholder="5"
         value={questionStudent}
         onChange={(e) => setQuestionStudent(e.target.value)}
-        style={{ width: '60px', fontWeight:'bold',marginBottom: '10px', marginTop: '25px',  marginLeft: 'auto', marginRight: '20px',padding: '10px', fontSize: '30px',  border: '4px solid #F4F4F4', borderRadius: '10px' }}
+        style={{ width: '50px', fontWeight:'bold',marginBottom: '10px',fontFamily: "'Radio Canada', sans-serif",marginTop: '25px', textAlign: 'center' , marginLeft: 'auto', marginRight: '20px',padding: '0px', paddingLeft: '15px',fontSize: '30px', height: '35px', border: '4px solid #f4f4f4', borderRadius: '10px' }}
         />
         </div>
 
-        <div style={{ width: '730px', background: 'lightgrey', height: '3px', marginLeft: '20px', marginTop: '20px' }}></div>
+     
+
+        </div>
+      
+
+
+
+        <div style={{ width: '730px', background: '#f4f4f4', height: '3px', marginLeft: '20px', marginTop: '20px' }}></div>
                   
                   <div style={{ width: '750px', height: '80px', border: '4px solid transparent', display: 'flex', position: 'relative', alignItems: 'center', borderRadius: '10px', padding: '10px', marginLeft: '-15px' }}>
                   <h1 style={{ fontSize: '30px', color: 'black', width: '400px', paddingLeft: '20px' }}>Choices Per Question</h1>
@@ -837,14 +927,14 @@ const [questionCount, setQuestionCount] = useState(0);
                           marginLeft: '20px',
                           marginTop: '-45px',
                           backgroundColor: selectedOptions.includes(num) ? optionStyles[num].background : 'white',
-                          border: selectedOptions.includes(num) ? `5px solid ${optionStyles[num].color}` : '4px solid lightgrey',
+                          border: selectedOptions.includes(num) ? `5px solid ${optionStyles[num].color}` : '4px solid #f4f4f4',
                           borderRadius: '105px',
                           cursor: 'pointer',
                           transition: 'all 0.3s ease',
                         }}
                       >
                         <h1 style={{
-                          fontSize: '24px',
+                          fontSize: '24px',fontFamily: "'Radio Canada', sans-serif",
                           color: selectedOptions.includes(num) ? optionStyles[num].color : 'black',
                           margin: 0,
                         }}>{num}</h1>
@@ -853,14 +943,13 @@ const [questionCount, setQuestionCount] = useState(0);
                   </div>
                 </div>
 
-                <div style={{ width: '730px', background: 'lightgrey', height: '3px', marginLeft: '20px', marginTop: '0px' }}></div>
-                
+               
 
                   <div style={{ width: '740px', marginLeft: '20px', }}>
                
                    
                       <textarea
-                        placeholder="Paste source here"
+                        placeholder="Paste source here. No source? No problem - just type in your topic."
                         value={sourceText}
                         onChange={(e) => setSourceText(e.target.value)}
                         style={{
@@ -868,7 +957,7 @@ const [questionCount, setQuestionCount] = useState(0);
                           height: '100px',
                           marginTop: '30px',
                           fontSize: '16px',
-                          background: '#F4F4F4',
+                          background: '#f4f4f4',
                           padding: '20px 20px',
                           border: 'none',
                           outline: 'none',
@@ -923,40 +1012,65 @@ const [questionCount, setQuestionCount] = useState(0);
                     )}
                     {/* Generate Questions Button */}
                     {sourceText.trim() !== '' && Number(questionBank) >= Number(questionStudent) && (
-                      <div style={{ display: 'flex', alignItems: 'center', marginTop: '20px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', marginTop: '0px', marginBottom: '20px' }}>
                         <button
                           onClick={handleGenerateQuestions}
                           disabled={generating}
                           style={{
-                            width: '300px',
+                            width: '180px',
                             fontWeight: 'bold',
                             height: '50px',
+                            marginTop: '-20px',
                             padding: '10px',
                             fontSize: '24px',
-                            backgroundColor: generating ? 'lightgrey' : generatedQuestions.length > 0 ? '#4CAF50' : '#020CFF',
+                            backgroundColor: generating ? 'lightgrey' : 
+                                            generatedQuestions.length > 0 ? '#A6B4FF' : '#FFEF9C',
                             color: 'white',
-                            border: 'none',
                             borderRadius: '10px',
+                            border: generating ? '4px solid lightgrey' : 
+                                    generatedQuestions.length > 0 ? '4px solid #020CFF' : '4px solid #FCAC18',
                             cursor: generating ? 'default' : 'pointer',
-                            transition: 'box-shadow 0.3s ease, background-color 0.3s ease',
                             boxShadow: generating ? 'none' : '0 4px 6px rgba(0, 0, 0, 0.1)',
+                            transition: 'box-shadow 0.3s ease',
                           }}
                           onMouseEnter={(e) => {
                             if (!generating) {
-                              e.target.style.boxShadow = '0 6px 8px rgba(0, 0, 0, 0.2)';
+                              e.currentTarget.style.boxShadow = '0 6px 8px rgba(0, 0, 0, 0.2)';
                             }
                           }}
                           onMouseLeave={(e) => {
                             if (!generating) {
-                              e.target.style.boxShadow = '0 4px 6px rgba(0, 0, 0, 0.1)';
+                              e.currentTarget.style.boxShadow = '0 4px 6px rgba(0, 0, 0, 0.1)';
                             }
                           }}
                         >
-                          {generating ? 'Generating...' : generatedQuestions.length > 0 ? 'Preview Questions' : 'Generate Questions'}
+                          {generating ? 'Generating...' : 
+                           generatedQuestions.length > 0 ? 
+                           <div style={{ display: 'flex', marginTop: '-4px' }}> 
+                           
+                               <Eye size={30} color="#020CFF" strokeWidth={3} />
+                               <h1 style={{
+                                 fontSize: '25px',  
+                                 marginTop: '0px', 
+                                 color: '#020CFF', 
+                                 marginLeft: '10px',
+                                 fontFamily: "'Radio Canada', sans-serif",
+                               }}>Preview</h1>
+                             </div>
+                           : <div style={{ display: 'flex', marginTop: '-4px' }}> 
+                               <Sparkles size={30} color="#FCAC18" strokeWidth={3} />
+                               <h1 style={{
+                                 fontSize: '25px',  
+                                 marginTop: '0px', 
+                                 marginLeft: '4px', 
+                                 color: '#FCAC18', 
+                                 fontFamily: "'Radio Canada', sans-serif",
+                               }}>Generate</h1>
+                             </div>}
                         </button>
                         {generating && (
-      <div className="loader" style={{ marginLeft: '20px' }}></div>
-    )}
+                          <div className="loader" style={{ marginLeft: '20px' }}></div>
+                        )}
                       </div>
                     )}
                   </div>
@@ -967,79 +1081,26 @@ const [questionCount, setQuestionCount] = useState(0);
 
 
 
-              
-              <div style={{ width: '770px', padding: '10px', marginTop: '20px', border: '4px solid #F4F4F4', borderRadius: '10px', marginBottom: '20px' }}>
-                <button
-                  onClick={() => setSecurityDropdownOpen(!securityDropdownOpen)}
-                  style={{
-                    width: '100%',
-                    padding: '10px',
-                    fontSize: '30px',
-                    backgroundColor: 'white',
-                    color: 'black',
-                    border: 'none',
-                    cursor: 'pointer',
-                    height: '50px',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center'
-                  }}
-                >
-                  <img style={{ width: '40px' }} src='/astrid.png' />
-                  <h1 style={{ fontSize: '30px', marginLeft: '20px', marginRight: 'auto' }}>Security</h1>
-                  <img
-                    src={securityDropdownOpen ? '/Up.png' : '/Down.png'}
-                    alt={securityDropdownOpen ? "Collapse" : "Expand"}
-                    style={{ width: '20px' }}
-                  />
-                </button>
 
-                <div className={`dropdown-content ${securityDropdownOpen ? 'open' : ''}`}>
-                  <div style={{ marginTop: '10px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', marginBottom: '10px' }}>
-                      <h1 style={{ fontSize: '30px', color: 'black', marginLeft: '20px', flex: 1 }}>Save & Exit</h1>
-                      <input
-                        style={{ marginRight: '20px' }}
-                        type="checkbox"
-                        className="greenSwitch"
-                        checked={saveAndExit}
-                        onChange={() => setSaveAndExit(!saveAndExit)}
-                      />
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center' }}>
-                      <h1 style={{ fontSize: '30px', color: 'black', marginLeft: '20px', flex: 1 }}>Lockdown</h1>
-                      <input
-                        style={{ marginRight: '20px' }}
-                        type="checkbox"
-                        className="greenSwitch"
-                        checked={lockdown}
-                        onChange={() => setLockdown(!lockdown)}
-                      />
-                    </div>
-                 
-                </div>
-              </div>
-             
-            </div>
             {isReadyToPublish() && (
                 <button
                   onClick={saveAssignment}
                   style={{
-                    width: '770px',
+                    width: '790px',
                     height: '50px',
-                    marginTop: '20px',
+                    marginTop: '0px',
+                    border: '4px solid #348900',
                     marginBottom: '40px',
-                    backgroundColor: '#4CAF50',
-                    color: 'white',
-                    border: 'none',
+                    backgroundColor: '#AEF2A3',
+                    color: '#348900',
                     borderRadius: '10px',
-                    fontSize: '20px',
+                    fontSize: '20px',fontFamily: "'Radio Canada', sans-serif",  
                     fontWeight: 'bold',
                     cursor: 'pointer',
                     transition: 'background-color 0.3s ease',
                   }}
-                  onMouseEnter={(e) => e.target.style.backgroundColor = '#45a049'}
-                  onMouseLeave={(e) => e.target.style.backgroundColor = '#4CAF50'}
+                  onMouseEnter={(e) => e.target.style.backgroundColor = '#7BE06A'}
+                  onMouseLeave={(e) => e.target.style.backgroundColor = '#AEF2A3'}
                 >
                   Publish Assignment
                 </button>

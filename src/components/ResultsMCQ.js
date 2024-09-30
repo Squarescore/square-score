@@ -6,6 +6,8 @@ import { db } from './firebase';
 import { AnimatePresence } from 'framer-motion';
 import CustomDateTimePicker from './CustomDateTimePickerResults';
 import 'react-datepicker/dist/react-datepicker.css';
+
+import { Settings, ArrowRight, SquareArrowOutUpRight, SquareX } from 'lucide-react';
 const TeacherResultsMCQ = () => {
   // State hooks
   const [allViewable, setAllViewable] = useState(false);
@@ -80,18 +82,19 @@ const TeacherResultsMCQ = () => {
   };
   
   const SettingsSection = () => (
-    <div style={{
+<div style={{
       width: '780px',
       marginRight: 'auto',
       marginLeft: 'auto', position: 'relative',
-      marginTop: '-10px'
+      marginTop: '-14px'
     }}>
-      <div style={{width: '150px', position: 'absolute', top: '-6px', left: '10px', height: '32px', background: 'lightgrey'}}></div>
+      <div style={{width: '150px', position: 'absolute', top: '10px', left: '10px', height: '12px', background: '#f4f4f4'}}></div>
       <div style={{
         marginLeft: '10px',
-        border: '4px solid lightgrey',
+        border: '4px solid #f4f4f4',
         background: 'white',
         borderRadius: '10px',
+        borderTopLeftRadius: '0px',
         padding: '20px',
         width: '750px',
         marginTop: '20px',
@@ -99,7 +102,7 @@ const TeacherResultsMCQ = () => {
       }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0px' }}>
           <div style={{ display: 'flex', alignItems: 'center', marginBottom: '10px', borderRadius: '10px', marginLeft: '-5px', background: '#F4F4F4' }}>
-            <h3 style={{
+          <h3 style={{
               fontSize: '18px',
               color: 'grey', 
               marginLeft: '20px', 
@@ -642,7 +645,8 @@ const TeacherResultsMCQ = () => {
               zIndex: 1,
             }}
           >
-            X
+          <div>
+          <SquareX size={50} strokeWidth={3} /></div>
           </button>
           <h2 style={{
             textAlign: 'center',
@@ -933,7 +937,7 @@ const TeacherResultsMCQ = () => {
         cursor: 'pointer'
       }}
     
-      ><img style={{width: '30px'}} src='/Export.png'/></button>
+      ><SquareArrowOutUpRight size={40} color="#a1a1a1" strokeWidth={3} />   </button>
       </div>
         
         </div>
@@ -963,22 +967,22 @@ const TeacherResultsMCQ = () => {
         marginLeft: '30px'
       }}>
         <button onClick={() => setShowSettings(!showSettings)} style={{
-          width: '150px',
-          fontSize: '20px',
-          height: '50px',
-          borderRadius: '10px',
-          fontWeight: 'bold',
-          border: '4px solid lightgrey',
-          background: 'lightgrey',
-          cursor: 'pointer',
-          color: 'black',
-          marginLeft: '10px',
-          lineHeight: '10px',
-          transition: '.3s',
-          display: 'flex',
+        width: '150px',
+        fontSize: '20px',
+        height: '50px',
+        borderRadius: '10px',
+        fontWeight: 'bold',
+        border: '4px solid #f4f4f4',
+        background: '#f4f4f4',
+        cursor: 'pointer',
+        color: 'black',
+        marginLeft: '10px',
+        lineHeight: '10px',
+        transition: '.3s',
+        display: 'flex',
         }}>
-          <img style={{width:'30px', opacity: '40%'}} src='/Settings.png'/>
-          <p style={{marginTop: '12px', marginLeft:'10px', color: 'grey'}}>Settings</p>
+            <Settings size={40} color="#8f8f8f" />
+          <p style={{marginTop: '16px', marginLeft:'10px', color: 'grey'}}>Settings</p>
         </button>
 <div style={{width: '280px', fontSize: '20px', height:'45px', borderRadius: '10px', fontWeight: 'bold',  border: '4px solid #F4F4F4', background:' white', cursor: 'pointer', display:'flex',
 alignItems: 'center',
@@ -1122,7 +1126,7 @@ transition: '.3s',
           <h3 style={{ fontWeight: 'normal', color: 'inherit', fontFamily: "'Radio Canada', sans-serif", fontSize: '23px' }}>{student.lastName},</h3>
           <h3 style={{ fontWeight: 'bold', color: 'inherit', fontFamily: "'Radio Canada', sans-serif", fontSize: '23px', marginLeft: '10px' }}>{student.firstName}</h3>
         </div>
-                  <div style={{ fontWeight: 'bold', textAlign: 'center', color: 'black', fontFamily: "'Poppins', sans-serif", marginTop: '-40px' }}>
+                  <div style={{ fontWeight: 'bold', textAlign: 'center', color: 'black', fontFamily: "'Radio Canada', sans-serif", marginTop: '-40px' }}>
                   {grades[student.uid] ? (
       <div style={{ display: 'flex', alignItems: 'center' }}>
         <p style={{ fontWeight: 'bold', width: '23px', fontSize: '22px', backgroundColor: '#566DFF', height: '23px', border: '4px solid #003BD4', lineHeight: '23px', color: 'white', borderRadius: '7px', fontFamily: "'Radio Canada', sans-serif" }}>
@@ -1211,13 +1215,8 @@ transition: '.3s',
                       navigate(`/teacherStudentResultsMCQ/${assignmentId}/${student.uid}/${classId}`);
                     }}
                   >
-                    <img 
-                      src='/GradesArrow.png'
-                      alt="View student results"
-                      style={{ 
-                        width: '30px', 
-                      }}
-                    />
+                      <ArrowRight size={40} color="#00B1A6" strokeWidth={3} />
+             
                   </div>
                 )}
               </li>

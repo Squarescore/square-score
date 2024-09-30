@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
+import { collection, query, where, getDocs, doc, getDoc , setDoc, arrayUnion} from 'firebase/firestore';
 import { db } from './firebase';
 import { updateDoc, addDoc } from 'firebase/firestore';
 import Navbar from './Navbar';
 import { useLocation } from 'react-router-dom';
-
+import TeacherAssignmentHome from './TeacherAssignmentHome'; // Import the TeacherAssignmentHome component
+import { v4 as uuidv4 } from 'uuid';
+import { BookOpenText, SquareX, SquarePlus } from 'lucide-react';
 const pastelColors = [
   
   { bg: '#FFECA9', text: '#F0856E' },
@@ -44,11 +46,14 @@ function Assignments() {
   const [searchTermAddAssignments, setSearchTermAddAssignments] = useState('');
   const [showFolderSearchBar, setShowFolderSearchBar] = useState(false);
   const [folderSearchTerm, setFolderSearchTerm] = useState('');
+  const [showCreateSection, setShowCreateSection] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(false);
 
  
   const handleAddAssignmentsToFolder = (folderId) => {
     setSelectedFolderForAssignments(folderId);
   };
+ 
   const location = useLocation();
   const navigate = useNavigate();
   const getSortButtonStyle = (option) => {
@@ -56,13 +61,13 @@ function Assignments() {
       fontSize: '16px',
       height: '40px',
       fontWeight: 'bold',
-      paddingTop: '10px',
-      paddingBottom: '30px',
+      paddingTop: '5px',
+      paddingBottom: '5px',
       paddingLeft: '15px',
       paddingRight: '15px',
       fontFamily: "'Radio Canada', sans-serif",
-      borderRadius: '5px',
-      border: '0px solid #48A49E',
+      borderRadius: '8px',
+      border: '4px solid ',
       marginTop: '-7px',
       zIndex: '100',
       cursor: 'pointer',
@@ -71,18 +76,18 @@ function Assignments() {
     if (sortBy === option) {
       switch (option) {
         case 'assignment':
-          return { ...baseStyle, backgroundColor: '#B0BDFF', color: '#020CFF' };
+          return { ...baseStyle, backgroundColor: '#B0BDFF', color: '#020CFF', borderColor: '#020CFF' };
         case 'folder':
-          return { ...baseStyle, backgroundColor: '#FFECA9', color: '#F0856E' };
+          return { ...baseStyle, backgroundColor: '#FFECA9', color: '#F0856E',borderColor: '#F0856E'  };
         case 'format':
-          return { ...baseStyle, backgroundColor: '#BAA9FF', color: '#4A0BFF' };
+          return { ...baseStyle, backgroundColor: '#BAA9FF', color: '#4A0BFF',borderColor: '#4A0BFF'  };
         case 'drafts':
-          return { ...baseStyle, backgroundColor: '#F8CFFF', color: '#E01FFF' };
+          return { ...baseStyle, backgroundColor: '#F8CFFF', color: '#E01FFF',borderColor: '#E01FFF'  };
         default:
           return baseStyle;
       }
     } else {
-      return { ...baseStyle, backgroundColor: 'white', color: 'black' };
+      return { ...baseStyle, backgroundColor: 'white', color: 'black',borderColor: 'white'  };
     }
   };
 
@@ -140,6 +145,7 @@ function Assignments() {
 
     fetchData();
   }, [classId, location.state]);
+  
   const getSearchBarStyle = () => {
     let backgroundColor, color, iconSrc;
     switch (sortBy) {
@@ -172,6 +178,70 @@ function Assignments() {
   
     return { backgroundColor, color, iconSrc };
   };
+  const toggleCreateSection = () => {
+    setShowCreateSection(prev => !prev);
+  };
+
+  const handleFormatSelect = async (selectedFormat) => {
+    if (!classId || !selectedFormat) {
+      console.error('ClassId is empty or no format selected');
+      return;
+    }
+
+    const newAssignmentId = uuidv4();
+    let assignmentId = `${classId}+${newAssignmentId}+${selectedFormat}`;
+    let collectionName = '';
+    let classFieldName = '';
+    let navigationPath = '';
+
+    switch (selectedFormat) {
+      case 'SAQ':
+        collectionName = 'assignments(saq)';
+        classFieldName = 'assignment(saq)';
+        navigationPath = `/class/${classId}/createassignment/${assignmentId}`;
+        break;
+      case 'ASAQ':
+        collectionName = 'assignments(Asaq)';
+        classFieldName = 'assignment(Asaq)';
+        navigationPath = `/class/${classId}/SAQA/${assignmentId}`;
+        break;
+      case 'MCQ':
+        collectionName = 'assignments(mcq)';
+        classFieldName = 'assignment(mcq)';
+        navigationPath = `/class/${classId}/MCQ/${assignmentId}`;
+        break;
+      case 'AMCQ':
+        collectionName = 'assignments(Amcq)';
+        classFieldName = 'assignment(Amcq)';
+        navigationPath = `/class/${classId}/MCQA/${assignmentId}`;
+        break;
+      default:
+        console.error('Invalid format selected');
+        return;
+    }
+
+    const assignmentData = {
+      classId,
+      assignmentType: selectedFormat,
+      isAdaptive: selectedFormat === 'ASAQ' || selectedFormat === 'AMCQ',
+      assignmentId
+    };
+    
+    try {
+      const assignmentRef = doc(db, collectionName, assignmentId);
+      await setDoc(assignmentRef, assignmentData);
+    
+      const classRef = doc(db, 'classes', classId);
+      await updateDoc(classRef, {
+        [classFieldName]: arrayUnion(assignmentId)
+      });
+    
+      navigate(navigationPath);
+    } catch (error) {
+      console.error('Error creating assignment:', error);
+      // Handle the error (e.g., show an error message to the user)
+    }
+  };
   useEffect(() => {
     const fetchData = async () => {
       setIsLoading(true);
@@ -203,6 +273,9 @@ function Assignments() {
     };
   }, [classId, location.state]);
 
+  const toggleCreateModal = () => {
+    setShowCreateModal(!showCreateModal);
+  };
   useEffect(() => {
     const fetchData = async () => {
       setIsLoading(true);
@@ -223,6 +296,56 @@ function Assignments() {
 
     fetchData();
   }, [classId, location.state]);
+
+  const renderCreateModal = () => {
+    if (!showCreateModal) return null;
+
+    return (
+      <div 
+        style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(255, 255, 255, 0.95)',
+          zIndex: 1000,
+          display: 'flex',
+          backdropFilter: 'blur(5px)',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '20px',
+          overflow: 'auto'
+        }}
+      >
+      
+        <div style={{position: 'relative', width:'500px', background: '#f4f4f4', padding: '10px', borderRadius: '20px', height:'200px', border: '10px solid lightgrey'}}>
+        <button 
+          onClick={toggleCreateModal}
+          style={{
+            position: 'absolute',
+            top: '20px',
+            right: '20px',
+            width: '30px',
+            height: '30px', 
+            background: 'white',
+            fontSize: '24px',
+            border: 'none',
+            cursor: 'pointer'
+          }}
+        >
+          <div style={{marginTop: '-5px', marginLeft: '-8px'}}>
+          <SquareX size={40} color="#a3a3a3" strokeWidth={3} /></div>
+        </button>
+        <h2 style={{ fontSize: '50px', marginBottom: '20px', fontFamily: "'Rajdhani', sans-serif", textAlign: 'center', color:'grey' }}>Select Format</h2>
+        <TeacherAssignmentHome onFormatSelect={(format) => {
+          handleFormatSelect(format);
+          toggleCreateModal();
+        }} />
+      </div></div>
+    );
+  };
 
   const fetchAssignments = async () => {
     try {
@@ -548,22 +671,18 @@ function Assignments() {
     const folderAssignments = await fetchFolderAssignments(folder.id);
     setFolderAssignments(folderAssignments);
   };
-
   const renderAddAssignmentsModal = () => {
     if (!showAddAssignmentsModal) return null;
     return (
       <div style={{
         position: 'fixed',
-        top: 0,
-        right: 0,
-        bottom: 0,
-        width: '600px',
+        width: '800px', // Increased width to accommodate 2 columns
         backdropFilter: 'blur(5px)',
         backgroundColor: 'rgb(250,250,250,.8)',
         borderLeft: `4px solid grey`,
         padding: '20px',
         zIndex: 102,
-        height: 'calc(100vh-200px)',
+        height: '700px',
         overflowY: 'auto'
       }}>
         <button
@@ -608,42 +727,63 @@ function Assignments() {
             ×
           </button>
         </div>
-        {allAssignments.length > 0 ? (
-          allAssignments
-            .filter(assignment => 
-              (assignment.name || assignment.assignmentName).toLowerCase().includes(searchTermAddAssignments.toLowerCase()) &&
-              (!assignment.folders || !assignment.folders.includes(selectedFolder.id))
-            )
-            .map(assignment => (
-              <div key={assignment.id} style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                marginBottom: '10px',
-                padding: '10px',
-                backgroundColor: '#f0f0f0',
-                borderRadius: '5px',
-                position: 'relative',
-              }}>
-                <div>
-                  <div>{assignment.name || assignment.assignmentName}</div>
-                  {getFormatDisplay(assignment.id)}
+        {assignments.length > 0 ? (
+          <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between' }}>
+            {assignments
+              .filter(assignment => 
+                (assignment.name || assignment.assignmentName).toLowerCase().includes(searchTermAddAssignments.toLowerCase()) &&
+                (!assignment.folders || !assignment.folders.includes(selectedFolder.id))
+              )
+              .map(assignment => (
+                <div key={assignment.id} style={{
+                  width: 'calc(50% - 30px)', // 50% width with 10px gap
+                  marginBottom: '20px',
+                  borderRadius: '15px',
+                  padding: '10px',
+                  height: '60px',
+                  position: 'relative',
+                  backgroundColor: 'white',
+                  border: '4px solid #f4f4f4',
+                }}>
+                  <div>
+                    <div style={{
+                      fontFamily: "'Radio Canada', sans-serif",
+                      fontWeight: 'bold',
+                      fontSize: '20px'
+                    }}>
+                      {assignment.name || assignment.assignmentName}
+                    </div>
+                    <h1 style={{
+                      fontSize: '20px',
+                      zIndex: '50',
+                      position: 'absolute',
+                      top: '-20px',
+                      left: '80px'
+                    }}>
+                      {getFormatDisplay(assignment)}
+                    </h1>
+                  </div>
+                  <button
+                    onClick={() => addAssignmentToFolder(assignment.id)}
+                    style={{
+                      position: 'absolute',
+                      bottom: '10px',
+                      right: '10px',
+                      backgroundColor: 'white',
+                      color: 'white',
+                      border: 'none',
+                      zIndex: '80',
+                      borderRadius: '5px',
+                      padding: '5px 10px',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    <SquarePlus size={40} color='#7BE06A' strokeWidth={2} />
+                  </button>
                 </div>
-                <button
-                  onClick={() => addAssignmentToFolder(assignment.id)}
-                  style={{
-                    backgroundColor: selectedFolder.color.text,
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '5px',
-                    padding: '5px 10px',
-                    cursor: 'pointer',
-                  }}
-                >
-                  +
-                </button>
-              </div>
-            ))
+              ))
+            }
+          </div>
         ) : (
           <div style={{ textAlign: 'center', marginTop: '20px', color: '#666' }}>
             No assignments available to add.
@@ -681,7 +821,7 @@ function Assignments() {
         left: 0,
         right: 0,
         bottom: 0,
-        backgroundColor: 'rgba(250, 250, 250, 0.5)',
+        backgroundColor: 'rgba(250, 250, 250, 0.9)',
         backdropFilter: 'blur(10px)',
         display: 'flex',
         justifyContent: 'center',
@@ -692,7 +832,7 @@ function Assignments() {
           width: '60%',
           height: '60%',
           backgroundColor: selectedFolder.color.bg,
-          border: `4px solid ${selectedFolder.color.text}`,
+          border: `10px solid ${selectedFolder.color.text}`,
           borderRadius: '30px',
           padding: '20px',
           display: 'flex',
@@ -703,9 +843,9 @@ function Assignments() {
             onClick={() => setSelectedFolder(null)}
             style={{
               position: 'absolute',
-              top: '30px',
+              top: '20px',
               fontWeight: 'bold',
-              right: '40px',
+              right: '20px',
               background: 'none',
               border: 'none',
               fontSize: '44px',
@@ -714,7 +854,7 @@ function Assignments() {
               zIndex: 102,
             }}
           >
-            ×
+           <SquareX size={40} color={selectedFolder.color.text} strokeWidth={3} />
           </button>
           <div style={{
             backgroundColor: selectedFolder.color.bg,
@@ -724,7 +864,7 @@ function Assignments() {
             top: '-65px',
             zIndex: '-1',
             left: '-6px',
-            border: `4px solid ${selectedFolder.color.text}`,
+            border: `10px solid ${selectedFolder.color.text}`,
             borderRadius: '30px',
             borderBottomLeftRadius: '0px',
             borderBottomRightRadius: '0px',
@@ -748,7 +888,7 @@ function Assignments() {
             style={{
               position: 'absolute',
               top: '30px',
-              width: '500px',
+              width: '400px',
               left: '20px',
               padding: '10px 20px',
               color: selectedFolder.color.text,
@@ -757,11 +897,13 @@ function Assignments() {
               borderRadius: '15px',
               cursor: 'pointer',
               fontSize: '30px',
+              display: 'flex' ,
+              height: '60px',
               fontFamily: "'Radio Canada', sans-serif",
               fontWeight: 'bold',
             }}
           >
-            Add Assignments +
+            Add Assignments <div style={{marginLeft: '60px'}}><SquarePlus size={40} color={selectedFolder.color.text} strokeWidth={3} /></div> 
           </button>
           
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '20px', overflow: 'auto', marginTop: '100px', left: '10px' }}>
@@ -821,8 +963,8 @@ function Assignments() {
   
   
   return (
-    <div style={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
-      <Navbar userType="teacher" />
+    <div style={{ height: '100vh', display: 'flex', flexDirection: 'column' }} onClick={() => showCreateSection && setShowCreateSection(false)}>
+       <Navbar userType="teacher" />
 
       
     {isLoading ? (
@@ -830,47 +972,42 @@ function Assignments() {
        
       </div>
     ) : assignments.length > 0 || drafts.length > 0 ? (
-        <div style={{ width: '1000px', marginLeft: 'auto', marginRight: 'auto' }}>
-           
-            <div 
-              onClick={handleCreateFirstAssignment}
+      <div style={{ width: '1000px', marginLeft: 'auto', marginRight: 'auto' }}>
+        <button
+            onClick={toggleCreateModal}
             style={{
-        border: '15px solid #00B94A',
-        padding: '5px',
-        zIndex: 100,
-        boxShadow: '0px 4px 4px 0px rgba(0, 0, 0, 0.25)',
-        width: '350px',
-        fontFamily: "'Radio Canada', sans-serif",
-        position: 'fixed',
-        top: '-60px',
-        right: '-80px',
-        backgroundColor: 'white',
-        textAlign: 'center',
-        borderRadius:  '30px',
-        height: '200px',
-        transition: 'all 0.3s ease-in-out',
-      }}>
-            <h2 
-        style={{
-          fontSize: '50px',
-          fontWeight: 'bold',
-          userSelect: 'none',
-          color: 'black',
-          width: '280px',
-          borderBottomLeftRadius: '10px',
-          backgroundColor: 'white',
-          marginLeft:  '10px',
-          marginTop: '125px',
-          fontFamily: "'Rajdhani', sans-serif",
-          cursor: 'pointer',
-          transition: 'all 0.2s ease-in-out',
-        }}>
-          Create
-        </h2>
-    
-      </div>
+              border: '15px solid #00B94A',
+              padding: '5px',
+              zIndex: 100,
+              boxShadow: '0px 2px 2px 0px rgba(0, 0, 0, 0.25)',
+              width: '350px',
+              fontFamily: "'Radio Canada', sans-serif",
+              position: 'fixed',
+              top: '-60px',
+              right: '-80px',
+              backgroundColor: 'white',
+              textAlign: 'center',
+              borderRadius: '30px',
+              height: '220px',
+              cursor: 'pointer',
+            }}
+          >
+            <h2 style={{
+              fontSize: '45px',
+              fontWeight: 'bold',
+              userSelect: 'none',
+              color: 'black',
+              width: '280px',
+              borderBottomLeftRadius: '10px',
+              marginLeft: '10px',
+              marginTop: '115px',
+              fontFamily: "'Rajdhani', sans-serif",
+            }}>
+              Create +
+            </h2>
+          </button>
        
-
+          {renderCreateModal()}
 
       <div style={{
             marginLeft: 'auto',
@@ -880,10 +1017,11 @@ function Assignments() {
             backgroundColor: 'transparent',
             borderRadius: '10px'
           }}>
+            <div style={{display: 'flex'}}>
             <h1 style={{ color: 'black', fontSize: '80px', fontFamily: "'Rajdhani', sans-serif", marginLeft: '20px' }}>
               Assignments
             </h1>
-            
+            </div>
             <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', position: 'relative', width: '920px', marginLeft: '20px' }}>
               <div style={{
                 width: '400px',
@@ -894,8 +1032,8 @@ function Assignments() {
                 borderRadius: '10px',
                 marginTop: '-15px'
               }}>
-                <h1 style={{ position: 'absolute', marginTop: '-50px', fontSize: '26px', padding: '8px', backgroundColor: 'white', fontFamily: "'Radio Canada', sans-serif" }}> Sort By</h1>
-                <div style={{ display: 'flex', height: '25px' }}>
+                <h1 style={{ position: 'absolute', marginTop: '-50px', fontSize: '26px', padding: '8px',zIndex: '10' , backgroundColor: 'white', fontFamily: "'Radio Canada', sans-serif" }}> Sort By</h1>
+                <div style={{ display: 'flex', height: '25px', zIndex: '10' }}>
                   {['assignment', 'folder', 'format', 'drafts'].map((option) => (
                     <button
                       key={option}
@@ -1233,7 +1371,6 @@ function Assignments() {
               
               fontFamily: "'Rajdhani', sans-serif",
               fontSize: '30px',
-              boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
             }}>
               <div style={{
                  borderWidth: '6px',
@@ -1363,12 +1500,11 @@ function Assignments() {
               cursor: 'pointer', // Always show pointer cursor
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.boxShadow = '0px 4px 4px 0px rgba(0, 0, 0, 0.25)';
-              e.currentTarget.style.transform = 'scale(1.02)';
+              e.currentTarget.style.borderColor = sortBy === 'drafts' ? '#D500E9' : ' lightgrey';
+           
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.boxShadow = 'none';
-              e.currentTarget.style.transform = 'scale(1)';
+              e.currentTarget.style.borderColor = sortBy === 'drafts' ? '#FBD3FF' : ' #F4F4F4';
             }}
           >
               <span
@@ -1514,34 +1650,35 @@ function Assignments() {
         height: 'calc(100vh - 60px)', // Adjust based on your Navbar height
       }}>
          
-          <h1 style={{ color: 'black', fontSize: '80px', fontFamily: "'Rajdhani', sans-serif", marginRight: 'auto' }}>Assignments</h1>
+          <h1 style={{ color: 'black', fontSize: '60px', fontFamily: "'Rajdhani', sans-serif", marginRight: 'auto', marginTop: '100px', }}>Create Your First Assignment</h1>
           
-   <h1 style={{width: '940px', textAlign: 'Left', color: 'GREY', marginTop: '-30px'}}>This is the page where grades and all assignment information such as grades, settings, and drafts can be accessed, get started by creating this classes first assignment</h1>
-        <button
-          onClick={handleCreateFirstAssignment}
+   <h1 style={{width: '940px', textAlign: 'Left', color: 'GREY', marginTop: '-30px'}}>Later you can access assignments, grades, and drafts here. Start by creating your first assignment.</h1>
+        <div
+         
           style={{
-            padding: '55px 30px',
-          width: '940px',
-          marginTop :'40px',
+            padding: '10px 10px 30px 0px',
+          width: '440px',
+          marginTop :'20px',
             fontWeight: 'bold',
-            border: '15px solid #00D355',
+            position: 'relative',
+            border: '15px solid #f4f4f4',
             fontFamily: "'Rajdhani', sans-serif", 
             fontSize: '60px',
             backgroundColor: 'white',
             color: 'black',
+            marginRight: 'auto',
             borderRadius: '30px',
             cursor: 'pointer',
             transition: 'all 0.3s ease',
           }}
-          onMouseEnter={(e) => {
-            e.target.style.boxShadow = '0px 6px 8px rgba(0, 0, 0, 0.2)';
-          }}
-          onMouseLeave={(e) => {
-            e.target.style.boxShadow = 'none';
-          }}
+       
         >
-          Create Assignment +
-        </button>
+         <h1 style={{      fontFamily: "'Rajdhani', sans-serif", 
+            fontSize: '30px', padding: '20px', position: 'absolute', 
+            top: '-65px', color: 'grey', left: '40px',
+            backgroundColor: 'white',}}>Format</h1>
+        <TeacherAssignmentHome onFormatSelect={handleFormatSelect} />
+        </div>
       </div>
     )}
   </div>

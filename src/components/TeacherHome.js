@@ -1,14 +1,16 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { db, auth } from './firebase';
-import { collection, query, where, doc, getDoc, getDocs, updateDoc, arrayUnion } from "firebase/firestore";
+import { collection, query, where, doc, getDoc, getDocs, updateDoc, arrayUnion, addDoc } from "firebase/firestore";
+import { CalendarClock, SquareX, ChevronDown, ChevronUp , Shapes} from 'lucide-react';
 
 import { useState, useEffect } from 'react';
 import {  useNavigate, useLocation } from 'react-router-dom';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { useCollection } from 'react-firebase-hooks/firestore';
 import HomeNavbar from './HomeNavbar';
-import FooterAuth from './FooterAuth'; // Make sure this file exists in the same directory
+import FooterAuth from './FooterAuth'; 
+import CreateClassModal from './CreateClassModal';// Make sure this file exists in the same directory
 const TeacherHome = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -19,6 +21,42 @@ const TeacherHome = () => {
  
   const [successMessage, setSuccessMessage] = useState('');
   const [newClassId, setNewClassId] = useState('');
+
+  const [showCreateClassModal, setShowCreateClassModal] = useState(false); // Add this line
+
+
+
+
+
+  const handleCreateClass = async (e, period, classChoice) => {
+    e.preventDefault();
+    const classCode = Math.random().toString(36).substr(2, 6).toUpperCase();
+    const teacherUID = auth.currentUser.uid;
+    const className = `Period ${period}`;
+    const periodStyle = periodStyles[period];
+  
+    const classData = {
+      className,
+      classChoice,
+      classCode,
+      teacherUID,
+      students: [],
+      background: periodStyle.background,
+      color: periodStyle.color
+    };
+  
+    try {
+      const classDocRef = await addDoc(collection(db, 'classes'), classData);
+      
+      setSuccessMessage(`${classData.classChoice}, ${className}, was successfully added to your roster`);
+      setNewClassId(classDocRef.id);
+      setShowCreateClassModal(false);
+    } catch (err) {
+      console.error('Error creating class:', err);
+      alert('Error creating class. Please try again.');
+    }
+  };
+
   useEffect(() => {
     const fetchTeacherData = async () => {
       if (user) {
@@ -161,7 +199,7 @@ const TeacherHome = () => {
     <div style={{width: '100%', background: '#4BD682', height: '6px'}}></div>
     <div style={{
       backgroundColor: '#AEF2A3',
-      border: '10px solid #4BD682',
+      border: '6px solid #4BD682',
       borderBottomLeftRadius: '20px',
       borderTop: '0px',
       borderBottomRightRadius: '20px',
@@ -312,7 +350,7 @@ zIndex: '100'
                 flexDirection: 'column',
                 flexWrap: 'wrap',
                 alignItems: 'center', 
-                fontFamily: "'Poppins', sans-serif" ,
+                fontFamily: "'Radio Canada', sans-serif" ,
                 position: 'relative',
                 marginTop: '20px', 
               }}>
@@ -371,7 +409,7 @@ zIndex: '100'
                       backgroundColor: 'transparent',  
                       color: 'grey', 
                       cursor: 'pointer',
-                      border: '4px solid #F4F4F4', 
+                      border: '6px solid #F4F4F4', 
                       borderRadius: '15px', 
                       lineHeight: '90px',
                       textAlign: 'center',
@@ -385,8 +423,12 @@ zIndex: '100'
                       fontFamily: "'rajdhani', sans-serif",
                       transform: 'scale(1)',
                     }}
-                    onMouseEnter={handleButtonHover}
-                    onMouseLeave={handleButtonLeave}
+                    onMouseEnter={(e) => {
+                      e.target.style.borderColor = '#E8E8E8';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.target.style.borderColor = '#f4f4f4';
+                    }}
                     className="hoverableButton"
                   >
                     <h1 style={{fontSize: '45px', marginTop: '40px'}}>{classItem.className}</h1>
@@ -402,31 +444,33 @@ zIndex: '100'
 
 
 <div style={{width: '1000px', marginRight: 'auto', marginLeft: 'auto', marginTop: '30px', display: 'flex'}}>
-        <Link to="/createclass" style={{
-          marginRight: 'auto', 
-           textDecoration: 'none',
-            backgroundColor: '#AEF2A3' , 
-            marginBottom: '100px',
-           border: '4px solid #45B434',
-            marginLeft: '32px',
-            
-            fontSize: '20px', 
-            transition: '.3s', 
-            color: '#45B434',
-             borderRadius: '10px',
+<button
+            onClick={() => setShowCreateClassModal(true)}
+            style={{
+              marginRight: 'auto', 
+              backgroundColor: '#AEF2A3',
+              border: '4px solid #45B434',
+              marginLeft: '32px',
+              fontSize: '20px', 
+              transition: '.3s', 
+              color: '#45B434',
+              borderRadius: '10px',
               padding: '10px 20px', 
-             
-               width: '145px', 
-               textAlign: 'center', 
-               fontWeight: 'bold' }}
-          onMouseEnter={(e) => {
-            e.target.style.opacity = '90%';
-            e.target.style.boxShadow = ' 0px 4px 4px 0px rgba(0, 0, 0, 0.25)';
-        }}
-        onMouseLeave={(e) => {
-            e.target.style.opacity = '100%';
-            e.target.style.boxShadow = ' none ';
-        }}>Create Class +</Link>
+              width: '200px', 
+              textAlign: 'center', 
+              fontWeight: 'bold',
+              cursor: 'pointer',
+            }}
+            onMouseEnter={(e) => {
+              e.target.style.borderColor = '#138E00';
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.borderColor = '#45B434';
+            }}
+          >
+            Create Class +
+          </button>
+          
           {teacherData && teacherData.school ? (
          <div
          style={{ 
@@ -463,13 +507,11 @@ zIndex: '100'
               transition: '.3s',
             }}
             onMouseEnter={(e) => {
-              e.target.style.opacity = '90%';
-              e.target.style.boxShadow = ' 0px 4px 4px 0px rgba(0, 0, 0, 0.25)';
-          }}
-          onMouseLeave={(e) => {
-              e.target.style.opacity = '100%';
-              e.target.style.boxShadow = ' none ';
-          }}
+              e.target.style.borderColor = '#001CAE';
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.borderColor = '#020CFF';
+            }}
           >
             Join School
           </button>
@@ -487,9 +529,12 @@ zIndex: '100'
 
         
 
-
-
-
+        {showCreateClassModal && (
+  <CreateClassModal 
+    handleCreateClass={handleCreateClass}
+    setShowCreateClassModal={setShowCreateClassModal}
+  />
+)}
 
       </main>
 

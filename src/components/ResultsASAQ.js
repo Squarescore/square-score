@@ -8,6 +8,8 @@ import { useRef } from 'react';
 import CustomDateTimePicker from './CustomDateTimePickerResults';
 import 'react-datepicker/dist/react-datepicker.css';
 import { AnimatePresence } from 'framer-motion';
+
+import { Settings, ArrowRight, SquareX } from 'lucide-react';
 const TeacherResultsASAQ = () => {
   const [students, setStudents] = useState([]);
   const [grades, setGrades] = useState({});
@@ -841,7 +843,8 @@ const navigateToStudentGrades = (studentUid) => {
               zIndex: 1,
             }}
           >
-            X
+        <div>
+        <SquareX size={50} strokeWidth={3} /></div>
           </button>
           <h2 style={{
             textAlign: 'center',
@@ -1310,13 +1313,8 @@ const navigateToStudentGrades = (studentUid) => {
                   navigate(`/teacherStudentResults/${assignmentId}/${student.uid}/${classId}`);
                 }}
               >
-                <img 
-                  src='/GradesArrow.png'
-                  alt="View student results"
-                  style={{ 
-                    width: '30px', 
-                  }}
-                />
+                     <ArrowRight size={40} color="#00B1A6" strokeWidth={3} />
+            
               </div>
             )}
           </li>
