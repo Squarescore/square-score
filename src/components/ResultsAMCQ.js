@@ -864,7 +864,7 @@ const TeacherResultsAMCQ = () => {
     <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', backgroundColor: 'white' }}>
       <Navbar userType="teacher" />
       <div style={{
-        backgroundColor: 'rgb(255,255,255,.8)',
+        backgroundColor: 'rgb(255,255,255,.9)',
         backdropFilter: 'blur(5px)',
         width: '100%',
         height: '1000px',
@@ -1275,7 +1275,7 @@ transition: '.3s',
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(255, 255, 255, 0.7)',
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
     backdropFilter: 'blur(5px)',
     zIndex: 98,  // Make sure this is below the question bank but above other content
   }} />

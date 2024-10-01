@@ -255,7 +255,7 @@ const getAssignmentStyle = (assignment) => {
       width: '100%',
       height: '100%',
       backdropFilter: 'blur(5px)',
-      background: 'rgba(255,255,255,0.8)',
+      background: 'rgba(255,255,255,0.9',
       zIndex: 100
     }}>
       <div style={{
@@ -266,7 +266,7 @@ const getAssignmentStyle = (assignment) => {
         backdropFilter: 'blur(5px)',
         transform: 'translate(-50%, -50%)',
         width: '500px',
-        backgroundColor: 'rgb(255,255,255,.001)',
+        backgroundColor: 'rgb(255,255,255,.9)',
         border: '10px solid #f4f4f4',
         fontFamily: 'Arial, sans-serif',
         zIndex: 100000
@@ -703,7 +703,7 @@ const getAssignmentStyle = (assignment) => {
         position: 'fixed',
         width:'250px',
         height: '100%',
-        background: 'rgb(245,245,245,.8)',
+        background: 'rgb(245,245,245,.9)',
         backdropFilter: 'blur(5px)',
         zIndex: '90',
         transition: 'width 0.3s ease',

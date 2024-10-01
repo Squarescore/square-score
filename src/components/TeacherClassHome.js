@@ -143,7 +143,7 @@ const TeacherClassHome = ({ currentPage }) => {
       width: '100%',
       height: '100%',
       backdropFilter: 'blur(5px)',
-      background: 'rgba(255,255,255,0.8)',
+      background: 'rgba(255,255,255,0.9)',
       zIndex: 100
     }}>
       <div style={{

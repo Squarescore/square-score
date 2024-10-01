@@ -7,7 +7,7 @@ import Navbar from './Navbar';
 import { useLocation } from 'react-router-dom';
 import TeacherAssignmentHome from './TeacherAssignmentHome'; // Import the TeacherAssignmentHome component
 import { v4 as uuidv4 } from 'uuid';
-import { BookOpenText, SquareX, SquarePlus } from 'lucide-react';
+import { BookOpenText, SquareX, SquarePlus, PencilRuler, Folder } from 'lucide-react';
 const pastelColors = [
   
   { bg: '#FFECA9', text: '#F0856E' },
@@ -22,6 +22,8 @@ const pastelColors = [
 ];
 
 function Assignments() {
+  const [activeTab, setActiveTab] = useState('Assignments');
+
   const { classId } = useParams();
   const [assignments, setAssignments] = useState([]);
   const [filteredAssignments, setFilteredAssignments] = useState([]);
@@ -29,7 +31,7 @@ function Assignments() {
   const [drafts, setDrafts] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [showSearchBar, setShowSearchBar] = useState(false);
-  const [sortBy, setSortBy] = useState('assignment');
+  const [sortBy, setSortBy] = useState('assignments');
   const [selectedFolder, setSelectedFolder] = useState(null);
   const [selectedFormat, setSelectedFormat] = useState(null);
   const [hasContent, setHasContent] = useState(false);
@@ -58,26 +60,26 @@ function Assignments() {
   const navigate = useNavigate();
   const getSortButtonStyle = (option) => {
     const baseStyle = {
-      fontSize: '16px',
-      height: '40px',
+      fontSize: '25px',
+      height: '20px',
       fontWeight: 'bold',
-      paddingTop: '5px',
-      paddingBottom: '5px',
-      paddingLeft: '15px',
-      paddingRight: '15px',
+      width: '230px',
+      display: 'flex',
       fontFamily: "'Radio Canada', sans-serif",
       borderRadius: '8px',
       border: '4px solid ',
-      marginTop: '-7px',
+      marginTop: '20px',
       zIndex: '100',
-      cursor: 'pointer',
+      textAlign: 'left',
+    lineHeight: '0px',
+      cursor: 'pointer',padding: '25px 10px',
     };
 
     if (sortBy === option) {
       switch (option) {
-        case 'assignment':
+        case 'assignments':
           return { ...baseStyle, backgroundColor: '#B0BDFF', color: '#020CFF', borderColor: '#020CFF' };
-        case 'folder':
+        case 'folders':
           return { ...baseStyle, backgroundColor: '#FFECA9', color: '#F0856E',borderColor: '#F0856E'  };
         case 'format':
           return { ...baseStyle, backgroundColor: '#BAA9FF', color: '#4A0BFF',borderColor: '#4A0BFF'  };
@@ -87,8 +89,9 @@ function Assignments() {
           return baseStyle;
       }
     } else {
-      return { ...baseStyle, backgroundColor: 'white', color: 'black',borderColor: 'white'  };
+      return { ...baseStyle, backgroundColor: 'transparent', color: '#676767',borderColor: 'transparent'  };
     }
+    
   };
 
   
@@ -149,13 +152,13 @@ function Assignments() {
   const getSearchBarStyle = () => {
     let backgroundColor, color, iconSrc;
     switch (sortBy) {
-      case 'assignment':
+      case 'assignments':
         backgroundColor = 'rgba(176, 189, 255, 0.3)';  // #B0BDFF with 30% opacity
         color = '#020CFF';
         
         iconSrc = '/BlueSearch.png';
         break;
-      case 'folder':
+      case 'folders':
         backgroundColor = 'rgba(255, 236, 169, 0.3)';  // #FFECA9 with 30% opacity
         color = '#F0856E';
         iconSrc = '/OrangeSearch.png';
@@ -308,7 +311,7 @@ function Assignments() {
           left: 0,
           right: 0,
           bottom: 0,
-          backgroundColor: 'rgba(255, 255, 255, 0.95)',
+          backgroundColor: 'rgba(255, 255, 255, 0.9)',
           zIndex: 1000,
           display: 'flex',
           backdropFilter: 'blur(5px)',
@@ -528,6 +531,7 @@ function Assignments() {
 
   const handleSortClick = (type) => {
     setSortBy(type);
+    setActiveTab (type)
     setSelectedFolder(null);
     setSelectedFormat(null);
     setSearchTerm('');
@@ -678,7 +682,7 @@ function Assignments() {
         position: 'fixed',
         width: '800px', // Increased width to accommodate 2 columns
         backdropFilter: 'blur(5px)',
-        backgroundColor: 'rgb(250,250,250,.8)',
+        backgroundColor: 'rgb(250,250,250,.9)',
         borderLeft: `4px solid grey`,
         padding: '20px',
         zIndex: 102,
@@ -727,6 +731,12 @@ function Assignments() {
             ×
           </button>
         </div>
+
+
+
+
+
+
         {assignments.length > 0 ? (
           <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between' }}>
             {assignments
@@ -736,7 +746,7 @@ function Assignments() {
               )
               .map(assignment => (
                 <div key={assignment.id} style={{
-                  width: 'calc(50% - 30px)', // 50% width with 10px gap
+                  width: '350px', 
                   marginBottom: '20px',
                   borderRadius: '15px',
                   padding: '10px',
@@ -822,7 +832,7 @@ function Assignments() {
         right: 0,
         bottom: 0,
         backgroundColor: 'rgba(250, 250, 250, 0.9)',
-        backdropFilter: 'blur(10px)',
+        backdropFilter: 'blur(5px)',
         display: 'flex',
         justifyContent: 'center',
         alignItems: 'center',
@@ -972,40 +982,8 @@ function Assignments() {
        
       </div>
     ) : assignments.length > 0 || drafts.length > 0 ? (
-      <div style={{ width: '1000px', marginLeft: 'auto', marginRight: 'auto' }}>
-        <button
-            onClick={toggleCreateModal}
-            style={{
-              border: '15px solid #00B94A',
-              padding: '5px',
-              zIndex: 100,
-              boxShadow: '0px 2px 2px 0px rgba(0, 0, 0, 0.25)',
-              width: '350px',
-              fontFamily: "'Radio Canada', sans-serif",
-              position: 'fixed',
-              top: '-60px',
-              right: '-80px',
-              backgroundColor: 'white',
-              textAlign: 'center',
-              borderRadius: '30px',
-              height: '220px',
-              cursor: 'pointer',
-            }}
-          >
-            <h2 style={{
-              fontSize: '45px',
-              fontWeight: 'bold',
-              userSelect: 'none',
-              color: 'black',
-              width: '280px',
-              borderBottomLeftRadius: '10px',
-              marginLeft: '10px',
-              marginTop: '115px',
-              fontFamily: "'Rajdhani', sans-serif",
-            }}>
-              Create +
-            </h2>
-          </button>
+      <div style={{ width: '800px', marginLeft: 'auto', marginRight: 'auto',  }}>
+     
        
           {renderCreateModal()}
 
@@ -1018,103 +996,20 @@ function Assignments() {
             borderRadius: '10px'
           }}>
             <div style={{display: 'flex'}}>
-            <h1 style={{ color: 'black', fontSize: '80px', fontFamily: "'Rajdhani', sans-serif", marginLeft: '20px' }}>
-              Assignments
+            <h1 style={{ color: 'black', fontSize: '80px', fontFamily: "'Rajdhani', sans-serif", marginLeft: '0px' }}>
+            {activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}
             </h1>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', position: 'relative', width: '920px', marginLeft: '20px' }}>
-              <div style={{
-                width: '400px',
-                border: '4px solid #D7D7D7',
-                display: 'flex',
-                flexDirection: 'column',
-                padding: '20px',
-                borderRadius: '10px',
-                marginTop: '-15px'
-              }}>
-                <h1 style={{ position: 'absolute', marginTop: '-50px', fontSize: '26px', padding: '8px',zIndex: '10' , backgroundColor: 'white', fontFamily: "'Radio Canada', sans-serif" }}> Sort By</h1>
-                <div style={{ display: 'flex', height: '25px', zIndex: '10' }}>
-                  {['assignment', 'folder', 'format', 'drafts'].map((option) => (
-                    <button
-                      key={option}
-                      style={getSortButtonStyle(option)}
-                      onClick={() => handleSortClick(option)}
-                    >
-                      {option.charAt(0).toUpperCase() + option.slice(1)}
-                    </button>
-                  ))}
-                </div>
-              
-
-
-
-
-
-
-
-              {sortBy === 'format' && (
-                <div style={{ display: 'flex', gap: '15px', marginTop: '20px' }}>
-                  {[
-                    { label: 'SAQ', color: '#020CFF', hasAsterisk: true, value: 'ASAQ' },
-                    { label: 'SAQ', color: '#020CFF', hasAsterisk: false, value: 'SAQ' },
-                    { label: 'MCQ', color: 'green', hasAsterisk: true, value: 'AMCQ' },
-                    { label: 'MCQ', color: 'green', hasAsterisk: false, value: 'MCQ' }
-                  ].map(format => (
-                    <button
-                      key={format.value}
-                      style={{
-                        padding: '10px',
-                        border: selectedFormat === format.value ? `4px solid ${format.color}` : '4px solid #D7D7D7',
-                        borderRadius: '10px',
-                        backgroundColor: 'white',
-                        color: format.color,
-                        height: '50px',
-                        fontSize: '20px',
-                        cursor: 'pointer',
-                        fontFamily: "'Radio Canada', sans-serif",
-                        fontWeight: 'bold',
-                        position: 'relative',
-                        width: '80px',
-                        display: 'flex',
-                        justifyContent: 'center',
-                        alignItems: 'center'
-                      }}
-                      onClick={() => setSelectedFormat(selectedFormat === format.value ? null : format.value)}
-                    >
-                      {format.label}
-                      {format.hasAsterisk && (
-                        <span style={{
-                          position: 'absolute',
-                          right: '3px',
-                          top: '-3px',
-                          fontWeight: 'bold',
-                          fontFamily: "'Radio Canada', sans-serif",
-                          color: '#FCCA18',
-                          fontSize: '24px'
-                        }}>
-                          *
-                        </span>
-                      )}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-            
-
-
-
-            
+            <div style={{marginTop: '80px', width: '300px', marginLeft: '100px', position: 'relative'}}>
             {sortBy === 'folder' && (
                 <button
                   onClick={() => setShowFolderForm(!showFolderForm)}
                   style={{
                     backgroundColor: "#f4f4f4",
+                   
+                   marginLeft: '250px',
                     width: showSearchBar ? '70px' : '300px',
                     height: '70px',
                     cursor: 'pointer',
-                    marginTop: '-10px',
-                    marginLeft: '-20px',
                     fontSize: showSearchBar ? '24px' : '30px', 
                     borderRadius: '10px',
                     color: 'grey',
@@ -1130,12 +1025,210 @@ function Assignments() {
                   {showSearchBar ? '+' : 'Create Folder'}
                 </button>
               )}
+
+
+{!showSearchBar ? (
+                  <button
+                    onClick={() => setShowSearchBar(true)}
+                    style={{ 
+                      height: '50px', 
+                      backgroundColor: 'transparent', 
+                      border: 'none',
+                      padding: '5px', 
+                      width: '80px',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    <img style={{ width: '30px' }} src={getSearchBarStyle().iconSrc} alt="Search" />
+                  </button>
+              ) : (
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                <div style={{ position: 'relative', width: '300px', height: '40px' }}>
+                <input
+                  type="text"
+                  placeholder="Search..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    fontSize: '20px',
+                    fontFamily: "'Radio Canada', sans-serif",
+                    padding: '5px 40px 5px 20px',
+                    border: 'none',
+                    marginLeft: '-50px',
+                    backgroundColor: getSearchBarStyle().backgroundColor,
+                    color: getSearchBarStyle().color,
+                    borderRadius: '100px',
+                    outline: 'none',
+                  }}
+                />
+                <button
+                  onClick={() => {
+                    setShowSearchBar(false);
+                    setSearchTerm('');
+                  }}
+                  style={{
+                    position: 'absolute',
+                    top: '75%',
+                    right: '25px',
+                    transform: 'translateY(-65%)',
+                    backgroundColor: 'transparent',
+                    border: 'none',
+                    cursor: 'pointer',
+                    padding: '0',
+                  }}
+                >
+                  <img style={{ width: '30px' }} src={getSearchBarStyle().iconSrc} alt="Close" />
+                </button>
+              </div>
+            )}
+            </div>
+                        </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', position: 'relative', width: '920px', marginLeft: '20px' }}>
+              <div style={{
+               
+                flexDirection: 'column',
+                padding: '20px',
+                marginTop: '-15px',
+                width: '250px',
+                 position: 'fixed',
+                 left: '0px', top: '0px' ,
+                 height: '100%',
+
+              background:'#f4f4f4'
+              }}>
+               <div style={{  height: '25px', zIndex: '10', width: '100px', marginTop: '100px',
+                 
+                }}>
+                    <button
+  onClick={toggleCreateModal}
+  style={{
+    border: '4px solid transparent',
+    padding: '5px',
+    zIndex: 100,
+    width: '230px',
+    height: '80px',
+    color:'grey',
+    fontFamily: "'Radio Canada', sans-serif",
+    display: 'flex',
+    backgroundColor: 'transparent',
+    textAlign: 'center',
+    borderRadius: '10px',
+    padding: '25px 10px',
+    cursor: 'pointer',
+    transition: '.3s',
+  }}
+  onMouseEnter={(e) => {
+    e.currentTarget.style.borderColor = '#00B94A';
+    e.currentTarget.style.backgroundColor = '#AEF2A3';
+    e.currentTarget.style.color = '#1ca800';
+  }}
+  onMouseLeave={(e) => {
+    e.currentTarget.style.borderColor = 'transparent';
+    e.currentTarget.style.color = 'grey';
+    e.currentTarget.style.backgroundColor = 'transparent';
+  }}
+>
+  <div style={{ display: 'flex', alignItems: 'center', marginTop: '-35px' }}>
+    <SquarePlus size={50} />
+    <h2 style={{
+      fontSize: '35px',
+      fontWeight: 'bold',
+      userSelect: 'none',
+      width: '200px',
+      textAlign: 'left',
+      marginTop: '25px',
+      marginLeft: '10px',
+      fontFamily: "'Radio Canada', sans-serif",
+    }}>
+      Create
+    </h2>
+  </div>
+</button>
+
+          <div style={{ 
+              height: '4px', 
+              width: '220px', 
+              background: '#DEDEDE', 
+              marginLeft: '10px',  
+              marginTop: '20px'
+            }}></div>
+
+                
+                  {[
+                    { option: 'assignments', icon: BookOpenText },
+                    { option: 'folders', icon: Folder },
+                    { option: 'drafts', icon: PencilRuler },
+                    
+                  ].map(({option, icon: Icon})  => (
+                    
+                    <div>
+                      <button
+                      key={option}
+                      style={getSortButtonStyle(option)}
+                      onClick={() => handleSortClick(option)}
+                    >
+                        <div style={{display: 'flex', marginTop: '-20px'}}>
+                    <Icon 
+                size={40} 
+                color={getSortButtonStyle[option]} 
+                strokeWidth={ 2} 
+              />
+              <h1 style={{fontSize: '25px', marginTop: '20px', marginLeft: '10px'}}>   {option.charAt(0).toUpperCase() + option.slice(1)}
+              </h1>
+                     </div>
+                    </button>
+                    <div style={{ 
+              height: '4px', 
+              width: '205px', 
+              background: '#DEDEDE', 
+              marginLeft: '10px',  
+              marginTop: '20px'
+            }}></div>
+                      </div>
+
+                  ))}
+                </div>
+            </div>
+            
+
+
+
+            
+           
     
 
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
              
-            {sortBy === 'folder' && (
+            {sortBy === 'folders' && (
   <div style={{width: '1000px', position: 'absolute', left: '0px', top: '100px'}}>
   
 
@@ -1150,8 +1243,8 @@ function Assignments() {
         left: 0,
         right: 0,
         bottom: 0,
-        backgroundColor: 'rgba(250, 250, 250, 0.5)',
-        backdropFilter: 'blur(10px)',
+        backgroundColor: 'rgba(250, 250, 250, 0.9)',
+        backdropFilter: 'blur(5px)',
         display: 'flex',
         justifyContent: 'center',
         alignItems: 'center',
@@ -1403,81 +1496,12 @@ function Assignments() {
   </div>
 )}
 
-{!showSearchBar ? (
-                  <button
-                    onClick={() => setShowSearchBar(true)}
-                    style={{ 
-                      height: '50px', 
-                      backgroundColor: 'transparent', 
-                      border: 'none',
-                      padding: '5px', 
-                      width: '80px',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    <img style={{ width: '30px' }} src={getSearchBarStyle().iconSrc} alt="Search" />
-                  </button>
-              ) : (
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-                <div style={{ position: 'relative', width: '300px', height: '40px' }}>
-                <input
-                  type="text"
-                  placeholder="Search..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  style={{
-                    width: '100%',
-                    height: '100%',
-                    fontSize: '20px',
-                    fontFamily: "'Radio Canada', sans-serif",
-                    padding: '5px 40px 5px 20px',
-                    border: 'none',
-                    marginLeft: '-50px',
-                    backgroundColor: getSearchBarStyle().backgroundColor,
-                    color: getSearchBarStyle().color,
-                    borderRadius: '100px',
-                    outline: 'none',
-                  }}
-                />
-                <button
-                  onClick={() => {
-                    setShowSearchBar(false);
-                    setSearchTerm('');
-                  }}
-                  style={{
-                    position: 'absolute',
-                    top: '75%',
-                    right: '25px',
-                    transform: 'translateY(-65%)',
-                    backgroundColor: 'transparent',
-                    border: 'none',
-                    cursor: 'pointer',
-                    padding: '0',
-                  }}
-                >
-                  <img style={{ width: '30px' }} src={getSearchBarStyle().iconSrc} alt="Close" />
-                </button>
-              </div>
-            )}
           </div>
         </div>
       </div>
 
         <ul style={{ width: '100%', display: 'flex', flexWrap: 'wrap', padding: 0, margin: 'auto' }}>
-        {sortBy !== 'folder' && filteredAssignments.map((item, index) => (
+        {sortBy !== 'folders' && filteredAssignments.map((item, index) => (
             <li
             key={item.id}
             onClick={() => handleItemClick(item)}
@@ -1485,9 +1509,9 @@ function Assignments() {
               backgroundColor: 'white',
               fontSize: '23px',
               color: 'black',
-              width: '410px',
+              width: '350px',
               height: '70px',
-              margin: '25px',
+              margin: '20px 10px',
               position: 'relative',
               fontFamily: "'Radio Canada', sans-serif",
               listStyleType: 'none',
@@ -1524,7 +1548,7 @@ function Assignments() {
                   top: '40px',
                   cursor: 'pointer',
                   marginTop: '0px',
-                  fontSize: '40px',
+                  fontSize: '30px',
                   fontFamily: "'Radio Canada', sans-serif",
                   color: '#9DCDCD',
                   fontWeight: 'bold',

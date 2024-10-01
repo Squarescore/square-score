@@ -230,12 +230,7 @@ const Participants = () => {
     </div>
   </div>
   
-  <div style={{border: '15px solid #FCAE18', padding: '5px', zIndex: 100, boxShadow: ' 0px 4px 4px 0px rgba(0, 0, 0, 0.25)', width: '350px', fontFamily: "'Radio Canada', sans-serif", position: 'fixed', top: '-190px', right: '-120px', backgroundColor: 'white', textAlign: 'center', borderRadius: '30px', height: '350px', }}>
-    <h2 style={{  fontSize: '50px', fontWeight: 'bold', color: 'black',marginRight: '80px' ,  fontFamily: "'Rajdhani', sans-serif",}}>
-      <h1 style={{fontSize: '24px', marginBottom: '-2px', marginTop: '240px', color: 'grey', textDecoration: 'underline', fontFamily: "'Radio Canada', sans-serif"}}>Class Code</h1>  
-      {currentClass.classCode}
-    </h2>
-  </div>
+ 
 
   <div style={{width: '750px', display: 'flex', marginLeft: 'auto', marginRight: 'auto', marginTop: '0px', height: '150px'}}>
     <h1 style={{ fontSize: '70px', marginTop: '30px', width: '270px',  marginRight: '20px',fontFamily: "'Rajdhani', sans-serif", }}>Students</h1>
@@ -257,8 +252,23 @@ const Participants = () => {
         {isEditing ? <h1 style={{marginTop: '50px'}}>Done</h1> : <div style={{marginTop:'50px'}}><Pencil size={30} color="#8f8f8f" strokeWidth={3} /></div>}
       </button>
    
+      
     </div>
+   
+   
 </div>
+<div style={{width: '610px', marginLeft: 'auto', marginRight: 'auto',marginBottom: '30px', }}>
+<div style={{width: '610px', display: 'flex', border: '4px solid #FFAA00',  marginLeft: '-64px', marginTop: '-30px', 
+       background: '#FFF2AD',
+       borderRadius: '10px', padding: '10px', marginBottom: '10px', height: '30px'}}>
+  
+  <h1 style={{fontSize: '30px', color: '#FFAA00', marginTop: '-3px',fontFamily: "'Radio Canada', sans-serif"}}>Class Code:</h1>  
+       <h2 style={{ marginLeft: '20px', fontSize: '35px', marginTop: '-5px', fontWeight: 'bold', color: '#FFAA00',  fontFamily: "'Rajdhani', sans-serif",}}>
+      {currentClass.classCode}
+    </h2>
+    
+  </div>
+  </div>
 {currentClass.participants && currentClass.participants.length > 0 ? (
         currentClass.participants.map(student => (
       <div key={student.uid} style={{ zIndex: 10, width: '600px',  marginLeft: '-100px',display: 'flex', flexDirection: 'row',color: 'grey', fontSize: '20px', justifyContent: 'space-between', border: '4px solid #f4f4f4',borderRadius: '10px', padding: '15px', marginBottom: '30px', alignSelf: 'center', backgroundColor: 'white', position: 'relative' }}>
@@ -275,11 +285,12 @@ const Participants = () => {
                 paddingTop: '3px',
                 paddingRight: '4px',
                 height:'20px',
+                borderColor: isEditing ?  'lightgrey': '#FFAA00',
                 backgroundColor: isEditing ?  '#f4f4f4': '#FFF0A1', 
                 width: isEditing ? '175px' : '115px',
                 fontFamily: "'Radio Canada', sans-serif", 
                 marginLeft: '30px', 
-                color: isEditing ? 'grey':'#FC8518', 
+                color: isEditing ? 'grey':'#FFAA00', 
                 fontWeight: 'bold', 
                 borderTopRightRadius: '5px', 
                 borderTopLeftRadius: '5px', 

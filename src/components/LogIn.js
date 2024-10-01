@@ -161,7 +161,7 @@ const Login = () => {
       </div>
 
       <div className="white-background" style={{
-        width: '60%', display: 'flex', flexDirection: 'column', alignItems: 'center', marginLeft: 'auto', marginRight: 'auto', marginTop: '6%', backgroundColor: 'rgba(255,255,255,0.8)', backdropFilter: 'blur(7px)', padding: '40px', borderRadius: '30px'
+        width: '60%', display: 'flex', flexDirection: 'column', alignItems: 'center', marginLeft: 'auto', marginRight: 'auto', marginTop: '6%', backgroundColor: 'rgba(255,255,255,0.9)', backdropFilter: 'blur(7px)', padding: '40px', borderRadius: '30px'
       }}>
         <form onSubmit={handleLogin} style={{ width: '100%' }}>
           <h1 style={{
@@ -199,7 +199,7 @@ const Login = () => {
                 outline: 'none', 
                 backdropFilter: 'blur(7px)',
                 fontSize: '30px',
-                backgroundColor: 'rgb(250,250,250,.5)', 
+                backgroundColor: 'rgb(250,250,250,.9)', 
                 fontFamily: "'Radio Canada', sans-serif"
               }}
             />
@@ -228,7 +228,7 @@ const Login = () => {
                 outline: 'none', 
                 backdropFilter: 'blur(7px)',
                 fontSize: '30px',
-                backgroundColor: 'rgb(250,250,250,.5)', 
+                backgroundColor: 'rgb(250,250,250,.9)', 
                 fontFamily: "'Radio Canada', sans-serif",
               }}
             />

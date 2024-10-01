@@ -305,8 +305,8 @@ const Navbar = ({ userType, currentPage, firstName, lastName }) => {
                 left: '0px',
                 width: '100%',
                 height: '100%',
-                background: 'rgba(240,240,240,.3)',
-                backdropFilter: 'blur(20px)',
+                background: 'rgba(240,240,240,.9)',
+                backdropFilter: 'blur(5px)',
                 zIndex: '1000',
             }} />}
                {isCreateDropdownActive && (
@@ -317,8 +317,8 @@ const Navbar = ({ userType, currentPage, firstName, lastName }) => {
                         left: '0px',
                         width: '100%',
                         height: '100%',
-                        background: 'rgba(240,240,240,.3)',
-                        backdropFilter: 'blur(20px)',
+                        background: 'rgba(240,240,240,.9)',
+                        backdropFilter: 'blur(5px)',
                         zIndex: '101',
                     }} 
                 />
