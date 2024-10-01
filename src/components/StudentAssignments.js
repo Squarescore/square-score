@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import { db, auth } from './firebase';
 import { useNavigate, useParams } from 'react-router-dom';
 import Navbar from './Navbar';
-import { ArrowRight, CalendarClock, CalendarX2, BookOpen, BookOpenCheck, Eye, EyeOff, SquareMinus, SquareCheck, DoorOpen } from 'lucide-react';
+import { ArrowRight, CalendarClock, CalendarX2, BookOpen, BookOpenCheck, Eye, EyeOff, SquareMinus, SquareCheck, DoorOpen, YoutubeIcon } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
 function StudentAssignmentsHome({ studentUid: propStudentUid }) {
   const { classId } = useParams();
@@ -12,7 +12,8 @@ function StudentAssignmentsHome({ studentUid: propStudentUid }) {
   const studentUid = propStudentUid || auth.currentUser.uid;
   const navigate = useNavigate();
   const location = useLocation();
-  const [activeTab, setActiveTab] = useState(new URLSearchParams(location.search).get('tab') || 'active');
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [activeTab, setActiveTab] = useState('active');
 
   const [className, setClassName] = useState('');
   const [completedAssignments, setCompletedAssignments] = useState([]);
@@ -23,6 +24,13 @@ function StudentAssignmentsHome({ studentUid: propStudentUid }) {
   const [hoveredAssignment, setHoveredAssignment] = useState(null);
   const [showConfirm, setShowConfirm] = useState(false);
 const [confirmAssignment, setConfirmAssignment] = useState(null);
+
+const tabStyles = {
+  active: { background: '#CCFFC3', color: '#009006', borderColor: '#00CD09'  },
+  completed: { background: '#99A9FF', color: '#020CFF', borderColor: '#020CFF' },
+  upcoming: { background: '#FFF0A1', color: '#FC8518', borderColor: '#FCAE18'  },
+  overdue: { background: '#FFE6E6', color: '#CC0000', borderColor: '#CC0000'  }
+};
 
   const studentUID = auth.currentUser.uid;
   useEffect(() => {
@@ -506,8 +514,8 @@ const getAssignmentStyle = (assignment) => {
               backgroundColor: 'white',
               fontSize: '30px',
               color: 'black',
-              height: '70px',
-              width: '600px',
+              height: '80px',
+              width: '700px',
               marginLeft: '-40px',
               cursor: 'default',
               fontFamily: "'Radio Canada', sans-serif",
@@ -537,14 +545,14 @@ const getAssignmentStyle = (assignment) => {
               e.currentTarget.style.borderColor = getBorderColor(assignment);
             }}
           >
-            <div style={{ display: 'flex', color: 'black', textAlign: 'left', height: '29px', width: '570px', fontFamily: "'Radio Canada', sans-serif", position: 'relative', fontWeight: 'bold', fontSize: '25px', marginLeft: '10px' }}>
-              {assignment.assignmentName}
-              <h1 style={{ position: 'absolute', right: '-10px', bottom: '-55px', fontSize: '25px', width: '60px', textAlign: 'left' }}>
+            <div style={{ display: 'flex', color: 'black', textAlign: 'left', height: '29px', width: '700px', fontFamily: "'Radio Canada', sans-serif", position: 'relative', fontWeight: 'bold', fontSize: '30px', marginLeft: '10px' }}>
+            {assignment.assignmentName}
+              <h1 style={{ position: 'absolute', right: '15px', top: '-15px', fontSize: '25px', width: '60px', textAlign: 'left' }}>
                 {formatDisplay}
               </h1>
             </div>
             {assignment.inProgress && (
-              <div style={{ position: 'absolute', top: '15px', left: '-20px', backgroundColor: '#FFECA8', paddingLeft: '15px', fontWeight: 'bold', color: '#C69007',paddingRight: '15px',fontFamily: "'Radio Canada', sans-serif", border: '5px solid white' ,fontSize: '15px',borderRadius: '5px' }}>
+              <div style={{ position: 'absolute', bottom: '15px', right: '140px', backgroundColor: '#FFECA8', paddingLeft: '15px', fontWeight: 'bold', color: '#FFAA00',paddingRight: '15px',fontFamily: "'Radio Canada', sans-serif", border: '4px solid #FFAA00' ,fontSize: '15px',borderRadius: '5px' }}>
                 In Progress     {assignment.status === 'Paused' && (
             <div style={{ 
               position: 'absolute', 
@@ -565,21 +573,25 @@ const getAssignmentStyle = (assignment) => {
           )}
               </div>
             )}
-            <div style={{ marginTop: '0px', position: 'relative', display: 'flex', alignItems: 'center' }}>
+            <div style={{ marginTop: '10px', position: 'relative', display: 'flex', alignItems: 'center' }}>
               <div style={{ display: 'flex', marginLeft: '10px' }}>
                 <button
                   onClick={() => setShowDueDate(false)}
                   style={{
-                    background: showDueDate ? 'white' : '#415DF2',
-                    color: showDueDate ? 'lightgrey' : 'white',
+                    background:showDueDate ? 'white' : '#f4f4f4',
+                    color: showDueDate ? '#B6B6B6' : '#B6B6B6',
+                    border: showDueDate ? '4px solid white' : '4px solid #B6B6B6',
+                    lineHeight: '18px',
                     fontWeight: 'bold',
-                    border: showDueDate ? '2px solid lightgrey' : '2px solid #415DF2',
                     padding: '0px 10px',
                     cursor: 'pointer',
-                    height: '25px',
-                    fontSize: '16px',
+                    fontSize: '20px',
+                    height: '30px',
+                    position: 'relative',
+                    alignItems: 'center',
                     fontFamily: "'Radio Canada', sans-serif",
-                    borderRadius: '5px 0 0 5px'
+                    borderRadius: '5px'
+                 
                   }}
                 >
                   Assigned
@@ -587,24 +599,26 @@ const getAssignmentStyle = (assignment) => {
                 <button
                   onClick={() => setShowDueDate(true)}
                   style={{
-                    background: showDueDate ? '#415DF2' : 'white',
-                    color: showDueDate ? 'white' : 'lightgrey',
+                    background:showDueDate ? '#f4f4f4' : 'white',
+                    color: showDueDate ? '#B6B6B6' : '#B6B6B6',
+                    border: showDueDate ? ' 4px solid #B6B6B6' : '4px solid white',
+                    lineHeight: '18px',
                     fontWeight: 'bold',
-                    border: showDueDate ? '2px solid #415DF2' : '2px solid lightgrey',
                     padding: '0px 10px',
                     cursor: 'pointer',
-                    fontSize: '16px',
-                    height: '25px',
+                    fontSize: '20px',
+                    height: '30px',
                     position: 'relative',
                     alignItems: 'center',
                     fontFamily: "'Radio Canada', sans-serif",
-                    borderRadius: '0px 5px 5px 0px'
+                    borderRadius: '5px'
                   }}
                 >
                   Due
                 </button>
+                
               </div>
-              <h1 style={{ color: 'grey', fontSize: '18px', fontFamily: "'Radio Canada', sans-serif'", fontWeight: 'normal', marginLeft: '30px', width: '700px', textAlign: 'left' }}>
+              <h1 style={{ color: 'lightgrey', fontSize: '20px', fontFamily: "'Radio Canada', sans-serif'", fontWeight: 'bold', fontStyle:'italic',marginLeft: '20px', width: '360px', textAlign: 'left' }}>
                 {showDueDate ? formatDate(assignment.dueDate) : formatDate(assignment.assignDate)}
               </h1>
             </div>
@@ -619,15 +633,15 @@ const getAssignmentStyle = (assignment) => {
   )}
   style={{
     position: 'absolute',
-    left: '584px',
-    top: '79px',
+    left: '683px',
+    top: '84px',
     transform: 'translateY(-50%)',
     background: '#AEF2A3',
     color: 'white',
     padding: 0,
     cursor: 'pointer',
     borderRadius: '0 15px 15px 0',
-    height: '97px',
+    height: '107px',
     width: hoveredAssignment === assignment.id && isActiveAssignment(assignment) ? '70px' : '3px',
     opacity: hoveredAssignment === assignment.id && isActiveAssignment(assignment) ? 1 : 0,
     transition: 'width .4s ease-in-out, left .4s ease-in-out, opacity 0.3s ease-in-out',
@@ -683,62 +697,115 @@ const getAssignmentStyle = (assignment) => {
     lockdown={confirmAssignment ? confirmAssignment.lockdown : false}
   />
 )}
-      <div style={{position: 'fixed', width: '100%', top: '70px', background: 'rgb(245,245,245,.8)', backdropFilter: 'blur(5px)'
-        ,zIndex: '90'
+
+<div
+      style={{
+        position: 'fixed',
+        width:'250px',
+        height: '100%',
+        background: 'rgb(245,245,245,.8)',
+        backdropFilter: 'blur(5px)',
+        zIndex: '90',
+        transition: 'width 0.3s ease',
+        overflow: 'hidden'
+      }}
+ 
+    >
+         <div style={{
+        marginTop: '100px',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'flex-start',
+        gap: '20px'
       }}>
-      <div style={{ 
-          width: '800px', 
-          height: '40PX',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          marginLeft: 'auto', 
-          marginRight: 'auto',
-        }}>
-          {[
-            { label: 'active', icon: BookOpen },
-            { label: 'completed', icon: BookOpenCheck },
-            { label: 'upcoming', icon: CalendarClock },
-            { label: 'overdue', icon: CalendarX2 }
-          ].map(({label, icon: Icon}) => (
+           {[
+          { label: 'active', icon: BookOpen },
+          { label: 'completed', icon: BookOpenCheck },
+          { label: 'upcoming', icon: CalendarClock },
+          { label: 'overdue', icon: CalendarX2 }
+        ].map(({label, icon: Icon}) => (
+          <div key={label}>
             <button
-              key={label}
               onClick={() => setActiveTab(label)}
               style={{
                 fontSize: '15px',
                 fontFamily: "'Radio Canada', sans-serif",
-                background: 'none',
-                border: 'none',
+                background: activeTab === label ? tabStyles[label].background : 'transparent',
+                border: activeTab === label ? `4px solid ${tabStyles[label].borderColor}` : '4px solid transparent',
+                color: activeTab === label ? tabStyles[label].color : '#676767',
+                borderRadius: '10px',
+                padding: '25px 10px',
+                width: '220px',
+                marginLeft: '10px',
                 height: '40px',
+                marginTop: '0px',
                 cursor: 'pointer',
-                fontWeight: activeTab === label ? 'bold' : 'normal',
-                color: activeTab === label ? '#181818' : '#676767',
-                borderBottom: 'none',
-                paddingBottom: '5px',
+                fontWeight:  'bold',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '5px'
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.color = 'black';
+                if (activeTab !== label) {
+                  e.currentTarget.style.color = 'black';
+                }
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.color = activeTab === label ? '#181818' : '#676767';
+                if (activeTab !== label) {
+                  e.currentTarget.style.color = '#676767';
+                }
               }}
             >
-              <Icon size={16} color={activeTab === label ? "#181818" : "#676767"} strokeWidth={activeTab === label ? 2.5 : 2} />
-              {label.charAt(0).toUpperCase() + label.slice(1)}
+              <Icon 
+                size={40} 
+                color={activeTab === label ? tabStyles[label].color : '#676767'} 
+                strokeWidth={activeTab === label ? 2.5 : 2} 
+              />
+              <span style={{ 
+                whiteSpace: 'nowrap', 
+                fontSize: '25px', 
+                marginLeft: '20px'
+              }}>
+                {label.charAt(0).toUpperCase() + label.slice(1)}
+              </span>
             </button>
-          ))}
+            <div style={{ 
+              height: '4px', 
+              width: '220px', 
+              background: '#DEDEDE', 
+              marginLeft: '10px',  
+              marginTop: '20px'
+            }}></div>
+          </div>
+        ))}
 </div>
           </div>
       <div style={{ width: '850px', marginRight: 'auto', marginLeft: 'auto', marginTop: '160px', }}>
         <div style={{ display: 'flex', marginBottom: '50px', width: '800px', position: 'relative', alignItems: 'center' }}>
         <h1 style={{ fontSize: '60px', fontFamily: "'Rajdhani', sans-serif", textAlign: 'left', margin: '0', flex: '1' }}>
-  {activeTab.charAt(0).toUpperCase() + activeTab.slice(1)} Assignments
-</h1>
-         
-        </div>
+            Assignments
+          </h1>
+          <div style={{
+            width: '100px', 
+            position: 'absolute',
+            left: '340px',
+            fontFamily: "'Radio Canada', sans-serif",
+            fontWeight: 'bold' ,
+            background: tabStyles[activeTab].background, 
+            
+            paddingLeft: '20px',
+ paddingRight: '80px ',
+ borderRadius: '10px',
+ borderLeft: '6px solid ',
+  borderColor:   `${tabStyles[activeTab].borderColor}` || 'grey',
+ height: '40px',
+ lineHeight: '40px',
+  backgroundColor: `${tabStyles[activeTab].background}` || 'white', 
+  color: `${tabStyles[activeTab].color}` || 'grey',
+  fontSize: '20px', 
+          }}>
+            {activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}
+          </div>
+          </div>
         <div style={{ position: 'relative' }}>
           <ul style={{ listStyleType: 'none', marginTop: '-30px' }}>
             {activeTab === 'completed' ? (
@@ -751,7 +818,7 @@ const getAssignmentStyle = (assignment) => {
               )
             ) : (
               filteredAssignments[activeTab].length === 0 ? (
-                <div style={{ textAlign: 'center', fontSize: '20px', fontFamily: "'Radio Canada', sans-serif", color: 'grey', marginTop: '20px' }}>
+                <div style={{ textAlign: 'left', fontSize: '20px', fontFamily: "'Radio Canada', sans-serif", color: 'grey', marginTop: '50px', marginLeft: '-40px' }}>
                   No {activeTab} assignments
                 </div>
               ) : (

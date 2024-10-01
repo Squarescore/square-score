@@ -507,6 +507,7 @@ const TeacherResults = () => {
   const navigateToStudentGrades = (studentUid) => {
     navigate(`/class/${classId}/student/${studentUid}/grades`);
   };
+ 
 
   const toggleAllViewable = async () => {
     const newViewableStatus = !allViewable;
@@ -1558,7 +1559,7 @@ onClick={() => assignmentStatuses[student.uid] === 'Paused' && togglePauseAssign
                 }}
                 onClick={(e) => {
                   e.stopPropagation();
-                  navigateToStudentGrades(student.uid);
+                  navigate(`/teacherStudentResults/${assignmentId}/${student.uid}/${classId}`);
                 }}
               >
                 <ArrowRight size={40} color="#020CFF" strokeWidth={3} />
