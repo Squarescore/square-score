@@ -1,0 +1,225 @@
+// Folders.js
+import React, { useState, useEffect } from 'react';
+import { doc, getDoc, updateDoc, arrayUnion } from 'firebase/firestore';
+import { db } from '../../Universal/firebase';
+import { Folder, FolderPlus, SquareX, Palette, SquarePlus } from 'lucide-react';
+import { createFolder, fetchFolders, addAssignmentToFolder, fetchFolderAssignments } from './folderManagment';
+import { v4 as uuidv4 } from 'uuid';
+
+const pastelColors = [
+  { bg: '#FFF2A7', text: '#FFD000' },
+  { bg: '#FFC583', text: '#EA6200' },
+  { bg: '#F7C7FF', text: '#B513D2' },
+  { bg: '#FFBCBC', text: '#C10E0E' },
+  { bg: '#C2FEFF', text: '#00D3D7' },
+  { bg: '#DAB5FF', text: '#7C00F8' },
+  { bg: '#9EADFF', text: '#020CFF' },
+  { bg: '#C1FFC7', text: '#48E758' },
+];
+
+const Folders = ({
+  classId,
+  folders,
+  setFolders,
+  allAssignments,
+  setAllAssignments,
+  selectedFolder,
+  setSelectedFolder,
+  setShowFolderModal,
+  setFolderAssignments,
+  fetchAssignments,
+  fetchFoldersFromParent,
+  fetchDraftsFromParent,
+}) => {
+  const [showFolderForm, setShowFolderForm] = useState(false);
+  const [newFolderName, setNewFolderName] = useState('');
+  const [newFolderColor, setNewFolderColor] = useState(pastelColors[0]);
+
+  const handleCreateFolder = async () => {
+    if (newFolderName.trim() === '') return;
+    const folderId = await createFolder(classId, newFolderName, newFolderColor);
+    setFolders([...folders, { id: folderId, name: newFolderName, color: newFolderColor, assignments: [] }]);
+    setShowFolderForm(false);
+    setNewFolderName('');
+    setNewFolderColor(pastelColors[0]);
+  };
+
+  const openFolderModal = async (folder) => {
+    setSelectedFolder(folder);
+    setShowFolderModal(true);
+    const folderAssignments = await fetchFolderAssignments(folder.id);
+    setFolderAssignments(folderAssignments);
+  };
+
+  return (
+    <div>
+      {/* Button to Create Folder */}
+      <button
+        onClick={() => setShowFolderForm(!showFolderForm)}
+        style={{
+          backgroundColor: "#f4f4f4",
+          marginLeft: '250px',
+          width: '300px',
+          height: '70px',
+          cursor: 'pointer',
+          fontSize: '30px',
+          borderRadius: '10px',
+          color: 'grey',
+          border: `4px solid #f4f4f4`,
+          fontFamily: "'montserrat', sans-serif",
+          fontWeight: 'bold',
+          zIndex: 9,
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+        }}
+      >
+        {showFolderForm ? '+' : 'Create Folder'}
+      </button>
+
+      {/* Folder Creation Form Modal */}
+      {showFolderForm && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(255, 255, 255, 0.9)',
+          backdropFilter: 'blur(5px)',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          zIndex: 101,
+        }}>
+          <div style={{ width: '800px', height: '400px', backgroundColor: 'white', borderRadius: '20px', padding: '20px', position: 'relative' }}>
+            <button 
+              onClick={() => setShowFolderForm(false)}
+              style={{
+                position: 'absolute',
+                top: '20px',
+                right: '20px',
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer'
+              }}
+            >
+              <SquareX size={40} color="#a3a3a3" strokeWidth={3} />
+            </button>
+            <h2 style={{ fontSize: '30px', marginBottom: '20px', fontFamily: "'montserrat', sans-serif", textAlign: 'center', color:'grey' }}>Create Folder</h2>
+            <input
+              type="text"
+              value={newFolderName}
+              onChange={(e) => setNewFolderName(e.target.value.slice(0, 25))}
+              placeholder="Folder Name"
+              style={{
+                width: '100%',
+                padding: '10px',
+                fontSize: '20px',
+                marginBottom: '10px',
+                borderRadius: '5px',
+                border: '1px solid #ccc',
+              }}
+            />
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '15px' }}>
+              {pastelColors.map((color, index) => (
+                <div
+                  key={index}
+                  onClick={() => setNewFolderColor(color)}
+                  style={{
+                    width: '30px',
+                    height: '30px',
+                    cursor: 'pointer',
+                    position: 'relative',
+                  }}
+                >
+                  <div style={{
+                    width: '25px',
+                    height: '25px',
+                    backgroundColor: color.bg,
+                    borderRadius: '5px',
+                    border: `4px solid ${color.text}`,
+                    boxSizing: 'border-box'
+                  }} />
+                  {newFolderColor === color && (
+                    <div style={{
+                      position: 'absolute',
+                      top: '50%',
+                      left: '50%',
+                      transform: 'translate(-50%, -50%)',
+                      width: '20px',
+                      height: '20px',
+                      borderRadius: '50%',
+                      border: `2px solid #2BB514`,
+                    }} />
+                  )}
+                </div>
+              ))}
+            </div>
+            <button
+              onClick={handleCreateFolder}
+              style={{
+                marginTop: '20px',
+                padding: '10px 20px',
+                backgroundColor: '#2BB514',
+                color: 'white',
+                border: 'none',
+                borderRadius: '5px',
+                cursor: 'pointer',
+                fontSize: '18px',
+              }}
+            >
+              Create Folder
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Display Folders */}
+      <div style={{
+        marginTop: '30px', 
+        display: 'flex', 
+        flexWrap: 'wrap', 
+        width: '100%', 
+        gap: '50px'
+      }}>
+        {folders
+          .filter(folder => folder.classId === classId)
+          .map((folder) => (
+            <div 
+              key={folder.id} 
+              onClick={() => openFolderModal(folder)}
+              style={{ 
+                width: 'calc(28% - 14px)', 
+                marginBottom: '40px',
+                cursor: 'pointer',
+              }}
+            >
+              <div style={{
+                padding: '10px',
+                height: '50px',
+                position: 'relative',
+                borderWidth: '6px',
+                borderStyle: 'solid',
+                borderColor: folder.color.text,
+                backgroundColor: folder.color.bg,
+                color: folder.color.text,
+                borderRadius: '15px',
+                fontWeight: 'bold',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontFamily: "'montserrat', sans-serif",
+                fontSize: '30px',
+              }}>
+                {folder.name} 
+              </div>
+            </div>
+          ))
+        }
+      </div>
+    </div>
+  );
+};
+
+export default Folders;

@@ -1,53 +1,52 @@
 import React, { useEffect, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { getAuth, onAuthStateChanged, setPersistence, browserLocalPersistence } from 'firebase/auth';
-import Auth from './components/Auth';
-import LogIn from './components/LogIn';
-import Loader from './components/Loader';
-import SignUp from './components/SignUp';
-import StudentHome from './components/StudentHome';
-import TakeMCQ from './components/TakeMCQ';
-import TeacherHome from './components/TeacherHome';
-import AdminHome from './components/AdminHome';
-import TeacherClassHome from './components/TeacherClassHome';
-import TeacherAssignmentHome from './components/TeacherAssignmentHome';
-import CreateAssignment from './components/CreateSAQ';
-import SAQA from './components/CreateASAQ';
-import Participants from './components/Participants';
-import Assignments from './components/TeacherAssignments';
-import TeacherReview from './components/TeacherReview';
-import TeacherPreview from './components/PreviewSAQ';
-import JoinClass from './components/JoinClass';
-import TeacherHomeWaitlist from './components/TeacherHomeWaitlist';
-import StudentAssignments from './components/StudentAssignments';
-import TakeTest from './components/TakeSAQ';
-import TeacherStudentResults from './components/TeacherStudentResults';
-import SelectStudents from './components/SelectStudents';
-import TeacherResults from './components/ResultsSAQ';
-import StudentResultsMCQ from './components/StudentResultsMCQ';
-import TeacherStudentResultsMCQ from './components/TeacherStudentResultsMCQ';
-import TeacherStudentResultsAMCQ from './components/TeacherStudentResultsAMCQ';
-import StudentResults from './components/StudentResults';
-import TeacherResultsAMCQ from './components/ResultsAMCQ';
-import TeacherPreviewASAQ from './components/PreviewASAQ';
+import Auth from './components/unAuthenticated/Auth';
+import LogIn from './components/unAuthenticated/LogIn';
+import Loader from './components/Universal/Loader';
+import SignUp from './components/unAuthenticated/SignUp';
+import StudentHome from './components/Students/StudentHome';
+import TakeMCQ from './components/Students/TakeAssignments/TakeMCQ';
+import TeacherHome from './components/Teachers/TeacherHome/TeacherHome';
+import AdminHome from './components/Admin/AdminHome';
+import TeacherClassHome from './components/Teachers/TeacherClassHome';
+import TeacherAssignmentHome from './components/Teachers/TeacherAssignments/TeacherAssignmentHome';
+import CreateAssignment from './components/Teachers/Create/CreateSAQ';
+import SAQA from './components/Teachers/Create/CreateASAQ';
+import Participants from './components/Teachers/Participants';
+import Assignments from './components/Teachers/TeacherAssignments/TeacherAssignments';
+import TeacherReview from './components/Teachers/Results/TeacherReview';
+import TeacherPreview from './components/Teachers/Create/PreviewSAQ';
+import TeacherHomeWaitlist from './components/Teachers/TeacherHome/TeacherHomeWaitlist';
+import StudentAssignments from './components/Students/StudentAssignments';
+import TakeTest from './components/Students/TakeAssignments/TakeSAQ';
+import TeacherStudentResults from './components/Teachers/Results/TeacherStudentView/TeacherStudentResults';
+import SelectStudents from './components/Teachers/Create/SelectStudents';
+import TeacherResults from './components/Teachers/Results/ResultsSAQ';
+import StudentResultsMCQ from './components/Students/Results/StudentResultsMCQ';
+import TeacherStudentResultsMCQ from './components/Teachers/Results/TeacherStudentView/TeacherStudentResultsMCQ';
+import TeacherStudentResultsAMCQ from './components/Teachers/Results/TeacherStudentView/TeacherStudentResultsAMCQ';
+import StudentResults from './components/Students/Results/StudentResults';
+import TeacherResultsAMCQ from './components/Teachers/Results/ResultsAMCQ';
+import TeacherPreviewASAQ from './components/Teachers/Create/PreviewASAQ';
 import { doc, getDoc } from "firebase/firestore"; // Importing from Firestore
-import { db, storage } from './components/firebase';
-import MCQ from './components/CreateMCQ';
+import { db, storage } from './components/Universal/firebase';
+import MCQ from './components/Teachers/Create/CreateMCQ';
 import { signOut } from 'firebase/auth';
-import StudentResultsAMCQ from './components/StudentResultsAMCQ';
-import TestPage  from './components/TestPage';
-import TermsOfService from './components/TermsofService';
-import MCQA from './components/CreateAMCQ';
-import TeacherStudentGrades from './components/TeacherStudentGrades';
-import TakeASAQ from './components/TakeASAQ';
-import TakeAmcq from './components/TakeAmcq';
-import TeacherResultsASAQ from './components/ResultsASAQ';
-import PrivacyPolicy from './components/PrivacyPolicy';
-import TeacherResultsMCQ from './components/ResultsMCQ';
-import AdminUB from './components/AdminUB';
-import TeacherLogs from './components/TeacherLogs';
-import SignUpAdmin from './components/SignUpAdmin';
-import PageNotFound from './components/PageNotFound'; // Import the PageNotFound component
+import StudentResultsAMCQ from './components/Students/Results/StudentResultsAMCQ';
+import TestPage  from './components/Universal/TestPage';
+import TermsOfService from './components/Universal/TermsofService';
+import MCQA from './components/Teachers/Create/CreateAMCQ';
+import TeacherStudentGrades from './components/Teachers/Results/TeacherStudentView/TeacherStudentGrades';
+import TakeASAQ from './components/Students/TakeAssignments/TakeASAQ';
+import TakeAmcq from './components/Students/TakeAssignments/TakeAmcq';
+import TeacherResultsASAQ from './components/Teachers/Results/ResultsASAQ';
+import PrivacyPolicy from './components/Universal/PrivacyPolicy';
+import TeacherResultsMCQ from './components/Teachers/Results/ResultsMCQ';
+import AdminUB from './components/Admin/AdminUB';
+import TeacherLogs from './components/Admin/TeacherLogs';
+import SignUpAdmin from './components/unAuthenticated/SignUpAdmin';
+import PageNotFound from './components/Universal/PageNotFound'; // Import the PageNotFound component
 
 function App() {
   const [user, setUser] = useState(null);
@@ -179,7 +178,7 @@ function App() {
     );
   }
   return (
-    <div style={{ fontFamily: "'Radio Canada', sans-serif"}}>
+    <div style={{ fontFamily: "'montserrat', sans-serif"}}>
     <Router>
       
       {user ? (
@@ -290,8 +289,7 @@ function App() {
         <Route path="/takeMCQ/:assignmentId" element={<TakeMCQ/>} />
         <Route path="/takeASAQ/:assignmentId" element={<TakeASAQ/>} />
         <Route path="/takeAmcq/:assignmentId" element={<TakeAmcq/>} />
-        <Route path="/joinclass" element={<JoinClass />} />  
-        <Route path="/studentresults/:assignmentId/:studentUid/:classId" element={<StudentResults/>} />
+       <Route path="/studentresults/:assignmentId/:studentUid/:classId" element={<StudentResults/>} />
         <Route path="/studentresultsAMCQ/:assignmentId/:studentUid/:classId" element={<StudentResultsAMCQ/>} />
         
         <Route path="/studentresultsMCQ/:assignmentId/:studentUid/:classId" element={<StudentResultsMCQ/>} />
