@@ -157,7 +157,7 @@ const [incorrectCount, setIncorrectCount] = useState(0);
 
 
 
-           <div style={{display: 'flex', border: '2px solid #f4f4f4', paddingRight: '0px', width: '880px ', borderRadius: '15px', marginBottom: '20px', height: '200px', marginLeft: '-10px' }}>
+           <div style={{display: 'flex', border: '2px solid #E9E9E9', paddingRight: '0px', width: '880px ', borderRadius: '15px', marginBottom: '20px', height: '200px', marginLeft: '-10px' }}>
        <div style={{marginLeft: '30px', marginBottom: '40px'}}>
        <h1 style={{ fontSize: '40px', color: 'black', marginBottom: '0px',  marginLeft: '-5px',fontFamily: "'montserrat', sans-serif", textAlign: 'left',  }}>{assignmentName}</h1>
      
@@ -179,7 +179,7 @@ const [incorrectCount, setIncorrectCount] = useState(0);
                    </div>
            </div>
            <div style={{display: 'flex', width: '880px'}}>
-               <div style={{width: '450px', border: '2px solid #f4f4f4', borderRadius: '15px', height: '135px',  padding: '0px 0px', marginLeft: '-10px'}}>
+               <div style={{width: '450px', border: '2px solid #E9E9E9', borderRadius: '15px', height: '135px',  padding: '0px 0px', marginLeft: '-10px'}}>
                    <h1 style={{  marginBottom: '-20px', marginTop:'15px', marginLeft: '30px', fontSize: '25px', }}> Point Distribution</h1>
                  <div style={{display: 'flex', justifyContent: 'space-around'}}> 
                    <div style={{ fontSize: '30px', fontWeight: 'bold', color: 'black', display: 'flex', alignItems: 'center',  justifyContent: 'space-around', marginLeft: '5px', width: '90px', marginTop: '50px' , }}>
@@ -212,7 +212,7 @@ const [incorrectCount, setIncorrectCount] = useState(0);
                    </div>
 
 
-                   <div style={{width: '430px', border: '2px solid #f4f4f4', borderRadius: '15px', height: '135px',  padding: '0px 0px', marginLeft: '20px' }}>
+                   <div style={{width: '430px', border: '2px solid #E9E9E9', borderRadius: '15px', height: '135px',  padding: '0px 0px', marginLeft: '20px' }}>
                    <h1 style={{  marginBottom: '-20px', marginTop:'15px', marginLeft: '30px', fontSize: '25px', }}>Grade</h1>
                    <div style={{display: 'flex', justifyContent: 'space-around', marginTop: '25px'}}> 
                    <p style={{fontSize: '25px', width: '20px',color: 'grey', padding: '5px 30px', background: '#f4f4f4', borderRadius: '5px', fontWeight: 'bold',  textAlign: 'center'}}>{letterGrade}</p>
@@ -303,7 +303,7 @@ const [incorrectCount, setIncorrectCount] = useState(0);
             
             return (
               <li key={index} 
-              ref={el => questionRefs.current[index] = el} style={{ position: 'relative', fontFamily: "'montserrat', sans-serif", marginBottom: '20px', width: '840px', borderRadius: '15px', border: '2px solid #f4f4f4', padding: '20px 20px 20px 20px',marginLeft: 'auto', marginRight: 'auto',}}>
+              ref={el => questionRefs.current[index] = el} style={{ position: 'relative', fontFamily: "'montserrat', sans-serif", marginBottom: '20px', width: '840px', borderRadius: '15px', border: '2px solid #E9E9E9', padding: '20px 20px 20px 20px',marginLeft: 'auto', marginRight: 'auto',}}>
                <div style={{ display: 'flex', fontFamily: "'montserrat', sans-serif",   alignItems: 'center', marginTop: '-20px' }}>
                  
                   <div style={{marginTop: '20px'}}>

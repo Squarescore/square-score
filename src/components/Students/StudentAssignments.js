@@ -187,7 +187,7 @@ const periodStyle = periodStyles[periodNumber] || { background: '#F4F4F4', color
   
     if (now < assignDateTime) return '#FFE3A6';
     if (now > dueDateTime) return '#FFD4D4';
-    return '#d6d6d6'; // Light green for active assignments
+    return '#E9E9E9'; // Light green for active assignments
   }; useEffect(() => {
     const fetchCompletedAssignments = async () => {
       const saqGradesQuery = query(
@@ -261,7 +261,7 @@ const getAssignmentStyle = (assignment) => {
   const borderColor = getBorderColor(assignment);
   return {
     border: `2px solid ${borderColor}`,
-    cursor: borderColor === '#d6d6d6' ? 'default' : 'not-allowed',
+    cursor: borderColor === '#E9E9E9' ? 'default' : 'not-allowed',
   };
 };
 
@@ -411,7 +411,7 @@ const getAssignmentStyle = (assignment) => {
     }
   
     return (
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '20px', marginLeft: '-40px', }}>
+      <div style={{  gap: '20px', marginLeft: '-40px', }}>
         {assignmentPairs.map((pair, rowIndex) => (
           <React.Fragment key={rowIndex}>
             {pair.map((grade) => {
@@ -425,13 +425,14 @@ const getAssignmentStyle = (assignment) => {
               return (
                 <div key={grade.id} style={{
                   backgroundColor: 'white',
-                  border: grade.viewable ? '4px solid #f4f4f4' : '4px solid #f4f4f4',
-                  borderRadius: '15px',
-                  padding: '15px',
-                  width: '400px',
+                  border: grade.viewable ? '2px solid #E9E9E9' : '2px solid #E9E9E9',
+                  marginTop: '20px',
+                  borderRadius: '10px',
+                  padding: '10px',
+                  width: '800px',
                   fontFamily: "'montserrat', sans-serif",
                   position: 'relative',
-                  height: '70px',
+                  height: '30px',
                   display: 'flex',
                   flexDirection: 'column',
                   justifyContent: 'space-between',
@@ -443,12 +444,14 @@ const getAssignmentStyle = (assignment) => {
                   }
                 }}    >
                   <div>
-                    <h2 style={{ fontSize: '20px', margin: '0 0 10px 0' }}>{grade.assignmentName}</h2>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <div style={{width: '24px', height: '24px', background: '#627BFF', border: '6px solid blue', borderRadius: '5px'}}>
-                    <span style={{ fontSize: '24px', fontWeight: 'bold' , color: 'white', marginLeft: '5px',lineHeight: '26px',
-                  fontFamily: "'montserrat', sans-serif",}}>
-                        {isAMCQ || isMCQ ? `${percentage}` : `${letterGrade}`}
+                    
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '-5px' }}>
+                    
+                  <h2 style={{ fontSize: '20px', margin: '7px 20px 10px  10px', width: '280px' }}>{grade.assignmentName}</h2>
+                  <div style={{width: '24px', height: '24px', background: '#627BFF', border: '6px solid blue', borderRadius: '5px', marginTop: '-4x', textAlign: 'center'}}>
+                    <span style={{ fontSize: '24px', fontWeight: 'bold' , color: 'white',lineHeight: '26px', 
+                  fontFamily: "'montserrat', sans-serif", textAlign: 'center'}}>
+                        {isAMCQ || isMCQ ? `${letterGrade}` : `${letterGrade}`}
                       </span>
                       </div>
                       <span style={{ fontSize: '24px', fontWeight: 'bold' }}>
@@ -465,22 +468,18 @@ const getAssignmentStyle = (assignment) => {
                     }) : 'N/A'}
                   </div>
                  
-                      <span style={{ fontSize: '20px', fontWeight: 'bold', color: isAMCQ ? '#2BB514' : (isSAQ ? '#020CFF' : '#2BB514') }}>
+                      <span style={{ fontSize: '16px', fontWeight: 'bold', width: '50px', color: isAMCQ ? '#2BB514' : (isSAQ ? '#020CFF' : '#2BB514') }}>
                         {isAMCQ ? 'MCQ*' : (isSAQ ? 'SAQ' : 'MCQ')}
                       </span>
-                      <span style={{color: grade.viewable ? 'grey' : 'lightgrey', marginTop: '5px' }}>
-                    {grade.viewable ? <Eye size={25} strokeWidth={2.8} /> : <EyeOff size={25} strokeWidth={2.8} />}
-                  </span>
+                     
                     </div>
                   </div>
                  
-                  <div style={{position: 'absolute', background: grade.viewable ? '#B9C4FF' : '#f4f4f4',color: grade.viewable ? '#020CFF' : 'grey', height: '25px', border: grade.viewable ? '4px solid #020CFF' : '4px solid lightgrey',  width: '400px', padding: '5px 15px', borderTopLeftRadius: '15px', borderTopRightRadius: '15px',  top: '-4px', left: '-4px'}}>
                  
-                  <h2 style={{ fontSize: '20px', margin: '0 0 10px 0' }}>{grade.assignmentName}</h2>
-                  <span style={{ position: 'absolute', top: '6px', right: '10px', color: grade.viewable ? '#020CFF' : 'grey' }}>
-                    {grade.viewable ? <ArrowRight size={25} strokeWidth={2.8} /> : ''}
+                  <span style={{ position: 'absolute', top: '10px', right: '-60px', color: grade.viewable ? '#020CFF' : 'grey' }}>
+                    {grade.viewable ? <SquareArrowRight size={40} strokeWidth={2.8} /> : ''}
                   </span>
-                  </div>
+                 
 
 
                 </div>
@@ -543,6 +542,8 @@ const getAssignmentStyle = (assignment) => {
               fontSize: '30px',
               color: 'black',
               marginLeft: '-40px',
+              paddingLeft: '20px',
+              paddingRight: '20px',
               cursor: 'default',
               display: 'flex',
               fontFamily: "'montserrat', sans-serif",
@@ -606,19 +607,17 @@ const getAssignmentStyle = (assignment) => {
             <div
             
             
-            style={{ display: 'flex',  textAlign: 'left', 
-              height: '30px', width: '370px',   fontWeight: '700',fontSize: '18px',  lineHeight: '30px'
+            style={{ display: 'flex',  textAlign: 'left',  marginLeft: '10px',
+              height: '30px', width: '300px',   fontWeight: '700',fontSize: '18px',  lineHeight: '30px'
               }}>
                { assignment.assignmentName}  
 
-            <h1 style={{ right: '15px', marginLeft: 'auto', marginTop: '0px',  width: '60px', textAlign: 'left', fontSize: '20px',  }}>
-                {formatDisplay} 
-              </h1>
+            
            
             </div>
          
          
-            <div style={{  height: '30px', width: '400px',   display: 'flex' }}>
+            <div style={{  height: '30px', width: '420px',   marginLeft: '10px', marginRight: '20px', display: 'flex' }}>
               <div style={{ display: 'flex', marginLeft: '0px' }}>
                 <button
                   onClick={() => setShowDueDate(false)}
@@ -668,8 +667,13 @@ const getAssignmentStyle = (assignment) => {
               <h1 style={{ color: 'lightgrey', fontSize: '13px', fontWeight:'600', fontFamily: "'montserrat', sans-serif'",marginTop: '6px', fontStyle:'italic',marginLeft: '10px', width: '360px', textAlign: 'left' }}>
                 {showDueDate ? formatDate(assignment.dueDate) : formatDate(assignment.assignDate)}
               </h1>
+
+            
+
             </div>
-        
+            <h1 style={{ right: '0px',  top: '5px',  width: '60px', textAlign: 'left', fontSize: '16px', position: 'absolute' }}>
+                {formatDisplay} 
+              </h1>
           </li>
         </div>
       );
