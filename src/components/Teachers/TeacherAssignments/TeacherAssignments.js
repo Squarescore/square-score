@@ -7,7 +7,8 @@ import Navbar from '../../Universal/Navbar';
 import { useLocation } from 'react-router-dom';
 import TeacherAssignmentHome from './TeacherAssignmentHome'; // Import the TeacherAssignmentHome component
 import { v4 as uuidv4 } from 'uuid';
-import { BookOpenText, SquareX, SquarePlus, PencilRuler, Folder, FolderPlus, YoutubeIcon, Palette, Search, Eye } from 'lucide-react';
+import Tooltip from './AssignmentsToolTip';
+import { BookOpenText, SquareX, SquarePlus, PencilRuler, Folder, FolderPlus,  Palette, Search, Eye } from 'lucide-react';
 const pastelColors = [
   
   { bg: '#FFF2A9', text: '#FFD000' },
@@ -23,8 +24,8 @@ const pastelColors = [
 
 function Assignments() {
   const [activeTab, setActiveTab] = useState(() => {
-    // Retrieve the active tab from localStorage or default to 'published'
-    return localStorage.getItem('activeTab') || 'published';
+    // Retrieve the active tab from localStorage or default to 'assignments'
+    return localStorage.getItem('activeTab') || 'assignments';
   });
   const { classId } = useParams();
   const [assignments, setAssignments] = useState([]);
@@ -34,8 +35,8 @@ function Assignments() {
   const [searchTerm, setSearchTerm] = useState('');
   const [showSearchBar, setShowSearchBar] = useState(false);
   const [sortBy, setSortBy] = useState(() => {
-    // Retrieve the sort method from localStorage or default to 'published'
-    return localStorage.getItem('sortBy') || 'published';
+    // Retrieve the sort method from localStorage or default to 'assignments'
+    return localStorage.getItem('sortBy') || 'assignments';
   });
   const [selectedFolder, setSelectedFolder] = useState(null);
   const [selectedFormat, setSelectedFormat] = useState(null);
@@ -192,9 +193,9 @@ function Assignments() {
   const getSortButtonStyle = (option) => {
     const baseStyle = {
       fontSize: '15px',
-      height: '80px',
+      height: '60px',
       fontWeight: 'bold',
-      width: '80px',
+      width: '60px',
       display: 'flex',
       fontFamily: "'montserrat', sans-serif",
       borderRadius: '8px',
@@ -203,6 +204,7 @@ function Assignments() {
       zIndex: '100',
       textAlign: 'left',
       lineHeight: '0px',
+      marginLeft: '20px',
       cursor: 'pointer',
       transition: 'all 0.3s ease',
     };
@@ -211,7 +213,7 @@ function Assignments() {
   
     if (sortBy === option) {
       switch (option) {
-        case 'published':
+        case 'assignments':
           style = { ...style, backgroundColor: '#B0BDFF', color: '#020CFF', borderColor: '#020CFF' };
           break;
         case 'folders':
@@ -236,7 +238,7 @@ function Assignments() {
   const renderNoContentMessage = () => {
     let message = '';
     switch(sortBy) {
-      case 'published':
+      case 'assignments':
         message = 'No published assignments yet.';
         break;
       case 'folders':
@@ -302,7 +304,7 @@ function Assignments() {
   const getSearchBarStyle = () => {
     let backgroundColor, color, iconSrc;
     switch (sortBy) {
-      case 'published':
+      case 'assignments':
         backgroundColor = 'rgba(176, 189, 255, 0.3)';  // #B0BDFF with 30% opacity
         color = '#020CFF';
         
@@ -1076,9 +1078,14 @@ function Assignments() {
             borderRadius: '10px'
           }}>
             <div style={{display: 'flex'}}>
-            <h1 style={{ color: 'black', fontSize: '60px', fontFamily: "'montserrat', sans-serif", marginLeft: '0px' }}>
-            {activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}
-            </h1>
+            <h1 style={{ 
+  color: 'black', 
+  fontSize: activeTab === 'assignments' ? '55px' : '60px', 
+  fontFamily: "'montserrat', sans-serif", 
+  marginLeft: '0px' 
+}}>
+  {activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}
+</h1>
 
             {sortBy === 'folders' && (
                 <button
@@ -1212,124 +1219,105 @@ function Assignments() {
               <div style={{
                
                 flexDirection: 'column',
-                padding: '20px',
+                padding: '0px',
                 marginTop: '-15px',
-                width: '60px',
+                width: '80px',
                  position: 'fixed',
                  left: '0px', top: '0px' ,
                  height: '100%',
-
-              background:'#FAFAFA'
+                 borderRight: '4px solid #f4f4f4',
+              background:'white'
               }}>
                <div style={{  height: '25px', zIndex: '10', width: '100px', marginTop: '80px', marginLeft: '-10px'
                  
                 }}>
+                     
                    <button
             onClick={toggleCreateModal}
             style={{
-              border: '4px solid transparent',
               padding: '5px',
               zIndex: 100,
-              width: '80px',
-              height: '80px',
+              width: '85px',
+              height: '60px',
+              marginLeft: '10px',
               color:'grey',
               fontFamily: "'montserrat', sans-serif",
               display: 'flex',
-              backgroundColor: 'transparent',
-              textAlign: 'center',
-              borderRadius: '10px',
+              backgroundColor: '#f4f4f4',
+              border: 'none',
+              borderRight: '4px solid lightgrey',
+              textAlign: 'left',
+              borderRadius: '0px',
               cursor: 'pointer',
               transition: '.3s',
+              alignItems: 'center',
+              justifyContent: 'center'
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.borderColor = '#00B94A';
-              e.currentTarget.style.backgroundColor = '#AEF2A3';
-              e.currentTarget.style.color = '#1ca800';
+              e.currentTarget.style.borderRightColor = '#00D309';
+              e.currentTarget.style.color = '#00D309';
+              
+              e.currentTarget.style.backgroundColor = '#C1FFB7';
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.borderColor = 'transparent';
+              e.currentTarget.style.borderRightColor = 'lightgrey';
               e.currentTarget.style.color = 'grey';
-              e.currentTarget.style.backgroundColor = 'transparent';
+              e.currentTarget.style.backgroundColor = '#f4f4f4';
             }}
           >
-            <div style={{ alignItems: 'center', marginLeft: '-10px', marginTop: '0px' }}>
-              <SquarePlus size={40} />
-              <h2 style={{
-                fontSize: '15px',
-                fontWeight: '600',
-                userSelect: 'none',
-                width: '80px',
-                textAlign: 'center',
-                marginTop: '0px',
-                fontFamily: "'montserrat', sans-serif",
-              }}
-              
-              onMouseEnter={(e) => {
-                
-                e.currentTarget.style.fontWeight = 'bold';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.fontWeight = '600';
-              }}>
-
-                Create
-              </h2>
-            </div>
+              <Tooltip text="Create">
+        
+            <SquarePlus size={40}  style={{marginTop: '5px'}}/>
+            </Tooltip>
           </button>
-
           {[
-            { option: 'published', icon: BookOpenText },
-            { option: 'folders', icon: Folder },
-            { option: 'drafts', icon: PencilRuler },
-          ].map(({option, icon: Icon}) => (
+            { option: 'assignments', icon: BookOpenText, tooltip: 'Assignments' },
+            { option: 'folders', icon: Folder, tooltip: 'Folders' },
+            { option: 'drafts', icon: PencilRuler, tooltip: 'Drafts' },
+          ].map(({option, icon: Icon, tooltip}) => (
             <div style={{marginTop: '10px'}} key={option}>
               <div style={{ 
                 height: '4px', 
                 width: '60px', 
-                background: '#E8E8E8', 
-                marginLeft: '10px',  
-                marginTop: '0px',
+                background: 'transparent', 
+                marginLeft: '0px',  
+                marginTop: '40px',
                 marginBottom: '-10px'
               }}></div>
               <button
-                style={getSortButtonStyle(option)}
-                onClick={() => handleSortClick(option)}
-                onMouseEnter={(e) => {
-                  if (sortBy !== option) {
-                    e.currentTarget.style.color = 'grey';
-                    e.currentTarget.querySelector('svg').style.color = 'grey';
-                    e.currentTarget.querySelector('svg').style.strokeWidth = '2';
-                    e.currentTarget.querySelector('h1').style.fontWeight = 'bold';
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (sortBy !== option) {
-                    e.currentTarget.style.color = '#9C9C9C';
-                    e.currentTarget.querySelector('svg').style.color = '#9C9C9C';
-                    e.currentTarget.querySelector('svg').style.strokeWidth = '1.8';
-                    e.currentTarget.querySelector('h1').style.fontWeight = '600';
-                  }
-                }}
-              >
-                <div style={{ marginTop: '8px'}}>
-                  <Icon 
-                    size={40} 
-                    style={{marginLeft: '10px'}}
-                    color={sortBy === option ? getSortButtonStyle(option).color : '#9C9C9C'} 
-                    strokeWidth={sortBy === option ? 2 : 1.8} 
-                  />
-                  <h1 style={{
-                    fontSize: option === 'published' ? '12px' : '15px', 
-                    marginTop: '10px', 
-                    marginLeft: '-5px', 
-                    textAlign: 'center', 
-                    width: '70px', 
-                    fontWeight: sortBy === option ? 'bold' : '600'
-                  }}>
-                    {option.charAt(0).toUpperCase() + option.slice(1)}
-                  </h1>
-                </div>
-              </button>
+                  style={{
+                    ...getSortButtonStyle(option),
+                    position: 'relative', // Ensure the button is a positioning context for the tooltip
+                  }}
+                  onClick={() => handleSortClick(option)}
+                  onMouseEnter={(e) => {
+                    if (sortBy !== option) {
+                      e.currentTarget.style.color = 'grey';
+                      e.currentTarget.querySelector('svg').style.color = 'grey';
+                      e.currentTarget.querySelector('svg').style.strokeWidth = '2';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (sortBy !== option) {
+                      e.currentTarget.style.color = '#9C9C9C';
+                      e.currentTarget.querySelector('svg').style.color = '#9C9C9C';
+                      e.currentTarget.querySelector('svg').style.strokeWidth = '1.8';
+                    }
+                  }}
+                >
+                  <div style={{ marginTop: '5px'}}> <Tooltip text={tooltip}>
+               
+                    <Icon 
+                      size={40} 
+                      style={{marginLeft: '0px'}}
+                      color={sortBy === option ? getSortButtonStyle(option).color : '#9C9C9C'} 
+                      strokeWidth={sortBy === option ? 2 : 1.8} 
+                    />
+                     </Tooltip>
+                  </div>
+
+                </button>
+             
             </div>
           ))}
         </div>
@@ -1623,7 +1611,7 @@ function Assignments() {
               fontFamily: "'montserrat', sans-serif",
               listStyleType: 'none',
               textAlign: 'left',
-              border: sortBy === 'drafts' ? '4px solid lightgrey' : '4px solid #F4F4F4',
+              border: sortBy === 'drafts' ? '2px solid lightgrey' : '2px solid #E8E8E8',
               padding: '10px',
               borderRadius: '10px',
               transition: 'all 0.3s ease',
@@ -1635,7 +1623,7 @@ function Assignments() {
            
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.borderColor = sortBy === 'drafts' ? 'lightgray' : ' #F4F4F4';
+              e.currentTarget.style.borderColor = sortBy === 'drafts' ? 'lightgray' : ' #E8E8E8';
             }}
           >
               <span
@@ -1768,7 +1756,7 @@ function Assignments() {
         <Eye
           size={20}
           strokeWidth={3}
-          color="#00D309"
+          color="#92A3FF"
           style={{   position: 'absolute', left: '210px',
             bottom: '16px',}}
         />

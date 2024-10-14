@@ -200,6 +200,7 @@ const inputRefs = useRef([]);
                   fontSize: '16px',
                   height: '50px',
                   marginLeft: 'auto',
+                  
                   marginRight: 'auto',
                   fontFamily: "'montserrat', sans-serif",
                   textAlign: 'center',
@@ -227,17 +228,13 @@ const inputRefs = useRef([]);
                     lineHeight: '30px',
                     borderTopLeftRadius: '15px',
                     borderTopRightRadius: '15px',
+                   
                   }}>
-                    <p style={{
-                      marginTop: '0px',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
-                      width: '250px',
-                      background: 'transparent',
-                      marginLeft: 'auto',
-                      marginRight: 'auto'
-                    }}>{classItem.classChoice}</p>
+                    <p style={{marginTop: '0px',  overflow: 'hidden',
+                    textOverflow: 'ellipsis', 
+                    textAlign: 'left',
+                    whiteSpace: 'nowrap',width: '240px', background: 'tranparent', marginLeft: '20px',  }}>{classItem.classChoice}</p>
+                    
                   </div>
                 </div>
             
@@ -247,28 +244,26 @@ const inputRefs = useRef([]);
                     marginLeft: 'auto',
                     marginRight: 'auto',
                     flex: 1,
-                    fontWeight: '700',
+                    fontWeight: '800',
                     width: '280px',
-                    height: '110px',
+                    height: '100px',
                     justifyContent: 'center',
                     display: 'flex',
                     backgroundColor: 'transparent',  
                     color: 'grey', 
-                    
+                    cursor: 'pointer',
+                    border: '6px solid #F4F4F4', 
                     borderRadius: '15px', 
-                    lineHeight: '140px',
-                    textAlign: 'center',
+                    lineHeight: '90px',
+                    textAlign: 'left',
                     flexDirection: 'column',
                     alignItems: 'center',
-                    fontSize: '30px',
                     transition: '.2s', 
                     position: 'relative',
                     zIndex: '1',
                     marginTop:'0px',
-                    cursor: 'pointer',
                     fontFamily: "'montserrat', sans-serif",
                     transform: 'scale(1)',
-                    border: '6px solid #F4F4F4', 
                   }}
                   onMouseEnter={(e) => {
                     e.target.style.borderColor = '#E8E8E8';
@@ -278,7 +273,8 @@ const inputRefs = useRef([]);
                   }}
                   className="hoverableButton"
                 >
-                  {classItem.className}
+                   <h1 style={{fontSize: '30px', marginTop: '30px', width: '250px',  textAlign: 'left', marginLeft: '20px',
+                      fontWeight: '600',}}>{classItem.className}</h1>
                 </button>
               </div>
             );
@@ -295,15 +291,15 @@ const inputRefs = useRef([]);
               backgroundColor: '#AEF2A3' , 
               marginBottom: '100px',
               border: '5px solid #45B434',
-              marginLeft: '32px',
+              marginLeft: '45px',
               fontSize: '20px', 
               transition: '.3s', 
               
               fontFamily: "'montserrat', sans-serif",
               color: '#45B434',
               borderRadius: '10px',
-              padding: '10px 20px', 
-              width: '200px', 
+              padding: '10px 0px', 
+              width: '150px', 
               textAlign: 'center', 
               fontWeight: 'bold',
               cursor: 'pointer'

@@ -609,7 +609,7 @@ const generateQuestions = async () => {
       position: 'absolute',
       left: '30px',
       top: '-25px',
-      zIndex: '300',
+      zIndex: '20',
       width: '80px',
       textAlign: 'center',
       backgroundColor: 'white',

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { doc, getDoc, writeBatch, arrayUnion, serverTimestamp } from 'firebase/firestore';
-
+import { deleteDoc } from 'firebase/firestore';
 import { CalendarCog, SquareDashedMousePointer, Sparkles, GlobeLock, EyeOff, Landmark, Eye, User, PencilRuler, SendHorizonal, Folder, SquareX  } from 'lucide-react';
 import { db } from '../../Universal/firebase'; // Ensure the path is correct
 import TeacherPreview from './PreviewSAQ';
@@ -21,6 +21,7 @@ import { arrayRemove } from 'firebase/firestore';
 import { useLocation } from 'react-router-dom';
 import { auth } from '../../Universal/firebase';
 import CustomExpandingFormatSelector from './ExpandingFormatSelector';
+import AnimationAll from '../../Universal/AnimationAll';
 
 const dropdownContentStyle = `
   .dropdown-content {
@@ -156,8 +157,6 @@ function CreateAssignment() {
       loadDraft(assignmentId.slice(5));
     }
   }, [classId, assignmentId]);
-
-
   const loadDraft = async (draftId) => {
     const draftRef = doc(db, 'drafts', draftId);
     const draftDoc = await getDoc(draftRef);
@@ -180,10 +179,13 @@ function CreateAssignment() {
       }
   
       setSelectedStudents(new Set(data.selectedStudents || []));
-      setSaveAndExit(data.saveAndExit || true);
+      setSaveAndExit(data.saveAndExit !== undefined ? data.saveAndExit : true);
       setLockdown(data.lockdown || false);
       setQuestionBank(data.questionBank || '10');
       setQuestionStudent(data.questionStudent || '5');
+      setAssignmentType(data.assignmentType || 'SAQ');
+      setIsAdaptive(data.isAdaptive || false);
+      setAdditionalInstructions(data.additionalInstructions || '');
   
       // Load generated questions if they exist
       if (data.questions && Object.keys(data.questions).length > 0) {
@@ -198,10 +200,11 @@ function CreateAssignment() {
       } else {
         setGeneratedQuestions([]);
         setQuestionsGenerated(false);
-        setSourceText('');
+        setSourceText(data.sourceText || '');
       }
     }
   };
+  
   useEffect(() => {
     if (location.state && location.state.questions) {
       setGeneratedQuestions(location.state.questions);
@@ -229,27 +232,36 @@ function CreateAssignment() {
       createdAt: serverTimestamp(),
       assignmentType,
       isAdaptive,
+      sourceText,
+      questions: generatedQuestions.reduce((acc, question) => {
+        acc[question.questionId] = {
+          question: question.question,
+          rubric: question.rubric
+        };
+        return acc;
+      }, {}),
     };
-
+  
     const draftRef = doc(db, 'drafts', assignmentId);
     await setDoc(draftRef, draftData);
-
+  
     // Update the class document with the new draft ID
     const classRef = doc(db, 'classes', classId);
     await updateDoc(classRef, {
       [`assignment(${assignmentType.toLowerCase()})`]: arrayUnion(assignmentId)
     });
-
+  
     navigate(`/class/${classId}/Assignments`, {
       state: { showDrafts: true, newDraftId: assignmentId }
     });
   };
-
   const saveAssignment = async () => {
+    const finalAssignmentId = assignmentId.startsWith('DRAFT') ? assignmentId.slice(5) : assignmentId;
+  
     const assignmentData = {
       classId,
       assignmentName,
-      timer: timerOn ? timer : 0,
+      timer: timerOn ? Number(timer) : 0,
       halfCredit,
       assignDate: formatDate(assignDate),
       dueDate: formatDate(dueDate),
@@ -268,34 +280,43 @@ function CreateAssignment() {
       saveAndExit,
       assignmentType,
       isAdaptive,
+      additionalInstructions,
     };
     generatedQuestions.forEach((question, index) => {
       assignmentData.questions[`question${index + 1}`] = {
         question: question.question,
-        expectedResponse: question.expectedResponse
+        rubric: question.rubric
       };
     });
     const collectionName = `assignments(${assignmentType.toLowerCase()})`;
-    const assignmentRef = doc(db, collectionName, assignmentId);
+    const assignmentRef = doc(db, collectionName, finalAssignmentId);
     await setDoc(assignmentRef, assignmentData);
-
+  
     // Update the class document
     const classRef = doc(db, 'classes', classId);
     await updateDoc(classRef, {
-      [`assignment(${assignmentType.toLowerCase()})`]: arrayUnion(assignmentId)
+      [`assignment(${assignmentType.toLowerCase()})`]: arrayUnion(finalAssignmentId)
     });
-
+  
+    // Remove the draft if it exists
+    if (draftId) {
+      const draftRef = doc(db, 'drafts', draftId);
+      await deleteDoc(draftRef);
+    }
+  
     // Assign to students
-    await assignToStudents(assignmentId);
-
+    await assignToStudents(finalAssignmentId);
+  
     navigate(`/class/${classId}`, {
       state: {
         successMessage: `Success: ${assignmentName} published`,
-        assignmentId: assignmentId,
+        assignmentId: finalAssignmentId,
         format: assignmentType
       }
     });
   };
+
+  
 
   const assignToStudents = async (assignmentId) => {
     const selectedStudentIds = Array.from(selectedStudents);
@@ -417,7 +438,7 @@ const GenerateSAQ = async (sourceText, questionCount, additionalInstructions, cl
                 }}
               >
                 <div style={{marginTop: '-10px', marginLeft: '-9px', fontSize: '60px', fontWeight: 'bold'}}>
-                <SquareX size={40} color="#020CFF" strokeWidth={3} /></div>
+                <SquareX size={40} color="#D800FB" strokeWidth={3} /></div>
               </button>
               <TeacherPreview
   questionsWithIds={generatedQuestions}
@@ -462,7 +483,7 @@ const GenerateSAQ = async (sourceText, questionCount, additionalInstructions, cl
       position: 'absolute',
       left: '30px',
       top: '-25px',
-      zIndex: '300',
+      zIndex: '20',
       width: '80px',
       textAlign: 'center',
       backgroundColor: 'white',
@@ -827,11 +848,11 @@ const GenerateSAQ = async (sourceText, questionCount, additionalInstructions, cl
         padding: '10px',
         fontSize: '24px',
         backgroundColor: generating ? 'lightgrey' : 
-                        generatedQuestions.length > 0 ? '#A6B4FF' : '#F5B6FF',
+                        generatedQuestions.length > 0 ? '#FCD3FF' : '#FCD3FF',
         color: 'white',
         borderRadius: '10px',
         border: generating ? '4px solid lightgrey' : 
-                generatedQuestions.length > 0 ? '4px solid #020CFF' : '4px solid #E441FF',
+                generatedQuestions.length > 0 ? '4px solid #D800FB' : '4px solid #D800FB',
         cursor: generating ? 'default' : 'pointer',
         transition: 'box-shadow 0.3s ease',
       }}
@@ -841,11 +862,11 @@ const GenerateSAQ = async (sourceText, questionCount, additionalInstructions, cl
        generatedQuestions.length > 0 ? 
        <div style={{ display: 'flex', marginTop: '-4px' }}> 
        
-           <Eye size={30} color="#020CFF" strokeWidth={3} />
+           <Eye size={30} color="#D800FB" strokeWidth={2.5} />
            <h1 style={{
              fontSize: '25px',  
              marginTop: '0px', 
-             color: '#020CFF', 
+             color: '#D800FB', 
              marginLeft: '10px',
              fontFamily: "'montserrat', sans-serif",
            }}>Preview</h1>
@@ -862,7 +883,7 @@ const GenerateSAQ = async (sourceText, questionCount, additionalInstructions, cl
          </div>}
     </button>
     {generating && (
-      <div className="loader" style={{ marginLeft: '20px' }}></div>
+      <AnimationAll/>
     )}
   </div>
 )}

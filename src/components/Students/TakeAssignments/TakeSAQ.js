@@ -71,7 +71,7 @@ const [scaleMax, setScaleMax] = useState(2);
             setQuestions(savedData.questions.map(q => ({
               questionId: q.questionId,
               text: q.text,
-              expectedResponse: q.expectedResponse
+              rubric: q.rubric
             })));
             setAnswers(savedData.questions.map(q => ({
               questionId: q.questionId,
@@ -82,7 +82,7 @@ const [scaleMax, setScaleMax] = useState(2);
             const allQuestions = Object.entries(assignmentData.questions).map(([id, data]) => ({
               questionId: id,
               text: data.question,
-              expectedResponse: data.expectedResponse
+              rubric: data.rubric
             }));
 
             const studentQuestionCount = assignmentData.questionCount.student;
@@ -128,7 +128,7 @@ const [scaleMax, setScaleMax] = useState(2);
           questions: questions.map(q => ({
             questionId: q.questionId,
             text: q.text,
-            expectedResponse: q.expectedResponse,
+            rubric: q.rubric,
             studentResponse: ''
           })),
           timeRemaining: timeLimit,
@@ -195,7 +195,7 @@ const [scaleMax, setScaleMax] = useState(2);
         questions: questions.map(question => ({
           questionId: question.questionId,
           text: question.text,
-          expectedResponse: question.expectedResponse,
+          rubric: question.rubric,
           studentResponse: answers.find(answer => answer.questionId === question.questionId)?.answer || ''
         })),
         timeRemaining: secondsLeft,
@@ -274,7 +274,7 @@ const [scaleMax, setScaleMax] = useState(2);
         score: ((result.score / 2) * (scaleMax - scaleMin) + scaleMin), 
         question: questions[index].text,
         studentResponse: answers[index].answer,
-        expectedResponse: questions[index].expectedResponse, 
+        rubric: questions[index].rubric, 
         flagged: false
       }));
   
@@ -349,7 +349,7 @@ const [scaleMax, setScaleMax] = useState(2);
     const questionsToGrade = questions.map((question, index) => ({
       questionId: question.questionId,
       question: question.text,
-      expectedResponse: question.expectedResponse,
+      rubric: question.rubric,
       studentResponse: answers[index].answer,
     }));
 

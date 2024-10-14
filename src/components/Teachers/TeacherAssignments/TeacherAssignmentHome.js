@@ -21,7 +21,7 @@ const TeacherAssignmentHome = ({ onFormatSelect }) => {
             key={format.value}
             style={{
               padding: '5px',
-              border: 'none',
+              border: '4px solid white',
               borderRadius: '10px',
               backgroundColor: 'transparent',
               color: format.color,
@@ -44,11 +44,11 @@ const TeacherAssignmentHome = ({ onFormatSelect }) => {
               onFormatSelect(format.value);
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = '#f4f4f4';
+              e.currentTarget.style.borderColor = '#f4f4f4';
             }}
             onMouseLeave={(e) => {
               
-              e.currentTarget.style.backgroundColor = 'transparent';
+              e.currentTarget.style.borderColor = 'transparent';
             }}
           >
             <span style={{ width: '80px', marginLeft: '10px' }}>{format.shortLabel}</span>   

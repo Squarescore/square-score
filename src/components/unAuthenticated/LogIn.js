@@ -163,9 +163,9 @@ const Login = () => {
       <div className="white-background" style={{
         width: '60%', display: 'flex', flexDirection: 'column', alignItems: 'center', marginLeft: 'auto', marginRight: 'auto', marginTop: '6%', backgroundColor: 'rgba(255,255,255,0.8)', backdropFilter: 'blur(7px)', padding: '40px', borderRadius: '20px'
       }}>
-        <form onSubmit={handleLogin} style={{ width: '100%' }}>
+        <form onSubmit={handleLogin} style={{ width: '500px' }}>
           <h1 style={{
-            color: 'black', fontSize: '80px', fontFamily: "'montserrat', sans-serif", textAlign: 'center', fontWeight: 'bold'
+            color: 'black', fontSize: '80px', fontFamily: "'montserrat', sans-serif", textAlign: 'left', fontWeight: 'bold'
           }}>Login</h1>
           
 
@@ -239,7 +239,7 @@ const Login = () => {
             <button
               type="submit"
               style={{
-                width: '240px',
+                width: '140px',
                 marginLeft: '0px',
                 background: '#99B6FF', border: '4px solid #020CFF', 
                

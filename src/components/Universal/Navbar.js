@@ -504,14 +504,15 @@ const handleFormatSelect = async (format) => {
             <div style={{ display: 'flex', alignItems: 'center', marginRight: '20px' }}>
               <div
                 style={{
-                  height: '28px',
+                  height: '24px',
                   width: '20px',
-                  opacity: '50%',
-                  marginRight: '-5px',
-                  borderBottomLeftRadius: '7px',
-                  borderTopLeftRadius: '7px',
+                  opacity: '100%',
+                  marginRight: '0px',
+                  borderBottomLeftRadius: '5px',
+                  borderTopLeftRadius: '5px',
                   border: '4px solid',
                   ...(periodStyles[getPeriodNumber(currentClass)] || periodStyles[1]),
+             
                 }}
               >
                 <div
@@ -521,11 +522,11 @@ const handleFormatSelect = async (format) => {
                     transform: showClassDropdown ? 'rotate(180deg)' : 'rotate(0deg)',
                     userSelect: 'none',
                     marginTop: '5px',
-                    marginLeft: '2px',
+                    marginLeft: '3px',
                     transition: 'transform 0.5s ease',
-                    width: '15px',
+                    width: '13px',
                     height: '15px',
-                    ...(periodStyles[getPeriodNumber(currentClass)] || periodStyles[1]),
+                    fontSize: '13px',
                   }}
                 >
                   ▼
@@ -534,17 +535,21 @@ const handleFormatSelect = async (format) => {
               <Link
                 to={userType === 'teacher' ? `/class/${classId}` : `/studentassignments/${classId}`}
                 style={{
-                  fontSize: '18px',
+                  fontSize: '16px',
                   padding: '3px',
-                  width: '100px',
-                  paddingRight: '0px',
+                  width: '80px',
+                  paddingRight: '10px',
                   fontFamily: "'montserrat', sans-serif",
-                  fontWeight: 'bold',
+                  fontWeight: '600',
                   textAlign: "center",
-                  borderRadius: '7px',
+                  borderRadius: ' 0px 5px  5px 0px ',
+                    color: 'grey',
                   textDecoration: 'none',
                   border: '4px solid',
-                  ...(periodStyles[getPeriodNumber(currentClass)] || periodStyles[1]),
+                  background: 'white',
+                  borderLeft: 'none',
+                  borderColor: '#f4f4f4'
+                 
                 }}
               >
                 {currentClass || ''}

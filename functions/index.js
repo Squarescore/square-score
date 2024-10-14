@@ -19,42 +19,87 @@ exports.GenerateSAQ = functions.https.onRequest((req, res) => {
 
     try {
       let prompt = `
-      Generate ${questionCount} questions and expected responses from the following source. Each question should have an expected response (not more than 10 words, not in complete sentence format). If there are multiple expected responses, separate them by commas. If there are more factual responses than listed, add "etc."
+      Generate ${questionCount} questions and rubrics from the given source.
+       Each question should have an expected response (not more than 10 words, 
+       not in complete sentence format). If there are multiple expected responses, 
+       separate them by commas. If there are more factual responses than listed, add "etc."
        `;
       
-                if (additionalInstructions) {
-                    prompt += ` Additional instructions: ${additionalInstructions}`;
-                }
+             
       
                 prompt += `
       
-                When crafting questions:
-                For questions with multiple possible answers, specify the number of items to be included in the response (e.g., "List 3 factors that...").
-                Ensure a mix of question types, including those with single specific answers and those requiring multiple items.
-                Frame questions to reflect the level of detail provided in the source material.
-                Include some questions that examine broader concepts or themes, not just individual facts.
-                Provide the output as a valid JSON array where each object has "question" and "expectedResponse" fields. The entire response should be parseable as JSON. Here's the exact format to use:
-                [ { "question": "string", "expectedResponse": "string" }, { "question": "string", "expectedResponse": "string" }, ... ]
-                Remember to only include the JSON array in your response, with no additional text. 
-                
-                Generate questions and their expected responses based on this source: ${sourceText}
-                INCLUDE NOTHING ELSE IN YOUR RESPONSE OTHER THAN THE CORRECTLY FORMATTED ARRAY
+               For questions with multiple possible answers, specify the number of items to be included in the response (e.g., "List 3 factors that...").
+Questions and answers should be directly based on information explicitly stated in the source text. Avoid inference or external knowledge.
+Ensure a mix of question types, including those with single specific answers and those requiring multiple items.
+Frame questions to reflect the level of detail provided in the source material.
+Most questions should almost be fill in the blank from the source.
+Include some questions that examine broader concepts or themes, not just individual facts.
+Craft questions with appropriate specificity. Avoid overly broad questions that could lead to vague answers.
+Questions should explicitly ask for everything that the rubric is grading on.
+Questions should be specific and answerable in 30 seconds.
+If the source seems to be a textbook, don't write questions on jargon.
+
+Rubrics:
+ format is : expect x items, acceptable items are : a,b,c,d,..., other correct answers (are/are not) possible if they are possible: must - requirements for other answers. vague responses are/arenot allowed as:.
+Each question should have a rubric formatted as a single string.
+The rubric should provide clear guidelines for grading the answer.
+Include information on expected items, acceptable answers, and how to handle vague responses.
+Make sure that the rubric contains enough information, combined with general knowledge, to grade the answer without access to the source text.
+Be consistent and clear about the level of specificity required in answers.
+If semi-exact wording is necessary (such as a name), state this clearly and provide acceptable synonyms or alternative phrasings.
+Don't focus on correct spelling or full names unless absolutely necessary.
+For questions requiring named individuals, places, or specific terms, indicate that vague responses are not acceptable.
+Clearly explain why a certain level of specificity is desired or required.
+When determining acceptable responses, consider both the source and the general concept of the question.
+
+Provide the output as a valid JSON array where each object has "question" and "rubric" fields. The entire response should be parseable as JSON. Here's the exact format to use:
+[
+{
+"question": "string",
+"rubric": "string containing all rubric information"
+},
+...
+]
+Examples of good questions and rubrics:
+[
+{
+"question": "Name three organelles found in eukaryotic cells.",
+"rubric": "Expect 3 items. Acceptable answers include: Nucleus, mitochondria, endoplasmic reticulum, Golgi apparatus, chloroplasts, lysosomes, vacuoles. Other correct answers like ribosomes or peroxisomes are possible. Vague responses not allowed; must name specific organelles, not just their functions."
+},
+{
+"question": "List 1 key difference between mitosis and meiosis.",
+"rubric": "Expect 1 item. Acceptable answers include: Number of divisions, number of daughter cells produced, genetic variation in daughter cells, purpose (growth vs. reproduction), chromosome number in daughter cells. Other correct answers possible if they show a clear difference between the two processes. Vague responses allowed but must show a clear difference."
+},
+{
+"question": "What were two major consequences of the Holocaust?",
+"rubric": "Expect 2 items. Acceptable answers include: Genocide of millions of Jews and other groups, establishment of Israel, increased awareness of human rights, changes in international law. Other correct answers possible if they relate to long-term impacts of the Holocaust. Vague responses allowed but must give general consequences that are factually provable."
+}
+]
+Remember to only include the JSON array in your response, with no additional text.
+Generate questions and their rubrics based on the source
+INCLUDE NOTHING ELSE IN YOUR RESPONSE OTHER THAN THE CORRECTLY FORMATTED ARRAY.
                 `;
       const response = await openai.chat.completions.create({
         model: "gpt-4o-mini", 
         messages: [
           {
             role: "system",
-            content:
-              "You are an assistant that grades short answer questions based on given guidelines. Your responses should always be in valid JSON format.",
+            content: prompt,
           },
           {
             role: "user",
-            content: prompt,
+            content: `Question Count:${questionCount} . Additional instructions: ${additionalInstructions}. Source:${sourceText} `
           },
         ],
-        max_tokens: 2000,
-        temperature: 1, // Set to 0 for deterministic responses
+        temperature: 1,
+  max_tokens: 2048,
+  top_p: 0.7,
+  frequency_penalty: 0.2,
+  presence_penalty: 0.2,
+  response_format: {
+    "type": "text"
+  }, 
       });
 
       const gradingResults = JSON.parse(response.choices[0].message.content);
@@ -89,8 +134,8 @@ For questions with multiple possible answers, specify the number of items to be 
 Ensure a mix of question types, including those with single specific answers and those requiring multiple items.
 Frame questions to reflect the level of detail provided in the source material.
 Include some questions that examine broader concepts or themes, not just individual facts.
-Provide the output as a valid JSON array where each object has "question" and "expectedResponse" fields. The entire response should be parseable as JSON. Here's the exact format to use:
-[ { "question": "string", "expectedResponse": "string" }, { "question": "string", "expectedResponse": "string" }, ... ]
+Provide the output as a valid JSON array where each object has "question" and "rubric" fields. The entire response should be parseable as JSON. Here's the exact format to use:
+[ { "question": "string", "rubric": "string" }, { "question": "string", "rubric": "string" }, ... ]
 Remember to only include the JSON array in your response, with no additional text. 
 
 Generate questions and their expected responses based on this source: ${sourceText}
@@ -207,8 +252,8 @@ For questions with multiple possible answers, specify the number of items to be 
 Ensure a mix of question types, including those with single specific answers and those requiring multiple items.
 Frame questions to reflect the level of detail provided in the source material.
 Include some questions that examine broader concepts or themes, not just individual facts.
-Provide the output as a valid JSON array where each object has "question" and "expectedResponse" fields. The entire response should be parseable as JSON. Here's the exact format to use:
-[ { "question": "string", "expectedResponse": "string" }, { "question": "string", "expectedResponse": "string" }, ... ]
+Provide the output as a valid JSON array where each object has "question" and "rubric" fields. The entire response should be parseable as JSON. Here's the exact format to use:
+[ { "question": "string", "rubric": "string" }, { "question": "string", "rubric": "string" }, ... ]
 Remember to only include the JSON array in your response, with no additional text. 
 
 Generate questions and their expected responses based on this source: ${sourceText}
@@ -1192,12 +1237,12 @@ exports.GenerateASAQ = functions.https.onRequest((req, res) => {
 Your output must be a valid JSON array containing exactly 45 objects, with 12 easy questions,
  13 medium questions, and 20 hard questions.
  
--Easy questions : Basic recall and understanding
--Medium questions : Application and some analysis
--Hard questions : Complex analysis or synthesis.
+-Easy questions : straight from the text almost like fill in the blank
+-Medium questions : fill in the blank but in other words,
+-Hard questions : looks at hyperspecific information from source or at themes or concepts.
 
  In the array each object should have "question", "difficulty", 
- and "expectedResponse" fields.
+ and "rubric" fields.
 Important:
 
 Provide ONLY the JSON array in your response, with no additional text before or after.
@@ -1211,12 +1256,12 @@ Here's the exact format to use:
   {
     "question": "string",
     "difficulty": "string",
-    "expectedResponse": "string"
+    "rubric": "string"
   },
   {
     "question": "string",
     "difficulty": "string",
-    "expectedResponse": "string"
+    "rubric": "string"
   },
   ...
 ]
@@ -1340,8 +1385,8 @@ exports.RegenerateSAQ = functions.https.onRequest((req, res) => {
           Ensure a mix of question types, including those with single specific answers and those requiring multiple items.
           Frame questions to reflect the level of detail provided in the source material.
           Include some questions that examine broader concepts or themes, not just individual facts.
-          Provide the output as a valid JSON array where each object has "question" and "expectedResponse" fields. The entire response should be parseable as JSON. Here's the exact format to use:
-          [ { "question": "string", "expectedResponse": "string" }, { "question": "string", "expectedResponse": "string" }, ... ]
+          Provide the output as a valid JSON array where each object has "question" and "rubric" fields. The entire response should be parseable as JSON. Here's the exact format to use:
+          [ { "question": "string", "rubric": "string" }, { "question": "string", "rubric": "string" }, ... ]
           Remember to only include the JSON array in your response, with no additional text. 
           
 
@@ -1459,7 +1504,7 @@ exports.RegenerateASAQ = functions.https.onRequest((req, res) => {
 -Hard questions : Complex analysis or synthesis.
 
  In the array each object should have "question", "difficulty", 
- and "expectedResponse" fields.
+ and "rubric" fields.
 Important:
 
 Provide ONLY the JSON array in your response, with no additional text before or after.
@@ -1473,12 +1518,12 @@ Here's the exact format to use:
   {
     "question": "string",
     "difficulty": "string",
-    "expectedResponse": "string"
+    "rubric": "string"
   },
   {
     "question": "string",
     "difficulty": "string",
-    "expectedResponse": "string"
+    "rubric": "string"
   },
   ...
 ]
@@ -1679,7 +1724,7 @@ Here are the questions to grade:`;
         prompt += `
 Question ${index + 1}:
 Question: ${q.question}
-Expected Response: ${q.expectedResponse}
+Expected Response: ${q.rubric}
 Student Response: ${q.studentResponse}
 
 `;
@@ -1760,7 +1805,7 @@ Student Response: ${q.studentResponse}
 
       Here is the question you must grade,
       Question: ${question.question}?
-      Expected: ${question.expectedResponse}
+      Expected: ${question.rubric}
       Student Answer: ${question.studentResponse}.`;
   
         const response = await anthropic.messages.create({
@@ -1811,7 +1856,7 @@ exports.GradeSAQOAI = functions.https.onRequest((req, res) => {
       const dummyQuestions = Array.from({ length: parseInt(questionCount) }, (_, index) => ({
         question: `Regenerated Question ${index + 1}: ${instructions}`,
         difficulty: ['easy', 'medium', 'hard'][Math.floor(Math.random() * 3)],
-        expectedResponse: `Dummy response for question ${index + 1}`
+        rubric: `Dummy response for question ${index + 1}`
       }));
 
       res.json({ questions: dummyQuestions });

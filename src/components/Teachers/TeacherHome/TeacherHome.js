@@ -11,6 +11,9 @@ import { useCollection } from 'react-firebase-hooks/firestore';
 import HomeNavbar from '../../Universal/HomeNavbar';
 import FooterAuth from '../../unAuthenticated/FooterAuth'; 
 import CreateClassModal from './CreateClassModal';// Make sure this file exists in the same directory
+import AnimationGreen from '../../Universal/AnimationGreen';
+import AnimationAll from '../../Universal/AnimationAll';
+import Loader from '../../Universal/Loader';
 const TeacherHome = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -197,6 +200,10 @@ const TeacherHome = () => {
     alignItems: 'center'
   }}>
     <div style={{width: '100%', background: '#4BD682', height: '6px'}}></div>
+
+
+   
+
     <div style={{
       backgroundColor: '#AEF2A3',
       border: '6px solid #4BD682',
@@ -256,8 +263,10 @@ const TeacherHome = () => {
               fontSize: '60px', 
              
             }}>Your Classes</h4>
-          
-          </div>  
+
+
+            </div>
+           
        
 
             {modalOpen && (

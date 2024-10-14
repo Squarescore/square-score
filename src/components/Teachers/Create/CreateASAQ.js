@@ -233,7 +233,7 @@ function SAQA() {
       const questionId = `${assignmentId}(question${index + 1})`;
       assignmentData.questions[questionId] = {
         question: question.question,
-        expectedResponse: question.expectedResponse
+        rubric: question.rubric
       };
     });
   

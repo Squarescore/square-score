@@ -200,7 +200,7 @@ const [showIncorrectScreen, setShowIncorrectScreen] = useState(false);
           question: {
             questionId: currentQuestion.id,
             question: currentQuestion.question,
-            expectedResponse: currentQuestion.expectedResponse,
+            rubric: currentQuestion.rubric,
             studentResponse: studentResponse
           }
         }),

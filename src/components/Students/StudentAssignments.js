@@ -4,8 +4,9 @@ import { Link } from 'react-router-dom';
 import { db, auth } from '../Universal/firebase';
 import { useNavigate, useParams } from 'react-router-dom';
 import Navbar from '../Universal/Navbar';
-import { ArrowRight, CalendarClock, CalendarX2, BookOpen, BookOpenCheck, Eye, EyeOff, SquareMinus, SquareCheck, DoorOpen, YoutubeIcon, ArrowRightSquare, SquareX } from 'lucide-react';
+import { ArrowRight, CalendarClock, CalendarX2, BookOpen, BookOpenCheck, Eye, EyeOff, SquareMinus, SquareCheck, SquareDashedBottom,  SquareX, SquareArrowRight, Check } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
+import Tooltip from '../Teachers/TeacherAssignments/AssignmentsToolTip';
 function StudentAssignmentsHome({ studentUid: propStudentUid }) {
   const { classId } = useParams();
   const [assignments, setAssignments] = useState([]);
@@ -14,6 +15,7 @@ function StudentAssignmentsHome({ studentUid: propStudentUid }) {
   const location = useLocation();
   const [isExpanded, setIsExpanded] = useState(false);
   const [activeTab, setActiveTab] = useState('active');
+  const isActiveOrCompleted = activeTab === 'active' || activeTab === 'completed';
 
   const [className, setClassName] = useState('');
   const [completedAssignments, setCompletedAssignments] = useState([]);
@@ -29,8 +31,26 @@ const tabStyles = {
   active: { background: '#CCFFC3', color: '#00CD09', borderColor: '#00CD09'  },
   completed: { background: '#B9C4FF', color: '#020CFF', borderColor: '#020CFF' },
   upcoming: { background: '#FFF0A1', color: '#FC8518', borderColor: '#FCAE18'  },
-  overdue: { background: '#FFE6E6', color: '#CC0000', borderColor: '#CC0000'  }
+  overdue: { background: '#FFE6E6', color: 'red', borderColor: 'red'  }
 };
+const periodStyles = {
+  1: { background: '#A3F2ED', color: '#1CC7BC', borderColor: '#1CC7BC' },
+  2: { background: '#F8CFFF', color: '#E01FFF', borderColor: '#E01FFF' },
+  3: { background: '#FFCEB2', color: '#FD772C', borderColor: '#FD772C' },
+  4: { background: '#FFECA9', color: '#F0BC6E', borderColor: '#F0BC6E' },
+  5: { background: '#AEF2A3', color: '#4BD682', borderColor: '#4BD682' },
+  6: { background: '#BAA9FF', color: '#8364FF', borderColor: '#8364FF' },
+  7: { background: '#8296FF', color: '#3D44EA', borderColor: '#3D44EA' },
+  8: { background: '#FF8E8E', color: '#D23F3F', borderColor: '#D23F3F' }
+};
+
+// Get period number from class name
+const getPeriodNumber = (className) => {
+  const match = className.match(/Period (\d)/);
+  return match ? parseInt(match[1]) : null;
+};
+const periodNumber = getPeriodNumber(className);
+const periodStyle = periodStyles[periodNumber] || { background: '#F4F4F4', color: 'grey' };
 
   const studentUID = auth.currentUser.uid;
   useEffect(() => {
@@ -165,9 +185,9 @@ const tabStyles = {
     const assignDateTime = new Date(assignment.assignDate);
     const dueDateTime = new Date(assignment.dueDate);
   
-    if (now < assignDateTime) return 'grey';
-    if (now > dueDateTime) return 'red';
-    return '#AEF2A3'; // Light green for active assignments
+    if (now < assignDateTime) return '#FFE3A6';
+    if (now > dueDateTime) return '#FFD4D4';
+    return '#d6d6d6'; // Light green for active assignments
   }; useEffect(() => {
     const fetchCompletedAssignments = async () => {
       const saqGradesQuery = query(
@@ -240,9 +260,8 @@ const tabStyles = {
 const getAssignmentStyle = (assignment) => {
   const borderColor = getBorderColor(assignment);
   return {
-    border: `4px solid ${borderColor}`,
-    cursor: borderColor === '#AEF2A3' ? 'pointer' : 'not-allowed',
-    opacity: borderColor === '#AEF2A3' ? 1 : 0.5
+    border: `2px solid ${borderColor}`,
+    cursor: borderColor === '#d6d6d6' ? 'default' : 'not-allowed',
   };
 };
 
@@ -523,46 +542,48 @@ const getAssignmentStyle = (assignment) => {
               backgroundColor: 'white',
               fontSize: '30px',
               color: 'black',
-              height: '80px',
-              width: '700px',
               marginLeft: '-40px',
               cursor: 'default',
+              display: 'flex',
               fontFamily: "'montserrat', sans-serif",
               transition: '.3s',
               listStyleType: 'none',
               textAlign: 'center',
+              position: "relative",
               marginTop: '30px',
               padding: '10px',
-              borderRadius: '15px',
-              ...getAssignmentStyle(assignment)
+              borderRadius: '10px', border: '2px solid ', ...getAssignmentStyle(assignment),
             }}
             onMouseEnter={(e) => {
-              setHoveredAssignment(assignment.id);
               const now = new Date();
               const assignDateTime = new Date(assignment.assignDate);
               const dueDateTime = new Date(assignment.dueDate);
               if (now >= assignDateTime && now <= dueDateTime) {
-                e.currentTarget.style.borderColor = '#2BB514';
-                e.currentTarget.style.borderTopRightRadius = '0px';
-                e.currentTarget.style.borderBottomRightRadius = '0px';
               }
             }}
-            onMouseLeave={(e) => {
-              setHoveredAssignment(null);
-              e.currentTarget.style.borderTopRightRadius = '15px';
-              e.currentTarget.style.borderBottomRightRadius = '15px';
-              e.currentTarget.style.borderColor = getBorderColor(assignment);
-            }}
+           
           >
-            <div style={{ display: 'flex', color: 'black', textAlign: 'left', height: '29px', width: '700px', fontFamily: "'montserrat', sans-serif", position: 'relative', fontWeight: 'bold', fontSize: '30px', marginLeft: '10px' }}>
-            {assignment.assignmentName}
-              <h1 style={{ position: 'absolute', right: '15px', top: '-15px', fontSize: '25px', width: '60px', textAlign: 'left' }}>
-                {formatDisplay}
-              </h1>
-            </div>
-            {assignment.inProgress && (
-              <div style={{ position: 'absolute', bottom: '15px', right: '140px', backgroundColor: '#FFECA8', paddingLeft: '15px', fontWeight: 'bold', color: '#FFAA00',paddingRight: '15px',fontFamily: "'montserrat', sans-serif", border: '4px solid #FFAA00' ,fontSize: '15px',borderRadius: '5px' }}>
-                In Progress     {assignment.status === 'Paused' && (
+             {isActiveOrCompleted && (
+              <SquareArrowRight 
+                onClick={() => navigateToTest(
+                  assignment.id, 
+                  format, 
+                  assignment.assignDate, 
+                  assignment.dueDate, 
+                  assignment.assignmentName,
+                  assignment.saveAndExit
+                )}
+                size={40}
+                strokeWidth={2.4} 
+                style={{ position: 'absolute', right: '-60px', top: '15%', color: '#2BB514', cursor: 'pointer'}}
+              />
+            )}
+               {assignment.inProgress && (
+              <div style={{ position: 'absolute', right: '-110px', top: '18%', paddingLeft: '15px', fontWeight: 'bold', fontFamily: "'montserrat', sans-serif", border: '4px dashed lightgrey' ,fontSize: '15px',borderRadius: '5px', height:' 26px', width: '12px'  }}>
+              <Check style={{ marginLeft: '-14px', marginTop: '3px', color: 'lightgrey'}} size={20} strokeWidth={4}/>
+               
+               
+               {assignment.status === 'Paused' && (
             <div style={{ 
               position: 'absolute', 
               top: '15px', 
@@ -582,20 +603,36 @@ const getAssignmentStyle = (assignment) => {
           )}
               </div>
             )}
-            <div style={{ marginTop: '10px', position: 'relative', display: 'flex', alignItems: 'center' }}>
-              <div style={{ display: 'flex', marginLeft: '10px' }}>
+            <div
+            
+            
+            style={{ display: 'flex',  textAlign: 'left', 
+              height: '30px', width: '370px',   fontWeight: '700',fontSize: '18px',  lineHeight: '30px'
+              }}>
+               { assignment.assignmentName}  
+
+            <h1 style={{ right: '15px', marginLeft: 'auto', marginTop: '0px',  width: '60px', textAlign: 'left', fontSize: '20px',  }}>
+                {formatDisplay} 
+              </h1>
+           
+            </div>
+         
+         
+            <div style={{  height: '30px', width: '400px',   display: 'flex' }}>
+              <div style={{ display: 'flex', marginLeft: '0px' }}>
                 <button
                   onClick={() => setShowDueDate(false)}
                   style={{
                     background:showDueDate ? 'white' : '#f4f4f4',
                     color: showDueDate ? '#B6B6B6' : '#B6B6B6',
-                    border: showDueDate ? '4px solid white' : '4px solid #B6B6B6',
+                    border: showDueDate ? '4px solid white' : '4px solid #f4f4f4',
                     lineHeight: '18px',
                     fontWeight: 'bold',
-                    padding: '0px 10px',
+                    padding: '0px 5px',
                     cursor: 'pointer',
-                    fontSize: '20px',
-                    height: '30px',
+                    fontSize: '12px',
+                    height: '25px',
+                    marginTop: '2px',
                     position: 'relative',
                     alignItems: 'center',
                     fontFamily: "'montserrat', sans-serif",
@@ -608,15 +645,16 @@ const getAssignmentStyle = (assignment) => {
                 <button
                   onClick={() => setShowDueDate(true)}
                   style={{
-                    background:showDueDate ? '#f4f4f4' : 'white',
+                    background:showDueDate ?  '#f4f4f4': 'white' ,
                     color: showDueDate ? '#B6B6B6' : '#B6B6B6',
-                    border: showDueDate ? ' 4px solid #B6B6B6' : '4px solid white',
+                    border: showDueDate ? '4px solid #f4f4f4':'4px solid white' ,
                     lineHeight: '18px',
                     fontWeight: 'bold',
-                    padding: '0px 10px',
+                    padding: '0px 5px',
                     cursor: 'pointer',
-                    fontSize: '20px',
-                    height: '30px',
+                    fontSize: '12px',
+                    marginTop: '2px',
+                    height: '25px',
                     position: 'relative',
                     alignItems: 'center',
                     fontFamily: "'montserrat', sans-serif",
@@ -627,56 +665,11 @@ const getAssignmentStyle = (assignment) => {
                 </button>
                 
               </div>
-              <h1 style={{ color: 'lightgrey', fontSize: '15px', fontFamily: "'montserrat', sans-serif'", fontWeight: 'bold', fontStyle:'italic',marginLeft: '20px', width: '360px', textAlign: 'left' }}>
+              <h1 style={{ color: 'lightgrey', fontSize: '13px', fontWeight:'600', fontFamily: "'montserrat', sans-serif'",marginTop: '6px', fontStyle:'italic',marginLeft: '10px', width: '360px', textAlign: 'left' }}>
                 {showDueDate ? formatDate(assignment.dueDate) : formatDate(assignment.assignDate)}
               </h1>
             </div>
-            <button
-  onClick={() => navigateToTest(
-    assignment.id, 
-    format, 
-    assignment.assignDate, 
-    assignment.dueDate, 
-    assignment.assignmentName,
-    assignment.saveAndExit
-  )}
-  style={{
-    position: 'absolute',
-    left: '683px',
-    top: '84px',
-    transform: 'translateY(-50%)',
-    background: '#AEF2A3',
-    color: 'white',
-    padding: 0,
-    cursor: 'pointer',
-    borderRadius: '0 15px 15px 0',
-    height: '107px',
-    width: hoveredAssignment === assignment.id && isActiveAssignment(assignment) ? '70px' : '3px',
-    opacity: hoveredAssignment === assignment.id && isActiveAssignment(assignment) ? 1 : 0,
-    transition: 'width .4s ease-in-out, left .4s ease-in-out, opacity 0.3s ease-in-out',
-    fontFamily: "'montserrat', sans-serif",
-    fontSize: '20px',
-    fontWeight: 'bold',
-    border: '4px solid #2BB514',
-    overflow: 'hidden',
-    display: 'flex',
-    justifyContent: 'center',
-    alignItems: 'center'
-  }}
->
-  <div
-    style={{
-      width: '40px',
-      cursor: 'pointer',
-      opacity: hoveredAssignment === assignment.id && isActiveAssignment(assignment) ? 1 : 0,
-      transition: 'opacity 0.3s ease-in-out',
-      transitionDelay: '0.15s'
-    }}
-    
-  >
-    <ArrowRight size={40} color="#499a32" strokeWidth={3} />
-  </div>
-</button>
+        
           </li>
         </div>
       );
@@ -710,16 +703,24 @@ const getAssignmentStyle = (assignment) => {
 <div
       style={{
         position: 'fixed',
-        width:'100px',
+        width:'90px',
         height: '100%',
-        background: 'rgb(245,245,245,.8)',
+        background: 'white',
+        borderRight: '4px solid #f4f4f4',
         backdropFilter: 'blur(5px)',
         zIndex: '90',
         transition: 'width 0.3s ease',
-        overflow: 'hidden'
       }}
  
     >
+
+      <div style={{marginTop: '70px', background: 'blue', borderRight:`4px solid ${periodStyle.color}`, height: '40px', width: '80px', fontWeight: '600', lineHeight: '40px',
+      paddingLeft: '10px',
+                          backgroundColor: periodStyle.background,
+                          color: periodStyle.color,}}>
+
+            {className}
+      </div>
          <div style={{
         marginTop: '66px',
         display: 'flex',
@@ -728,18 +729,18 @@ const getAssignmentStyle = (assignment) => {
         gap: '20px'
       }}>
            {[
-          { label: 'active', icon: BookOpen },
-          { label: 'completed', icon: BookOpenCheck },
-          { label: 'upcoming', icon: CalendarClock },
-          { label: 'overdue', icon: CalendarX2 }
-        ].map(({label, icon: Icon}) => (
+          { label: 'active', icon: BookOpen, tooltip: 'Active' },
+          { label: 'completed', icon: BookOpenCheck,tooltip: 'Completed' },
+          { label: 'upcoming', icon: CalendarClock,tooltip: 'Upcoming' },
+          { label: 'overdue', icon: CalendarX2, tooltip: 'Overdue' }
+        ].map(({label, icon: Icon, tooltip}) => (
           <div key={label}>
              <div style={{ 
               height: '4px', 
               width: '80px', 
-              background: '#E8E8E8', 
+              background: 'white', 
               marginLeft: '10px',  
-              marginBottom: '10px',
+              marginBottom: '25px',
             }}></div>
             <button
               onClick={() => setActiveTab(label)}
@@ -751,9 +752,9 @@ const getAssignmentStyle = (assignment) => {
                 color: activeTab === label ? tabStyles[label].color : '#676767',
                 borderRadius: '10px',
                 padding: '5px 5px',
-                width: '80px',
+                width: '70px',
                 marginLeft: '10px',
-                height: '80px',
+                height: '70px',
                 marginBottom: '-10px',
                 cursor: 'pointer',
                 fontWeight:  'bold',
@@ -770,21 +771,14 @@ const getAssignmentStyle = (assignment) => {
                 }
               }}
             >
+              <Tooltip text={tooltip}>
               <Icon 
                 size={40} 
                 style={{marginTop: '3px'}}
                 color={activeTab === label ? tabStyles[label].color : '#9C9C9C'} 
                 strokeWidth={activeTab === label ? 2.1 : 2} 
               />
-              <h1 style={{ 
-                whiteSpace: 'nowrap', 
-                fontSize: label === 'completed' ? '11px' : '12px',
-                marginTop: '0px',
-                fontWeight: activeTab === label ? '700': '500',
-                marginLeft: '0px'
-              }}>
-                {label.charAt(0).toUpperCase() + label.slice(1)}
-              </h1>
+             </Tooltip>
             </button>
            
           </div>

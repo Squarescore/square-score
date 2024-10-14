@@ -609,7 +609,7 @@ const navigateToStudentGrades = (studentUid) => {
 
                 <p style={{ marginBottom: '15px', fontSize: '20px', color: 'black',fontWeight: 'bold', width: '500px', textAlign: 'left', marginLeft: '20px' }}>{question.question}</p>
              
-                <p style={{ fontSize: '20px', color: '#555', fontStyle: 'italic', textAlign: 'left', marginLeft: '20px', }}><strong>Expected: </strong>{question.expectedResponse}</p>
+                <p style={{ fontSize: '20px', color: '#555', fontStyle: 'italic', textAlign: 'left', marginLeft: '20px', }}><strong>Expected: </strong>{question.rubric}</p>
                 </div>
               </li>
             ))}

@@ -3,8 +3,9 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { db } from '../../../Universal/firebase';
 import Navbar from '../../../Universal/Navbar';
+import Tooltip from './ToolTip';
 import axios from 'axios';
-import { SquareCheck, SquareX, SquareSlash, Square, User, MessageSquareMore, Plus, Minus } from 'lucide-react';
+import { SquareCheck, SquareX, SquareSlash, Square, User, MessageSquareMore, Plus, Minus, YoutubeIcon } from 'lucide-react';
 
 function TeacherStudentResults() {
     const { assignmentId, studentUid } = useParams();
@@ -25,6 +26,32 @@ function TeacherStudentResults() {
         setActiveQuestionIndex(index);
         questionRefs.current[index]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
     };
+    const [isSticky, setIsSticky] = useState(false);
+    const stickyRef = useRef(null);
+    const containerRef = useRef(null);
+
+    useEffect(() => {
+        const options = {
+            root: null,
+            rootMargin: "-70px 0px 0px 0px",
+            threshold: 1
+        };
+
+        const observer = new IntersectionObserver(([entry]) => {
+            setIsSticky(!entry.isIntersecting);
+            console.log("Sticky state:", !entry.isIntersecting); // Debug log
+        }, options);
+
+        if (stickyRef.current) {
+            observer.observe(stickyRef.current);
+        }
+
+        return () => {
+            if (stickyRef.current) {
+                observer.unobserve(stickyRef.current);
+            }
+        };
+    }, []);
     const debounce = (func, wait) => {
         let timeout;
         const debouncedFunction = (...args) => {
@@ -90,7 +117,10 @@ function TeacherStudentResults() {
                     
                     if (studentDoc.exists()) {
                         const studentData = studentDoc.data();
-                        setStudentName(studentData.name);
+                        setStudentName(studentData.firstName + ' ' +  studentData.lastName );
+                        console.log("Student Name:", studentData.firstName + ' ' +  studentData.lastName ); // Added log statement
+                    } else {
+                        console.log("Student document does not exist");
                     }
                 }
             } catch (error) {
@@ -107,7 +137,7 @@ function TeacherStudentResults() {
             try {
                 const questionsToGrade = results.questions.map(q => ({
                     question: q.question,
-                    expectedResponse: q.expectedResponse,
+                    rubric: q.rubric,
                     studentResponse: q.studentResponse
                 }));
 
@@ -226,37 +256,149 @@ function TeacherStudentResults() {
             <Navbar userType="teacher" />
             <header style={{ backgroundColor: 'white', borderRadius: '10px', color: 'white', marginTop: '80px', height: '14%', display: 'flex', marginBottom: '-46px', alignItems: 'center', justifyContent: 'center', position: 'relative', margin: '1% auto', width: '70%' }}>
             </header>
-            <div style={{ width: '1200px', marginLeft: 'auto', marginTop: '30px', marginRight: 'auto', textAlign: 'center', backgroundColor: 'white', borderRadius: '15px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', marginBottom: '-10px', justifyContent: 'space-around' }}>
-                    <h1 style={{ fontSize: '60px', color: 'black', marginTop: '50px', fontFamily: "'montserrat', sans-serif", textAlign: 'left', width: '800px' }}>{assignmentName}</h1>
-                </div>
-                <div style={{ marginBottom: '40px', fontFamily: "'montserrat', sans-serif", backgroundColor: 'white', display: 'flex', width: '950px', height: '70px', marginLeft: '130px', borderRadius: '15px', border: '4px solid #F4F4F4', alignItems: 'center', }}>
-                    <div style={{ fontSize: '40px', fontWeight: 'bold', color: 'black', display: 'flex', alignItems: 'center',  justifyContent: 'space-around', marginLeft: '50px' }}>
-                        <SquareCheck size={50} color="#00d12a" />
-                        <h1 style={{ backgroundColor: 'white', borderRadius: '5px', margin: 'auto', marginLeft: '10px', marginTop: '0px', fontSize: '40px', alignItems: 'center', position: 'relative', fontFamily: "'montserrat', sans-serif" }}>{correctCount}</h1>
-                    </div>
-                    <div style={{ fontSize: '40px', fontWeight: 'bold', color: 'black', display: 'flex', alignItems: 'center', justifyContent: 'space-around', marginLeft: '40px' }}>
-                        <SquareSlash size={50} color="#FFD13B" />
-                        <h1 style={{ backgroundColor: 'white', borderRadius: '5px', margin: 'auto', marginLeft: '10px', marginTop: '0px', fontSize: '40px', alignItems: 'center', position: 'relative', fontFamily: "'montserrat', sans-serif" }}>{partialCount}</h1>
-                    </div>
-                    <div style={{ fontSize: '40px', fontWeight: 'bold', color: 'black', display: 'flex', alignItems: 'center', justifyContent: 'space-around', marginLeft: '40px'  }}>
-                        <SquareX size={50} color="#ff0000" />
-                        <h1 style={{ backgroundColor: 'white', borderRadius: '5px', margin: 'auto', marginLeft: '10px', marginTop: '0px', fontSize: '40px', alignItems: 'center', position: 'relative', fontFamily: "'montserrat', sans-serif" }}>{incorrectCount}</h1>
-                    </div>
-                    <div style={{ fontSize: '40px', fontWeight: 'bold', color: 'black' , marginLeft: '40px' }}>
-                        {results.percentageScore.toFixed(1)}%
-                    </div>
-                    <div style={{ width: '100px', height: '100px', border: '10px solid #627BFF', borderRadius: '20px', background: '#020CFF', marginTop: '0px', marginRight: '00px',  marginLeft: '240px' }}>
-                        <div style={{ width: '79px', height: '79px', backgroundColor: 'white', borderRadius: '5px', margin: 'auto', marginTop: '10px', justifyContent: 'space-around', fontSize: '60px', alignItems: 'center', position: 'relative', fontFamily: "'montserrat', sans-serif" }}>
-                            <h1 style={{ backgroundColor: 'transparent', borderRadius: '5px', marginTop: '11px', justifyContent: 'space-around', fontSize: '60px', alignItems: 'center', position: 'relative', fontFamily: "'montserrat', sans-serif" }}>{letterGrade}</h1>
+
+
+
+
+
+
+
+            <div style={{  fontFamily: "'montserrat', sans-serif", backgroundColor: 'white', width: '860px', zIndex: '100', alignItems: 'center', marginLeft: 'auto', marginRight: 'auto', marginTop: '100px'}}>
+           
+           
+           
+       
+               
+                  
+                  
+
+
+
+            <div style={{display: 'flex', border: '2px solid #f4f4f4', paddingRight: '0px', width: '880px ', borderRadius: '15px', marginBottom: '20px', height: '200px', marginLeft: '-10px' }}>
+        <div style={{marginLeft: '30px', marginBottom: '40px'}}>
+        <h1 style={{ fontSize: '40px', color: 'black', marginBottom: '0px',  marginLeft: '-5px',fontFamily: "'montserrat', sans-serif", textAlign: 'left',  }}>{studentName} </h1>
+      
+        <h1 style={{ fontSize: '30px', fontFamily: "'montserrat', sans-serif", textAlign: 'left', color: 'grey', fontWeight: '700',   }}>{assignmentName} 
+       </h1>
+        <h1 style={{ fontSize: '20px', fontFamily: "'montserrat', sans-serif", textAlign: 'left',  color: 'grey', fontWeight: '500', marginTop: '-5px' }}> Submitted: {new Date(results.submittedAt.toDate()).toLocaleString()} </h1>
+             
+         
+          
+          
+
+        </div>
+        <div style={{width: '100px', marginLeft: 'auto', marginRight: '80px', marginTop: '-10px'}}>
+            <div style={{ width: '110px', height: '110px', border: '15px solid #627BFF', borderRadius: '30px', background: '#020CFF', marginTop: '40px',  marginLeft: '10px' }}>
+                        <div style={{ width: '85px', height: '85px', backgroundColor: 'white', borderRadius: '7px', margin: 'auto', marginTop: '14px', justifyContent: 'space-around', fontSize: '40px', alignItems: 'center', position: 'relative', fontFamily: "'montserrat', sans-serif" }}>
+                            <h1 style={{ backgroundColor: 'transparent', borderRadius: '5px', marginTop: '11px', justifyContent: 'space-around', fontSize: '60px', alignItems: 'center', position: 'relative', fontFamily: "'montserrat', sans-serif", textAlign: 'center', lineHeight: '80px',  }}>{letterGrade}</h1>
                         </div>
                     </div>
-                </div>
+                    </div>
             </div>
-            <div style={{ width: '870px', marginLeft: 'auto', marginTop: '-20px', marginRight: 'auto', textAlign: 'center', backgroundColor: 'white', borderRadius: '10px', position: 'relative' }}>
-                <div style={{position: 'relative', height: '90px'}}>
-                    <p style={{ fontFamily: "'montserrat', sans-serif", fontSize:'20px', fontWeight: 'bold', marginBottom: '60px', color: 'grey', position:'absolute', left: '30px' }}> Completed: {new Date(results.submittedAt.toDate()).toLocaleString()}</p>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '25px', marginBottom: '40px', position:'absolute', left: '30px', top: '60px'  }}>
+            <div style={{display: 'flex', width: '880px'}}>
+                <div style={{width: '450px', border: '2px solid #f4f4f4', borderRadius: '15px', height: '135px',  padding: '0px 0px', marginLeft: '-10px'}}>
+                    <h1 style={{  marginBottom: '-20px', marginTop:'15px', marginLeft: '30px', fontSize: '25px', }}> Point Distribution</h1>
+                  <div style={{display: 'flex', justifyContent: 'space-around'}}> 
+                    <div style={{ fontSize: '30px', fontWeight: 'bold', color: 'black', display: 'flex', alignItems: 'center',  justifyContent: 'space-around', marginLeft: '5px', width: '90px', marginTop: '50px' , }}>
+                    
+                        <div style={{width: '40px'}}>
+                        <SquareCheck size={40} color="#00d12a" />
+                        </div>
+                        <h1 style={{ backgroundColor: 'white', borderRadius: '5px', margin: 'auto', marginLeft: '5px', marginTop: '0px', fontSize: '35px', alignItems: 'center', position: 'relative', fontFamily: "'montserrat', sans-serif" }}>{correctCount}</h1>
+                 
+                    </div>
+                
+                
+                    
+                    <div style={{ fontSize: '40px', fontWeight: 'bold', color: 'black', display: 'flex', alignItems: 'center',  justifyContent: 'space-around', marginLeft: '5px',  width: '90px' ,  marginTop: '50px'}}>
+                    <div style={{width: '40px'}}>
+                        <SquareSlash size={40} color="#FFD13B"  />
+                        </div>
+                        <h1 style={{backgroundColor: 'white', borderRadius: '5px', margin: 'auto', marginLeft: '5px', marginTop: '0px', fontSize: '35px', alignItems: 'center', position: 'relative', fontFamily: "'montserrat', sans-serif" }}>{partialCount}</h1>
+                        
+                    </div>
+             
+                    <div style={{ fontSize: '40px', fontWeight: 'bold', color: 'black', display: 'flex', alignItems: 'center',  justifyContent: 'space-around', marginLeft: '5px',  width: '90px', marginTop: '50px' }}>
+                      
+                    <div style={{width: '40px'}}>
+                          <SquareX size={40} color="#ff0000" />
+                        </div>
+                        <h1 style={{backgroundColor: 'white', borderRadius: '5px', margin: 'auto', marginLeft: '5px', marginTop: '0px', fontSize: '35px', alignItems: 'center', position: 'relative', fontFamily: "'montserrat', sans-serif" }}>{incorrectCount}</h1>
+                    </div>
+                    </div>
+                    </div>
+
+
+                    <div style={{width: '430px', border: '2px solid #f4f4f4', borderRadius: '15px', height: '135px',  padding: '0px 0px', marginLeft: '20px' }}>
+                    <h1 style={{  marginBottom: '-20px', marginTop:'15px', marginLeft: '30px', fontSize: '25px', }}>Grade</h1>
+                    <div style={{display: 'flex', justifyContent: 'space-around', marginTop: '25px'}}> 
+                    <p style={{fontSize: '25px', width: '20px',color: 'grey', padding: '5px 30px', background: '#f4f4f4', borderRadius: '5px', fontWeight: 'bold',  textAlign: 'center'}}>{letterGrade}</p>
+                    <p style={{fontSize: '25px', width: '40px',color: 'grey', padding: '5px 25px', background: '#f4f4f4', borderRadius: '5px', fontWeight: 'bold',  textAlign: 'center'}}>   {results.percentageScore.toFixed(0)}%</p>
+                    <p style={{fontSize: '25px', width: '90px',color: 'grey', padding: '5px 0px', background: '#f4f4f4', borderRadius: '5px', fontWeight: 'bold',  textAlign: 'center'}}>     {`${results.rawTotalScore}/${results.questions.length * results.scaleMax}`}</p>
+
+                    </div>
+               </div>
+               
+                </div>
+
+
+          <div style={{position: 'fixed', bottom: '50px', height: '60px' , left: '-5px', width: '90px',  fontWeight: '600', paddingLeft: '10px', color: 'grey' , paddingTop: '10px', fontSize: '13px',}}>
+        
+          </div>
+        
+
+                  
+                </div>
+
+
+
+
+
+                
+            <div style={{ width: '1200px', marginLeft: 'auto', marginTop: '10px', marginRight: 'auto', textAlign: 'center', backgroundColor: 'transparent', borderRadius: '15px' }}>
+               
+               
+
+
+               
+            </div>
+         
+              
+               
+            <div ref={containerRef} style={{ width: '100%', marginTop: '10px', 
+                        
+                        backgroundColor: 'rgb(255,255,255,.8)',
+                        backdropFilter: 'blur(5px)',
+                
+                marginLeft: 'auto', marginRight: 'auto', textAlign: 'center',  borderRadius: '10px', position: 'relative' }}>
+                <div 
+                    ref={stickyRef}
+                    style={{
+                        display: 'flex',
+                        flexWrap: 'wrap',
+                        justifyContent: 'left',
+                        gap: '20px',
+                        marginBottom: '40px',
+                        width: '890px',
+                        position: 'sticky',
+                        backgroundColor: 'rgb(255,255,255,.8)',
+                        backdropFilter: 'blur(5px)',
+                        top: '70px',
+                        height: '30px',
+                        padding: '10px 0',
+                        zIndex: 1000,
+                        marginLeft: 'auto', marginRight: 'auto',
+                    }}
+                >
+                    <div style={{
+                        width: '870px',
+                        marginLeft: '30px',
+                        margin: '0 auto',
+                        display: 'flex',
+                        flexWrap: 'wrap',
+                        justifyContent: 'left',
+                        gap: '20px'
+                    }}>
                         {results.questions.map((question, index) => (
                             <Square
                                 key={index}
@@ -269,7 +411,8 @@ function TeacherStudentResults() {
                         ))}
                     </div>
                 </div>
-                <ul style={{ listStyle: 'none', padding: '0' }}>
+              
+                <ul style={{ listStyle: 'none', padding: '0', marginTop: '-30px' }}>
                     {results.questions && results.questions.map((question, index) => {
                         const studentResponseLength = (question.studentResponse || "").length;
                         const isShortResponse = studentResponseLength < 50;
@@ -279,9 +422,9 @@ function TeacherStudentResults() {
                         return (
                             <li key={index} 
                                 ref={el => questionRefs.current[index] = el} 
-                                style={{ position: 'relative', fontFamily: "'montserrat', sans-serif", marginBottom: '20px', width: '840px', borderRadius: '15px', padding: '20px', border: '4px solid #f4f4f4', marginLeft: 'auto', marginRight: 'auto' }}>
+                                style={{ position: 'relative', fontFamily: "'montserrat', sans-serif", marginBottom: '20px', width: '840px', padding: '20px' , border: '2px solid #f4f4f4', marginLeft: 'auto', marginRight: 'auto', borderRadius: '15px' }}>
                              <div style={{ display: 'flex', fontFamily: "'montserrat', sans-serif", alignItems: 'center' }}>
-                                <div style={{position: 'relative', width: '40px'}}>
+                                <div style={{position: 'relative', width: '40px', marginTop: '0px'}}>
                                     {question.score === 2 ? (
                                         <SquareCheck size={60} color="#00d12a" />
                                     ) : question.score === 1 ? (
@@ -320,7 +463,7 @@ function TeacherStudentResults() {
                                         }}
                                     />
                                 </div>
-                                    <div style={{ width: '700px', backgroundColor: 'white', fontWeight: 'bold', lineHeight: '1.4', fontSize: '20px', textAlign: 'left', border: '0px solid lightgrey', position: 'relative', display: 'flex', flexDirection: 'column', marginLeft: '40px' }}>
+                                    <div style={{ width: '700px', backgroundColor: 'white', fontWeight: 'bold', lineHeight: '1.4', fontSize: '20px', textAlign: 'left', border: '0px solid lightgrey', position: 'relative', display: 'flex', flexDirection: 'column', marginLeft: '40px', marginTop: '0px'}}>
                                         {question.question}
                                     </div>
                                     

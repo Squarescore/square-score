@@ -35,7 +35,7 @@ const TeacherPreviewASAQ = ({ questionsWithIds, setQuestionsWithIds, sourceText,
       questionId: `newQuestion${questionsWithIds.length}`,
       difficulty: 'easy',
       question: "New question",
-      expectedResponse: "New expected response"
+      rubric: "New expected response"
     };
 
     let insertIndex = questionsWithIds.length;
@@ -280,8 +280,8 @@ const TeacherPreviewASAQ = ({ questionsWithIds, setQuestionsWithIds, sourceText,
                   resize: 'none',
                   overflow: 'hidden'
                 }}
-                value={`Probable answer: ${question.expectedResponse}`}
-                onChange={(e) => handleEditQuestion(index, 'expectedResponse', e.target.value.replace('Probable answer: ', ''))}
+                value={`Probable answer: ${question.rubric}`}
+                onChange={(e) => handleEditQuestion(index, 'rubric', e.target.value.replace('Probable answer: ', ''))}
                 minRows={1}
               />
             </div>

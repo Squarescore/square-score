@@ -326,7 +326,7 @@ const Participants = () => {
 
 {currentClass.participants && currentClass.participants.length > 0 ? (
         currentClass.participants.map(student => (
-      <div key={student.uid} style={{ zIndex: 10, width: '650px',   marginTop: '-10px', marginLeft: '-100px',display: 'flex', flexDirection: 'row',color: 'grey', fontSize: '20px', justifyContent: 'space-between', border: '4px solid #f4f4f4',borderRadius: '10px', padding: '15px', marginBottom: '30px', alignSelf: 'center', backgroundColor: 'white', position: 'relative' }}>
+      <div key={student.uid} style={{ zIndex: 10, width: '650px',   marginTop: '-10px', marginLeft: '-100px',display: 'flex', flexDirection: 'row',color: 'grey', fontSize: '20px', justifyContent: 'space-between', border: '2px solid #f4f4f4',borderRadius: '10px', padding: '15px', marginBottom: '30px', alignSelf: 'center', backgroundColor: 'white', position: 'relative' }}>
         <div style={{ width: '50%' }}>
          
           <div   onClick={() => navigateToStudentGrades(student.uid)}

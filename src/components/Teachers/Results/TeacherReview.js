@@ -4,6 +4,8 @@ import { db } from '../../Universal/firebase';
 import { doc, collection, updateDoc, where, query, getDocs, getDoc } from 'firebase/firestore';
 import Confetti from 'react-confetti';
 import Navbar from '../../Universal/Navbar';
+import { MessageSquareMore, User } from 'lucide-react';
+
 const TeacherReview = () => {
   const [editingFeedback, setEditingFeedback] = useState(false);
   const { classId, assignmentId } = useParams();
@@ -164,120 +166,307 @@ const TeacherReview = () => {
     });
     setEditingFeedback(false);
   };
+
   return (
-    <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', backgroundColor: 'white'}}>
-       <Navbar userType="teacher" />
-      <header style={{     backgroundColor: 'white',
-
-borderRadius: '10px',
-color: 'white',
-marginTop: '20px',
-height: '14%',
-display: 'flex',
-marginBottom: '-46px',
-alignItems: 'center',
-justifyContent: 'center',
-position: 'relative',
-margin: '1% auto',
-width: '70%'}}> 
-    
-    <h1 style={{ 
-    color: 'black', fontSize: '60px', marginTop: '100px',  fontFamily: "'montserrat', sans-serif",fontWeight: 'bold' }}>{assignmentName}</h1>
-  </header>
-
-
-     
-    <div style={{width: '60%', marginLeft: 'auto', marginRight: 'auto',
-     textAlign: 'center', backgroundColor: 'white', padding: '0px', borderRadius: '20px', }}>
-   
-   <h2 style={{fontSize: '12px', color: 'grey'}}>{reviewCount} flagged Responses remain, Reviewing for {students.find(student => student.uid === currentReview.studentUid)?.name}</h2>
-       <div>
-
-       <h4 style={{marginTop: '20px', color:'grey',marginLeft: '80px', marginRight: 'auto', marginBottom: '-35px',zIndex: '11', position:'relative', borderRadius: '20px',  backgroundColor: '#f4f4f4', border: '10px solid white', width: '170px', padding: '0px', fontFamily: "'montserrat', sans-serif",fontWeight: 'bold', fontSize: '30px'}}>Question</h4>
-          <div style={{marginLeft: 'auto', marginRight: 'auto', width: '85%',marginBottom: '10px',  backgroundColor: 'white', borderRadius: '30px', color: 'black', border: '10px solid #f4f4f4'}}>
-            <p style={{width: '90%', marginLeft: 'auto', marginRight: 'auto', padding: '10px', fontSize: '24px',
-         fontFamily: "'montserrat', sans-serif",fontWeight: 'bold', textAlign: 'left',}}>{currentQuestion.question}</p>
-           <p style={{width: '90%', marginLeft: 'auto', marginRight: 'auto', padding: '10px', fontSize: '16px', textAlign: 'left', fontStyle: 'italic', color: 'grey', marginTop: '-30px' ,
-         fontFamily: "'montserrat', sans-serif",fontWeight: 'bold', }}>{currentQuestion.expectedResponse}</p>
-          </div>
-
-          <h5 style={{marginTop: '20px', marginLeft: '80px', marginRight: 'auto', marginBottom: '-30px', color: '#020CFF', backgroundColor: '#99B6FF', border: '10px solid white',zIndex: '11', position:'relative', borderRadius: '20px', width: '200px', padding: '5px', fontSize: '22px',
-         fontFamily: "'montserrat', sans-serif",fontWeight: 'bold', }}>Student Answer</h5>
-          <div style={{marginLeft: 'auto', marginRight: 'auto',position: 'relative', width: '85%', marginBottom: '4%',  backgroundColor: 'white', borderRadius: '20px', border: '10px solid #99B6FF'}}>
-            <p style={{width: '90%', marginLeft: 'auto', marginRight: 'auto', padding: '10px', fontSize: '20px', textAlign: 'left',
-         fontFamily: "'montserrat', sans-serif",fontWeight: 'bold', }}>{currentQuestion.studentResponse || "Not provided"}</p>
-            <p style={{color: 'grey', position: 'absolute', padding: '10px', width: '150px', borderRadius: '10px', fontWeight: 'bold', right: '5px', bottom: '-80px', }}> Current Points: {currentQuestion.score}</p>
-          </div>
-
-
-
-
-
-        <h5  style={{marginTop: '20px', 
-        marginLeft: '100px', marginRight: 'auto',
-         marginBottom: '-17px', color: 'black', 
-         backgroundColor: 'white',
-         fontSize: '20px',
-         fontFamily: "'montserrat', sans-serif",fontWeight: 'bold', 
-         zIndex: '11', position:'relative',
-         borderRadius: '5px', width: '120px', padding: '5px'}}>
-
-          Feedback</h5>
-        <div  onClick={() => setEditingFeedback(true)} style={{marginLeft: 'auto', 
-        marginRight: 'auto', width: '85%',
-        textAlign: 'left',
-           backgroundColor: 'white', 
-           borderRadius: '5px',
-            border: '4px dotted lightgrey'}}>
-        
-    
-{editingFeedback ? (
-  <textarea style={{width: '90%', marginLeft: 'auto', marginRight: 'auto', padding: '10px', fontSize: '14px',textAlign: 'center',borderColor: 'transparent'}}
-  value={currentQuestion.feedback}
-    onChange={handleFeedbackChange} 
-  />  
-) : (
-  <p style={{width: '90%', marginLeft: 'auto',fontFamily: "'montserrat', sans-serif",fontWeight: 'bold',  marginRight: 'auto', padding: '10px', fontSize: '14px'}}>{currentQuestion.feedback}</p>
-)}
-
-        </div>
-        {editingFeedback && (
-
-<button onClick={handleSaveFeedback} style={{ position: 'relative', width: '100%', backgroundColor: 'transparent', borderColor: 'transparent', fontSize: '20px',
-marginTop: '20px', cursor: 'pointer'}}>Save</button>
-
-)}
-        <button style={{width: '20%', fontSize: '30px',
-          borderColor: 'transparent', 
-           borderRadius: '20px',transition: '.5s',
-           borderWidth: '4px',
-           height:'40px',
-           fontWeight: 'bold',
-           fontFamily: "'montserrat', sans-serif" ,
-           color: 'darkred', 
-           borderStyle: 'solid',
-        
-           marginTop: '4%',
-           backgroundColor: 'lightcoral', 
-           marginRight: '-40px'}}onClick={() => handleGradeChange(0)}
-           onMouseEnter={(e) => {
-            e.target.style.borderColor = 'darkred';
-            e.target.style.widthColor = '4px';
+    <div
+      style={{
+        height: '100vh',
+        display: 'flex',
+        flexDirection: 'column',
+        backgroundColor: 'white'
+      }}
+    >
+      <Navbar userType="teacher" />
+      <header
+        style={{
+          backgroundColor: 'white',
+          borderRadius: '10px',
+          color: 'white',
+          marginTop: '20px',
+          height: '14%',
+          display: 'flex',
+          marginBottom: '-46px',
+          alignItems: 'center',
+          justifyContent: 'left',
+          position: 'relative',
+          margin: '1% auto',
+          width: '70%',
+          border: '1px solid blue',
         }}
-        onMouseLeave={(e) => {
-            e.target.style.borderColor = 'transparent';
-            e.target.style.widthColor = '4px';
+      > 
+        <h1
+          style={{
+            color: 'black',
+            fontSize: '60px',
+            marginTop: '100px',
+            fontFamily: "'montserrat', sans-serif",
+            fontWeight: 'bold'
+          }}
+        >
+          {assignmentName}
+        </h1>
+      </header>
+      <div
+        style={{
+          width: '1000px',
+          marginLeft: 'auto',
+          marginRight: 'auto',
+          textAlign: 'left',
+          backgroundColor: 'white',
+          padding: '0px',
+          borderRadius: '20px',
+          
+          border: '1px solid blue',
+        }}
+      >
+        <h2
+          style={{
+            fontSize: '12px',
+            color: 'grey'
+          }}
+        >
+          {reviewCount} flagged Responses remain, Reviewing for {students.find(student => student.uid === currentReview.studentUid)?.name}
+        </h2>
+        <div>
+          <h4
+            style={{
+              marginTop: '20px',
+              color:'grey',
+              marginLeft: '0px',
+              marginRight: 'auto',
+              marginBottom: '-35px',
+              zIndex: '11',
+              position:'relative',
+              borderRadius: '20px 20px 0px 0px ',
+              backgroundColor: '#f4f4f4',
+              border: '10px solid lightgrey',
+              width: '920px',
+              padding: '5px 30px',
+              fontFamily: "'montserrat', sans-serif",
+              fontWeight: 'bold',
+              fontSize: '25px'
+            }}
+          >
+            Question
+          </h4>
+          <div
+            style={{
+              marginLeft: 'auto',
+              marginRight: 'auto',
+              width: '980px',
+              marginBottom: '0px',
+              backgroundColor: 'white',
+              borderRadius: '30px',
+              color: 'black',
+              border: '10px solid #f4f4f4'
+            }}
+          >
+            <p
+              style={{
+                width: '900px',
+                marginLeft: '20px',
+                padding: '10px',
+                fontSize: '24px',
+                fontFamily: "'montserrat', sans-serif",
+                fontWeight: 'bold',
+                textAlign: 'left',
+                
+               border: '1px solid blue',
+              }}
+            >
+              {currentQuestion.question} <br>
+              </br> <span style={{color: 'grey'}}>Rubric: {currentQuestion.rubric}</span> 
+            </p>
+            
+          </div>
+          
+          <div style={{display: 'flex',  marginTop: '20px'}}>
+          <div style={{display: 'flex',  width: '45%'}}>
+          <div style={{
+  border: '4px solid lightgrey',
+  background: '#f4f4f4',
+  color: 'grey',
+  borderRadius: '15px 0px 0px 15px',
+  display: 'flex',
+  justifyContent: 'center',
+  alignItems: 'center',
+  marginRight: '-4px',
+  zIndex: '1'
+   // Make sure the div takes full height of its parent
+}}>
+  <User size={60} />
+</div>
+          <div
+            style={{
+              marginLeft: '-4px',
+              position: 'relative',
+              width: '760px',
+              marginBottom: '0px',
+              backgroundColor: 'white',
+              borderRadius: '0px 15px 15px 0px',
+              border: '4px solid #f4f4f4'
+            }}
+          >
+            <p
+              style={{
+                width: '90%',
+                marginLeft: 'auto',
+                marginRight: 'auto',
+                padding: '10px',
+                fontSize: '20px',
+                textAlign: 'left',
+                fontFamily: "'montserrat', sans-serif",
+                fontWeight: 'bold',
+              }}
+            >
+              {currentQuestion.studentResponse || "Not provided"}
+            </p>
+            
            
-        }}
-           >0</button>
+          </div>
+          </div>
 
-
-        <button style={{width: '10%',
-        fontFamily: "'montserrat', sans-serif" ,
-        fontWeight: 'bold',
-        fontSize: '30px', 
-         borderColor: 'transparent',  height:'60px',color: 'goldenrod',
-         transition: '.5s',
+          <p
+              style={{
+                color: 'grey',
+                position: 'absolute',
+                padding: '10px',
+                width: '150px',
+                borderRadius: '10px',
+                fontWeight: 'bold',
+                right: '5px',
+                bottom: '-80px',
+              }}
+            >
+              Current Points: {currentQuestion.score}
+            </p>
+            <div style={{display: 'flex',  width: '50%', position: 'relative', marginLeft: 'auto'}}>
+          <div style={{
+  border: '4px solid lightgrey',
+  background: '#f4f4f4',
+  color: 'grey',
+  borderRadius: '15px 0px 0px 15px',
+  display: 'flex',
+  justifyContent: 'center',
+  alignItems: 'center',
+  marginRight: '-4px',
+  zIndex: '1'
+   // Make sure the div takes full height of its parent
+}}>
+  <MessageSquareMore style={{width: '60px'}}size={40} />
+</div>
+          <div
+            onClick={() => setEditingFeedback(true)}
+            style={{
+              marginLeft: 'auto', 
+              marginRight: 'auto',
+              width: '85%',
+              textAlign: 'left',
+              backgroundColor: 'white', 
+              borderRadius: '5px',
+              border: '4px dotted lightgrey'
+            }}
+          >
+            {editingFeedback ? (
+              <textarea
+                style={{
+                  width: '90%',
+                  marginLeft: 'auto',
+                  height: '100%',
+                  marginRight: 'auto',
+                  padding: '10px',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                fontFamily: "'montserrat', sans-serif",
+                  textAlign: 'left',
+                  borderColor: 'transparent'
+                }}
+                value={currentQuestion.feedback}
+                onChange={handleFeedbackChange} 
+              />  
+            ) : (
+              <p
+                style={{
+                  width: '90%',
+                  marginLeft: 'auto',
+                  fontFamily: "'montserrat', sans-serif",
+                  fontWeight: 'bold',
+                  marginRight: 'auto',
+                  padding: '10px',
+                  fontSize: '14px'
+                }}
+              >
+                {currentQuestion.feedback}
+              </p>
+            )}
+          </div>
+          
+          {editingFeedback && (
+            <button
+              onClick={handleSaveFeedback}
+              style={{
+                position: 'absolute',
+                width: '100px',
+                top: '80px',
+                backgroundColor: '#F5B6FF',
+                border: '4px solid #FFAE00'
+                ,
+                right: '0px',
+                color: '#FFAE00',
+                marginLeft: 'auto',
+                fontWeight: 'bold',
+                fontFamily: "'montserrat', sans-serif",
+                borderRadius: '5px',
+                background: '#FFEAAF',
+                fontSize: '15px',
+                marginTop: '20px',
+                cursor: 'pointer'
+              }}
+            >
+              Save
+            </button>
+          )}
+          </div>
+          </div>
+          <button
+            style={{
+              width: '20%',
+              fontSize: '30px',
+              borderColor: 'transparent', 
+              borderRadius: '20px',
+              transition: '.5s',
+              borderWidth: '4px',
+              height:'40px',
+              fontWeight: 'bold',
+              fontFamily: "'montserrat', sans-serif" ,
+              color: 'darkred', 
+              borderStyle: 'solid',
+              marginTop: '4%',
+              backgroundColor: 'lightcoral', 
+              marginRight: '-40px'
+            }}
+            onClick={() => handleGradeChange(0)}
+            onMouseEnter={(e) => {
+              e.target.style.borderColor = 'darkred';
+              e.target.style.widthColor = '4px';
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.borderColor = 'transparent';
+              e.target.style.widthColor = '4px';
+            }}
+          >
+            0
+          </button>
+          <button
+            style={{
+              width: '10%',
+              fontFamily: "'montserrat', sans-serif" ,
+              fontWeight: 'bold',
+              fontSize: '30px', 
+              borderColor: 'transparent',
+              height:'60px',
+              color: 'goldenrod',
+              transition: '.5s',
            borderWidth: '4px',
          borderStyle: 'solid',
           backgroundColor: 'khaki',borderRadius: '40px', marginRight: '-40px', transition: '1s',
