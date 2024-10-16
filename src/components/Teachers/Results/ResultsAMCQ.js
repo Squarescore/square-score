@@ -7,7 +7,7 @@ import { AnimatePresence } from 'framer-motion';
 import CustomDateTimePicker from './CustomDateTimePickerResults';
 import 'react-datepicker/dist/react-datepicker.css';
 import Exports from './Exports';
-import { Settings, ArrowRight, SquareArrowOutUpRight, SquareX, EyeOff, Eye } from 'lucide-react';
+import { Settings, ArrowRight, SquareArrowOutUpRight, SquareX, EyeOff, Eye, SquareCheck, SquareMinus, SquareArrowRight } from 'lucide-react';
 import Tooltip from './ToolTip';
 const TeacherResultsAMCQ = () => {
   // State hooks
@@ -24,12 +24,13 @@ const TeacherResultsAMCQ = () => {
   const [loading, setLoading] = useState(false);
   const [resetStatus, setResetStatus] = useState({});
   const [resetStudent, setResetStudent] = useState(null);
-  
+  const [submissionCount, setSubmissionCount] = useState(0);
+  const [assignedCount, setAssignedCount] = useState(0);
+  const [averageGrade, setAverageGrade] = useState(null);
   const [isHovered, setIsHovered] = useState(false);
   const [selectedStudents, setSelectedStudents] = useState([]);
   const [isVisible, setIsVisible] = useState(false);
   const [teacherClasses, setTeacherClasses] = useState([]);
-  const [selectedClasses, setSelectedClasses] = useState([]);
   const [showQuestionBank, setShowQuestionBank] = useState(false);
   const [students, setStudents] = useState([]);
     const { classId, assignmentId } = useParams();
@@ -50,11 +51,20 @@ const TeacherResultsAMCQ = () => {
     timerOn: false,
   });
   const navigate = useNavigate();
-  const handleClassSelect = (selectedClassId) => {
-    if (selectedClasses.includes(selectedClassId)) {
-      setSelectedClasses(selectedClasses.filter(id => id !== selectedClassId));
-    } else {
-      setSelectedClasses([...selectedClasses, selectedClassId]);
+
+  
+  const getStatusIcon = (status) => {
+    switch (status) {
+      case 'completed':
+        return <SquareCheck color="#00DE09" size={30} strokeWidth={2.5}/>;
+      case 'In Progress':
+        return <SquareMinus color="#FFAA00" size={30} strokeWidth={2.5}/>;
+      case 'not_started':
+        return <SquareX color="lightgrey" size={30} strokeWidth={2.5}/>;
+      case 'Paused':
+        return <SquareMinus color="#FFA500" size={30} strokeWidth={2.5}/>;
+      default:
+        return null;
     }
   };
   useEffect(() => {
@@ -315,6 +325,7 @@ const TeacherResultsAMCQ = () => {
   }, [assignmentId]);
 
   // Fetch class and grades data
+  useEffect(() => {
   const fetchClassAndGrades = async () => {
     setLoading(true);
     try {
@@ -335,7 +346,10 @@ const TeacherResultsAMCQ = () => {
               ...participant,
               firstName,
               lastName,
-              name: `${firstName} ${lastName}`
+              name: `${firstName} ${lastName}`,
+              isAssigned: studentData.assignmentsToTake?.includes(assignmentId) ||
+                          studentData.assignmentsInProgress?.includes(assignmentId) ||
+                          studentData.assignmentsTaken?.includes(assignmentId)
             };
           }
           return participant;
@@ -347,14 +361,17 @@ const TeacherResultsAMCQ = () => {
         );
         
         setStudents(sortedStudents);
-    
+        const assignedStudents = sortedStudents.filter(student => student.isAssigned);
+          setAssignedCount(assignedStudents.length);
+
         const gradesCollection = collection(db, 'grades(AMCQ)');
         const gradesQuery = query(gradesCollection, where('assignmentId', '==', assignmentId));
         const gradesSnapshot = await getDocs(gradesQuery);
         const fetchedGrades = {};
-        let totalScore = 0;
-        let totalGradesCount = 0;
-    
+       let totalScore = 0;
+          let validGradesCount = 0;
+          let submissionsCount = 0;
+
         gradesSnapshot.forEach((doc) => {
           const gradeData = doc.data();
           fetchedGrades[gradeData.studentUid] = {
@@ -363,22 +380,29 @@ const TeacherResultsAMCQ = () => {
             viewable: gradeData.viewable || false,
           };
     
-          if (gradeData.percentageScore !== undefined) {
-            totalScore += gradeData.percentageScore;
-            totalGradesCount++;
+            if (gradeData.submittedAt) {
+              submissionsCount++;
+            }
+          if (typeof gradeData.SquareScore === 'number' && !isNaN(gradeData.SquareScore)) {
+            totalScore += gradeData.SquareScore;
+            validGradesCount++;
           }
         });
     
         setGrades(fetchedGrades);
     
-        const classAverage = totalGradesCount > 0 ? (totalScore / totalGradesCount).toFixed(2) : 'N/A';
-        
-        const assignmentRef = doc(db, 'assignments(AMCQ)', assignmentId);
-        const assignmentDoc = await getDoc(assignmentRef);
-        if (assignmentDoc.exists()) {
-          await updateDoc(assignmentRef, { classAverage: parseFloat(classAverage) });
-        } else {
-          console.log("Assignment document does not exist. Cannot update class average.");
+
+        setSubmissionCount(submissionsCount);
+  
+      
+  
+        const calculatedAverage = validGradesCount > 0 ? (totalScore / validGradesCount).toFixed(0) : null;
+          setAverageGrade(calculatedAverage);
+  
+        // Update assignment document with new class average
+        if (calculatedAverage !== null) {
+          const assignmentRef = doc(db, 'assignments(AMCQ)', assignmentId);
+          await updateDoc(assignmentRef, { classAverage: parseFloat(calculatedAverage) });
         }
       }
     } catch (error) {
@@ -388,20 +412,13 @@ const TeacherResultsAMCQ = () => {
     }
   };
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        await fetchClassAndGrades();
-      } catch (error) {
-        console.error("Error in fetchClassAndGrades:", error);
-      }
-    };
-  
-    fetchData();
-    const classAndGradesInterval = setInterval(fetchData, 10000);
-  
-    return () => clearInterval(classAndGradesInterval);
-  }, [classId, assignmentId]);
+  fetchClassAndGrades();
+  const classAndGradesInterval = setInterval(fetchClassAndGrades, 10000);
+
+  return () => clearInterval(classAndGradesInterval);
+}, [classId, assignmentId]);
+
+
 
   // Fetch assignment status for each student
   useEffect(() => {
@@ -439,14 +456,7 @@ const TeacherResultsAMCQ = () => {
     return 'F';
   };
 
-  const calculatePercentage = (grade, totalQuestions) => {
-    return Math.floor((grade / totalQuestions) * 100);
-  };
-
-  const closeResetModal = () => {
-    setResetStudent(null);
-  };
-
+ 
   const formatDate = (dateString) => {
     if (!dateString) return 'No date provided';
     try {
@@ -510,8 +520,53 @@ const TeacherResultsAMCQ = () => {
     }, 1000);
   };
 
-  const handleBack = () => {
-    navigate(-1);
+  const AdaptiveHeading = ({ text }) => {
+    const [fontSize, setFontSize] = useState(60);
+    const headingRef = useRef(null);
+  
+    useEffect(() => {
+      const fitText = () => {
+        if (headingRef.current) {
+          let size = 60;
+          headingRef.current.style.fontSize = `${size}px`;
+  
+          while (headingRef.current.scrollWidth > headingRef.current.offsetWidth && size > 40) {
+            size--;
+            headingRef.current.style.fontSize = `${size}px`;
+          }
+  
+          setFontSize(size);
+        }
+      };
+  
+      fitText();
+      window.addEventListener('resize', fitText);
+      return () => window.removeEventListener('resize', fitText);
+    }, [text]);
+  
+    return (
+      <h1
+        ref={headingRef}
+        style={{
+          fontSize: `${fontSize}px`,
+          color: 'black',
+          width: '90%',
+          fontFamily: "'montserrat', sans-serif",
+          wordWrap: 'break-word',
+          overflowWrap: 'break-word',
+          hyphens: 'auto',
+          lineHeight: '1.2',
+          margin: 0,
+          marginBottom: '0px',
+          padding: '10px 0',
+          whiteSpace: 'nowrap',
+          textOverflow: 'ellipsis',
+          overflow: 'hidden'
+        }}
+      >
+        {text}
+      </h1>
+    );
   };
 
   const handleReset = async (studentUid) => {
@@ -801,12 +856,7 @@ const TeacherResultsAMCQ = () => {
   return (
     <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', backgroundColor: 'white' }}>
       <Navbar userType="teacher" />
-      <div style={{
-      
-        width: '100%',
-        height: '1000px',
-        zIndex: 99
-      }}>
+     
       
           {showQuestionBank && assignmentDataRef.current && (
      
@@ -821,7 +871,6 @@ const TeacherResultsAMCQ = () => {
   />
 )}
       
-      </div>
 
       
 
@@ -1013,28 +1062,35 @@ const TeacherResultsAMCQ = () => {
 
 
 
-
-      <div style={{ width: '1000px', display: 'flex', justifyContent: 'align', marginTop: '100px', marginLeft: 'auto', marginRight: 'auto' }}>
-        <div style={{ display: 'flex', width: '780px' , marginRight: 'auto', marginLeft: '120px', height: ' auto', lineHeight:'0px'}}>
-         <div style={{position: 'relative'}}>
-          <h1 style={{  fontSize: '60px', 
-      color: 'black', 
-      width: '100%', // Use full width of parent
+  <div style={{ width: '1000px', display: 'flex', justifyContent: 'align', marginTop: '200px', marginLeft: 'auto', marginRight: 'auto' , }}>
+        <div style={{ display: 'flex', width: '800px' , marginRight: 'auto', marginLeft: '120px',  marginTop: '-50px', lineHeight:'0px', borderBottom: '2px solid #e4e4e4', paddingBottom: '15px', marginBottom:'30px' }}>
+         <div style={{position: 'relative', width: '650px', height: '150px' }}>
+         <AdaptiveHeading text={assignmentName} />
+    <h1 style={{  fontSize: '25px', 
+      color: 'grey', 
+      width: '260px', // Use full width of parent
       fontFamily: "'montserrat', sans-serif",
       wordWrap: 'break-word', // Allow long words to break and wrap
       overflowWrap: 'break-word', // Ensure long words don't overflow
       hyphens: 'auto', // Enable automatic hyphenation
       lineHeight: '1.2', // Adjust line height for better readability
       margin: 0,
-      marginBottom: '30px', // Remove default margins
-      padding: '10px 0' }}>{assignmentName} </h1>
-     
+      marginBottom: '10px', // Remove default margins
+      padding: '10px 0' }}>{submissionCount}/{assignedCount} Submissions</h1>
+
       </div>
-        
+      <Tooltip text="Class Average">
+  
+        <div style={{background: '#09BA00', border: '10px solid #AEF2A3', width:' 110px', height: '110px', borderRadius: '30px '}}>
+      <div style={{fontSize: '45px', fontWeight: 'bold', width: '88px', background: 'white', height: '88px', marginTop: '12px', borderRadius:  '10px', marginLeft: 'auto', marginRight: 'auto', textAlign: 'center', lineHeight: '90px'}}> 
+      {averageGrade !== null ? averageGrade : '-'}
+      </div>
+        </div>
+</Tooltip>
+
         </div>
         
       </div>
-
      
 
 
@@ -1064,181 +1120,176 @@ const TeacherResultsAMCQ = () => {
       
 
       <ul>
-        {students.map((student) => (
-          <li key={student.uid} className="student-item" style={{
-            width: '780px',
-            height: '80px',
-            alignItems: 'center',
-            display: 'flex',
-            justifyContent: 'space-between',
-            marginRight: 'auto',
-            marginLeft: 'auto',
-            border: '4px solid #F4F4F4',
-            backgroundColor: 'white',
-            borderRadius: '10px',
-            padding: '10px',
-            marginBottom: '20px',
-            position: 'relative',
-            zIndex: '0',
-          }}
-          onMouseEnter={() => setHoveredStudent(student.uid)}
-          onMouseLeave={() => setHoveredStudent(null)}
-          > 
-            <div style={{
-              width: '60px',
-              height: '55px',
-              border: '7px solid #566DFF',
-              backgroundColor: '#003BD4',
-              borderRadius: '15px'
-            }}>
-              <p style={{
-                fontWeight: 'bold',
-                width: '40px',
-                marginTop: '8px',
-                marginRight: 'auto',
-                marginLeft: 'auto',
-                fontSize: '25px',
-                backgroundColor: 'white',
-                height: '40px',
-                lineHeight: '45px',
-                color: 'black',
-                borderRadius: '3px',
-                fontFamily: "'montserrat', sans-serif",
-                textAlign: 'center'
-              }}>
-                {grades[student.uid] && grades[student.uid].SquareScore !== undefined 
-                  ? grades[student.uid].SquareScore 
-                  : '—'}
+      {students.map((student) => (
+  <li key={student.uid} style={{ 
+    width: '780px', 
+    height: '40px', 
+    alignItems: 'center', 
+    display: 'flex', 
+    justifyContent: 'space-between', 
+    marginRight: 'auto', 
+    marginLeft: 'auto', 
+    border: '2px solid #E8E8E8', 
+    backgroundColor: 'white', 
+    borderRadius: '10px', 
+    padding: '10px', 
+    marginBottom: '20px', 
+    position: 'relative',
+    zIndex: '0', 
+  }}>
+    <div style={{ marginLeft: '20px', width: '460px', display: 'flex', marginTop: '5px' }}>
+      <div 
+        style={{ 
+          display: 'flex', 
+          marginBottom: '10px', 
+          cursor: 'pointer',
+          transition: 'color 0.3s',
+          width: '280px',
+          marginTop: '5px'
+        }}
+        onClick={() => navigateToStudentGrades(student.uid)}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.color = 'blue';
+          e.currentTarget.style.textDecoration = 'underline';
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.color = 'inherit';
+          e.currentTarget.style.textDecoration = 'none';
+        }}
+      >
+        <h3 style={{ fontWeight: 'normal', color: 'inherit', fontFamily: "'montserrat', sans-serif", fontSize: '20px' }}>{student.lastName},</h3>
+        <h3 style={{ fontWeight: '600', color: 'inherit', fontFamily: "'montserrat', sans-serif", fontSize: '20px', marginLeft: '10px' }}>{student.firstName}</h3>
+      </div>
+    </div>
+
+    {student.isAssigned ? (
+      <>
+        <div style={{ fontWeight: 'bold', textAlign: 'center', color: 'black', fontFamily: "'montserrat', sans-serif", marginTop: '0px', width: '100px', marginRight: '20px', marginLeft: '-40px' }}>
+          {grades[student.uid] ? (
+            <div style={{ display: 'flex', alignItems: 'center', marginTop: '-2px', width: '130px',  }}>
+              <p style={{ fontWeight: 'bold', width: '23px', fontSize: '22px', backgroundColor: '#566DFF', height: '23px', border: '4px solid #003BD4', lineHeight: '23px', color: 'white', borderRadius: '7px', fontFamily: "'montserrat', sans-serif" }}>
+                {calculateLetterGrade(grades[student.uid].SquareScore)}
+              </p>
+              <p style={{ fontSize: '25px', color: 'grey', marginLeft: '20px' }}>
+                {`${Math.round(grades[student.uid].SquareScore)}%`}
               </p>
             </div>
-            <div style={{ marginLeft: '20px', width: '400px', marginTop: '-15px' }}>
-            <div 
-      style={{ 
-        display: 'flex', 
-        marginBottom: '-15px', 
-        cursor: 'pointer',
-        transition: 'color 0.3s'
-      }}
-      onClick={() => navigateToStudentGrades(student.uid)}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.color = 'blue';
-        e.currentTarget.style.textDecoration = 'underline';
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.color = 'inherit';
-        e.currentTarget.style.textDecoration = 'none';
-      }}
-    >
-      <h3 style={{ fontWeight: 'normal', color: 'inherit', fontFamily: "'montserrat', sans-serif", fontSize: '23px' }}>{student.lastName},</h3>
-      <h3 style={{ fontWeight: 'bold', color: 'inherit', fontFamily: "'montserrat', sans-serif", fontSize: '23px', marginLeft: '10px' }}>{student.firstName}</h3>
-    </div>
-              <button style={{
-                backgroundColor: 'transparent',
-                color: resetStatus[student.uid] === 'success' ? 'lightgreen' : 'red',
-                cursor: 'pointer',
-                borderColor: 'transparent',
-                fontFamily: "'montserrat', sans-serif",
-                fontWeight: 'bold',
-                fontSize: '22px',
-                marginLeft: '-10px',
-              }} onClick={() => handleReset(student.uid)}>
-                {resetStatus[student.uid] === 'success' ? 'Success' : 'Reset'}
-              </button>
+          ) : (
+            <div style={{ display: 'flex', alignItems: 'center', marginTop: '-2px',width: '130px',  }}>
+              <p style={{ fontWeight: 'bold', width: '23px', fontSize: '22px', backgroundColor: '#C0C0C0', height: '23px', border: '4px solid #A8A8A8', lineHeight: '23px', color: 'white', borderRadius: '7px', fontFamily: "'montserrat', sans-serif" }}>
+                Z
+              </p>
+              <p style={{ fontSize: '25px', color: 'lightgrey', marginLeft: '20px' }}>
+                00%
+              </p>
             </div>
-            <div style={{
-              color: 'lightgrey',
-              width: '400px',
-              display: 'flex'
-            }}>
-              <div>
-                <h1 style={{
-                  fontSize: '22px',
-                  fontFamily: "'montserrat', sans-serif",
-                  fontWeight: 'normal'
-                }}>
-                  Completed: {grades[student.uid] && grades[student.uid].submittedAt ? 
-                    new Date(grades[student.uid].submittedAt.toDate()).toLocaleString(undefined, {
-                      year: 'numeric',
-                      month: 'numeric',
-                      day: 'numeric',
-                      hour: '2-digit',
-                      minute: '2-digit',
-                      hour12: true
-                    }) : 'Not completed'}
-                </h1>
-                <h1 style={{
-                  fontSize: '22px',
-                  fontFamily: "'montserrat', sans-serif",
-                  fontWeight: 'bold',
-                  color: getStatusColor(assignmentStatuses[student.uid]),
-                  textTransform: assignmentStatuses[student.uid] === 'Completed' ? 'uppercase' : 'capitalize',
-                  cursor: assignmentStatuses[student.uid] === 'Paused' ? 'pointer' : 'default'
-                }}
-                onMouseEnter={() => assignmentStatuses[student.uid] === 'Paused' && setHoveredStatus(student.uid)}
-                onMouseLeave={() => setHoveredStatus(null)}
-                onClick={() => assignmentStatuses[student.uid] === 'Paused' && togglePauseAssignment(student.uid)}>
-                  {hoveredStatus === student.uid && assignmentStatuses[student.uid] === 'Paused' 
-                    ? 'Unpause' 
-                    : assignmentStatuses[student.uid]}
-                </h1>
-              </div>
-              <span style={{
-                position: 'absolute',
-                right: '15px',
-                top: '60px',
-                cursor: 'pointer',
-                fontWeight: 'bold',
-                width: '60px',
-                marginTop: '0px',
-                fontSize: '25px',
-                fontFamily: "'montserrat', sans-serif",
-                color: 'green'
-              }}>
-                MCQ
-              </span>
-              <span style={{
-                position: 'absolute',
-                right: '-38px',
-                top: '45px',
-                fontSize: '25px',
-                cursor: 'pointer',
-                fontWeight: 'bold',
-                width: '60px',
-                marginTop: '0px',
-                fontFamily: "'montserrat', sans-serif",
-                color: '#FCCA18'
-              }}>
-                *
-              </span> 
+          )}
+        </div>
+        <div style={{ color: 'lightgrey', width: '360px',  display: 'flex', alignItems: 'center', marginLeft: '20px', marginTop: '5px' }}>
+          <div style={{ display: 'flex', alignItems: 'center' }}>
+            <div style={{marginRight: '10px ', marginLeft: '10px'}}>  
+              {getStatusIcon(grades[student.uid] && grades[student.uid].submittedAt ? 'completed' : assignmentStatuses[student.uid])}
             </div>
-          
-            {hoveredStudent === student.uid && (
-              <div className="student-arrow" style={{
-                position: 'absolute',
-                right: '-78px',
-                top: '-4px',
-                height: '80px',
-                width: '50px',
-                padding: '10px',
-                zIndex: '1',
-                backgroundColor: '#FFEF9C',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                border: '4px solid #FCAC18',
-                borderBottomRightRadius: '10px',
-                borderTopRightRadius: '10px',
-                cursor: 'pointer',
-              }}
-              onClick={(e) => {
-                e.stopPropagation();
-                navigate(`/teacherStudentResultsAMCQ/${assignmentId}/${student.uid}/${classId}`);
-              }}>
-               <ArrowRight size={40} color="#FCAC18" strokeWidth={3} />
-              </div>
-            )}
-          </li>
-        ))}
+            <h1 style={{ 
+              fontSize: grades[student.uid] && grades[student.uid].submittedAt ? '17px' : '20px', 
+              fontFamily: "'montserrat', sans-serif", 
+              fontWeight: '600',
+              fontStyle: grades[student.uid] && grades[student.uid].submittedAt ? 'italic' : 'normal',
+              color: grades[student.uid] && grades[student.uid].submittedAt ? '#808080' : getStatusColor(assignmentStatuses[student.uid]),
+              textTransform: assignmentStatuses[student.uid] === 'completed' ? 'uppercase' : 'capitalize',
+              cursor: assignmentStatuses[student.uid] === 'Paused' ? 'pointer' : 'default',
+              marginRight: '10px',
+              marginTop: '10px'
+            }}
+            onMouseEnter={() => assignmentStatuses[student.uid] === 'Paused' && setHoveredStatus(student.uid)}
+            onMouseLeave={() => setHoveredStatus(null)}
+            onClick={() => assignmentStatuses[student.uid] === 'Paused' && togglePauseAssignment(student.uid)}
+            >
+              {grades[student.uid] && grades[student.uid].submittedAt ? 
+                ` ${new Date(grades[student.uid].submittedAt.toDate()).toLocaleString(undefined, {
+                  year: 'numeric',
+                  month: 'numeric',
+                  day: 'numeric',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                  hour12: true
+                })}` : 
+                (hoveredStatus === student.uid && assignmentStatuses[student.uid] === 'Paused' 
+                  ? 'Unpause' 
+                  : assignmentStatuses[student.uid])
+              }
+            </h1>
+          </div>
+        </div>
+        <button
+          style={{ 
+            backgroundColor: 'transparent', 
+            color: resetStatus[student.uid] === 'success' ? 'lightgreen' : 'red', 
+            marginLeft: 'auto', 
+            cursor: 'pointer', 
+            textAlign: 'left', 
+            borderColor: 'transparent', 
+            fontFamily: "'montserrat', sans-serif", 
+            fontWeight: 'bold', 
+            fontSize: '16px', 
+            marginTop: '-0px',
+            marginRight: '20px' 
+          }} 
+          onClick={() => handleReset(student.uid)}
+        >
+          {resetStatus[student.uid] === 'success' ? 'Success' : 'Reset'}
+        </button>
+      </>
+    ) : (
+      <div style={{ display: 'flex', alignItems: 'center', marginLeft: 'auto' }}>
+        <h1 style={{fontSize: '16px', color: 'lightgrey', marginRight: '200px', width: '120px' }}>Not Assigned</h1>
+        <button
+          style={{ 
+            backgroundColor: 'transparent', 
+            color: '#2BB514', 
+            cursor: 'pointer', 
+            borderColor: 'transparent', 
+            fontFamily: "'montserrat', sans-serif", 
+            fontWeight: 'bold', 
+            fontSize: '16px', 
+            marginRight: '10px' 
+          }} 
+          onClick={() => handleAssign(student.uid)}
+        >
+          Assign
+        </button>
+      </div>
+    )}
+
+    {student.isAssigned && assignmentStatuses[student.uid] === 'completed' && (
+      <div
+        style={{
+          position: 'absolute',
+          right: '-80px',
+          top: '-4px',
+          height: '38px',
+          width: '50px',
+          padding: '11px',
+          zIndex: '2',
+          backgroundColor: 'transparent',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          border: '4px solid transparent',
+          borderBottomRightRadius: '10px',
+          borderTopRightRadius: '10px',
+          cursor: 'pointer',
+        }}
+        onClick={(e) => {
+          e.stopPropagation();
+          navigate(`/teacherStudentResultsAMCQ/${assignmentId}/${student.uid}/${classId}`);
+        }}
+      >
+        <SquareArrowRight size={50} color="#09BA00" strokeWidth={2.5} />
+      </div>
+    )}
+  </li>
+))}
       </ul>
 
      

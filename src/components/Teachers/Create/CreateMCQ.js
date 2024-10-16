@@ -538,7 +538,7 @@ const [progressText, setProgressText] = useState('');
       padding: '10px',
       paddingLeft: '25px',
       outline: 'none',
-      border: '4px solid #F4F4F4',
+      border: '2px solid #eeeeee',
       borderRadius: '10px',
       fontFamily: "'montserrat', sans-serif",
       fontWeight: 'bold',
@@ -559,8 +559,8 @@ const [progressText, setProgressText] = useState('');
   </span>
 </div>
             <div style={{ width: '810px', display: 'flex' }}>
-              <div style={{ marginBottom: '0px', width: '790px', height: '200px', borderRadius: '10px', border: '4px solid #F4F4F4' }}>
-                <div style={{ width: '730px', marginLeft: '20px', height: '80px', borderBottom: '4px solid #f4f4f4', display: 'flex', position: 'relative', alignItems: 'center', borderRadius: '0px', padding: '10px' }}>
+              <div style={{ marginBottom: '0px', width: '790px', height: '200px', borderRadius: '10px',  border: '2px solid #eeeeee',}}>
+                <div style={{ width: '730px', marginLeft: '20px', height: '80px', borderBottom: '2px solid #eeeeee', display: 'flex', position: 'relative', alignItems: 'center', borderRadius: '0px', padding: '10px' }}>
                   <h1 style={{ fontSize: '30px', color: 'black', width: '300px', paddingLeft: '0px' ,
       fontFamily: "'montserrat', sans-serif",}}>Timer:</h1>
                   {timerOn ? (
@@ -670,7 +670,7 @@ const [progressText, setProgressText] = useState('');
               </div>
             )}
 
-            <div style={{ width: '770px', padding: '10px', marginTop: '20px', border: '4px solid #F4F4F4', borderRadius: '10px', marginBottom: '20px', zIndex: '-10' }}>
+            <div style={{ width: '770px', padding: '10px', marginTop: '20px', border: '2px solid #eeeeee', borderRadius: '10px', marginBottom: '20px', zIndex: '-10' }}>
               <button
                 onClick={() => setContentDropdownOpen(!contentDropdownOpen)}
                 style={{
@@ -715,7 +715,7 @@ const [progressText, setProgressText] = useState('');
         placeholder="10"
         value={questionBank}
         onChange={(e) => setQuestionBank(e.target.value)}
-        style={{ width: '50px', fontWeight:'bold',marginBottom: '0px', textAlign: 'center' ,fontFamily: "'montserrat', sans-serif", marginTop: '25px', marginLeft: 'auto', marginRight: '20px',padding: '0px', paddingLeft: '15px', height: '35px', fontSize: '30px',  border: '4px solid #f4f4f4', borderRadius: '10px' }}
+        style={{ width: '50px', fontWeight:'bold',marginBottom: '0px', textAlign: 'center' ,fontFamily: "'montserrat', sans-serif", marginTop: '25px', marginLeft: 'auto', marginRight: '20px',padding: '0px', paddingLeft: '15px', height: '35px', fontSize: '30px',  border: '2px solid #eeeeee', borderRadius: '10px' }}
       />
       </div>
       </div>
@@ -728,7 +728,7 @@ const [progressText, setProgressText] = useState('');
         placeholder="5"
         value={questionStudent}
         onChange={(e) => setQuestionStudent(e.target.value)}
-        style={{ width: '50px', fontWeight:'bold',marginBottom: '10px',fontFamily: "'montserrat', sans-serif",marginTop: '25px', textAlign: 'center' , marginLeft: 'auto', marginRight: '20px',padding: '0px', paddingLeft: '15px',fontSize: '30px', height: '35px', border: '4px solid #f4f4f4', borderRadius: '10px' }}
+        style={{ width: '50px', fontWeight:'bold',marginBottom: '10px',fontFamily: "'montserrat', sans-serif",marginTop: '25px', textAlign: 'center' , marginLeft: 'auto', marginRight: '20px',padding: '0px', paddingLeft: '15px',fontSize: '30px', height: '35px', border: '2px solid #eeeeee', borderRadius: '10px' }}
         />
         </div>
 
@@ -760,7 +760,7 @@ const [progressText, setProgressText] = useState('');
                           marginLeft: '20px',
                           marginTop: '-45px',
                           backgroundColor: selectedOptions.includes(num) ? optionStyles[num].background : 'white',
-                          border: selectedOptions.includes(num) ? `5px solid ${optionStyles[num].color}` : '4px solid #f4f4f4',
+                          border: selectedOptions.includes(num) ? `5px solid ${optionStyles[num].color}` : '2px solid #eeeeee',
                           borderRadius: '105px',
                           cursor: 'pointer',
                           transition: 'all 0.3s ease',
@@ -834,7 +834,7 @@ const [progressText, setProgressText] = useState('');
                           marginTop: '-20px',
                           fontFamily: "'montserrat', sans-serif",
                           borderRadius: '10px',
-                          border: '4px solid #F4F4F4',
+                          border: '2px solid #eeeeee',
                           outline: 'none'
                         }}
                         type='text'

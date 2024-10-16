@@ -8,7 +8,7 @@ import { useLocation } from 'react-router-dom';
 import TeacherAssignmentHome from './TeacherAssignmentHome'; // Import the TeacherAssignmentHome component
 import { v4 as uuidv4 } from 'uuid';
 import Tooltip from './AssignmentsToolTip';
-import { BookOpenText, SquareX, SquarePlus, PencilRuler, Folder, FolderPlus,  Palette, Search, Eye } from 'lucide-react';
+import { BookOpenText, SquareX, SquarePlus, PencilRuler, Folder, FolderPlus,  Palette, Search, Eye, SquareArrowLeft } from 'lucide-react';
 const pastelColors = [
   
   { bg: '#FFF2A9', text: '#FFD000' },
@@ -57,7 +57,14 @@ function Assignments() {
   const [showCreateSection, setShowCreateSection] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
 
- 
+  const formatISODate = (isoString) => {
+    const date = new Date(isoString);
+    const day = date.getDate().toString().padStart(2, '0');
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const year = date.getFullYear();
+    return `${day}/${month}/${year}`;
+  };
+  
    const handleCreateFolder = async () => {
     if (newFolderName.trim() === '') return;
   
@@ -82,6 +89,7 @@ function Assignments() {
       setShowFolderForm(false);
       setNewFolderName('');
       setNewFolderColor(pastelColors[0]);
+      await fetchFolders();
     } catch (error) {
       console.error("Error creating folder:", error);
     }
@@ -737,21 +745,22 @@ function Assignments() {
     return (
       <div style={{
         position: 'fixed',
-        width: '800px', // Increased width to accommodate 2 columns
+        width: '854px', // Increased width to accommodate 2 columns
         backdropFilter: 'blur(5px)',
-        backgroundColor: 'rgb(250,250,250,.9)',
-        borderLeft: `4px solid grey`,
+        backgroundColor: 'rgb(255,255,255,1)',
+        border: `10px solid #f4f4f4`,
+        borderTop: "none",
         padding: '20px',
+marginLeft: '-67px',
         zIndex: 102,
-        height: '700px',
+        height: '440px',
         overflowY: 'auto'
       }}>
+        <div style={{display: 'flex', marginTop: '-30px'}}>
         <button
           onClick={() => setShowAddAssignmentsModal(false)}
           style={{
-            position: 'absolute',
-            top: '10px',
-            left: '10px',
+           
             background: 'none',
             border: 'none',
             fontSize: '24px',
@@ -759,34 +768,23 @@ function Assignments() {
             opacity: 0.5,
           }}
         >
-          ×
+          <SquareArrowLeft size={40} style={{color: 'grey'}}/>
         </button>
-        <div style={{ display: 'flex', alignItems: 'center', marginTop: '100px', marginBottom: '20px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', marginTop: '15px', marginBottom: '20px' }}>
           <input
             type="text"
             placeholder="Search assignments..."
             value={searchTermAddAssignments}
             onChange={(e) => setSearchTermAddAssignments(e.target.value)}
             style={{
-              width: '300px',
+              width: '760px',
               padding: '10px',
-              border: `2px solid ${selectedFolder.color.text}`,
+              border: `2px solid #e4e4e4`,
               borderRadius: '5px',
               flexGrow: 1,
             }}
           />
-          <button
-            onClick={() => setSearchTermAddAssignments('')}
-            style={{
-              background: 'none',
-              border: 'none',
-              fontSize: '20px',
-              cursor: 'pointer',
-              marginLeft: '10px',
-            }}
-          >
-            ×
-          </button>
+        </div>
         </div>
 
 
@@ -803,14 +801,14 @@ function Assignments() {
               )
               .map(assignment => (
                 <div key={assignment.id} style={{
-                  width: '350px', 
+                  width: '390px', 
                   marginBottom: '20px',
-                  borderRadius: '15px',
+                  borderRadius: '10px',
                   padding: '10px',
                   height: '60px',
                   position: 'relative',
                   backgroundColor: 'white',
-                  border: '4px solid #f4f4f4',
+                  border: '2px solid #e4e4e4',
                 }}>
                   <div>
                     <div style={{
@@ -819,14 +817,15 @@ function Assignments() {
                       fontSize: '20px'
                     }}>
                       {assignment.name || assignment.assignmentName}
-                      {assignment.createdAt.toDate().toLocaleString()}
                     </div>
+                    <span style={{position: 'absolute', right: '50px', bottom: '10px', fontSize: '12px', fontWeight: 'bold', color: 'grey'}}>
+
+                    {assignment.createdAt.toDate().toLocaleString()}
+
+                    </span>
                     <h1 style={{
-                      fontSize: '20px',
+                      position: 'absolute', right: '180px', bottom: '68px', fontSize: '12px',
                       zIndex: '50',
-                      position: 'absolute',
-                      top: '-20px',
-                      left: '80px'
                     }}>
                       {getFormatDisplay(assignment)}
                     </h1>
@@ -982,12 +981,12 @@ function Assignments() {
                   key={assignment.id}
                   onClick={() => handleItemClick(assignment)}
                   style={{
-                    width: 'calc(30.33% - 20px)',
+                    width: 'calc(47% - 20px)',
                     padding: '10px',
                     backgroundColor: 'white',
                     borderRadius: '10px',
                     cursor: 'pointer',
-                    border: `3px solid ${selectedFolder.color.text}`,
+                    border: `2px solid #e6e6e6`,
                     position: 'relative',
                   }}
                 >
@@ -1008,7 +1007,8 @@ function Assignments() {
                     }}>
                       {assignment.name || assignment.assignmentName} 
                     </h3>
-                   <div style={{position: 'absolute',top: '0px'}}>{assignment.createdAt || assignment.createdAt}</div>
+                   <div style={{position: 'absolute',right: '-15px', fontSize: '14px', color: 'lightgrey',
+                    width: 'calc(30.33% - 20px)', fontWeight: '600'}}>   {formatISODate(assignment.createdAt)}</div>
                   </div>
                 </div>
               ))
@@ -1561,20 +1561,19 @@ function Assignments() {
               padding: '10px',
               height: '50px',
               position: 'relative',
-              borderWidth: '4px',
-              borderStyle: 'solid',
-              borderColor: folder.color.text,
-              backgroundColor: folder.color.bg,
-              color: folder.color.text,
+              border: '2px solid #e4e4e4',
+              backgroundColor: 'white',
+              color: 'black',
               borderRadius: '10px',
-              fontWeight: 'bold',
+              fontWeight: '600',
               display: 'flex',
               alignItems: 'center',
               
               fontFamily: "'montserrat', sans-serif",
-              fontSize: '30px',
+              fontSize: '25px',
             }}>
-              <Folder size={40} style={{marginLeft: '10px'}}/>
+              <Folder size={40} style={{marginLeft: '10px',
+              color: folder.color.text,}}/>
              <h1 style={{fontSize:'20px',marginLeft: '10px' }}></h1>
               {folder.name} 
             </div>

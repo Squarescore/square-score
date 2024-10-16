@@ -288,34 +288,73 @@ const Participants = () => {
   
  
 
-  <div style={{width: '750px', display: 'flex', marginLeft: 'auto', marginRight: 'auto', marginTop: '0px', height: '150px'}}>
-    <h1 style={{ fontSize: '60px', marginTop: '30px', width: '270px',  marginRight: '10px',fontFamily: "'montserrat', sans-serif", marginLeft: '-20px' }}>
-      Students</h1>
-    <div className="tooltip">
+  <div style={{width: '720px', display: 'flex', marginLeft: 'auto', marginRight: 'auto', marginTop: '60px', height: '190px', paddingTop: '10px', borderBottom: '4px solid #f4f4f4', marginBottom: '60px', }}>
+   
+   <div>
+    <h1 style={{ fontSize: '60px', marginTop: '30px', width: '270px',  marginRight: '10px',fontFamily: "'montserrat', sans-serif", marginLeft: '0px' }}>
+    {currentClass.className}</h1>
+
+     
+<div style={{display: 'flex', width: '340px', marginTop: '-45px',  marginLeft: '0px', }}> 
+
+<div
+       
+        style={{ 
+          textDecoration: 'none',
+         marginTop: '5px',
+          fontFamily: "'montserrat', sans-serif",
+          border: '0px solid blue', 
+          padding: '0px',
+          fontWeight:'600',
+          height: '50px',
+          fontSize: '25px',
+          marginLeft: '10px',
+          width: '290px',
+          textAlign: 'left',
+          lineHeight: '50px',
+          color: '#8C8C8C',
+          marginRight: '30px',
+          borderRadius: '8px',
+        }}
+      >
+             {currentClass.participants ? currentClass.participants.length : 0} Students Enrolled
+           
+     </div>
       <button 
         onClick={toggleEditMode}
         style={{ 
           fontSize: '12px',
           textDecoration: 'none',
           color: 'blue',
-         marginTop: '5px',
-          backgroundColor: 'transparent',
+          marginLeft: '-20px',
+          height: '35px',
+         marginTop: '10px',
+          backgroundColor: '#f4f4f4',
           fontFamily: "'montserrat', sans-serif",
           border: 'none', 
-          marginRight: '310px',
+          padding: '0px',
+          width: '40px',
+
+          marginRight: '10px',
+          borderRadius: '8px',
           cursor: 'pointer' 
         }}
       >
-        {isEditing ? <div style={{marginTop:'55px', marginLeft:'10px'}}><PencilOff size={30} color="lightgrey" strokeWidth={2} /></div> : <div style={{marginTop:'55px',  marginLeft:'10px'}}><Pencil size={30} color="grey" strokeWidth={2} /></div>}
+        {isEditing ? <div style={{marginTop:'5px', marginLeft:'0px'}}><PencilOff size={20} color="lightgrey" strokeWidth={2} /></div> : <div style={{marginTop:'5px',  marginLeft:'0px'}}><Pencil size={20} color="grey" strokeWidth={2} /></div>}
       </button>
 
-    </div>
-    <div style={{width: '290px', display: 'flex', borderLeft: '4px solid #FFAA00',  marginLeft: '-264px', marginTop: '45px' ,
-       background: '#FFF2AD',
-       borderRadius: '10px', padding: '10px', marginBottom: '10px', height: '30px'}}>
+</div>
+      </div>
+
+
+    <div style={{width: '200px', border: '6px solid #f4f4f4',  marginLeft: 'auto', marginTop: '35px' ,  marginRight: '0px',
+      
+       borderRadius: '15px', padding: '10px', marginBottom: '10px', height: '80px'}}>
   
-  <h1 style={{fontSize: '20px', color: '#FFAA00', marginTop: '5px',fontFamily: "'montserrat', sans-serif"}}>Class Code:</h1>  
-       <h2 style={{ marginLeft: 'auto', fontSize: '35px', marginTop: '-5px', fontWeight: '600', color: '#FFAA00',  fontFamily: "'montserrat', sans-serif",}}>
+  <h1 style={{fontSize: '20px', color: '#FFAA00', fontFamily: "'montserrat', sans-serif",  margin: '-16px', padding: '5px 0px 5px 0px', borderRadius: '15px 15px 0px 0px ',
+    
+    background: '#FFF2AD', border: '6px solid #FFAA00', textAlign: 'center' }}>Class Code</h1>  
+       <h2 style={{ width: '100%', textAlign: 'center', fontSize: '30px',fontWeight: '700', color: 'black',  marginTop: '25px', fontFamily: "'montserrat', sans-serif",}}>
       {currentClass.classCode}
     </h2>
     
@@ -323,10 +362,9 @@ const Participants = () => {
       
    
 </div>
-
 {currentClass.participants && currentClass.participants.length > 0 ? (
         currentClass.participants.map(student => (
-      <div key={student.uid} style={{ zIndex: 10, width: '650px',   marginTop: '-10px', marginLeft: '-100px',display: 'flex', flexDirection: 'row',color: 'grey', fontSize: '20px', justifyContent: 'space-between', border: '2px solid #E9E9E9',borderRadius: '10px', padding: '15px', marginBottom: '30px', alignSelf: 'center', backgroundColor: 'white', position: 'relative' }}>
+      <div key={student.uid} style={{ zIndex: 10, width: '690px',   marginTop: '-15px', marginLeft: '0px',display: 'flex', flexDirection: 'row',color: 'grey', fontSize: '20px', justifyContent: 'space-between', border: '2px solid #EEEEEE',borderRadius: '10px', padding: '15px', marginBottom: '30px', alignSelf: 'center', backgroundColor: 'white', position: 'relative' }}>
         <div style={{ width: '50%' }}>
          
           <div   onClick={() => navigateToStudentGrades(student.uid)}

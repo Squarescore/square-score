@@ -274,19 +274,19 @@ function TeacherStudentResults() {
 
 
 
-            <div style={{display: 'flex', border: '2px solid #E9E9E9', paddingRight: '0px', width: '880px ', borderRadius: '15px', marginBottom: '20px', height: '200px', marginLeft: '-10px' }}>
-        <div style={{marginLeft: '30px', marginBottom: '40px'}}>
-        <h1 style={{ fontSize: '40px', color: 'black', marginBottom: '0px',  marginLeft: '-5px',fontFamily: "'montserrat', sans-serif", textAlign: 'left',  }}>{studentName} </h1>
+            <div style={{display: 'flex', border: '0px solid #EEEEEE', paddingRight: '0px', width: '900px ', borderRadius: '15px', marginBottom: '10px', height: '200px', marginLeft: '-10px' }}>
+        <div style={{marginLeft: '20px', marginBottom: '40px'}}>
+        <h1 style={{ fontSize: '60px', color: 'black', marginBottom: '0px',  marginLeft: '-5px',fontFamily: "'montserrat', sans-serif", textAlign: 'left',  }}>{studentName} </h1>
       
-        <h1 style={{ fontSize: '30px', fontFamily: "'montserrat', sans-serif", textAlign: 'left', color: 'grey', fontWeight: '700',   }}>{assignmentName} 
+        <h1 style={{ fontSize: '30px', fontFamily: "'montserrat', sans-serif", textAlign: 'left', color: 'grey', fontWeight: '700',  marginTop: '10px'  }}>{assignmentName} 
        </h1>
-        <h1 style={{ fontSize: '20px', fontFamily: "'montserrat', sans-serif", textAlign: 'left',  color: 'grey', fontWeight: '500', marginTop: '-5px' }}> Submitted: {new Date(results.submittedAt.toDate()).toLocaleString()} </h1>
-             
+           
          
           
           
 
         </div>
+      
         <div style={{width: '100px', marginLeft: 'auto', marginRight: '80px', marginTop: '-10px'}}>
             <div style={{ width: '110px', height: '110px', border: '15px solid #627BFF', borderRadius: '30px', background: '#020CFF', marginTop: '40px',  marginLeft: '10px' }}>
                         <div style={{ width: '85px', height: '85px', backgroundColor: 'white', borderRadius: '7px', margin: 'auto', marginTop: '14px', justifyContent: 'space-around', fontSize: '40px', alignItems: 'center', position: 'relative', fontFamily: "'montserrat', sans-serif" }}>
@@ -294,10 +294,27 @@ function TeacherStudentResults() {
                         </div>
                     </div>
                     </div>
+                  
             </div>
-            <div style={{display: 'flex', width: '880px'}}>
-                <div style={{width: '450px', border: '2px solid #E9E9E9', borderRadius: '15px', height: '135px',  padding: '0px 0px', marginLeft: '-10px'}}>
-                    <h1 style={{  marginBottom: '-20px', marginTop:'15px', marginLeft: '30px', fontSize: '25px', }}> Point Distribution</h1>
+            <div style={{display: 'flex', width: '870px', border: '2px solid #EEEEEE', borderRadius: '10px', marginLeft: '-10px', padding: '5px'}}>
+               
+                 
+                    <div style={{width: '240px', height: '60px',  padding: '0px 0px', marginLeft: '0px', marginTop: '-40px' }}>
+                
+                    <div style={{display: 'flex', justifyContent: 'space-around', marginTop: '25px'}}> 
+                   <p style={{fontSize: '25px', width: '60px',color: 'grey', padding: '5px 20px', background: '#f4f4f4', borderRadius: '5px', fontWeight: 'bold',  textAlign: 'center'}}>   {results.percentageScore.toFixed(0)}%</p>
+                    <p style={{fontSize: '25px', width: '100px',color: 'grey', padding: '5px 0px', background: '#f4f4f4', borderRadius: '5px', fontWeight: 'bold',  textAlign: 'center'}}>     {`${results.rawTotalScore}/${results.questions.length * results.scaleMax}`}</p>
+
+                    </div>
+
+                    </div>
+
+
+                    <div style={{width: '4px', background: '#eeeeee', height: '50px',  marginTop: '10px',  marginLeft: '10px'}}></div>
+
+
+
+                    <div style={{width: '300px',  height: '75px',  padding: '0px 0px', marginLeft: '10px', marginTop: '-40px'}}>
                   <div style={{display: 'flex', justifyContent: 'space-around'}}> 
                     <div style={{ fontSize: '30px', fontWeight: 'bold', color: 'black', display: 'flex', alignItems: 'center',  justifyContent: 'space-around', marginLeft: '5px', width: '90px', marginTop: '50px' , }}>
                     
@@ -329,14 +346,11 @@ function TeacherStudentResults() {
                     </div>
 
 
-                    <div style={{width: '430px', border: '2px solid #E9E9E9', borderRadius: '15px', height: '135px',  padding: '0px 0px', marginLeft: '20px' }}>
-                    <h1 style={{  marginBottom: '-20px', marginTop:'15px', marginLeft: '30px', fontSize: '25px', }}>Grade</h1>
-                    <div style={{display: 'flex', justifyContent: 'space-around', marginTop: '25px'}}> 
-                    <p style={{fontSize: '25px', width: '20px',color: 'grey', padding: '5px 30px', background: '#f4f4f4', borderRadius: '5px', fontWeight: 'bold',  textAlign: 'center'}}>{letterGrade}</p>
-                    <p style={{fontSize: '25px', width: '40px',color: 'grey', padding: '5px 25px', background: '#f4f4f4', borderRadius: '5px', fontWeight: 'bold',  textAlign: 'center'}}>   {results.percentageScore.toFixed(0)}%</p>
-                    <p style={{fontSize: '25px', width: '90px',color: 'grey', padding: '5px 0px', background: '#f4f4f4', borderRadius: '5px', fontWeight: 'bold',  textAlign: 'center'}}>     {`${results.rawTotalScore}/${results.questions.length * results.scaleMax}`}</p>
+                    <div style={{width: '4px', background: '#eeeeee', height: '50px',  marginTop: '10px', }}></div>
+                    
+                    <h1 style={{ fontSize: '20px', fontFamily: "'montserrat', sans-serif", textAlign: 'left',  color: 'grey', fontWeight: '500', marginTop: '0px', marginLeft: '20px', height: '30px', paddingTop: '5px' }}> <span style={{fontSize: '16px', fontWeight: 'bold'}}>Submitted:</span><br></br> {new Date(results.submittedAt.toDate()).toLocaleString()} </h1>
+        
 
-                    </div>
                </div>
                
                 </div>
@@ -344,7 +358,7 @@ function TeacherStudentResults() {
 
           <div style={{position: 'fixed', bottom: '50px', height: '60px' , left: '-5px', width: '90px',  fontWeight: '600', paddingLeft: '10px', color: 'grey' , paddingTop: '10px', fontSize: '13px',}}>
         
-          </div>
+
         
 
                   
@@ -422,7 +436,7 @@ function TeacherStudentResults() {
                         return (
                             <li key={index} 
                                 ref={el => questionRefs.current[index] = el} 
-                                style={{ position: 'relative', fontFamily: "'montserrat', sans-serif", marginBottom: '20px', width: '840px', padding: '20px' , border: '2px solid #E9E9E9', marginLeft: 'auto', marginRight: 'auto', borderRadius: '15px' }}>
+                                style={{ position: 'relative', fontFamily: "'montserrat', sans-serif", marginBottom: '20px', width: '840px', padding: '20px' , border: '2px solid #EEEEEE', marginLeft: 'auto', marginRight: 'auto', borderRadius: '15px' }}>
                              <div style={{ display: 'flex', fontFamily: "'montserrat', sans-serif", alignItems: 'center' }}>
                                 <div style={{position: 'relative', width: '40px', marginTop: '0px'}}>
                                     {question.score === 2 ? (

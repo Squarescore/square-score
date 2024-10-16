@@ -6,7 +6,7 @@ const SelectStudentsDW = ({ classId, selectedStudents, setSelectedStudents }) =>
   const [studentsDropdownOpen, setStudentsDropdownOpen] = useState(false);
 
   return (
-    <div style={{ width: '770px', padding: '10px', marginTop: '20px', border: '4px solid #F4F4F4', borderRadius: '10px', marginBottom: '20px' }}>
+    <div style={{ width: '770px', padding: '10px', marginTop: '20px', border: '2px solid #eeeeee', borderRadius: '10px', marginBottom: '20px' }}>
       <button
         onClick={() => setStudentsDropdownOpen(!studentsDropdownOpen)}
         style={{

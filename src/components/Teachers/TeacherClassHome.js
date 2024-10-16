@@ -303,7 +303,7 @@ fontWeight: 'bold',
     textDecoration: 'none', 
 backgroundColor: 'rgb(50,50,50)',
     color: 'white',
-    borderRadius: '20px',
+    borderRadius: '15px',
     transition: '.3s', 
     cursor: 'pointer',
     transform: 'scale(1)',
@@ -404,7 +404,7 @@ backgroundColor: 'rgb(50,50,50)',
      <div  style={{ flexGrow: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', marginTop: '70px', width: '1000px'}}>
 
 
-      <div style={{width: '100%', display: 'flex', justifyContent: 'space-between'}}>
+      <div style={{width: '100%', display: 'flex', justifyContent: 'space-between', marginTop: '-100px', marginBottom: '190px'}}>
      
 
 
@@ -416,35 +416,35 @@ backgroundColor: 'rgb(50,50,50)',
   height: '30px',
  marginLeft: '120px',
   fontFamily: "'montserrat', sans-serif",
- 
+ width: '100%',
   zIndex: '20',
-  marginTop: '40px',
-  marginBottom: '-30px',
+  marginTop: '180px',
+  paddingBottom: '20px',
+  borderBottom: '2px solid #f4f4f4',
   backgroundColor: 'transparent',
   alignItems: 'center',
  
-  display: 'flex',
   justifyContent: 'center'
 }}>
-  <h1 style={{ textAlign: 'center', textShadow: 'none', marginTop: '50px', marginRight: '40px',
+  
+  <h1 style={{ textAlign: 'left', textShadow: 'none', marginTop: '-100px', marginRight: '40px',
      fontSize: '60px', fontWeight: 'bold', color: 'black',fontFamily: "'montserrat', sans-serif", }}>
       {classChoice}</h1>
 <h1 style={{
- paddingLeft: '20px',
- paddingRight: '80px ',
- borderRadius: '10px',
- borderLeft: '6px solid ',
- marginTop: '30px',
-  borderColor:  classChoiceStyle.color || 'grey',
+marginLeft: '4px',
+ marginTop: '-30px',
+ fontWeight: '600',
  height: '40px',
  lineHeight: '40px',
-  backgroundColor: classChoiceStyle.background || 'white', 
-  color: classChoiceStyle.color || 'grey',
-  fontSize: '20px', 
+ color:'grey',
+  fontSize: '30px', 
 
 }}>
   {className}
-</h1></div>
+</h1>
+
+
+</div>
      
  
     
@@ -464,14 +464,14 @@ backgroundColor: 'rgb(50,50,50)',
         }}>
 
   
-<div style={{display: 'flex',  marginTop: '80px',width: '900px'}}>
+<div style={{display: 'flex',  marginTop: '-120px',width: '900px'}}>
 <Link 
   to={`./Assignments`} 
   style={{ 
     ...linkStyle,
     backgroundColor: 'white',
     marginTop: '20px',
-    border: '10px solid #f4f4f4',
+    border: '4px solid #eeeeee',
     textDecoration: 'none',
   }}
   onMouseEnter={(e) => {
@@ -482,7 +482,7 @@ backgroundColor: 'rgb(50,50,50)',
     }
   }}
   onMouseLeave={(e) => {
-    e.currentTarget.style.borderColor = '#f4f4f4';
+    e.currentTarget.style.borderColor = '#eeeeee';
     const subdiv = e.currentTarget.querySelector('.subdiv');
     if (subdiv) {
       subdiv.style.borderColor = '#020CFF';
@@ -490,7 +490,7 @@ backgroundColor: 'rgb(50,50,50)',
   }}
 >
   <div style={{marginTop: '30px'}} >
-    <BookOpenText size={150} color="grey" strokeWidth={2} />
+    <BookOpenText size={150} color="grey" strokeWidth={1.8} />
   </div>  
 
   <div
@@ -501,10 +501,10 @@ backgroundColor: 'rgb(50,50,50)',
       color: '#020CFF',
       border: '10px solid #0009D9',
       height: '60px',
-      width: '350px',
-      marginLeft: '-10px',
-      borderBottomLeftRadius: '20px',
-      borderBottomRightRadius: '20px',
+      width: '338px',
+      marginLeft: '-4px',
+      borderBottomLeftRadius: '15px',
+      borderBottomRightRadius: '15px',
     }}
   >
     <h1 style={{fontSize: '30px', marginTop: '12px'}}>Assignments</h1>
@@ -517,7 +517,7 @@ backgroundColor: 'rgb(50,50,50)',
     ...linkStyle,
     backgroundColor: 'white',
     marginTop: '20px',
-    border: '10px solid #f4f4f4',
+    border: '4px solid #eeeeee',
     textDecoration: 'none',
   }}
   onMouseEnter={(e) => {
@@ -528,7 +528,7 @@ backgroundColor: 'rgb(50,50,50)',
     }
   }}
   onMouseLeave={(e) => {
-    e.currentTarget.style.borderColor = '#f4f4f4';
+    e.currentTarget.style.borderColor = '#eeeeee';
     const subdiv = e.currentTarget.querySelector('.subdiv');
     if (subdiv) {
       subdiv.style.borderColor = '#FCBB18';
@@ -536,7 +536,7 @@ backgroundColor: 'rgb(50,50,50)',
   }}
 >
   <div style={{marginTop: '30px'}}>
-    <User size={150} color="grey" strokeWidth={2} />
+    <User size={150} color="grey" strokeWidth={1.8} />
   </div>  
 
   <div
@@ -547,10 +547,10 @@ backgroundColor: 'rgb(50,50,50)',
       color: '#FCBB18',
       border: '10px solid #FCBB18',
       height: '60px',
-      width: '350px',
-      marginLeft: '-10px',
-      borderBottomLeftRadius: '20px',
-      borderBottomRightRadius: '20px',
+      width: '338px',
+      marginLeft: '-4px',
+      borderBottomLeftRadius: '15px',
+      borderBottomRightRadius: '15px',
     }}
   >
     <h1 style={{fontSize: '30px', marginTop: '12px'}}>Students</h1>

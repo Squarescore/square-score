@@ -30,7 +30,10 @@ const TeacherResults = () => {
   const { classId, assignmentId } = useParams();
   const [isHovered, setIsHovered] = useState(false);
   const [assignmentData, setAssignmentData] = useState(null);
- 
+  const [submissionCount, setSubmissionCount] = useState(0);
+  const [assignedCount, setAssignedCount] = useState(0);
+  const [averageGrade, setAverageGrade] = useState(null);
+
   const navigate = useNavigate();
   const [reviewCount, setReviewCount] = useState(0);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -45,6 +48,8 @@ const TeacherResults = () => {
   const [showOverlay, setShowOverlay] = useState(false);
   const [generatedQuestions, setGeneratedQuestions] = useState([]);
   const [sourceText, setSourceText] = useState('');
+  const [timerOn, setTimerOn] = useState(false);
+  const [timer, setTimer] = useState('0');
   const [questionBank, setQuestionBank] = useState('10');
   const [questionStudent, setQuestionStudent] = useState('5');
   const [additionalInstructions, setAdditionalInstructions] = useState('');
@@ -215,6 +220,8 @@ const TeacherResults = () => {
         timer: data.timer || '0',
         timerOn: data.timer > 0,
       });
+      setTimer(data.timer ? data.timer.toString() : '0');
+      setTimerOn(data.timer > 0);
     }
   }, [assignmentId]);
 
@@ -225,8 +232,10 @@ const TeacherResults = () => {
   const updateAssignmentSetting = async (setting, value) => {
     const assignmentRef = doc(db, 'assignments(saq)', assignmentId);
     const updateData = { [setting]: value };
-      if (setting === 'timer') {
+        
+    if (setting === 'timer') {
       updateData.timerOn = value !== '0';
+      setTimerOn(value !== '0');
     }
     if (setting === 'scaleMin' || setting === 'scaleMax') {
       updateData.scale = {
@@ -322,25 +331,19 @@ const TeacherResults = () => {
           <div style={{display: 'flex', alignItems: 'center', border: '4px solid #f4f4f4', borderRadius: '10px', width: '400px', height: '70px'}}>
             <h3 style={{lineHeight: '30px', marginLeft: '20px', marginRight: '20px',     fontFamily: "'montserrat', sans-serif",}}>Timer</h3>
             <div style={{ display: 'flex', alignItems: 'center' }}>
-              <input
-                type="checkbox"
-                className="greenSwitch"
-                checked={assignmentSettings.timerOn}
-                onChange={(e) => {
-                  updateAssignmentSetting('timerOn', e.target.checked);
-                  if (!e.target.checked) {
-                    updateAssignmentSetting('timer', '0');
-                  }
-                }}
-              />
-              {assignmentSettings.timerOn ? (
-                <>
+            <input
+      type="checkbox"
+      className="greenSwitch"
+      checked={assignmentSettings.timerOn}
+      onChange={handleTimerToggle}
+    />
+    {assignmentSettings.timerOn ? (
+      <>
                   <input
-                    type="number"
-                    value={assignmentSettings.timer}
-                    onChange={(e) => updateAssignmentSetting('timer', e.target.value)}
-                    style={{ width: '50px', marginLeft: '10px', padding: '5px', outline: 'none', border: 'none', background: '#f4f4f4', fontSize: '20px',  borderRadius: '5px'}}
-                  />
+          type="number"  value={timer}
+          onChange={handleTimerChange}
+          style={{ width: '50px', marginLeft: '10px', padding: '5px' }}
+        />
                   <span style={{ marginLeft: '5px' ,    fontFamily: "'montserrat', sans-serif",}}>minutes</span>
                 </>
               ) : (
@@ -517,6 +520,7 @@ const TeacherResults = () => {
     fetchAssignmentName();
   }, [assignmentId]);
 
+ 
   useEffect(() => {
     const fetchClassAndGrades = async () => {
       setLoading(true);
@@ -538,7 +542,10 @@ const TeacherResults = () => {
                 ...participant,
                 firstName,
                 lastName,
-                name: `${firstName} ${lastName}`
+                name: `${firstName} ${lastName}`,
+                isAssigned: studentData.assignmentsToTake?.includes(assignmentId) ||
+                            studentData.assignmentsInProgress?.includes(assignmentId) ||
+                            studentData.assignmentsTaken?.includes(assignmentId)
               };
             }
             return participant;
@@ -550,14 +557,18 @@ const TeacherResults = () => {
           );
           
           setStudents(sortedStudents);
-      
+          
+          const assignedStudents = sortedStudents.filter(student => student.isAssigned);
+          setAssignedCount(assignedStudents.length);
+
           const gradesCollection = collection(db, 'grades(saq)');
           const gradesQuery = query(gradesCollection, where('assignmentId', '==', assignmentId));
           const gradesSnapshot = await getDocs(gradesQuery);
           const fetchedGrades = {};
           let totalScore = 0;
-          let totalGradesCount = 0;
-      
+          let validGradesCount = 0;
+          let submissionsCount = 0;
+
           gradesSnapshot.forEach((doc) => {
             const gradeData = doc.data();
             fetchedGrades[gradeData.studentUid] = {
@@ -571,18 +582,28 @@ const TeacherResults = () => {
                 flagged: q.flagged || false,
               })) : [],
             };
-      
-            if (gradeData.percentageScore !== undefined) {
+
+            if (gradeData.submittedAt) {
+              submissionsCount++;
+            }
+
+            if (typeof gradeData.percentageScore === 'number' && !isNaN(gradeData.percentageScore)) {
               totalScore += gradeData.percentageScore;
-              totalGradesCount++;
+              validGradesCount++;
             }
           });
-      
+
           setGrades(fetchedGrades);
-      
-          const classAverage = totalGradesCount > 0 ? (totalScore / totalGradesCount).toFixed(2) : 'N/A';
-          const assignmentRef = doc(db, 'assignments(saq)', assignmentId);
-          await updateDoc(assignmentRef, { classAverage: parseFloat(classAverage) });
+          setSubmissionCount(submissionsCount);
+
+          const calculatedAverage = validGradesCount > 0 ? (totalScore / validGradesCount).toFixed(0) : null;
+          setAverageGrade(calculatedAverage);
+
+          // Update assignment document with new class average
+          if (calculatedAverage !== null) {
+            const assignmentRef = doc(db, 'assignments(saq)', assignmentId);
+            await updateDoc(assignmentRef, { classAverage: parseFloat(calculatedAverage) });
+          }
         }
       } catch (error) {
         console.error("Error fetching class and grades:", error);
@@ -703,6 +724,24 @@ const TeacherResults = () => {
 
     fetchAssignmentData();
   }, [assignmentId]);
+
+  const handleTimerToggle = async () => {
+    const newTimerOn = !timerOn;
+    setTimerOn(newTimerOn);
+    if (newTimerOn) {
+      await updateAssignmentSetting('timer', timer);
+    } else {
+      await updateAssignmentSetting('timer', '0');
+    }
+  };
+  
+  const handleTimerChange = (e) => {
+    const newValue = e.target.value;
+    setTimer(newValue);
+    if (timerOn) {
+      updateAssignmentSetting('timer', newValue);
+    }
+  };
 <style>
   {`
     .student-item {
@@ -955,8 +994,8 @@ const TeacherResults = () => {
 
 
       <div style={{ width: '1000px', display: 'flex', justifyContent: 'align', marginTop: '150px', marginLeft: 'auto', marginRight: 'auto' }}>
-        <div style={{ display: 'flex', width: '780px' , marginRight: 'auto', marginLeft: '120px', height: ' auto', lineHeight:'0px'}}>
-         <div style={{position: 'relative'}}>
+        <div style={{ display: 'flex', width: '800px' , marginRight: 'auto', marginLeft: '120px', height: ' auto', lineHeight:'0px', borderBottom: '2px solid #e4e4e4', paddingBottom: '15px', marginBottom:'30px' }}>
+         <div style={{position: 'relative', width: '650px', }}>
           <h1 style={{  fontSize: '60px', 
       color: 'black', 
       width: '100%', // Use full width of parent
@@ -966,12 +1005,30 @@ const TeacherResults = () => {
       hyphens: 'auto', // Enable automatic hyphenation
       lineHeight: '1.2', // Adjust line height for better readability
       margin: 0,
-      marginBottom: '10px', // Remove default margins
+      marginBottom: '0px', // Remove default margins
       padding: '10px 0' }}>{assignmentName} </h1>
-    
+    <h1 style={{  fontSize: '25px', 
+      color: 'grey', 
+      width: '260px', // Use full width of parent
+      fontFamily: "'montserrat', sans-serif",
+      wordWrap: 'break-word', // Allow long words to break and wrap
+      overflowWrap: 'break-word', // Ensure long words don't overflow
+      hyphens: 'auto', // Enable automatic hyphenation
+      lineHeight: '1.2', // Adjust line height for better readability
+      margin: 0,
+      marginBottom: '10px', // Remove default margins
+      padding: '10px 0' }}>{submissionCount}/{assignedCount} Submissions</h1>
 
       </div>
-        
+      <Tooltip text="Class Average">
+  
+        <div style={{background: 'blue', border: '10px solid #627BFF', width:' 110px', height: '110px', borderRadius: '30px '}}>
+      <div style={{fontSize: '45px', fontWeight: 'bold', width: '88px', background: 'white', height: '88px', marginTop: '12px', borderRadius:  '10px', marginLeft: 'auto', marginRight: 'auto', textAlign: 'center', lineHeight: '90px'}}> 
+      {averageGrade !== null ? averageGrade : '-'}
+      </div>
+        </div>
+</Tooltip>
+
         </div>
         
       </div>
@@ -1313,7 +1370,7 @@ const TeacherResults = () => {
               <h1 style={{ 
                 fontSize: grades[student.uid] && grades[student.uid].submittedAt ? '17px' : '20px', 
                 fontFamily: "'montserrat', sans-serif", 
-                fontWeight: 'bold',
+                fontWeight: '600',
                 fontStyle: grades[student.uid] && grades[student.uid].submittedAt ? 'italic' : 'normal',
                 color: grades[student.uid] && grades[student.uid].submittedAt ? '#808080' : getStatusColor(assignmentStatuses[student.uid]),
                 textTransform: assignmentStatuses[student.uid] === 'completed' ? 'uppercase' : 'capitalize',

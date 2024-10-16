@@ -35,15 +35,12 @@ const PreviewAMCQ = ({ questions, onBack, onNext }) => {
   
   return (
     <div style={{ marginTop: '100px', width: '1000px', marginLeft: 'auto', marginRight: 'auto', fontFamily: "'montserrat', sans-serif", zIndex: 100 }}>
-      <h1 style={{ marginLeft: '40px', fontFamily: "'montserrat', sans-serif", color: 'black', fontSize: '60px', display: 'flex' }}>
-        Preview  <h1 style={{ fontSize: '50px', marginTop: '10px', marginLeft: '30px', color: '#2BB514', display: 'flex' }}> MCQ<h1 style={{ fontSize: '50px', marginTop: '-10px', marginLeft: '0px', color: '#FCCA18', display: 'flex' }}>*</h1> </h1>
-      </h1>
-      <button
+      <div style={{display: 'flex', marginTop: '-60px'}}>
+      
+       <button
             onClick={onBack}
             style={{
-              position: 'fixed',
-              width: '75px',
-              height: '75px',
+             
               padding: '10px 20px',
               left: '5%',
               top: '460px',
@@ -62,8 +59,12 @@ const PreviewAMCQ = ({ questions, onBack, onNext }) => {
             }}
          
           >
-         <SquareArrowLeft size={100} color="#2BB514" />
+         <SquareArrowLeft  style={{marginTop: '-70px'}}size={60} color="grey" />
           </button>
+      <h1 style={{ marginLeft: '40px', fontFamily: "'montserrat', sans-serif", color: 'black', fontSize: '60px', display: 'flex', marginTop: '50px' }}>
+        Preview  <h1 style={{ fontSize: '50px', marginTop: '10px', marginLeft: '30px', color: '#2BB514', display: 'flex' }}> MCQ<h1 style={{ fontSize: '50px', marginTop: '-10px', marginLeft: '0px', color: '#FCCA18', display: 'flex' }}>*</h1> </h1>
+      </h1>
+      </div>
       {questions.map((question, questionIndex) => (
         <div key={questionIndex} style={{ borderBottom: '4px solid #f4f4f4', padding: '20px', marginBottom: '30px' }}>
           <div style={{ width: '100%', display: 'flex', marginBottom: '30px' }}>

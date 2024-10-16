@@ -631,7 +631,7 @@ const generateQuestions = async () => {
       padding: '10px',
       paddingLeft: '25px',
       outline: 'none',
-      border: '4px solid #F4F4F4',
+      border: '2px solid #eeeeee',
       borderRadius: '10px',
       fontFamily: "'montserrat', sans-serif",
       fontWeight: 'bold',
@@ -788,7 +788,7 @@ const generateQuestions = async () => {
               </div>
             )}
 
-            <div style={{ width: '770px', padding: '10px', marginTop: '20px', border: '4px solid #F4F4F4', borderRadius: '10px', marginBottom: '20px', zIndex: '-10' }}>
+            <div style={{ width: '770px', padding: '10px', marginTop: '20px', border: '2px solid #eeeeee', borderRadius: '10px', marginBottom: '20px', zIndex: '-10' }}>
               <button
                 onClick={() => setContentDropdownOpen(!contentDropdownOpen)}
                 style={{
@@ -912,7 +912,7 @@ const generateQuestions = async () => {
                           marginTop: '-20px',
                           fontFamily: "'montserrat', sans-serif",
                           borderRadius: '10px',
-                          border: '4px solid #F4F4F4',
+                          border: '2px solid #eeeeee',
                           outline: 'none'
                         }}
                         type='text'

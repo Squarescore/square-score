@@ -508,7 +508,7 @@ const [scaleMax, setScaleMax] = useState(2);
           backgroundColor: '#A6B4FF',
           padding: '5px',
           width: '140px',
-          fontSize: '25px',
+          fontSize: '20px',
           position: 'fixed',
           right: '60px',
           top: '20px',
@@ -532,10 +532,10 @@ const [scaleMax, setScaleMax] = useState(2);
           style={{
             color: showTimer ? 'grey' : 'transparent',
             left: '100px',
-            top: '10px',
-            fontSize: '44px',
-            fontWeight: 'bold',
-            width: '120px',
+            top: '20px',
+            fontSize: '30px',
+            fontWeight: '600',
+            width: '100px',
             zIndex: '100',
             fontFamily: "'montserrat', sans-serif",
             position: 'fixed',
@@ -549,7 +549,7 @@ const [scaleMax, setScaleMax] = useState(2);
             onClick={toggleTimer}
             style={{
               position: 'absolute',
-              top: '10px',
+              top: '0px',
               left: '-70px',
               backgroundColor: 'transparent',
               border: 'none',
@@ -577,10 +577,10 @@ const [scaleMax, setScaleMax] = useState(2);
         style={{
           backgroundColor: 'white', position: 'fixed',
           borderRadius: '10px',
-          color: 'white',
+          color: 'black',
           height: '90px',
           display: 'flex',
-          borderBottom: '5px solid lightgrey',
+          borderBottom: '2px solid #e4e4e4',
           marginTop: '0px',
           marginBottom: '40px',
           alignItems: 'center',
@@ -588,7 +588,7 @@ const [scaleMax, setScaleMax] = useState(2);
           width: '100%',
         }}
       >
-        <img style={{ width: '390px', marginLeft: '-20px', marginTop: '-0px' }} src="/SquareScore.svg" alt="logo" />
+       <img style={{ width: '50px', marginLeft: '-20px', marginTop: '-0px' }} src="/SquareScore.svg" alt="logo" /> <span style={{fontSize: '30px', fontWeight: '600', paddingLeft: '20px', borderLeft: '4px solid #f4f4f4', marginLeft: '15px'}}>SquareScore</span>
       </header>
       {loading || isSubmitting ? (
   <div style={loadingModalStyle}>

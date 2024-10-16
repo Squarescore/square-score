@@ -187,7 +187,7 @@ const periodStyle = periodStyles[periodNumber] || { background: '#F4F4F4', color
   
     if (now < assignDateTime) return '#FFE3A6';
     if (now > dueDateTime) return '#FFD4D4';
-    return '#E9E9E9'; // Light green for active assignments
+    return '#EEEEEE'; // Light green for active assignments
   }; useEffect(() => {
     const fetchCompletedAssignments = async () => {
       const saqGradesQuery = query(
@@ -261,7 +261,7 @@ const getAssignmentStyle = (assignment) => {
   const borderColor = getBorderColor(assignment);
   return {
     border: `2px solid ${borderColor}`,
-    cursor: borderColor === '#E9E9E9' ? 'default' : 'not-allowed',
+    cursor: borderColor === '#EEEEEE' ? 'default' : 'not-allowed',
   };
 };
 
@@ -425,17 +425,15 @@ const getAssignmentStyle = (assignment) => {
               return (
                 <div key={grade.id} style={{
                   backgroundColor: 'white',
-                  border: grade.viewable ? '2px solid #E9E9E9' : '2px solid #E9E9E9',
+                  border: grade.viewable ? '2px solid #EEEEEE' : '2px solid #EEEEEE',
                   marginTop: '20px',
                   borderRadius: '10px',
                   padding: '10px',
-                  width: '800px',
+                  
                   fontFamily: "'montserrat', sans-serif",
                   position: 'relative',
                   height: '30px',
                   display: 'flex',
-                  flexDirection: 'column',
-                  justifyContent: 'space-between',
                   cursor: grade.viewable ? 'pointer' : 'not-allowed',
                 }}
                 onClick={() => {
@@ -447,18 +445,26 @@ const getAssignmentStyle = (assignment) => {
                     
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '-5px' }}>
                     
-                  <h2 style={{ fontSize: '20px', margin: '7px 20px 10px  10px', width: '280px' }}>{grade.assignmentName}</h2>
-                  <div style={{width: '24px', height: '24px', background: '#627BFF', border: '6px solid blue', borderRadius: '5px', marginTop: '-4x', textAlign: 'center'}}>
-                    <span style={{ fontSize: '24px', fontWeight: 'bold' , color: 'white',lineHeight: '26px', 
+                  <h2 style={{ fontSize: '20px', margin: '7px 20px 10px  10px', width: '330px' ,}}>{grade.assignmentName}</h2>
+
+
+                  <div style={{width: '24px', height: '24px',  borderRadius: '5px', marginTop: '0x', textAlign: 'center'}}>
+                    <span style={{ fontSize: '24px', fontWeight: 'bold' , color: 'black',lineHeight: '20px', 
                   fontFamily: "'montserrat', sans-serif", textAlign: 'center'}}>
                         {isAMCQ || isMCQ ? `${letterGrade}` : `${letterGrade}`}
                       </span>
                       </div>
-                      <span style={{ fontSize: '24px', fontWeight: 'bold' }}>
+                      <span style={{ fontSize: '20px', fontWeight: 'bold', width: '70px', marginLeft: '20px',color: 'grey', }}>
                         {isAMCQ || isMCQ ? `${percentage}%` : `${percentage}%`}
                       </span>
-                      <div style={{ fontSize: '14px', color: 'lightgrey' , fontStyle: 'italic', fontWeight: 'bold'}}>
-                  {grade.submittedAt ? new Date(grade.submittedAt.toDate()).toLocaleString(undefined, {
+
+                      <SquareCheck size={25} style={{width: '40px', marginTop: '0px', color: '#00DE09'}}/>
+                      <div style={{ fontSize: '14px', color: 'grey' , fontStyle: 'italic', fontWeight: 'bold',   marginLeft: '0px', height: '20px', marginTop: '0px', width: '170px'}}>
+                       
+
+                        <span style={{fontWeight: '600',}}>
+
+                        {grade.submittedAt ? new Date(grade.submittedAt.toDate()).toLocaleString(undefined, {
                       year: 'numeric',
                       month: 'numeric',
                       day: 'numeric',
@@ -466,11 +472,14 @@ const getAssignmentStyle = (assignment) => {
                       minute: '2-digit',
                       hour12: true
                     }) : 'N/A'}
+                        </span>
+                        
+                 
                   </div>
                  
-                      <span style={{ fontSize: '16px', fontWeight: 'bold', width: '50px', color: isAMCQ ? '#2BB514' : (isSAQ ? '#020CFF' : '#2BB514') }}>
+                      <div style={{ fontSize: '16px', fontWeight: 'bold', width: '50px',   textAlign:'left',marginLeft: '60px', color: isAMCQ ? '#2BB514' : (isSAQ ? '#020CFF' : '#2BB514') }}>
                         {isAMCQ ? 'MCQ*' : (isSAQ ? 'SAQ' : 'MCQ')}
-                      </span>
+                      </div>
                      
                     </div>
                   </div>

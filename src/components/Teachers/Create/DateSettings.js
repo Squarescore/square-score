@@ -29,7 +29,7 @@ const DateSettings = ({ assignDate, setAssignDate, dueDate, setDueDate }) => {
   const [timeDropdownOpen, setTimeDropdownOpen] = useState(false);
 
   return (
-    <div style={{ width: '770px', padding: '10px', border: '4px solid #F4F4F4', borderRadius: '10px' }}>
+    <div style={{ width: '770px', padding: '10px', border: '2px solid #eeeeee', borderRadius: '10px' }}>
       <button
         onClick={() => setTimeDropdownOpen(!timeDropdownOpen)}
         style={{

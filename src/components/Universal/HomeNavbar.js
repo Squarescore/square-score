@@ -83,20 +83,18 @@ const HomeNavbar = ({ userType, currentPage, firstName, lastName }) => {
             backdropFilter: 'blur(5px)', 
            }}>
 
-<div style={{width: '320px',  marginLeft: '30px', marginRight: 'auto', display: 'flex'}}>
-            <img style={{  marginLeft: '0px', width: '50px'}} src="/SquareScore.svg" alt="logo" />
-            </div>
+
             <div style={{width: '1280px', display: 'flex', backgroundColor: 'transparent',
             padding: '0px 0',alignItems: 'center', height: '70px',color: 'grey', marginRight: 'auto', marginLeft: 'auto'}}>
             
-            
-
-            <h1 style={{fontWeight: '600', color: 'black', fontSize: '25px', marginLeft: 'auto', marginRight: 'auto', width: '450px', border: '0px solid blue'}}>
-                SquareScore
-            </h1>
+         
 
                 
-           
+            <div style={{width: '320px',   display: 'flex', marginLeft: 'auto', marginRight: 'auto',}}>
+<img style={{ width: '50px', marginLeft: '20px', marginTop: '-0px' }} src="/SquareScore.svg" alt="logo" /> <span style={{fontSize: '30px', fontWeight: '600', paddingLeft: '20px', 
+    color:'black', borderLeft: '4px solid #f4f4f4', marginLeft: '15px'}}>SquareScore</span>
+    
+            </div>
 
 
       

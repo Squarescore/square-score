@@ -77,14 +77,14 @@ function CreateAssignment() {
   const [assignmentData, setAssignmentData] = useState(null);
 
   const [dueDate, setDueDate] = useState(new Date(new Date().getTime() + 48 * 60 * 60 * 1000)); // 48 hours from now
-
+  const [timerOn, setTimerOn] = useState(false);
+  
   const [assignmentType, setAssignmentType] = useState('');
   const [isAdaptive, setIsAdaptive] = useState(false);
   const [sourceOption, setSourceOption] = useState(null);
   const [sourceText, setSourceText] = useState('');
   const [questionBank, setQuestionBank] = useState('10');
   const [questionStudent, setQuestionStudent] = useState('5');
-  const [timerOn, setTimerOn] = useState(false);
   const [additionalInstructions, setAdditionalInstructions] = useState(['']);
   const [selectedStudents, setSelectedStudents] = useState(new Set());
   const [showAdditionalInstructions, setShowAdditionalInstructions] = useState(false);
@@ -505,7 +505,7 @@ const GenerateSAQ = async (sourceText, questionCount, additionalInstructions, cl
       padding: '10px',
       paddingLeft: '25px',
       outline: 'none',
-      border: '4px solid #F4F4F4',
+      border: '2px solid #eeeeee',
       borderRadius: '10px',
       fontFamily: "'montserrat', sans-serif",
       fontWeight: 'bold',
@@ -526,10 +526,10 @@ const GenerateSAQ = async (sourceText, questionCount, additionalInstructions, cl
   </span>
 </div>
 
-          <div style={{ marginBottom: '20px', width: '790px', height: '190px', borderRadius: '10px',  border: '4px solid #F4F4F4' }}>
+          <div style={{ marginBottom: '20px', width: '790px', height: '190px', borderRadius: '10px',  border: '2px solid #eeeeee' }}>
          
          
-         <div style={{display: 'flex', borderBottom: '4px solid #f4f4f4', width: '750px', marginLeft: '20px'}}>
+         <div style={{display: 'flex', borderBottom: '2px solid #eeeeee', width: '750px', marginLeft: '20px'}}>
             <div style={{ width: '390px',   marginLeft: '0px', height: '80px', display: 'flex', position: 'relative', alignItems: 'center', borderRadius: '0px', padding: '10px' }}>
               <h1 style={{ fontSize: '30px', color: 'black', width: '300px', paddingLeft: '0px' }}>Timer:</h1>
              
@@ -672,7 +672,7 @@ const GenerateSAQ = async (sourceText, questionCount, additionalInstructions, cl
         />
 
 {/* Content Dropdown */}
-<div style={{ width: '770px', padding: '10px', marginTop: '20px',  border: '4px solid #F4F4F4', borderRadius: '10px', marginBottom: '20px', zIndex: '-1' }}>
+<div style={{ width: '770px', padding: '10px', marginTop: '20px',  border: '2px solid #eeeeee', borderRadius: '10px', marginBottom: '20px', zIndex: '-1' }}>
   <button
     onClick={() => setContentDropdownOpen(!contentDropdownOpen)}
     style={{
@@ -714,7 +714,7 @@ const GenerateSAQ = async (sourceText, questionCount, additionalInstructions, cl
         placeholder="10"
         value={questionBank}
         onChange={(e) => setQuestionBank(e.target.value)}
-        style={{ width: '50px', fontWeight:'bold',marginBottom: '0px', textAlign: 'center' ,fontFamily: "'montserrat', sans-serif", marginTop: '25px', marginLeft: 'auto', marginRight: '20px',padding: '0px', paddingLeft: '15px', height: '35px', fontSize: '30px',  border: '4px solid #f4f4f4', borderRadius: '10px' }}
+        style={{ width: '50px', fontWeight:'bold',marginBottom: '0px', textAlign: 'center' ,fontFamily: "'montserrat', sans-serif", marginTop: '25px', marginLeft: 'auto', marginRight: '20px',padding: '0px', paddingLeft: '15px', height: '35px', fontSize: '30px',  border: '2px solid #eeeeee', borderRadius: '10px' }}
       />
       </div>
       </div>
@@ -727,7 +727,7 @@ const GenerateSAQ = async (sourceText, questionCount, additionalInstructions, cl
         placeholder="5"
         value={questionStudent}
         onChange={(e) => setQuestionStudent(e.target.value)}
-        style={{ width: '50px', fontWeight:'bold',marginBottom: '10px',fontFamily: "'montserrat', sans-serif",marginTop: '25px', textAlign: 'center' , marginLeft: 'auto', marginRight: '20px',padding: '0px', paddingLeft: '15px',fontSize: '30px', height: '35px', border: '4px solid #f4f4f4', borderRadius: '10px' }}
+        style={{ width: '50px', fontWeight:'bold',marginBottom: '10px',fontFamily: "'montserrat', sans-serif",marginTop: '25px', textAlign: 'center' , marginLeft: 'auto', marginRight: '20px',padding: '0px', paddingLeft: '15px',fontSize: '30px', height: '35px', border: '2px solid #eeeeee', borderRadius: '10px' }}
         />
         </div>
 
@@ -798,7 +798,7 @@ const GenerateSAQ = async (sourceText, questionCount, additionalInstructions, cl
                           marginTop: '-20px',
                           fontFamily: "'montserrat', sans-serif",
                           borderRadius: '10px',
-                           border: '4px solid #F4F4F4',
+                           border: '2px solid #eeeeee',
                           outline: 'none'
                         }}
                         type='text'
@@ -883,7 +883,7 @@ const GenerateSAQ = async (sourceText, questionCount, additionalInstructions, cl
          </div>}
     </button>
     {generating && (
-      <AnimationAll/>
+      <div className="loader" style={{ marginLeft: '20px' }}></div>
     )}
   </div>
 )}
@@ -904,7 +904,7 @@ const GenerateSAQ = async (sourceText, questionCount, additionalInstructions, cl
                onClick={saveDraft}
              
               style={{
-                width: '260px',
+                width: '270px',
                 height: '60px',
                 marginTop: '0px',
                 border: '4px solid lightgrey',
