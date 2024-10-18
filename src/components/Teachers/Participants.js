@@ -3,7 +3,7 @@ import { auth, db } from '../Universal/firebase';
 import { collection, query, where, getDocs, updateDoc, doc, getDoc } from "firebase/firestore";
 import { useParams } from 'react-router-dom';
 import { useNavigate } from 'react-router-dom';
-import { Pencil, SquareX, SquareCheck, Hourglass, PencilOff, PlusSquare, Timer} from 'lucide-react';
+import { Pencil, SquareX, SquareCheck, Hourglass, PencilOff, PlusSquare, Timer, Mail} from 'lucide-react';
 import Navbar from '../Universal/Navbar';
 const Participants = () => {
   const [currentClass, setCurrentClass] = useState({});
@@ -139,7 +139,16 @@ const Participants = () => {
     return () => clearInterval(intervalId);
   }, [classId]);
   
+  const sortedParticipants = currentClass.participants
+  ? [...currentClass.participants].sort((a, b) =>
+      a.name.split(' ')[1].localeCompare(b.name.split(' ')[1])
+    )
+  : [];
 
+// Split participants into two columns
+const halfLength = Math.ceil(sortedParticipants.length / 2);
+const leftColumn = sortedParticipants.slice(0, halfLength);
+const rightColumn = sortedParticipants.slice(halfLength);
 
   useEffect(() => {
     if (isEditing) {
@@ -238,7 +247,7 @@ const Participants = () => {
   position: absolute;
   z-index: 1;
   top: 90%;
-  left: 150%; /* Changed from right to left */
+  right: 150%; /* Changed from right to left */
   transform: translateY(-50%);
   opacity: 0;
   transition: opacity 0.3s;
@@ -362,191 +371,181 @@ const Participants = () => {
       
    
 </div>
+<div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', maxWidth: '700px', margin: 'auto' }}>
+     
 {currentClass.participants && currentClass.participants.length > 0 ? (
-        currentClass.participants.map(student => (
-      <div key={student.uid} style={{ zIndex: 10, width: '690px',   marginTop: '-15px', marginLeft: '0px',display: 'flex', flexDirection: 'row',color: 'grey', fontSize: '20px', justifyContent: 'space-between', border: '2px solid #EEEEEE',borderRadius: '10px', padding: '15px', marginBottom: '30px', alignSelf: 'center', backgroundColor: 'white', position: 'relative' }}>
-        <div style={{ width: '50%' }}>
-         
-          <div   onClick={() => navigateToStudentGrades(student.uid)}
-          style={{cursor: 'pointer', background: 'white', width: '250px'}}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.color = 'blue';
-        e.currentTarget.style.textDecoration = 'underline';
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.color = 'inherit';
-        e.currentTarget.style.textDecoration = 'none';
-      }}>
-          <span style={{ backgroundColor: 'transparent', borderColor: 'transparent', fontFamily: "'montserrat', sans-serif", marginLeft: '20px' }}>{student.name.split(' ')[1]},</span>
-          <span style={{ backgroundColor: 'transparent', borderColor: 'transparent', fontFamily: "'montserrat', sans-serif", fontWeight: '600', marginLeft: '10px' }}>{student.name.split(' ')[0]}</span>
-        </div>
-        </div>
-        <div style={{ marginRight: 'auto' , marginLeft: '-30px'}}>
-          <span style={{ backgroundColor: 'transparent', borderColor: 'transparent', fontSize: '16px',fontFamily: "'montserrat', sans-serif", marginLeft: '-40px'}}> {student.email}</span>
-      
-      
-      
-      
-      
-      
-        </div>
-       
-
-        {timeMultipliers[student.uid] !== 1 && timeMultipliers[student.uid] !== undefined ? (
-          <div 
-            className="accomodations-tag tooltip"
-            style={{ 
-              zIndex: 10,
-              marginTop: '0px',
-              height: '25px',
-              borderColor: isEditing ? 'lightgrey' : '#FFAA00',
-              backgroundColor: isEditing ? 'white' : 'white', 
-              width: '25px',
-              fontFamily: "'montserrat', sans-serif", 
-              marginRight: '20px',
-              color: isEditing ? '#2BB514' : 'lightgrey', 
-              fontWeight: 'bold', 
-              fontSize: '14px',
-              position: 'relative',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <Timer size={25} />
-            <div style={{
-                  position: 'absolute',
-                  bottom: '-2px',
-                  right: '-2px',
-                  backgroundColor: 'white',
-                  width: '12px',
-                  height: '12px',
-                  lineHeight: '10px',
-                  color: 'lightgrey',
-                  fontWeight: 'bold',
-                  borderRadius: '10px'
-                }} >+</div>
-            <span className="tooltiptext">
-              Time: {formatMultiplier(timeMultipliers[student.uid])}
-            </span>
-            {isEditing && (
-              <div style={{ position: 'absolute', right: '30px', display: 'flex', alignItems: 'center' }}>
-                <input
-                  type="number"
-                  min="1"
-                  step="0.1"
-                  value={timeMultipliers[student.uid]}
-                  onChange={(e) => handleTimeMultiplierChange(student.uid, e.target.value)}
-                  style={{
-                    width: '40px',
-                    height: '25px',
-                    color: 'black',
-                    border: '4px solid #f4f4f4',
-                    borderRadius: '5px',
-                    fontWeight: 'bold',
-                    fontFamily: "'montserrat', sans-serif",
-                    background: 'white',
-                    outline: 'rgb(72, 164, 158)',
-                    marginRight: '5px',
-                  }}
-                />
-                <div 
-                
-                onClick={() => removeAccommodations(student.uid)}
-                style={{
+        sortedParticipants.map((student, index) => (
+          <div key={student.uid} style={{ width: '300px', marginBottom: '20px', display: 'flex', flexDirection: 'row', border: '2px solid #EEEEEE', borderRadius: '10px', padding: '15px', backgroundColor: 'white', position: 'relative' }}>
+            {/* Student Name */}
+            <div style={{ width: '70%' }}>
+              <div style={{ cursor: 'pointer' }} onClick={() => navigateToStudentGrades(student.uid)}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.color = 'blue' ;
                  
-                  position: 'absolute',
-                  top: '6px',
-                  right: '-40px',
-                  backgroundColor: 'white',
-                  color: 'lightgrey',
-                  fontSize: '20px',
-                  textAlign: 'center',
-                  width: '12px',
-                  height: '12px',
-                  lineHeight: '10px',
+                    e.currentTarget.style.textDecoration =  ' underline';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.color =  ' black';
+                    
+                    e.currentTarget.style.textDecoration =  ' none';
+                  }}
+                  >
+                <span>{student.name.split(' ')[1]}, </span>
+                <strong>{student.name.split(' ')[0]}</strong>
+              </div>
+            </div>
+
+            {/* Email Icon with Tooltip */}
+            <div className="tooltip" style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center',zIndex: '100' }}>
+              <Mail size={20} color="lightgrey" style={{position: 'absolute', right: '5px'}} />
+              <span className="tooltiptext" style={{ fontSize: '12pt', width: '300px', backgroundColor: 'white', color: 'black',zIndex: '100' , padding: '5px', borderRadius: '5px', marginTop: '-5px', marginLeft: '-10px' }}>{student.email}</span>
+            </div>
+
+            {/* Timer Icon with accommodations logic */}
+            {timeMultipliers[student.uid] !== 1 && timeMultipliers[student.uid] !== undefined ? (
+              <div
+                className="accomodations-tag tooltip"
+                style={{
+                  zIndex: 10,
+                  marginTop: '-4px',
+                  height: '25px',
+                  borderColor: isEditing ? 'lightgrey' : '#FFAA00',
+                  backgroundColor: isEditing ? 'white' : 'white',
+                  width: '25px',
+                  fontFamily: "'montserrat', sans-serif",
+                  marginRight: '20px',
+                  color: isEditing ? '#2BB514' : 'lightgrey',
                   fontWeight: 'bold',
-                  borderRadius: '10px',
-                  cursor: 'pointer',
-                }} >-</div>
-                <div style={{
-                  position: 'absolute',
-                  bottom: '2px',
-                  right: '-29px',
-                  backgroundColor: 'white',
-                  cursor: 'default',
                   fontSize: '14px',
-                  textAlign: 'center',
-                  width: '10px',
-                  height: '10px',
-                  lineHeight: '3px',
-                  fontWeight: 'bold',
-                  borderRadius: '10px',
-                  
-                }} >+</div>
+                  position: 'absolute',
+                  left: '250px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <Timer size={25} />
+                <div
+                  style={{
+                    position: 'absolute',
+                    bottom: '-2px',
+                    right: '-2px',
+                    backgroundColor: 'white',
+                    width: '12px',
+                    height: '12px',
+                    lineHeight: '10px',
+                    color: 'lightgrey',
+                    fontWeight: 'bold',
+                    borderRadius: '10px',
+                  }}
+                >
+                  +
+                </div>
+                <span className="tooltiptext">Time: {formatMultiplier(timeMultipliers[student.uid])}</span>
+                {isEditing && (
+                  <div style={{ position: 'absolute', right: '30px', display: 'flex', alignItems: 'center' }}>
+                    <input
+                      type="number"
+                      min="1"
+                      step="0.1"
+                      value={timeMultipliers[student.uid]}
+                      onChange={(e) => handleTimeMultiplierChange(student.uid, e.target.value)}
+                      style={{
+                        width: '40px',
+                        height: '25px',
+                        color: 'black',
+                        border: '4px solid #f4f4f4',
+                        borderRadius: '5px',
+                        fontWeight: 'bold',
+                        fontFamily: "'montserrat', sans-serif",
+                        background: 'white',
+                        outline: 'rgb(72, 164, 158)',
+                        marginRight: '5px',
+                      }}
+                    />
+                    <div
+                      onClick={() => removeAccommodations(student.uid)}
+                      style={{
+                        position: 'absolute',
+                        top: '6px',
+                        right: '-40px',
+                        backgroundColor: 'white',
+                        color: 'lightgrey',
+                        fontSize: '20px',
+                        textAlign: 'center',
+                        width: '12px',
+                        height: '12px',
+                        lineHeight: '10px',
+                        fontWeight: 'bold',
+                        borderRadius: '10px',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      -
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : isEditing && (
+              <div
+                className="add-accomodations"
+                onClick={() => handleTimeMultiplierChange(student.uid, 1.5)}
+                style={{
+                  position: 'relative',
+                  width: '25px',
+                  height: '25px',
+                  marginRight: '20px',
+                  cursor: 'pointer',
+                }}
+              >
+                <Timer size={25} color="lightgrey" />
+                <div
+                  style={{
+                    position: 'absolute',
+                    bottom: '-2px',
+                    right: '-2px',
+                    backgroundColor: 'white',
+                    width: '12px',
+                    height: '12px',
+                    fontSize: '14px',
+                    lineHeight: '9px',
+                    color: 'lightgrey',
+                    fontWeight: 'bold',
+                    borderRadius: '10px',
+                  }}
+                >
+                  +
+                </div>
               </div>
             )}
-          </div>
-        ) : isEditing && (
-          <div 
-            className="add-accomodations" 
-            onClick={() => handleTimeMultiplierChange(student.uid, 1.5)}
-            style={{ 
-              position: 'relative', 
-              width: '25px',
-              height: '25px',
-              marginRight: '20px',
-              cursor: 'pointer'
-            }}
-          >
-            <Timer size={25} color="lightgrey" />
-            <div style={{
-                  position: 'absolute',
-                  bottom: '-2px',
-                  right: '-2px',
-                  backgroundColor: 'white',
-                  width: '12px',
-                  height: '12px',
-                  fontSize: '14px',
-                  lineHeight: '9px',
-                  color: 'lightgrey',
-                  fontWeight: 'bold',
-                  borderRadius: '10px'
-                }} >+</div>
-                  <div style={{
-                  position: 'absolute',
-                  right: '-8px',
-                  top: '-2px',
-                  backgroundColor: 'white',
-                  width: '12px',
-                  color: '#2BB514',
 
-                  height: '12px',
-                  lineHeight: '10px',
-                  fontWeight: 'bold',
-                  borderRadius: '10px'
-                }} >+</div>
-          </div>
-        )}
-          {isEditing && (
-          <button onClick={() => handleRemoveStudent(student.uid)} style={{ backgroundColor: 'transparent', fontFamily: "'montserrat', sans-serif", borderColor: 'transparent', color: 'red', position: 'absolute', right: '-10px', top: '-10px' ,
-           
-           zIndex: '990',
-                  height: '30px', 
+            {/* Remove Student Button */}
+            {isEditing && (
+              <button
+                onClick={() => handleRemoveStudent(student.uid)}
+                style={{
+                  backgroundColor: 'transparent',
+                  fontFamily: "'montserrat', sans-serif",
+                  borderColor: 'transparent',
+                  color: 'red',
+                  position: 'absolute',
+                  right: '-10px',
+                  top: '-10px',
+                  zIndex: '990',
+                  height: '30px',
                   width: '30px',
                   borderRadius: '6px',
                   background: 'white',
                   border: 'none',
                   cursor: 'pointer',
-                  
                 }}
               >
-                <div style={{marginTop: '-2px', marginLeft: '-4px', }}>
-                <SquareX size={30} color="#e60000" strokeWidth={3} /></div>
-          
+                <SquareX size={30} color="#e60000" strokeWidth={3} />
               </button>
-        )}
+               
+            )}
       </div>
+     
       
     ))
 
@@ -568,6 +567,7 @@ const Participants = () => {
     <h1 style={{color: 'lightgrey', fontSize: '24px', marginLeft: '-80px'}}>Add your first students by having them input the class code in their join class page, their requests will show up here</h1>
   </div>
 )}
+ </div>
 </div>
 );
 };

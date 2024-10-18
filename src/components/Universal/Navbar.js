@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { auth, db } from "./firebase";
 import { doc, getDoc, collection, query, where, getDocs, setDoc, updateDoc, arrayUnion } from "firebase/firestore";
 import { signOut } from "firebase/auth";
-import { ArrowLeft, SquarePlus, Users, BookOpenText, SquareX } from "lucide-react";
+import { ArrowLeft, SquarePlus, Users, BookOpenText, SquareX, Home, Repeat } from "lucide-react";
 import TeacherAssignmentHome from "../Teachers/TeacherAssignments/TeacherAssignmentHome";
 import { motion, AnimatePresence } from 'framer-motion';
 import { v4 as uuidv4 } from 'uuid';
@@ -67,7 +67,9 @@ const Navbar = ({ userType, currentPage, firstName, lastName }) => {
   // Function to get the current page
   const getCurrentPage = () => {
     const path = location.pathname;
-    if (path.includes('/teacherassignmenthome')) return 'Create';
+    if (path.includes('/teacherassignmenthome')) return 'Assignments';
+    
+    if (path === `/class/${classId}`) return 'Home';
     if (path.includes('/createassignment')) return 'Create';
     if (path.includes('/MCQ')) return 'Create';
     if (path.includes('/TeacherResults')) return 'Assignments';
@@ -75,7 +77,7 @@ const Navbar = ({ userType, currentPage, firstName, lastName }) => {
     if (path.includes('/MCQA')) return 'Create';
     if (path.includes('/Assignments')) return 'Assignments';
     if (path.includes('/participants')) return 'Students';
-    return 'Home'; // default to Home for the main class page
+  // default to Home for the main class page
   };
 
   // Function to handle format selection
@@ -173,20 +175,8 @@ const handleFormatSelect = async (format) => {
     setShowClassDropdown(prev => !prev);
   };
   // Handle scroll to change navbar background
-  useEffect(() => {
-    const handleScroll = () => {
-      if (window.scrollY > 0) {
-        setNavbarBg('rgba(250, 250, 250, 0.7)');
-      } else {
-        setNavbarBg('rgba(255, 255, 255, 0.7)');
-      }
-    };
+ 
 
-    window.addEventListener('scroll', handleScroll);
-    return () => {
-      window.removeEventListener('scroll', handleScroll);
-    };
-  }, []);
 
   // Handle background hover to close dropdown
   const handleBackgroundHover = () => {
@@ -205,9 +195,12 @@ const handleFormatSelect = async (format) => {
 
   // Define link routes
   const teacherLinkRoutes = {
+    
+    'Home': `/class/${classId}`,
     'Create': `/class/${classId}/teacherassignmenthome`,
     'Assignments': `/class/${classId}/Assignments`,
     'Students': `/class/${classId}/participants`,
+    
   };
 
   const studentLinkRoutes = {
@@ -265,6 +258,18 @@ const handleFormatSelect = async (format) => {
   const handleBack = () => {
     navigate(-1);
   };
+  const linkColors = {
+    'Home': '#E441FF',
+    'Assignments': '#020CFF',
+    'Students': '#FFAE00',
+    'Create': '#2BB514'
+  };
+  const linkBorderColors = {
+    'Home': '#F5B6FF',
+    'Assignments': '#C7CFFF',
+    'Students': '#FFEAAF',
+    'Create': '#AEF2A3'
+  };
 
   // Define period styles
   const periodStyles = {
@@ -290,7 +295,7 @@ const handleFormatSelect = async (format) => {
   const logoUrl = "/logo.png";
 
   return (
-    <div style={{ position: 'relative' }}>
+    <div style={{ position: 'relative',  }}>
         {showClassDropdown  && <div onMouseEnter={handleBackgroundHover} style={{
                 position: 'fixed',
                 top: '70px',
@@ -467,54 +472,37 @@ const handleFormatSelect = async (format) => {
           height: '70px',
           color: 'grey',
           zIndex: '1000',
-          backgroundColor: navbarBg,
+          backgroundColor: 'rgb(255,255,255,.9)',
           transition: 'background-color 0.3s ease',
           backdropFilter: 'blur(7px)',
+          
+                borderBottom: '2px solid rgb(220,220,220,.2)'
         }}
       >
         {/* Back Button */}
-        <button
-          onClick={handleBack}
-          style={{
-            position: 'fixed',
-            top: '12px',
-            left: '20px',
-            fontFamily: "'montserrat', sans-serif",
-            textDecoration: 'none',
-            color: 'black',
-            border: '0px solid lightgrey',
-            height: '47px',
-            width: '47px',
-            borderRadius: '10px',
-            backgroundColor: 'transparent',
-            cursor: 'pointer',
-          }}
-        >
-          <ArrowLeft size={30} color="grey" strokeWidth={2} />
-        </button>
-
-        {/* Home Link */}
-        <div style={{ width: '80%', marginLeft: 'auto', marginRight: 'auto', display: 'flex', alignItems: 'center' }}>
-          <Link to={homeRoute}>
-            <img src={homeIcon} alt="Home" style={{ width: '25px', marginTop: '0px', marginRight: '50px', opacity: '50%' }} />
+        <Link to={homeRoute} style={{position: 'absolute', left: '20px'}} >
+          <img style={{ width: '40px', }} src="/SquareScore.svg" alt="logo" /> 
+          
           </Link>
+          <div  style={{
+              flex: 0.15,
+              display: 'flex',
+              alignItems: 'center',
+              background: '#ECECEC',
+              width: '2px', 
+              height: '40px',
+              justifyContent: 'center',
+              position: 'fixed',
+              top: '15px',
+              left: '84px',
+            }}></div>
+        
 
-          {/* Class Selector */}
-          {!isLoading ? (
-            <div style={{ display: 'flex', alignItems: 'center', marginRight: '20px' }}>
-              <div
-                style={{
-                  height: '24px',
-                  width: '20px',
-                  opacity: '100%',
-                  marginRight: '0px',
-                  borderBottomLeftRadius: '5px',
-                  borderTopLeftRadius: '5px',
-                  border: '4px solid',
-                  ...(periodStyles[getPeriodNumber(currentClass)] || periodStyles[1]),
-             
-                }}
-              >
+        {!isLoading ? (
+            <div style={{ display: 'flex', alignItems: 'center', position: 'fixed',
+              top: '20px',
+              left: '110px', }}>
+          
                 <div
                   onClick={toggleClassDropdown}
                   style={{
@@ -524,31 +512,29 @@ const handleFormatSelect = async (format) => {
                     marginTop: '5px',
                     marginLeft: '3px',
                     transition: 'transform 0.5s ease',
-                    width: '13px',
-                    height: '15px',
+                   
+                    position: 'absolute',
+                    right: '0px',
+                    height: '6px',
+                    width: '20px',
                     fontSize: '13px',
                   }}
                 >
-                  ▼
+                  <Repeat size={20} style={{marginTop: '-7px'}}/>
                 </div>
-              </div>
+    
               <Link
                 to={userType === 'teacher' ? `/class/${classId}` : `/studentassignments/${classId}`}
                 style={{
-                  fontSize: '16px',
-                  padding: '3px',
-                  width: '80px',
+                  fontSize: '25px',
+                  width: '130px',
+                  textAlign: 'left',
                   paddingRight: '10px',
                   fontFamily: "'montserrat', sans-serif",
                   fontWeight: '600',
-                  textAlign: "center",
-                  borderRadius: ' 0px 5px  5px 0px ',
-                    color: 'grey',
+                    color: '#868686',
                   textDecoration: 'none',
-                  border: '4px solid',
                   background: 'white',
-                  borderLeft: 'none',
-                  borderColor: '#f4f4f4'
                  
                 }}
               >
@@ -559,17 +545,116 @@ const handleFormatSelect = async (format) => {
             <div style={{ width: '130px', height: '38px', backgroundColor: 'transparent', borderRadius: '7px' }}></div>
           )}
 
-          {/* Class Dropdown Animation */}
-          {/* Already handled above with AnimatePresence */}
 
+<div  style={{
+              flex: 0.15,
+              display: 'flex',
+              alignItems: 'center',
+              background: '#ECECEC',
+              width: '2px', 
+              height: '40px',
+              justifyContent: 'center',
+              position: 'absolute',
+              top: '15px',
+              right: '70px',
+            }}></div>
+          <div
+            style={{
+              flex: 0.15,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              position: 'fixed',
+              top: '20px',
+              right: '-45px',
+            }}
+          >
+            
+            <div
+              onClick={toggleDropdown}
+              style={{
+                width: '25px',
+                height: '25px',
+                borderRadius: '5px',
+                backgroundColor: 'transparent',
+                border: '4px solid #6A6A6A',
+                cursor: 'pointer',
+                marginLeft: 'auto',
+                marginRight: '60px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#6A6A6A',
+                fontSize: '12px',
+                fontWeight: 'bold',
+              }}
+            >
+             
+                <h1
+                  style={{
+                    fontSize: '14px',
+                   userSelect: 'none',
+                   fontWeight: '800',
+                    fontFamily: '"montserrat", sans-serif',
+                    marginTop: '12px',
+                   
+                  }}
+                >
+                  {userInitials}
+                </h1>
+             
+              {showDropdown && (
+                <div
+                  style={{
+                    position: 'absolute',
+                    marginTop: '130px',
+                    right: 25,
+                    color: '#020CFF',
+                    boxShadow: '0px 2px 5px rgba(0, 0, 0, 0.2)',
+                    borderRadius: '5px',
+                    minWidth: '150px',
+                    zIndex: 1000,
+                    background: 'white',
+                  }}
+                >
+                  <ul style={{ listStyleType: 'none', padding: 0, margin: 0 }}>
+                    <li
+                      onClick={handleLogout}
+                      style={{
+                        padding: '10px 15px',
+                        cursor: 'pointer',
+                        borderBottom: '1px solid #eee',
+                        zIndex: 1000,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        fontSize: '16px',
+                        color: 'grey',
+                        background: 'white',
+                      }}
+                    >
+                      Logout
+                    </li>
+                  </ul>
+                </div>
+              )}
+            </div>
+          </div>
+          
+        <div style={{ width: '50%', position: 'absolute', left: '50%',transform: 'translate(-50%)', display: 'flex', alignItems: 'center', border:'0px solid blue' }}>
+        
+
+          {/* Class Selector */}
+          
+
+    
           {/* Teacher Links */}
           {userType === 'teacher' ? (
-            <div
+              <div
               style={{
                 display: 'flex',
-                justifyContent: 'start',
+                justifyContent: 'space-between',
                 flex: 0.85,
-                gap: '40%',
                 fontSize: '15px',
                 fontFamily: "'montserrat', sans-serif",
                 textDecoration: 'none',
@@ -577,31 +662,44 @@ const handleFormatSelect = async (format) => {
                 marginLeft: '100px',
               }}
             >
-              {Object.entries(linkRoutes).map(([linkText, route], index) => (
-                <div key={index} style={{ position: 'relative' }}>
-                  <Link
-                    to={route}
-                    onClick={(e) => linkText === 'Create' && toggleCreateDropdown(e)}
-                    style={{
-                      fontWeight: (getCurrentPage() === linkText || (linkText === 'Create' && showCreateDropdown)) ? 'bold' : '500',
-                      textDecoration: 'none',
-                      color: 'black',
-                      marginTop: '-5px',
-                      marginLeft: (linkText === 'Assignments') ? '-30px' : '',
-                      display: 'flex',
-                      alignItems: 'center',
-                    }}
-                  >
-                    {linkText}
-                    {linkText === 'Assignments' && <BookOpenText size={20} style={{ marginLeft: '-130px' }} strokeWidth={getCurrentPage() === 'Assignments' ? 2.5 : 2} />}
-                    {linkText === 'Students' && <Users size={20} style={{ marginLeft: '-100px' }} strokeWidth={getCurrentPage() === 'Students' ? 2.5 : 2} />}
-                    {linkText === 'Create' && <SquarePlus size={20} style={{ marginLeft: '-80px' }} strokeWidth={(getCurrentPage() === 'Create' || showCreateDropdown) ? 2.5 : 2} />}
-                  </Link>
+                 {Object.entries(linkRoutes).map(([linkText, route], index) => (
+              <div key={index} style={{ position: 'relative' }}>
+                <Link
+                  to={route}
+                  onClick={(e) => linkText === 'Create' && toggleCreateDropdown(e)}
+                  style={{
+                    textDecoration: 'none',
+                    color: 'black',
+                    marginTop: '-2px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: '50px',
+                    height: '50px',
+                    borderBottom: (getCurrentPage() === linkText || (linkText === 'Create' && showCreateDropdown)) 
+                      ? `4px solid ${linkBorderColors[linkText]}` 
+                      : 'none',
+                    paddingBottom: '10px',
+                  }}
+                >
+                  <div style={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'center',
+                    width: '25px',  // Set a fixed width for all icons
+                    height: '25px', // Set a fixed height for all icons
+                  }}>
+                    {linkText === 'Home' && <Home size={25} strokeWidth={getCurrentPage() === 'Home' ? 2.5 : 2} color={getCurrentPage() === 'Home' ? linkColors['Home'] : '#696969'} />}
+                    {linkText === 'Assignments' && <BookOpenText size={25} strokeWidth={getCurrentPage() === 'Assignments' ? 2.5 : 2} color={getCurrentPage() === 'Assignments' ? linkColors['Assignments'] : '#696969'} />}
+                    {linkText === 'Students' && <Users size={25} strokeWidth={getCurrentPage() === 'Students' ? 2.5 : 2} color={getCurrentPage() === 'Students' ? linkColors['Students'] : '#696969'} />}
+                    {linkText === 'Create' && <SquarePlus size={25} strokeWidth={(getCurrentPage() === 'Create' || showCreateDropdown) ? 2.5 : 2} color={(getCurrentPage() === 'Create' || showCreateDropdown) ? linkColors['Create'] : '#696969'} />}
+                  </div>
+                </Link>
                   {linkText === 'Create' && showCreateDropdown && (
                     <div
                       style={{
                         position: 'fixed',
-                        top: 0,
+                        top: '200px',
                         left: 0,
                         right: 0,
                         bottom: 0,
@@ -698,97 +796,7 @@ const handleFormatSelect = async (format) => {
           )}
 
           {/* User Profile Dropdown */}
-          <div
-            style={{
-              flex: 0.15,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              position: 'fixed',
-              top: '10px',
-              right: '0px',
-            }}
-          >
-            <div
-              onClick={toggleDropdown}
-              style={{
-                width: '32px',
-                height: '32px',
-                borderRadius: '4px',
-                backgroundColor: 'transparent',
-                border: '8px solid #627BFF',
-                boxShadow: '0px 2px 3px 1px rgba(0, 0, 0, 0.1)',
-                cursor: 'pointer',
-                marginLeft: 'auto',
-                marginRight: '60px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: '#020CFF',
-                fontSize: '20px',
-                fontWeight: 'bold',
-              }}
-            >
-              <div
-                style={{
-                  fontSize: '10px',
-                  width: '44px',
-                  height: '30px',
-                  borderRadius: '2px',
-                  margin: '-4px',
-                  border: '5px solid #020CFF',
-                  userSelect: 'none',
-                }}
-              >
-                <h1
-                  style={{
-                    fontSize: '20px',
-                    width: '30px',
-                    fontFamily: '"montserrat", sans-serif',
-                    marginTop: '11px',
-                    marginLeft: '2px',
-                  }}
-                >
-                  {userInitials}
-                </h1>
-              </div>
-              {showDropdown && (
-                <div
-                  style={{
-                    position: 'absolute',
-                    marginTop: '130px',
-                    right: 25,
-                    color: '#020CFF',
-                    boxShadow: '0px 2px 5px rgba(0, 0, 0, 0.2)',
-                    borderRadius: '5px',
-                    minWidth: '150px',
-                    zIndex: 1000,
-                    background: 'white',
-                  }}
-                >
-                  <ul style={{ listStyleType: 'none', padding: 0, margin: 0 }}>
-                    <li
-                      onClick={handleLogout}
-                      style={{
-                        padding: '10px 15px',
-                        cursor: 'pointer',
-                        borderBottom: '1px solid #eee',
-                        zIndex: 1000,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        fontSize: '16px',
-                        color: 'grey',
-                        background: 'white',
-                      }}
-                    >
-                      Logout
-                    </li>
-                  </ul>
-                </div>
-              )}
-            </div>
-          </div>
+        
         </div>
       </div>
       </div>

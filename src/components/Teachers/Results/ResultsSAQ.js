@@ -57,6 +57,7 @@ const TeacherResults = () => {
   const [showMissingAssignmentsModal, setShowMissingAssignmentsModal] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [studentsWithoutAssignment, setStudentsWithoutAssignment] = useState([]);
+  
   const [assignmentSettings, setAssignmentSettings] = useState({
     assignDate: null,
     dueDate: null,
@@ -106,7 +107,55 @@ const TeacherResults = () => {
     };
     fetchTeacherId();
   }, []);
+  const AdaptiveHeading = ({ text }) => {
+    const [fontSize, setFontSize] = useState(60);
+    const headingRef = useRef(null);
   
+    useEffect(() => {
+      const fitText = () => {
+        if (headingRef.current) {
+          let size = 60;
+          headingRef.current.style.fontSize = `${size}px`;
+  
+          while (headingRef.current.scrollWidth > headingRef.current.offsetWidth && size > 40) {
+            size--;
+            headingRef.current.style.fontSize = `${size}px`;
+          }
+  
+          setFontSize(size);
+        }
+      };
+  
+      fitText();
+      window.addEventListener('resize', fitText);
+      return () => window.removeEventListener('resize', fitText);
+    }, [text]);
+  
+    return (
+      <h1
+        ref={headingRef}
+        style={{
+          fontSize: `${fontSize}px`,
+          color: 'black',
+          width: '90%',
+          fontFamily: "'montserrat', sans-serif",
+          wordWrap: 'break-word',
+          overflowWrap: 'break-word',
+          hyphens: 'auto',
+          lineHeight: '1.2',
+          margin: 0,
+          marginBottom: '0px',
+          padding: '10px 0',
+          whiteSpace: 'nowrap',
+          textOverflow: 'ellipsis',
+          overflow: 'hidden'
+        }}
+      >
+        {text}
+      </h1>
+    );
+  };
+
   const fetchAssignmentQuestions = useCallback(async () => {
     const assignmentRef = doc(db, 'assignments(saq)', assignmentId);
     const assignmentDoc = await getDoc(assignmentRef);
@@ -996,17 +1045,7 @@ const TeacherResults = () => {
       <div style={{ width: '1000px', display: 'flex', justifyContent: 'align', marginTop: '150px', marginLeft: 'auto', marginRight: 'auto' }}>
         <div style={{ display: 'flex', width: '800px' , marginRight: 'auto', marginLeft: '120px', height: ' auto', lineHeight:'0px', borderBottom: '2px solid #e4e4e4', paddingBottom: '15px', marginBottom:'30px' }}>
          <div style={{position: 'relative', width: '650px', }}>
-          <h1 style={{  fontSize: '60px', 
-      color: 'black', 
-      width: '100%', // Use full width of parent
-      fontFamily: "'montserrat', sans-serif",
-      wordWrap: 'break-word', // Allow long words to break and wrap
-      overflowWrap: 'break-word', // Ensure long words don't overflow
-      hyphens: 'auto', // Enable automatic hyphenation
-      lineHeight: '1.2', // Adjust line height for better readability
-      margin: 0,
-      marginBottom: '0px', // Remove default margins
-      padding: '10px 0' }}>{assignmentName} </h1>
+        <AdaptiveHeading text={assignmentName} />
     <h1 style={{  fontSize: '25px', 
       color: 'grey', 
       width: '260px', // Use full width of parent

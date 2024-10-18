@@ -39,6 +39,7 @@ const TeacherResultsAMCQ = () => {
     const [showOverlay, setShowOverlay] = useState(false);
     
   const [showSettings, setShowSettings] = useState(false);
+  
   const [assignmentSettings, setAssignmentSettings] = useState({
     assignDate: null,
     dueDate: null,
@@ -85,6 +86,7 @@ const TeacherResultsAMCQ = () => {
 
     fetchTeacherClasses();
   }, [teacherId]);
+  
   useEffect(() => {
     const fetchAssignmentSettings = async () => {
       const assignmentRef = doc(db, 'assignments(Amcq)', assignmentId);

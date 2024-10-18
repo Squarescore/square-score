@@ -5,7 +5,7 @@ import { db } from '../../../Universal/firebase';
 import Navbar from '../../../Universal/Navbar';
 import Tooltip from './ToolTip';
 import axios from 'axios';
-import { SquareCheck, SquareX, SquareSlash, Square, User, MessageSquareMore, Plus, Minus, YoutubeIcon } from 'lucide-react';
+import { SquareCheck, SquareX, SquareSlash, Square, User, MessageSquareMore, Plus, Minus, YoutubeIcon, ChevronRight, ChevronLeft, ChevronUp, ChevronDown } from 'lucide-react';
 
 function TeacherStudentResults() {
     const { assignmentId, studentUid } = useParams();
@@ -26,32 +26,21 @@ function TeacherStudentResults() {
         setActiveQuestionIndex(index);
         questionRefs.current[index]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
     };
-    const [isSticky, setIsSticky] = useState(false);
+    
+    const [isMapCollapsed, setIsMapCollapsed] = useState(false);
+
     const stickyRef = useRef(null);
     const containerRef = useRef(null);
 
-    useEffect(() => {
-        const options = {
-            root: null,
-            rootMargin: "-70px 0px 0px 0px",
-            threshold: 1
-        };
-
-        const observer = new IntersectionObserver(([entry]) => {
-            setIsSticky(!entry.isIntersecting);
-            console.log("Sticky state:", !entry.isIntersecting); // Debug log
-        }, options);
-
-        if (stickyRef.current) {
-            observer.observe(stickyRef.current);
+    const getQuestionIcon = (score, scaleMax, scaleMin) => {
+        if (score === scaleMax) {
+            return <SquareCheck size={20} color="#00d12a" />;
+        } else if (score === scaleMin) {
+            return <SquareX size={20} color="#FF0000" />;
+        } else {
+            return <SquareSlash size={20} color="#FFD13B" />;
         }
-
-        return () => {
-            if (stickyRef.current) {
-                observer.unobserve(stickyRef.current);
-            }
-        };
-    }, []);
+    };
     const debounce = (func, wait) => {
         let timeout;
         const debouncedFunction = (...args) => {
@@ -260,7 +249,64 @@ function TeacherStudentResults() {
 
 
 
-
+            <div style={{
+    position: 'fixed',
+    height: isMapCollapsed ? '50px' : '80%',
+    overflow: 'auto',
+    top: '140px',
+    bottom: isMapCollapsed ? 'auto' : '0',
+    left: '40px',
+    width: '100px',
+    backgroundColor: 'white',
+    border: '2px solid #E4e4e4',
+    borderRadius: '10px',
+    transition: 'all 0.3s',
+    zIndex: 1000,
+    display: 'flex',
+    flexDirection: 'column'
+}}>
+                <div style={{
+                    display: 'flex',
+                    width: '60px',
+                    marginLeft: 'auto', marginRight: 'auto',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '10px',
+                }}>
+                    <span style={{ fontWeight: 'bold' }}>Map</span>
+                    <button
+                        onClick={() => setIsMapCollapsed(!isMapCollapsed)}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer' }}
+                    >
+                        {isMapCollapsed ? <ChevronUp/> : <ChevronDown />}
+                    </button>
+                </div>
+                <div style={{ overflowY: 'auto', flex: 1 }}>
+                    {results.questions.map((question, index) => (
+                        <div
+                            key={index}
+                            onClick={() => scrollToQuestion(index)}
+                            style={{
+                            width: '50px',
+                    marginLeft: 'auto', marginRight: 'auto',
+                    alignItems: 'center',
+                    padding: '20px 10px',display: 'flex',
+                    
+                    borderTop: '2px solid #EEEEEE'
+                            }}
+                        >
+                              <span style={{ marginLeft: '0px', fontWeight: '700',  marginRight: 'auto'}}> {index + 1}.</span>
+                              {question.score === results.scaleMax ? (
+                                <SquareCheck size={25} color="#00d12a" style={{marginRight: '0px'}} />
+                            ) : question.score === results.scaleMin ? (
+                                <SquareX size={25} color="#FF0000" style={{marginRight: '0px'}} />
+                            ) : (
+                                <SquareSlash size={25} color="#FFD13B" style={{marginRight: '0px'}} />
+                            )}
+                        </div>
+                    ))}
+                </div>
+            </div>
 
 
             <div style={{  fontFamily: "'montserrat', sans-serif", backgroundColor: 'white', width: '860px', zIndex: '100', alignItems: 'center', marginLeft: 'auto', marginRight: 'auto', marginTop: '100px'}}>
@@ -296,7 +342,7 @@ function TeacherStudentResults() {
                     </div>
                   
             </div>
-            <div style={{display: 'flex', width: '870px', border: '2px solid #EEEEEE', borderRadius: '10px', marginLeft: '-10px', padding: '5px'}}>
+            <div style={{display: 'flex', width: '870px', border: '2px solid #EEEEEE', borderRadius: '10px', marginLeft: '-10px', padding: '5px', marginBottom: '30px'}}>
                
                  
                     <div style={{width: '240px', height: '60px',  padding: '0px 0px', marginLeft: '0px', marginTop: '-40px' }}>
@@ -378,53 +424,8 @@ function TeacherStudentResults() {
             </div>
          
               
-               
-            <div ref={containerRef} style={{ width: '100%', marginTop: '10px', 
-                        
-                        backgroundColor: 'rgb(255,255,255,.8)',
-                        backdropFilter: 'blur(5px)',
+       
                 
-                marginLeft: 'auto', marginRight: 'auto', textAlign: 'center',  borderRadius: '10px', position: 'relative' }}>
-                <div 
-                    ref={stickyRef}
-                    style={{
-                        display: 'flex',
-                        flexWrap: 'wrap',
-                        justifyContent: 'left',
-                        gap: '20px',
-                        marginBottom: '40px',
-                        width: '890px',
-                        position: 'sticky',
-                        backgroundColor: 'rgb(255,255,255,.8)',
-                        backdropFilter: 'blur(5px)',
-                        top: '70px',
-                        height: '30px',
-                        padding: '10px 0',
-                        zIndex: 1000,
-                        marginLeft: 'auto', marginRight: 'auto',
-                    }}
-                >
-                    <div style={{
-                        width: '870px',
-                        marginLeft: '30px',
-                        margin: '0 auto',
-                        display: 'flex',
-                        flexWrap: 'wrap',
-                        justifyContent: 'left',
-                        gap: '20px'
-                    }}>
-                        {results.questions.map((question, index) => (
-                            <Square
-                                key={index}
-                                size={20}
-                                style={{ cursor: 'pointer' }}
-                                strokeWidth={5}
-                                color={question.score === results.scaleMax ? "#00d12a" : question.score === results.scaleMin ? "#FF0000" : "#FFD13B"}
-                                onClick={() => scrollToQuestion(index)}
-                            />
-                        ))}
-                    </div>
-                </div>
               
                 <ul style={{ listStyle: 'none', padding: '0', marginTop: '-30px' }}>
                     {results.questions && results.questions.map((question, index) => {
@@ -580,7 +581,7 @@ function TeacherStudentResults() {
                         );
                     })}
                 </ul>
-            </div>
+            
             <div style={{ display: 'flex', justifyContent: 'center', marginTop: '20px', marginBottom: '20px' }}>
                 <div style={{ marginBottom: '0px', border: '0px solid grey', background: '#f4f4f4', height: '40px', borderRadius: '10px', marginLeft: '30px', display: 'flex', alignItems: 'center', padding: '0 10px' }}>
                     <label style={{ fontFamily: "'montserrat', sans-serif", marginRight: '10px' }}>

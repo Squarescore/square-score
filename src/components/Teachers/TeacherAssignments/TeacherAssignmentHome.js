@@ -21,7 +21,7 @@ const TeacherAssignmentHome = ({ onFormatSelect }) => {
             key={format.value}
             style={{
               padding: '5px',
-              border: '4px solid white',
+              border: '2px solid white',
               borderRadius: '10px',
               backgroundColor: 'transparent',
               color: format.color,
