@@ -7,6 +7,7 @@ import Navbar from '../Universal/Navbar';
 import { ArrowRight, CalendarClock, CalendarX2, BookOpen, BookOpenCheck, Eye, EyeOff, SquareMinus, SquareCheck, SquareDashedBottom,  SquareX, SquareArrowRight, Check } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
 import Tooltip from '../Teachers/TeacherAssignments/AssignmentsToolTip';
+import { flushSync } from 'react-dom';
 function StudentAssignmentsHome({ studentUid: propStudentUid }) {
   const { classId } = useParams();
   const [assignments, setAssignments] = useState([]);
@@ -17,16 +18,51 @@ function StudentAssignmentsHome({ studentUid: propStudentUid }) {
   const [activeTab, setActiveTab] = useState('active');
   const isActiveOrCompleted = activeTab === 'active' || activeTab === 'completed';
 
-  const [className, setClassName] = useState('');
+  
   const [completedAssignments, setCompletedAssignments] = useState([]);
   const [averageScore, setAverageScore] = useState(null);
   const [mostRecentScore, setMostRecentScore] = useState(null);
   const [classChoice, setClassChoice] = useState('');
+  const [className, setClassName] = useState('');
   const [showDueDate, setShowDueDate] = useState(true);
   const [hoveredAssignment, setHoveredAssignment] = useState(null);
   const [showConfirm, setShowConfirm] = useState(false);
 const [confirmAssignment, setConfirmAssignment] = useState(null);
+const [studentName, setStudentName] = useState('');
+const [textSize, setTextSize] = useState(40);
+const [calculatedAverage, setCalculatedAverage] = useState(0);
+useEffect(() => {
+  if (completedAssignments.length > 0) {
+    const totalScore = completedAssignments.reduce((sum, assignment) => {
+      const score = assignment.type === 'AMCQ' ? 
+        assignment.SquareScore : 
+        assignment.percentageScore;
+      return sum + score;
+    }, 0);
+    const average = totalScore / completedAssignments.length;
+    setCalculatedAverage(Math.round(average));
+  }
+}, [completedAssignments]);
+useEffect(() => {
+  const fetchStudentData = async () => {
+    try {
+      const studentDoc = await getDoc(doc(db, 'students', studentUid));
+      if (studentDoc.exists()) {
+        const userData = studentDoc.data();
+        const fullName = `${userData.firstName} ${userData.lastName}`;
+        setStudentName(fullName);
+        // Adjust text size based on name length
+        const baseSize = 40;
+        const adjustedSize = Math.min(baseSize, (baseSize * 20) / fullName.length);
+        setTextSize(adjustedSize);
+      }
+    } catch (error) {
+      console.error("Error fetching student data:", error);
+    }
+  };
 
+  fetchStudentData();
+}, [studentUid]);
 const tabStyles = {
   active: { background: '#CCFFC3', color: '#00CD09', borderColor: '#00CD09'  },
   completed: { background: '#B9C4FF', color: '#020CFF', borderColor: '#020CFF' },
@@ -257,10 +293,17 @@ const periodStyle = periodStyles[periodNumber] || { background: '#F4F4F4', color
     setShowConfirm(true);
   };
 
+
+
+
+
+
+
+  
 const getAssignmentStyle = (assignment) => {
   const borderColor = getBorderColor(assignment);
   return {
-    border: `2px solid ${borderColor}`,
+    borderTop: `2px solid ${borderColor}`,
     cursor: borderColor === '#EEEEEE' ? 'default' : 'not-allowed',
   };
 };
@@ -286,7 +329,9 @@ const getAssignmentStyle = (assignment) => {
         transform: 'translate(-50%, -50%)',
         width: '500px',
         backgroundColor: 'rgb(255,255,255,.001)',
-        border: '10px solid #f4f4f4',
+        border: '10px solid white',
+        
+               boxShadow: '1px 1px 5px 1px rgb(0,0,155,.07)' ,
         fontFamily: 'Arial, sans-serif',
         zIndex: 100000
       }}>
@@ -411,286 +456,334 @@ const getAssignmentStyle = (assignment) => {
     }
   
     return (
-      <div style={{  gap: '20px', marginLeft: '-40px', }}>
+      <div style={{ 
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '20px',
+        marginLeft: '0px',
+        width: '820px'
+      }}>
         {assignmentPairs.map((pair, rowIndex) => (
-          <React.Fragment key={rowIndex}>
-            {pair.map((grade) => {
-              const isAMCQ = grade.type === 'AMCQ';
-              const isSAQ = grade.type === 'SAQ';
-              const isMCQ = grade.type === 'MCQ';
-              const percentage = Math.round(isAMCQ ? grade.SquareScore : grade.percentageScore);
-              const percentageMCQ = Math.round((isMCQ ? grade.rawTotalScore / grade.maxRawScore : 0) * 100);
-              const letterGrade = getLetterGrade(percentage);
-  
-              return (
-                <div key={grade.id} style={{
-                  backgroundColor: 'white',
-                  border: grade.viewable ? '2px solid #EEEEEE' : '2px solid #EEEEEE',
-                  marginTop: '20px',
-                  borderRadius: '10px',
-                  padding: '10px',
-                  
-                  fontFamily: "'montserrat', sans-serif",
-                  position: 'relative',
-                  height: '30px',
-                  display: 'flex',
-                  cursor: grade.viewable ? 'pointer' : 'not-allowed',
-                }}
-                onClick={() => {
-                  if (grade.viewable) {
-                    navigate(`/studentresults${isAMCQ ? 'AMCQ' : (isSAQ ? '' : 'mcq')}/${grade.assignmentId}/${studentUID}/${classId}`);
-                  }
-                }}    >
-                  <div>
-                    
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '-5px' }}>
-                    
-                  <h2 style={{ fontSize: '20px', margin: '7px 20px 10px  10px', width: '330px' ,}}>{grade.assignmentName}</h2>
+        <div key={rowIndex} style={{
+          display: 'flex',
+          gap: '20px',
+        }}>
+          {pair.map((grade) => {
+            const isAMCQ = grade.type === 'AMCQ';
+            const isSAQ = grade.type === 'SAQ';
+            const isMCQ = grade.type === 'MCQ';
+            const percentage = Math.round(isAMCQ ? grade.SquareScore : grade.percentageScore);
+            const letterGrade = getLetterGrade(percentage);
 
+            return (
+              <div key={grade.id} style={{
+                backgroundColor: 'white',
+                boxShadow: '1px 1px 5px 1px rgb(0,0,155,.07)',
+                borderRadius: '15px',
+                padding: '20px 0px',
+                width: '400px',
+                fontFamily: "'montserrat', sans-serif",
+                position: 'relative',
+                cursor: grade.viewable ? 'pointer' : 'not-allowed',
+              }}
+              onClick={() => {
+                if (grade.viewable) {
+                  navigate(`/studentresults${isAMCQ ? 'AMCQ' : (isSAQ ? '' : 'mcq')}/${grade.assignmentId}/${studentUID}/${classId}`);
+                }
+              }}>
+                <h2 style={{ 
+                  fontSize: '20px', 
+                  width: '380px', 
+                  marginLeft: '20px', 
+                  marginBottom: '20px', 
+                  marginTop: '-0px'
+                }}>
+                  {grade.assignmentName}
+                </h2>
 
-                  <div style={{width: '24px', height: '24px',  borderRadius: '5px', marginTop: '0x', textAlign: 'center'}}>
-                    <span style={{ fontSize: '24px', fontWeight: 'bold' , color: 'black',lineHeight: '20px', 
-                  fontFamily: "'montserrat', sans-serif", textAlign: 'center'}}>
-                        {isAMCQ || isMCQ ? `${letterGrade}` : `${letterGrade}`}
+                <div style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'space-between', 
+                  marginTop: '-5px', 
+                  width: '400px' 
+                }}>
+                  <div style={{
+                    width: '360px',
+                    display: 'flex',
+                    marginLeft: 'auto',
+                    marginRight: 'auto',
+                  }}>
+                    <div style={{
+                      width: '24px',
+                      height: '24px',
+                      borderRadius: '5px',
+                      marginTop: '0px',
+                      textAlign: 'center'
+                    }}>
+                      <span style={{ 
+                        fontSize: '24px', 
+                        fontWeight: 'bold', 
+                        color: 'black',
+                        lineHeight: '20px',
+                        fontFamily: "'montserrat', sans-serif",
+                        textAlign: 'center'
+                      }}>
+                        {letterGrade}
                       </span>
-                      </div>
-                      <span style={{ fontSize: '20px', fontWeight: 'bold', width: '70px', marginLeft: '20px',color: 'grey', }}>
-                        {isAMCQ || isMCQ ? `${percentage}%` : `${percentage}%`}
-                      </span>
+                    </div>
 
-                      <SquareCheck size={25} style={{width: '40px', marginTop: '0px', color: '#00DE09'}}/>
-                      <div style={{ fontSize: '14px', color: 'grey' , fontStyle: 'italic', fontWeight: 'bold',   marginLeft: '0px', height: '20px', marginTop: '0px', width: '170px'}}>
-                       
+                    <span style={{ 
+                      fontSize: '20px', 
+                      fontWeight: 'bold', 
+                      width: '70px', 
+                      marginLeft: '20px',
+                      color: 'grey'
+                    }}>
+                      {percentage}%
+                    </span>
 
-                        <span style={{fontWeight: '600',}}>
+                    <SquareCheck 
+                      size={25} 
+                      style={{
+                        zIndex: '10',
+                        width: '40px',
+                        marginTop: '0px',
+                        color: '#00DE09'
+                      }}
+                    />
 
+                    <div style={{ 
+                      fontSize: '14px',
+                      color: 'grey',
+                      fontStyle: 'italic',
+                      fontWeight: 'bold',
+                      marginLeft: '0px',
+                      height: '20px',
+                      marginTop: '5px',
+                      width: '170px'
+                    }}>
+                      <span style={{ fontWeight: '600' }}>
                         {grade.submittedAt ? new Date(grade.submittedAt.toDate()).toLocaleString(undefined, {
-                      year: 'numeric',
-                      month: 'numeric',
-                      day: 'numeric',
-                      hour: '2-digit',
-                      minute: '2-digit',
-                      hour12: true
-                    }) : 'N/A'}
-                        </span>
-                        
-                 
-                  </div>
-                 
-                      <div style={{ fontSize: '16px', fontWeight: 'bold', width: '50px',   textAlign:'left',marginLeft: '60px', color: isAMCQ ? '#2BB514' : (isSAQ ? '#020CFF' : '#2BB514') }}>
-                        {isAMCQ ? 'MCQ*' : (isSAQ ? 'SAQ' : 'MCQ')}
-                      </div>
-                     
+                          year: 'numeric',
+                          month: 'numeric',
+                          day: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                          hour12: true
+                        }) : 'N/A'}
+                      </span>
+                    </div>
+
+                    <div style={{ 
+                      fontSize: '16px',
+                      fontWeight: 'bold',
+                      width: '50px',
+                      marginTop: '5px',
+                      textAlign: 'left',
+                      marginLeft: '10px',
+                      color: isAMCQ ? '#2BB514' : (isSAQ ? '#020CFF' : '#2BB514')
+                    }}>
+                      {isAMCQ ? 'MCQ*' : (isSAQ ? 'SAQ' : 'MCQ')}
                     </div>
                   </div>
-                 
-                 
-                  <span style={{ position: 'absolute', top: '10px', right: '-60px', color: grade.viewable ? '#020CFF' : 'grey' }}>
-                    {grade.viewable ? <SquareArrowRight size={40} strokeWidth={2.8} /> : ''}
+
+                  <span style={{ 
+                    position: 'absolute',
+                    top: '20px',
+                    right: '20px',
+                    color: grade.viewable ? '#020CFF' : 'grey'
+                  }}>
+                    {grade.viewable ? <Eye size={25} strokeWidth={2} /> : ''}
                   </span>
-                 
-
-
                 </div>
-              );
-            })}
-          </React.Fragment>
-        ))}
-      </div>
-    );
-  };
+              </div>
+            );
+          })}
+        </div>
+      ))}
+    </div>
+  );
+};
 
 
 
 
-
-  const renderAssignments = (assignments) => {
-    return assignments.map(assignment => {
-      const format = assignment.id.split('+').pop();
-      let formatDisplay;
-      if (format === 'SAQ') {
-        formatDisplay = <span style={{ color: '#020CFF' }}>SAQ</span>;
-      } else if (format === 'ASAQ') {
-        formatDisplay = (
-          <span>
-            <span style={{ color: '#020CFF' }}>SAQ</span>
-            <span style={{ color: '#F4C10A' }}>*</span>
-          </span>
-        );
-      } else if (format === 'MCQ') {
-        formatDisplay = <span style={{ color: '#2BB514' }}>MCQ</span>;
-      } else if (format === 'AMCQ') {
-        formatDisplay = (
-          <span>
-            <span style={{ color: '#2BB514' }}>MCQ</span>
-            <span style={{ color: '#F4C10A' }}>*</span>
-          </span>
-        );
+const renderAssignments = (assignments) => {
+  return assignments.map((assignment, index) => {
+    const getStatusIcon = () => {
+      if (activeTab === 'active') {
+        return '';
+      } else if (activeTab === 'overdue') {
+        return <CalendarX2 size={30} style={{ color: '#ff0000', strokeWidth: 2 }} />;
+      } else if (activeTab === 'upcoming') {
+        return <CalendarClock size={30} style={{ color: '#9C9C9C', strokeWidth: 2 }} />;
       }
-  
-      const formatDate = (dateString) => {
-        const date = new Date(dateString);
-        const options = { 
-          weekday: 'short', 
-          year: 'numeric', 
-          month: 'long', 
-          day: 'numeric',
-          hour: '2-digit', 
-          minute: '2-digit', 
-          hour12: true 
-        };
-        return date.toLocaleDateString('en-US', options);
+      return null;
+    };
+    const format = assignment.id.split('+').pop();
+    let formatDisplay;
+    if (format === 'SAQ') {
+      formatDisplay = <span style={{ color: '#020CFF' }}>SAQ</span>;
+    } else if (format === 'ASAQ') {
+      formatDisplay = (
+        <span>
+          <span style={{ color: '#020CFF' }}>SAQ</span>
+          <span style={{ color: '#F4C10A' }}>*</span>
+        </span>
+      );
+    } else if (format === 'MCQ') {
+      formatDisplay = <span style={{ color: '#2BB514' }}>MCQ</span>;
+    } else if (format === 'AMCQ') {
+      formatDisplay = (
+        <span>
+          <span style={{ color: '#2BB514' }}>MCQ</span>
+          <span style={{ color: '#F4C10A' }}>*</span>
+        </span>
+      );
+    }
+
+    const formatDate = (dateString) => {
+      const date = new Date(dateString);
+      const options = { 
+        weekday: 'short', 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric',
+        hour: '2-digit', 
+        minute: '2-digit', 
+        hour12: true 
       };
-  
-      return (
-        <div key={assignment.id} style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-          <li
-            key={assignment.id}
-            style={{
-              backgroundColor: 'white',
-              fontSize: '30px',
-              color: 'black',
-              marginLeft: '-40px',
-              paddingLeft: '20px',
-              paddingRight: '20px',
-              cursor: 'default',
-              display: 'flex',
-              fontFamily: "'montserrat', sans-serif",
-              transition: '.3s',
-              listStyleType: 'none',
-              textAlign: 'center',
-              position: "relative",
-              marginTop: '30px',
-              padding: '10px',
-              borderRadius: '10px', border: '2px solid ', ...getAssignmentStyle(assignment),
-            }}
-            onMouseEnter={(e) => {
-              const now = new Date();
-              const assignDateTime = new Date(assignment.assignDate);
-              const dueDateTime = new Date(assignment.dueDate);
-              if (now >= assignDateTime && now <= dueDateTime) {
-              }
-            }}
-           
-          >
-             {isActiveOrCompleted && (
-              <SquareArrowRight 
-                onClick={() => navigateToTest(
-                  assignment.id, 
-                  format, 
-                  assignment.assignDate, 
-                  assignment.dueDate, 
-                  assignment.assignmentName,
-                  assignment.saveAndExit
-                )}
-                size={40}
-                strokeWidth={2.4} 
-                style={{ position: 'absolute', right: '-60px', top: '15%', color: '#2BB514', cursor: 'pointer'}}
-              />
-            )}
-               {assignment.inProgress && (
-              <div style={{ position: 'absolute', right: '-110px', top: '18%', paddingLeft: '15px', fontWeight: 'bold', fontFamily: "'montserrat', sans-serif", border: '4px dashed lightgrey' ,fontSize: '15px',borderRadius: '5px', height:' 26px', width: '12px'  }}>
-              <Check style={{ marginLeft: '-14px', marginTop: '3px', color: 'lightgrey'}} size={20} strokeWidth={4}/>
-               
-               
-               {assignment.status === 'Paused' && (
-            <div style={{ 
-              position: 'absolute', 
-              top: '15px', 
-              left: '20px', 
-              backgroundColor: '#FFA500', 
-              paddingLeft: '15px', 
-              fontWeight: 'bold', 
-              color: 'white',
-              paddingRight: '15px',
-              fontFamily: "'montserrat', sans-serif", 
-              border: '0px solid white',
-              fontSize: '18px',
-              borderRadius: '5px' 
-            }}>
-              Paused
+      return date.toLocaleDateString('en-US', options);
+    };
+
+    // Get border color but don't apply top border if it's the first item
+    const borderColor = getBorderColor(assignment);
+    const style = {
+      backgroundColor: 'white',
+      fontSize: '30px',
+      color: 'black',
+      width: '800px',
+      marginLeft: '0px',
+      padding: '15px 10px',
+      display: 'flex',
+      fontFamily: "'montserrat', sans-serif",
+      transition: '.3s',
+      listStyleType: 'none',
+      textAlign: 'center',
+      position: "relative",
+      ...(index !== 0 && { borderTop: `2px solid #f4f4f4` }),
+      cursor: borderColor === '#EEEEEE' ? 'default' : 'not-allowed',
+    };
+
+    return (
+      <div key={assignment.id} style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+        <li
+          key={assignment.id}
+          style={style}
+          onMouseEnter={(e) => {
+            const now = new Date();
+            const assignDateTime = new Date(assignment.assignDate);
+            const dueDateTime = new Date(assignment.dueDate);
+            if (now >= assignDateTime && now <= dueDateTime) {
+              // Your mouse enter logic
+            }
+          }}
+        >
+          {/* Rest of your assignment rendering code stays exactly the same */}
+          {isActiveOrCompleted && (
+            <SquareArrowRight 
+              onClick={() => navigateToTest(
+                assignment.id, 
+                format, 
+                assignment.assignDate, 
+                assignment.dueDate, 
+                assignment.assignmentName,
+                assignment.saveAndExit
+              )}
+              size={30}
+              strokeWidth={2.4} 
+              style={{ position: 'absolute', right: '10px', top: '17px', color: '#2BB514', cursor: 'pointer'}}
+            />
+          )}
+          
+          {/* Add the status icon */}
+          <div style={{ position: 'absolute', right: '10px', top: '16px' }}>
+            {getStatusIcon()}
+          </div>
+          {assignment.inProgress && (
+            <div style={{ position: 'absolute', right: '60px', top: '20px', paddingLeft: '15px', fontWeight: 'bold', fontFamily: "'montserrat', sans-serif", border: '2px dashed lightgrey', fontSize: '15px', borderRadius: '5px', height:' 21px', width: '6px' }}>
+              <Check style={{ marginLeft: '-14px', marginTop: '3px', color: 'lightgrey'}} size={15} strokeWidth={4}/>
+              {assignment.status === 'Paused' && (
+                <div style={{ 
+                  position: 'absolute', 
+                  top: '15px', 
+                  left: '20px', 
+                  backgroundColor: '#FFA500', 
+                  paddingLeft: '15px', 
+                  fontWeight: 'bold', 
+                  color: 'white',
+                  paddingRight: '15px',
+                  fontFamily: "'montserrat', sans-serif", 
+                  border: '0px solid white',
+                  fontSize: '18px',
+                  borderRadius: '5px' 
+                }}>
+                  Paused
+                </div>
+              )}
             </div>
           )}
-              </div>
-            )}
-            <div
-            
-            
-            style={{ display: 'flex',  textAlign: 'left',  marginLeft: '10px',
-              height: '30px', width: '300px',   fontWeight: '700',fontSize: '18px',  lineHeight: '30px'
-              }}>
-               { assignment.assignmentName}  
-
-            
-           
-            </div>
-         
-         
-            <div style={{  height: '30px', width: '420px',   marginLeft: '10px', marginRight: '20px', display: 'flex' }}>
-              <div style={{ display: 'flex', marginLeft: '0px' }}>
-                <button
-                  onClick={() => setShowDueDate(false)}
-                  style={{
-                    background:showDueDate ? 'white' : '#f4f4f4',
-                    color: showDueDate ? '#B6B6B6' : '#B6B6B6',
-                    border: showDueDate ? '4px solid white' : '4px solid #f4f4f4',
-                    lineHeight: '18px',
-                    fontWeight: 'bold',
-                    padding: '0px 5px',
-                    cursor: 'pointer',
-                    fontSize: '12px',
-                    height: '25px',
-                    marginTop: '2px',
-                    position: 'relative',
-                    alignItems: 'center',
-                    fontFamily: "'montserrat', sans-serif",
-                    borderRadius: '5px'
-                 
-                  }}
-                >
-                  Assigned
-                </button>
-                <button
-                  onClick={() => setShowDueDate(true)}
-                  style={{
-                    background:showDueDate ?  '#f4f4f4': 'white' ,
-                    color: showDueDate ? '#B6B6B6' : '#B6B6B6',
-                    border: showDueDate ? '4px solid #f4f4f4':'4px solid white' ,
-                    lineHeight: '18px',
-                    fontWeight: 'bold',
-                    padding: '0px 5px',
-                    cursor: 'pointer',
-                    fontSize: '12px',
-                    marginTop: '2px',
-                    height: '25px',
-                    position: 'relative',
-                    alignItems: 'center',
-                    fontFamily: "'montserrat', sans-serif",
-                    borderRadius: '5px'
-                  }}
-                >
-                  Due
-                </button>
-                
-              </div>
-              <h1 style={{ color: 'lightgrey', fontSize: '13px', fontWeight:'600', fontFamily: "'montserrat', sans-serif'",marginTop: '6px', fontStyle:'italic',marginLeft: '10px', width: '360px', textAlign: 'left' }}>
-                {showDueDate ? formatDate(assignment.dueDate) : formatDate(assignment.assignDate)}
-              </h1>
-
-            
-
-            </div>
-            <h1 style={{ right: '0px',  top: '5px',  width: '60px', textAlign: 'left', fontSize: '16px', position: 'absolute' }}>
-                {formatDisplay} 
-              </h1>
-          </li>
-        </div>
-      );
-    });
-  };
+          <div style={{ 
+            display: 'flex',  
+            textAlign: 'left',  
+            marginLeft: '0px',
+            height: '30px', 
+            width: '290px', 
+            fontWeight: '700',
+            fontSize: '18px',  
+            lineHeight: '36px'
+          }}>
+            {assignment.assignmentName}
+          </div>
+      
+            <h1 style={{ 
+              color: 'lightgrey', 
+              fontSize: '14px', 
+              fontWeight: '600', 
+              fontFamily: "'montserrat', sans-serif",
+              marginTop: '10px', 
+              fontStyle: 'italic',
+              marginLeft: '10px', 
+              width: '290px', 
+              textAlign: 'left' 
+            }}>
+              {showDueDate ? formatDate(assignment.dueDate) : formatDate(assignment.assignDate)}
+            </h1>
+    
+          <h1 style={{ 
+            right: '95px',  
+            top: '12px',  
+            width: '60px', 
+            textAlign: 'left', 
+            fontSize: '16px', 
+            position: 'absolute' 
+          }}>
+            {formatDisplay}
+          </h1>
+        </li>
+      </div>
+    );
+  });
+};
 
   return (
-    <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', backgroundColor: 'white' }}>
+    <div style={{    minHeight: '100vh',
+      width: '100%',
+      backgroundColor: '#FCFCFC',
+      display: 'flex',
+      flexDirection: 'column',
+      position: 'relative' }}>
       <Navbar userType="student" />
       {showConfirm && (
   <RetroConfirm 
@@ -719,7 +812,7 @@ const getAssignmentStyle = (assignment) => {
         width:'90px',
         height: '100%',
         background: 'white',
-        borderRight: '4px solid #f4f4f4',
+        boxShadow: '1px 1px 2px 1px rgb(0,0,0,.07)',
         backdropFilter: 'blur(5px)',
         zIndex: '90',
         transition: 'width 0.3s ease',
@@ -727,105 +820,196 @@ const getAssignmentStyle = (assignment) => {
  
     >
 
-      <div style={{marginTop: '70px', background: 'blue', borderRight:`4px solid ${periodStyle.color}`, height: '40px', width: '80px', fontWeight: '600', lineHeight: '40px',
-      paddingLeft: '10px',
-                          backgroundColor: periodStyle.background,
-                          color: periodStyle.color,}}>
-
-            {className}
-      </div>
+      
          <div style={{
-        marginTop: '66px',
+        marginTop: '166px',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'flex-start',
         gap: '20px'
       }}>
-           {[
-          { label: 'active', icon: BookOpen, tooltip: 'Active' },
-          { label: 'completed', icon: BookOpenCheck,tooltip: 'Completed' },
-          { label: 'upcoming', icon: CalendarClock,tooltip: 'Upcoming' },
-          { label: 'overdue', icon: CalendarX2, tooltip: 'Overdue' }
-        ].map(({label, icon: Icon, tooltip}) => (
-          <div key={label}>
-             <div style={{ 
-              height: '4px', 
-              width: '80px', 
-              background: 'white', 
-              marginLeft: '10px',  
-              marginBottom: '25px',
-            }}></div>
-            <button
-              onClick={() => setActiveTab(label)}
-              style={{
-                fontSize: '15px',
-                fontFamily: "'montserrat', sans-serif",
-                background: activeTab === label ? tabStyles[label].background : 'transparent',
-                border: activeTab === label ? `4px solid ${tabStyles[label].borderColor}` : '4px solid transparent',
-                color: activeTab === label ? tabStyles[label].color : '#676767',
-                borderRadius: '10px',
-                padding: '5px 5px',
-                width: '70px',
-                marginLeft: '10px',
-                height: '70px',
-                marginBottom: '-10px',
-                cursor: 'pointer',
-                fontWeight:  'bold',
-                alignItems: 'center',
-              }}
-              onMouseEnter={(e) => {
-                if (activeTab !== label) {
-                  e.currentTarget.style.color = 'black';
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (activeTab !== label) {
-                  e.currentTarget.style.color = '#676767';
-                }
-              }}
-            >
-              <Tooltip text={tooltip}>
-              <Icon 
-                size={40} 
-                style={{marginTop: '3px'}}
-                color={activeTab === label ? tabStyles[label].color : '#9C9C9C'} 
-                strokeWidth={activeTab === label ? 2.1 : 2} 
-              />
-             </Tooltip>
-            </button>
-           
-          </div>
-        ))}
+          {[
+  { label: 'active', icon: BookOpen, tooltip: 'Active' },
+  { label: 'completed', icon: BookOpenCheck, tooltip: 'Completed' },
+  { label: 'upcoming', icon: CalendarClock, tooltip: 'Upcoming' },
+  { label: 'overdue', icon: CalendarX2, tooltip: 'Overdue' }
+].map(({label, icon: Icon, tooltip}) => (
+  <div key={label}>
+    <div style={{ 
+      height: '4px', 
+      width: '80px', 
+      background: 'white', 
+      marginLeft: '10px',  
+      marginBottom: '25px',
+    }}></div>
+    <button
+      onClick={() => setActiveTab(label)}
+      style={{
+        fontSize: '15px',
+        fontFamily: "'montserrat', sans-serif",
+        background: activeTab === label ? tabStyles[label].background : 'transparent',
+        border: '4px solid transparent',
+        boxShadow: activeTab === label ? '1px 1px 2px 1px rgb(0,0,0,.07)' : 'none',
+        color: activeTab === label ? tabStyles[label].color : '#676767',
+        borderRadius: '10px',
+        padding: '5px 5px',
+        width: '70px',
+        marginLeft: '10px',
+        height: '70px',
+        marginBottom: '-10px',
+        cursor: 'pointer',
+        fontWeight: 'bold',
+        alignItems: 'center',
+        transition: 'all .3s ease',
+      }}
+      onMouseEnter={(e) => {
+        if (activeTab !== label) {
+          e.currentTarget.style.color = 'black';
+          e.currentTarget.style.boxShadow = '1px 1px 2px 1px rgb(0,0,0,.07)';
+          e.currentTarget.style.background = '#FAFAFA';
+        }
+      }}
+      onMouseLeave={(e) => {
+        if (activeTab !== label) {
+          e.currentTarget.style.color = '#676767';
+          e.currentTarget.style.boxShadow = 'none';
+          e.currentTarget.style.background = 'transparent';
+        }
+      }}
+    >
+      <Tooltip text={tooltip}>
+        <Icon 
+          size={40} 
+          style={{
+            marginTop: '3px',
+            transition: 'all .3s ease'
+          }}
+          color={activeTab === label ? tabStyles[label].color : '#9C9C9C'} 
+          strokeWidth={activeTab === label ? 2.1 : 1.7} 
+        />
+      </Tooltip>
+    </button>
+  </div>
+))}
 </div>
           </div>
-      <div style={{ width: '850px', marginRight: 'auto', marginLeft: 'auto', marginTop: '160px', }}>
-        <div style={{ display: 'flex', marginBottom: '50px', width: '800px', position: 'relative', alignItems: 'center' }}>
-        <h1 style={{ fontSize: '60px', fontFamily: "'montserrat', sans-serif", textAlign: 'left', margin: '0', flex: '1' }}>
-            Assignments
-          </h1>
-          <div style={{
-            width: '100px', 
-            position: 'absolute',
-            left: '440px',
-            fontFamily: "'montserrat', sans-serif",
-            fontWeight: 'bold' ,
-            background: tabStyles[activeTab].background, 
-            
-            paddingLeft: '20px',
- paddingRight: '80px ',
- borderRadius: '10px',
- borderLeft: '6px solid ',
-  borderColor:   `${tabStyles[activeTab].borderColor}` || 'grey',
- height: '40px',
- lineHeight: '40px',
-  backgroundColor: `${tabStyles[activeTab].background}` || 'white', 
-  color: `${tabStyles[activeTab].color}` || 'grey',
-  fontSize: '20px', 
-          }}>
-            {activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}
+
+          <div style={{ width: '840px', marginRight: 'auto', marginLeft: 'auto', marginTop: '160px', }}>
+          <div style={{ display: 'flex', width: '860px' }}>
+          <div style={{   height: '150px',  paddingLeft: '30px', background: 'white', borderRadius: '15px',  boxShadow: '1px 1px 5px 1px rgb(0,0,155,.07)', width: '450px', marginLeft: '40px'}}> 
+          <h1 style={{ 
+          fontSize: `${textSize}px`,
+          fontFamily: '"montserrat", sans-serif',
+          fontWeight: '600',
+          marginBottom: '10px',
+          transition: 'font-size 0.3s ease',
+          textAlign: 'left',
+          color: '#2c2c2c'
+        }}>
+          {studentName}
+        </h1>
+        <h2 style={{ 
+          fontSize: '24px',
+          fontFamily: '"montserrat", sans-serif',
+          fontWeight: '600',
+          color: 'grey',
+          textAlign: 'left'
+        }}>
+          Grade: {calculatedAverage}%
+        </h2>
           </div>
+          <div style={{   height: '150px',   position:'relative', background: 'white', borderRadius: '15px',  boxShadow: '1px 1px 5px 1px rgb(0,0,155,.07)', width: '315px', marginLeft: 'auto', }}> 
+            <h1 style={{position: 'absolute', overflow: 'hidden',
+                    textOverflow: 'ellipsis', top: '-15px',  backgroundColor: periodStyle.background,
+                          color: periodStyle.color, border: '8px solid', width: '300px', fontSize: '20px', textAlign: 'center', height: '30px', paddingTop: '05px', borderRadius: '15px 15px 0px 0px ' }}>{classChoice}</h1>
+            <h1 style={{textAlign: 'center', lineHeight: '130px', fontSize: '45px', fontWeight: '600',color: '#7C7C7C'}}>{className}</h1>
           </div>
+
+          
+          </div>
+  <div style={{ 
+    display: 'flex', 
+    marginBottom: '40px', 
+    marginTop: '50px',
+    width: '780px', 
+    position: 'relative', 
+    marginLeft: '40px' 
+  }}>
+    <h1 style={{ 
+      fontSize: '30px', 
+      fontFamily: "'montserrat', sans-serif", 
+      textAlign: 'left', 
+      margin: '0', 
+      flex: '1', 
+      fontWeight: '600',
+      marginBottom: '15px',
+      marginLeft: '20px', 
+    }}>
+      {activeTab.charAt(0).toUpperCase() + activeTab.slice(1)} Assignments
+    </h1>
+    
+    {activeTab !== 'completed' && (
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: '10px'
+      }}>
+        <span style={{
+          fontSize: '15px',
+          color: '#676767',
+          fontWeight: '600',
+          fontFamily: "'montserrat', sans-serif",
+        }}>
+           Show Dates By:
+        </span>
+        <div style={{ display: 'flex', gap: '5px' }}>
+          <button
+            onClick={() => setShowDueDate(false)}
+            style={{
+              background: showDueDate ? '#fcfcfc' : '#f4f4f4',
+              color: '#B6B6B6',
+              border: showDueDate ? '4px solid #fcfcfc' : '4px solid #f4f4f4',
+              lineHeight: '18px',
+              fontWeight: 'bold',
+              padding: '0px 10px',
+              cursor: 'pointer',
+              fontSize: '12px',
+              height: '25px',
+              position: 'relative',
+              alignItems: 'center',
+              fontFamily: "'montserrat', sans-serif",
+              borderRadius: '5px'
+            }}
+          >
+            {activeTab === 'upcoming' ? 'Assigns' : 'Assigned'}
+          </button>
+          <button
+            onClick={() => setShowDueDate(true)}
+            style={{
+              background: showDueDate ? '#f4f4f4' : '#fcfcfc',
+              color: '#B6B6B6',
+              border: showDueDate ? '4px solid #f4f4f4' : '4px solid #fcfcfc',
+              lineHeight: '18px',
+              fontWeight: 'bold',
+              padding: '0px 10px',
+              cursor: 'pointer',
+              fontSize: '12px',
+              height: '25px',
+              position: 'relative',
+              alignItems: 'center',
+              fontFamily: "'montserrat', sans-serif",
+              borderRadius: '5px'
+            }}
+          >
+            Due
+          </button>
+        </div>
+      </div>
+    )}
+  </div>
         <div style={{ position: 'relative' }}>
+
+         
           <ul style={{ listStyleType: 'none', marginTop: '-30px' }}>
             {activeTab === 'completed' ? (
               completedAssignments.length === 0 ? (
@@ -833,15 +1017,22 @@ const getAssignmentStyle = (assignment) => {
                   No completed assignments
                 </div>
               ) : (
-                renderCompletedAssignments()
+                <div style={{width: '820px',  }}>
+                {renderCompletedAssignments()}
+                </div>
               )
             ) : (
               filteredAssignments[activeTab].length === 0 ? (
-                <div style={{ textAlign: 'left', fontSize: '20px', fontFamily: "'montserrat', sans-serif", color: 'grey', marginTop: '50px', marginLeft: '-40px' }}>
+                <div style={{ textAlign: 'left', fontSize: '20px', fontFamily: "'montserrat', sans-serif", color: 'grey', marginTop: '50px', marginLeft: '0px' }}>
                   No {activeTab} assignments
                 </div>
               ) : (
-                renderAssignments(filteredAssignments[activeTab])
+                <div style={{ textAlign: 'center', fontSize: '20px', fontFamily: "'montserrat', sans-serif", color: 'grey', marginTop: '20px', 
+                  borderRadius: '15px', 
+                  boxShadow: '1px 1px 5px 1px rgb(0,0,155,.07)' , padding: '15px', background: 'white' }}>
+              
+              {renderAssignments(filteredAssignments[activeTab])}
+</div>
               )
             )}
           </ul>

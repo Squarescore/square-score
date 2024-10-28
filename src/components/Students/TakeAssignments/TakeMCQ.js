@@ -3,6 +3,7 @@ import { arrayRemove, arrayUnion, doc, getDoc, setDoc, updateDoc, serverTimestam
 import { useParams, useNavigate } from 'react-router-dom';
 import { db, auth } from '../../Universal/firebase';
 import Loader from '../../Universal/Loader';
+import { SquareArrowLeft, SquareArrowRight } from 'lucide-react';
 
 function TakeMCQ() {
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -522,16 +523,18 @@ function TakeMCQ() {
   </button>
 )}
  {questions.length > 0 && (
-        <div style={{ width: '1000px', marginLeft: 'auto', marginRight: 'auto', marginTop: '150px', position: 'relative' }}>
+        <div style={{ width: '1000px', marginLeft: 'auto',   borderRadius: '20px',      boxShadow: '1px 1px 5px 1px rgb(0,0,155,.07)' , marginRight: 'auto', marginTop: '250px', position: 'relative' }}>
           <div style={{
-            backgroundColor: 'white', width: '900px', color: 'black', border: '10px solid #f4f4f4',
-            textAlign: 'center', fontWeight: 'bold', padding: '40px', borderRadius: '30px', fontSize: '40px', position: 'relative',
+            backgroundColor: '#f4f4f4',  
+       width: '900px',  border: '10px solid lightgrey',
+       borderRadius: ' 20px 20px 0px 0px',
+            textAlign: 'center', fontWeight: 'bold', padding: '10px 40px', fontSize: '25px', position: 'relative', color: 'grey',
             marginLeft: 'auto', marginRight: 'auto', marginTop: '0px', fontFamily: "'montserrat', sans-serif", userSelect: 'none'
           }}>
             {questions[currentQuestionIndex]?.question}
           </div>
           
-          <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', marginTop: '50px' }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', marginTop: '50px', marginBottom: '50px' }}>
             {Object.keys(questions[currentQuestionIndex] || {})
               .filter(key => key.match(/^[a-z]$/))
               .map((choice, index, array) => {
@@ -558,7 +561,7 @@ function TakeMCQ() {
                       display: 'flex',
                       justifyContent: 'center',
                       alignItems: 'center',
-                      minHeight: '80px',
+                      minHeight: '50px',
                       transition: 'all 0.3s ease',
                       ...(isLastRow && { marginLeft: 'auto', marginRight: 'auto' })
                     }}
@@ -583,11 +586,9 @@ function TakeMCQ() {
         style={currentQuestionIndex > 0 ? buttonStyles.active : buttonStyles.default}
         onClick={currentQuestionIndex > 0 ? () => setCurrentQuestionIndex(prev => prev - 1) : null}
       >
-        <img
-          src={currentQuestionIndex > 0 ? '/rightgreenarrow.png' : '/rightgreyarrow.png'}
-          alt="Previous"
-          style={{ width: '100%', marginRight:'100px',transform: 'scaleX(-1)', cursor: currentQuestionIndex > 0 ? 'pointer' : 'default' }}
-        />
+         {currentQuestionIndex > 0 ? <SquareArrowLeft size={60} style={{cursor: currentQuestionIndex > 0  ? 'pointer' : 'default', position: 'fixed', left: '20px', top: '400px', color: '#2BB514'}}/> : <SquareArrowLeft size={60} style={{cursor: currentQuestionIndex > 0 ? 'pointer' : 'default', position: 'fixed', left: '20px', top: '400px', color: 'grey'}}/>}
+       
+     
       </button>
 
 
@@ -610,11 +611,8 @@ function TakeMCQ() {
         style={currentQuestionIndex < questions.length - 1 ? buttonStyles.active : buttonStyles.default}
         onClick={currentQuestionIndex < questions.length - 1 ? () => setCurrentQuestionIndex(prev => prev + 1) : null}
       >
-        <img
-          src={currentQuestionIndex < questions.length - 1 ? '/rightgreenarrow.png' : '/rightgreyarrow.png'}
-          alt="Next"
-          style={{ width: '100%', marginLeft:'0px', cursor: currentQuestionIndex < questions.length - 1 ? 'pointer' : 'default' }}
-        />
+        {currentQuestionIndex < questions.length - 1 ? <SquareArrowRight size={60} style={{cursor: currentQuestionIndex < questions.length - 1 ? 'pointer' : 'default', position: 'fixed', right: '20px', top: '400px', color: '#2BB514'}}/> : <SquareArrowRight size={60} style={{cursor: currentQuestionIndex < questions.length - 1 ? 'pointer' : 'default', position: 'fixed', right: '20px', top: '400px', color: 'grey'}}/>}
+         
       </button>
     </div>
    

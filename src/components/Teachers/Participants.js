@@ -139,16 +139,6 @@ const Participants = () => {
     return () => clearInterval(intervalId);
   }, [classId]);
   
-  const sortedParticipants = currentClass.participants
-  ? [...currentClass.participants].sort((a, b) =>
-      a.name.split(' ')[1].localeCompare(b.name.split(' ')[1])
-    )
-  : [];
-
-// Split participants into two columns
-const halfLength = Math.ceil(sortedParticipants.length / 2);
-const leftColumn = sortedParticipants.slice(0, halfLength);
-const rightColumn = sortedParticipants.slice(halfLength);
 
   useEffect(() => {
     if (isEditing) {
@@ -163,6 +153,7 @@ const rightColumn = sortedParticipants.slice(halfLength);
   }, [timeMultipliers, isEditing]);
 
   const formatMultiplier = (multiplier) => `${(multiplier * 100).toFixed(0)}%`;
+
 
  
 
@@ -225,10 +216,59 @@ const rightColumn = sortedParticipants.slice(halfLength);
   };
   const handleBack = () => {
     navigate(-1);
+  }; 
+  const getLastNamePrefix = (fullName) => {
+    if (!fullName) return 'A'; // Default to 'A' if fullName is undefined
+    const nameParts = fullName.split(' ');
+    if (nameParts.length < 2) return 'A'; // Default to 'A' if there's no last name
+    const lastName = nameParts.pop();
+    const prefix = lastName.substring(0, 2).toLowerCase();
+    return prefix.charAt(0).toUpperCase() + prefix.charAt(1) + '';
   };
+
+  // Function to format the range string
+  const formatRange = (start, end) => {
+    if (!start || !end) return 'A-Z'; // Default range if start or end is undefined
+    if (start === 'A' || end === 'Z') {
+      return `${start}-${end}`;
+    }
+    return `${start}-${end}`;
+  };
+
+  // Sort participants by last name
+  const sortedParticipants = currentClass.participants
+    ? [...currentClass.participants].sort((a, b) =>
+        (a.name || '').split(' ').pop().localeCompare((b.name || '').split(' ').pop())
+      )
+    : [];
+
+  // Split participants into three columns
+  const columnLength = Math.ceil(sortedParticipants.length / 3);
+  const firstColumn = sortedParticipants.slice(0, columnLength);
+  const secondColumn = sortedParticipants.slice(columnLength, columnLength * 2);
+  const thirdColumn = sortedParticipants.slice(columnLength * 2);
+
+  // Get the range for each column
+  const getColumnRange = (column) => {
+    if (column.length === 0) return 'N/A';
+    const firstPrefix = getLastNamePrefix(column[0]?.name);
+    const lastPrefix = getLastNamePrefix(column[column.length - 1]?.name);
+    return formatRange(firstPrefix, lastPrefix);
+  };
+
+  const firstColumnRange = formatRange('A', getLastNamePrefix(firstColumn[firstColumn.length - 1]?.name));
+  const secondColumnRange = getColumnRange(secondColumn);
+  const thirdColumnRange = thirdColumn.length > 0 ? formatRange(getLastNamePrefix(thirdColumn[0]?.name), 'Z') : 'N/A';
+
   return (
-    <div style={{  display: 'flex', flexDirection: 'column', backgroundColor: 'white',paddingBottom: '30px' }}>
-  
+    <div style={{
+      minHeight: '100vh',
+      width: '100%',
+      backgroundColor: '#FCFCFC',
+      display: 'flex',
+      flexDirection: 'column',
+      position: 'relative'
+    }}>
   <style>
         {`
          .tooltip {
@@ -238,31 +278,21 @@ const rightColumn = sortedParticipants.slice(halfLength);
 
 .tooltip .tooltiptext {
   visibility: hidden;
-  width: 120px;
-  background-color: lightgrey;
-  color: #f4f4f4;
-  text-align: center;
+  width: 90px;
+  background-color: #f4f4f4;
+  color: grey;
+  text-align: left;
   border-radius: 6px;
   padding: 5px;
   position: absolute;
   z-index: 1;
-  top: 90%;
+  top: 150%;
   right: 150%; /* Changed from right to left */
   transform: translateY(-50%);
   opacity: 0;
   transition: opacity 0.3s;
 }
 
-.tooltip .tooltiptext::after {
-  content: "";
-  position: absolute;
-  top: 38%;
-  right: 100%; /* Changed from left to right */
-  margin-top: -5px;
-  border-width: 5px;
-  border-style: solid;
-  border-color: transparent lightgrey transparent transparent; /* Adjusted for left-pointing arrow */
-}
 
 .tooltip:hover .tooltiptext {
   visibility: visible;
@@ -297,14 +327,34 @@ const rightColumn = sortedParticipants.slice(halfLength);
   
  
 
-  <div style={{width: '720px', display: 'flex', marginLeft: 'auto', marginRight: 'auto', marginTop: '60px', height: '190px', paddingTop: '10px', borderBottom: '4px solid #f4f4f4', marginBottom: '60px', }}>
-   
-   <div>
-    <h1 style={{ fontSize: '60px', marginTop: '30px', width: '270px',  marginRight: '10px',fontFamily: "'montserrat', sans-serif", marginLeft: '0px' }}>
-    {currentClass.className}</h1>
+  <div style={{width: '830px', display: 'flex', marginLeft: 'auto', marginRight: 'auto', marginTop: '60px', height: '170px', paddingTop: '10px', marginBottom: '60px', }}>
+ 
+ 
+ 
+  <div style={{width: '320px', border: '6px solid white',   marginTop: '0px' ,  marginRight: 'auto',
+    background: 'white',
+               boxShadow: '1px 1px 5px 1px rgb(0,0,155,.07)',
+      
+       borderRadius: '15px', padding: '10px', marginBottom: '10px', height: '140px'}}>
+  
+  <h1 style={{fontSize: '25px', color: '#FFAA00', fontFamily: "'montserrat', sans-serif",  margin: '-16px', padding: '5px 0px 5px 0px', borderRadius: '15px 15px 0px 0px ',
+    
+    background: '#FFF2AD', border: '6px solid #FFAA00', textAlign: 'center' }}>{currentClass.classChoice}</h1>  
+       <h2 style={{ width: '100%', textAlign: 'center', fontSize: '50px',fontWeight: '600', overflow: 'hidden',
+                    textOverflow: 'ellipsis',  color: '#7C7C7C',  marginTop: '40px', fontFamily: "'montserrat', sans-serif",}}>
+       {currentClass.className}
+    </h2>
+    
+  </div>
 
-     
-<div style={{display: 'flex', width: '340px', marginTop: '-45px',  marginLeft: '0px', }}> 
+
+
+
+   <div style={{ width: '400px', background: 'white',
+               boxShadow: '1px 1px 5px 1px rgb(0,0,155,.07)',  borderRadius: '15px', paddingLeft: '30px'}}>
+
+
+   <div style={{display: 'flex', width: '340px', marginTop: '20px',  marginLeft: '0px', }}> 
 
 <div
        
@@ -317,7 +367,7 @@ const rightColumn = sortedParticipants.slice(halfLength);
           fontWeight:'600',
           height: '50px',
           fontSize: '25px',
-          marginLeft: '10px',
+          marginLeft: '0px',
           width: '290px',
           textAlign: 'left',
           lineHeight: '50px',
@@ -326,18 +376,38 @@ const rightColumn = sortedParticipants.slice(halfLength);
           borderRadius: '8px',
         }}
       >
-             {currentClass.participants ? currentClass.participants.length : 0} Students Enrolled
+             Class Code
            
      </div>
-      <button 
+    
+
+</div>
+    <h1 style={{ fontSize: '60px', marginTop: '0px', width: '270px',  marginRight: '10px',fontFamily: "'montserrat', sans-serif", marginLeft: '0px' }}>
+      {currentClass.classCode}</h1>
+
+     
+
+      </div>
+
+
+  
+      
+   
+</div>
+
+<div style={{width: '800px',marginLeft: 'auto', marginRight: 'auto', display: 'flex', marginTop: '-30px', marginBottom: '-10px'}}>
+<h1 style={{fontWeight: '600', fontSize: '30px'}}>{currentClass.participants ? currentClass.participants.length : 0} Students 
+</h1>
+
+<button 
         onClick={toggleEditMode}
         style={{ 
           fontSize: '12px',
           textDecoration: 'none',
           color: 'blue',
-          marginLeft: '-20px',
+          marginLeft: '20px',
           height: '35px',
-         marginTop: '10px',
+         marginTop: '22px',
           backgroundColor: '#f4f4f4',
           fontFamily: "'montserrat', sans-serif",
           border: 'none', 
@@ -349,61 +419,131 @@ const rightColumn = sortedParticipants.slice(halfLength);
           cursor: 'pointer' 
         }}
       >
-        {isEditing ? <div style={{marginTop:'5px', marginLeft:'0px'}}><PencilOff size={20} color="lightgrey" strokeWidth={2} /></div> : <div style={{marginTop:'5px',  marginLeft:'0px'}}><Pencil size={20} color="grey" strokeWidth={2} /></div>}
+        {isEditing ? <div style={{marginTop:'5px', marginLeft:'0px'}}><PencilOff size={25} color="lightgrey" strokeWidth={2} /></div> : <div style={{marginTop:'5px',  marginLeft:'0px'}}><Pencil size={25} color="grey" strokeWidth={2} /></div>}
       </button>
+</div>   
+<div style={{ display: 'flex', maxWidth: '800px', margin: 'auto',  marginTop: '10px' }}>
 
-</div>
+
+<div style={{ width: '320px', padding: '20px',  background: 'white', 
+               boxShadow: '1px 1px 5px 1px rgb(0,0,155,.07)', borderRadius: '15px', marginLeft: '-15px' }}>
+<h1 style={{fontSize: '20px', marginTop: '0px'}}>{firstColumnRange}</h1>
+        {firstColumn.map((student) => (
+            <StudentCard
+              key={student.uid}
+              student={student}
+              isEditing={isEditing}
+              timeMultipliers={timeMultipliers}
+              handleTimeMultiplierChange={handleTimeMultiplierChange}
+              removeAccommodations={removeAccommodations}
+              handleRemoveStudent={handleRemoveStudent}
+              navigateToStudentGrades={navigateToStudentGrades}
+            />
+          ))}
+        </div>
+
+        <div style={{ width: '2px', background: 'transparent', marginLeft: '0px', marginRight: '10px'  }}></div>
+
+        <div style={{ width: '320px', padding: '20px',  background: 'white', 
+               boxShadow: '1px 1px 5px 1px rgb(0,0,155,.07)', borderRadius: '15px' }}>
+        <h1 style={{fontSize: '20px', marginTop: '0px'}}>{secondColumnRange}</h1>
+          {secondColumn.map((student) => (
+            <StudentCard
+              key={student.uid}
+              student={student}
+              isEditing={isEditing}
+              timeMultipliers={timeMultipliers}
+              handleTimeMultiplierChange={handleTimeMultiplierChange}
+              removeAccommodations={removeAccommodations}
+              handleRemoveStudent={handleRemoveStudent}
+              navigateToStudentGrades={navigateToStudentGrades}
+            />
+          ))}
+        </div>
+
+        <div style={{ width: '2px', background: 'transparent', marginLeft: '0px', marginRight: '10px' }}></div>
+
+        <div style={{ width: '320px', padding: '20px',  background: 'white', 
+               boxShadow: '1px 1px 5px 1px rgb(0,0,155,.07)', borderRadius: '15px' }}>
+        <h1 style={{fontSize: '20px', marginTop: '0px'}}>{thirdColumnRange}</h1>
+          {thirdColumn.map((student) => (
+            <StudentCard
+              key={student.uid}
+              student={student}
+              isEditing={isEditing}
+              timeMultipliers={timeMultipliers}
+              handleTimeMultiplierChange={handleTimeMultiplierChange}
+              removeAccommodations={removeAccommodations}
+              handleRemoveStudent={handleRemoveStudent}
+              navigateToStudentGrades={navigateToStudentGrades}
+            />
+          ))}
+        </div>
+      </div>
+    
+    </div>
+);
+};
+const StudentCard = ({ student, isEditing, timeMultipliers, handleTimeMultiplierChange, removeAccommodations, handleRemoveStudent, navigateToStudentGrades }) => {
+  const formatMultiplier = (multiplier) => `${(multiplier * 100).toFixed(0)}%`;
+  const formatName = (fullName, isEditing) => {
+    const [firstName, ...lastNameParts] = fullName.split(' ');
+    const lastName = lastNameParts.join(' ');
+    
+    if (isEditing) {
+      const lastNamePrefix = lastName.substring(0, 2).toLowerCase();
+      return (
+        <>
+          <span style={{fontWeight: '600', color: 'grey'}}>{lastNamePrefix[0].toUpperCase() + lastNamePrefix[1].toLowerCase()} ,  </span>
+          <strong>{firstName}</strong>
+        </>
+      );
+    } else {
+      return (
+        <>
+          <span style={{fontWeight: '600', color: 'grey'}}>{lastName}, </span>
+          <strong>{firstName}</strong>
+        </>
+      );
+    }
+  };
+  const confirmAndRemoveStudent = () => {
+    const fullName = student.name;
+    if (window.confirm(`Are you sure you want to remove ${fullName} from this class?`)) {
+      handleRemoveStudent(student.uid);
+    }
+  };
+
+  return (
+    <div style={{ width: '220px', marginBottom: '0px', display: 'flex', flexDirection: 'row', borderTop: ' 2px solid #f4f4f4',  padding: ' 25px 5px', backgroundColor: 'white', position: 'relative', }}>
+      {/* Student Name */}
+      <div style={{ width: '80%',  }}>
+      <div style={{ cursor: 'pointer' }} onClick={() => navigateToStudentGrades(student.uid)}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.color = 'blue';
+              e.currentTarget.style.textDecoration = 'underline';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.color = 'black';
+              e.currentTarget.style.textDecoration = 'none';
+            }}
+        >
+          {formatName(student.name, isEditing)}
+        </div>
       </div>
 
+      {/* Email Icon with Tooltip */}
+      {!isEditing && (
+        <div className="tooltip" style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', zIndex: '100' }}>
+          <Mail size={20} color="lightgrey" style={{position: 'absolute', right: '-5px'}} />
+          <span className="tooltiptext" style={{ fontSize: '12px', width: '190px', backgroundColor: 'white', color: 'black', zIndex: '100', padding: '5px', borderRadius: '5px', marginTop: '5px', marginLeft: '-40px', border: '' }}>{student.email}</span>
+        </div>
+      )}
 
-    <div style={{width: '200px', border: '6px solid #f4f4f4',  marginLeft: 'auto', marginTop: '35px' ,  marginRight: '0px',
-      
-       borderRadius: '15px', padding: '10px', marginBottom: '10px', height: '80px'}}>
-  
-  <h1 style={{fontSize: '20px', color: '#FFAA00', fontFamily: "'montserrat', sans-serif",  margin: '-16px', padding: '5px 0px 5px 0px', borderRadius: '15px 15px 0px 0px ',
     
-    background: '#FFF2AD', border: '6px solid #FFAA00', textAlign: 'center' }}>Class Code</h1>  
-       <h2 style={{ width: '100%', textAlign: 'center', fontSize: '30px',fontWeight: '700', color: 'black',  marginTop: '25px', fontFamily: "'montserrat', sans-serif",}}>
-      {currentClass.classCode}
-    </h2>
-    
-  </div>
-      
-   
-</div>
-<div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', maxWidth: '700px', margin: 'auto' }}>
-     
-{currentClass.participants && currentClass.participants.length > 0 ? (
-        sortedParticipants.map((student, index) => (
-          <div key={student.uid} style={{ width: '300px', marginBottom: '20px', display: 'flex', flexDirection: 'row', border: '2px solid #EEEEEE', borderRadius: '10px', padding: '15px', backgroundColor: 'white', position: 'relative' }}>
-            {/* Student Name */}
-            <div style={{ width: '70%' }}>
-              <div style={{ cursor: 'pointer' }} onClick={() => navigateToStudentGrades(student.uid)}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.color = 'blue' ;
-                 
-                    e.currentTarget.style.textDecoration =  ' underline';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.color =  ' black';
-                    
-                    e.currentTarget.style.textDecoration =  ' none';
-                  }}
-                  >
-                <span>{student.name.split(' ')[1]}, </span>
-                <strong>{student.name.split(' ')[0]}</strong>
-              </div>
-            </div>
-
-            {/* Email Icon with Tooltip */}
-            <div className="tooltip" style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center',zIndex: '100' }}>
-              <Mail size={20} color="lightgrey" style={{position: 'absolute', right: '5px'}} />
-              <span className="tooltiptext" style={{ fontSize: '12pt', width: '300px', backgroundColor: 'white', color: 'black',zIndex: '100' , padding: '5px', borderRadius: '5px', marginTop: '-5px', marginLeft: '-10px' }}>{student.email}</span>
-            </div>
-
-            {/* Timer Icon with accommodations logic */}
-            {timeMultipliers[student.uid] !== 1 && timeMultipliers[student.uid] !== undefined ? (
-              <div
+      {timeMultipliers[student.uid] !== 1 && timeMultipliers[student.uid] !== undefined ? (
+             
+             <div
                 className="accomodations-tag tooltip"
                 style={{
                   zIndex: 10,
@@ -418,12 +558,13 @@ const rightColumn = sortedParticipants.slice(halfLength);
                   fontWeight: 'bold',
                   fontSize: '14px',
                   position: 'absolute',
-                  left: '250px',
+                  left: '175px',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                 }}
               >
+                 
                 <Timer size={25} />
                 <div
                   style={{
@@ -440,29 +581,44 @@ const rightColumn = sortedParticipants.slice(halfLength);
                   }}
                 >
                   +
+                  
                 </div>
                 <span className="tooltiptext">Time: {formatMultiplier(timeMultipliers[student.uid])}</span>
+
+                
                 {isEditing && (
                   <div style={{ position: 'absolute', right: '30px', display: 'flex', alignItems: 'center' }}>
-                    <input
-                      type="number"
-                      min="1"
-                      step="0.1"
-                      value={timeMultipliers[student.uid]}
-                      onChange={(e) => handleTimeMultiplierChange(student.uid, e.target.value)}
-                      style={{
-                        width: '40px',
-                        height: '25px',
-                        color: 'black',
-                        border: '4px solid #f4f4f4',
-                        borderRadius: '5px',
-                        fontWeight: 'bold',
-                        fontFamily: "'montserrat', sans-serif",
-                        background: 'white',
-                        outline: 'rgb(72, 164, 158)',
-                        marginRight: '5px',
-                      }}
-                    />
+                      <input
+  type="number"
+  min="1"
+  value={timeMultipliers[student.uid]}
+  onChange={(e) => handleTimeMultiplierChange(student.uid, e.target.value)}
+  style={{
+    width: '40px',
+    height: '25px',
+    color: 'black',
+    border: '1px solid #f4f4f4',
+    borderRadius: '5px',
+    fontWeight: 'bold',
+    fontFamily: "'montserrat', sans-serif",
+    background: 'white',
+    outline: 'rgb(72, 164, 158)',
+    marginRight: '5px',
+    // Styles to remove arrows
+    WebkitAppearance: 'none',
+    MozAppearance: 'textfield',
+    appearance: 'textfield',
+    // Additional styles to remove arrows in specific browsers
+    '::-webkit-inner-spin-button': {
+      WebkitAppearance: 'none',
+      margin: 0,
+    },
+    '::-webkit-outer-spin-button': {
+      WebkitAppearance: 'none',
+      margin: 0,
+    },
+  }}
+/>
                     <div
                       onClick={() => removeAccommodations(student.uid)}
                       style={{
@@ -494,7 +650,7 @@ const rightColumn = sortedParticipants.slice(halfLength);
                   position: 'relative',
                   width: '25px',
                   height: '25px',
-                  marginRight: '20px',
+                  marginRight: '40px', marginLeft: '10px',
                   cursor: 'pointer',
                 }}
               >
@@ -515,61 +671,61 @@ const rightColumn = sortedParticipants.slice(halfLength);
                   }}
                 >
                   +
+                  
+                  <div
+                      onClick={() => removeAccommodations(student.uid)}
+                      style={{
+                        position: 'absolute',
+                        top: '-15px',
+                        right: '-4px',
+                        backgroundColor: 'white',
+                        color: 'lightgrey',
+                        fontSize: '20px',
+                        textAlign: 'center',
+                        width: '12px',
+                        height: '12px',
+                        lineHeight: '10px',
+                        fontWeight: 'bold',
+                        borderRadius: '10px',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      +
+                    </div>
                 </div>
+            
               </div>
             )}
 
-            {/* Remove Student Button */}
-            {isEditing && (
-              <button
-                onClick={() => handleRemoveStudent(student.uid)}
-                style={{
-                  backgroundColor: 'transparent',
-                  fontFamily: "'montserrat', sans-serif",
-                  borderColor: 'transparent',
-                  color: 'red',
-                  position: 'absolute',
-                  right: '-10px',
-                  top: '-10px',
-                  zIndex: '990',
-                  height: '30px',
-                  width: '30px',
-                  borderRadius: '6px',
-                  background: 'white',
-                  border: 'none',
-                  cursor: 'pointer',
-                }}
-              >
-                <SquareX size={30} color="#e60000" strokeWidth={3} />
-              </button>
-               
-            )}
-      </div>
-     
-      
-    ))
+         
 
-      
-) : (
-  <div style={{
-    width: '600px',
-    marginLeft: 'auto',
-    marginRight: 'auto',
-
-    textAlign: 'left',
-    padding: '20px',
-    backgroundColor: 'white',
-    borderRadius: '10px',
-    fontFamily: "'montserrat', sans-serif",
-    fontSize: '18px',
-    color: '#666'
-  }}>
-    <h1 style={{color: 'lightgrey', fontSize: '24px', marginLeft: '-80px'}}>Add your first students by having them input the class code in their join class page, their requests will show up here</h1>
-  </div>
-)}
- </div>
-</div>
-);
+      {/* Remove Student Button */}
+      {isEditing && (
+        <button
+        onClick={confirmAndRemoveStudent}
+          style={{
+            backgroundColor: 'transparent',
+            fontFamily: "'montserrat', sans-serif",
+            borderColor: 'transparent',
+            color: 'red',
+            position: 'absolute',
+            right: '0px',
+           
+            zIndex: '990',
+            height: '20px',
+            width: '20px',
+            borderRadius: '6px',
+            background: 'white',
+            border: 'none',
+            cursor: 'pointer',
+          }}
+        >
+          <SquareX size={20} color="#e60000" strokeWidth={2.5} />
+        </button>
+      )}
+    </div>
+  );
 };
+
 
 export default Participants;

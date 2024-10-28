@@ -224,7 +224,7 @@ borderBottom: '4px solid lightgrey'
             >
               {schoolData.schoolName}</h2>
             <div style={{ display: 'flex', justifyContent: 'space-around', marginTop: '10px', marginBottom: '100px' }}>
-              <div style={{ flex: 1, padding: '0px', border: '10px solid #f4f4f4', borderRadius: '30px', marginRight: '10px' }}>
+              <div style={{ flex: 1, padding: '0px', border: '10px solid white', borderRadius: '30px', marginRight: '10px' }}>
               <div
   style={{
     border: '10px solid lightgrey',
@@ -266,7 +266,7 @@ borderBottom: '4px solid lightgrey'
                 }}>To join the school, have teachers input this code on their home page</h2>
               </div>
               <Link to="/admin-ub" style={{ textDecoration: 'none' }}> {/* Add the Link component */}
-  <div style={{ flex: 1, padding: '20px', border: '10px solid #f4f4f4', borderRadius: '30px', marginLeft: '10px' }}>
+  <div style={{ flex: 1, padding: '20px', border: '10px solid white', borderRadius: '30px', marginLeft: '10px' }}>
     <div>
       <h3
         style={{

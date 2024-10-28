@@ -8,7 +8,7 @@ import 'react-datepicker/dist/react-datepicker.css';
 import PreviewAMCQ from './previewAMCQ';
 import axios from 'axios';
 import { auth,db } from '../../Universal/firebase';
-import { CalendarCog, SquareDashedMousePointer, Sparkles, GlobeLock, Eye, PencilRuler  } from 'lucide-react';
+import { CalendarCog, SquareDashedMousePointer, Sparkles, GlobeLock, Eye, PencilRuler, SendHorizonal, ChevronDown, ChevronUp  } from 'lucide-react';
 import CustomExpandingFormatSelector from './ExpandingFormatSelector';
 import SelectStudentsDW from './SelectStudentsDW';
 import SecuritySettings from './SecuritySettings';
@@ -531,7 +531,7 @@ const generateQuestions = async () => {
         state: {
           successMessage: `Success: ${assignmentName} published`,
           assignmentId: finalAssignmentId,
-          format: format
+          format: 'AMCQ'
         }
       });
     } catch (error) {
@@ -555,11 +555,18 @@ const generateQuestions = async () => {
   };
 
   return (
-    <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', backgroundColor: 'white' }}>
-      <Navbar userType="teacher" />
+    <div style={{    position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,    overflowY: 'auto',
+      display: 'flex',
+      flexDirection: 'column',
+      backgroundColor: '#fcfcfc'}}>  <Navbar userType="teacher" />
       <style>{dropdownContentStyle}{loaderStyle}</style>
-      <div style={{ marginTop: '30px', width: '800px', marginLeft: 'auto', marginRight: 'auto', fontFamily: "'montserrat', sans-serif",  }}>
- 
+      <div style={{ marginTop: '150px', width: '860px', padding: '15px', marginLeft: 'auto', marginRight: 'auto', fontFamily: "'montserrat', sans-serif", background: 'white', borderRadius: '25px', 
+               boxShadow: '1px 1px 10px 1px rgb(0,0,155,.1)', marginBottom: '40px' }}>
+       
               
         <button
           onClick={handlePrevious}
@@ -587,7 +594,7 @@ const generateQuestions = async () => {
         >
         </button>
         
-        <div style={{ marginLeft: '30px',  fontFamily: "'montserrat', sans-serif", color: 'black', fontSize: '60px', display: 'flex',marginTop: '130px', marginBottom: '180px', fontWeight: 'bold' }}>
+        <div style={{ marginLeft: '30px',  fontFamily: "'montserrat', sans-serif", color: 'black', fontSize: '60px', display: 'flex',marginTop: '20px', marginBottom: '180px', fontWeight: 'bold' }}>
         Create
      
   
@@ -602,8 +609,8 @@ const generateQuestions = async () => {
         </div>
 
         <div style={{ width: '100%', height: 'auto', marginTop: '-200px', border: '10px solid transparent', borderRadius: '20px', padding: '20px' }}>
-          <div style={{ width: '810px', marginLeft: 'auto', marginRight: 'auto', marginTop: '30px' }}>
-          <div style={{ position: 'relative' }}>
+          <div style={{ width: '810px', marginLeft: '0px', marginTop: '30px' }}>
+          <div style={{ position: 'relative',  }}>
   {assignmentName && (
     <h1 style={{
       position: 'absolute',
@@ -631,7 +638,7 @@ const generateQuestions = async () => {
       padding: '10px',
       paddingLeft: '25px',
       outline: 'none',
-      border: '2px solid #eeeeee',
+      border: ' 2px solid #f4f4f4',
       borderRadius: '10px',
       fontFamily: "'montserrat', sans-serif",
       fontWeight: 'bold',
@@ -652,8 +659,8 @@ const generateQuestions = async () => {
   </span>
 </div>
             <div style={{ width: '810px', display: 'flex' }}>
-              <div style={{ marginBottom: '0px', width: '790px', height: '200px', borderRadius: '10px', border: '4px solid #F4F4F4' }}>
-                <div style={{ width: '730px', marginLeft: '20px', height: '80px', borderBottom: '4px solid #f4f4f4', display: 'flex', position: 'relative', alignItems: 'center', borderRadius: '0px', padding: '10px' }}>
+              <div style={{ marginBottom: '0px', width: '790px', height: '200px', borderRadius: '10px', border: '2px solid #F4F4F4' }}>
+                <div style={{ width: '730px', marginLeft: '20px', height: '80px', borderBottom: '2px solid #f4f4f4', display: 'flex', position: 'relative', alignItems: 'center', borderRadius: '0px', padding: '10px' }}>
                   <h1 style={{ fontSize: '30px', color: 'black', width: '300px', paddingLeft: '0px' }}>Timer:</h1>
                   {timerOn ? (
                     <div style={{ display: 'flex', alignItems: 'center', position: 'relative', marginLeft: '30px' }}>
@@ -663,8 +670,10 @@ const generateQuestions = async () => {
                           marginLeft: '-200px',
                           height: '30px',
                           width: '50px',
+                          
+    fontFamily: "'montserrat', sans-serif",
                           textAlign: 'center',
-                          fontWeight: 'bold',
+                          fontWeight: '600',
                           border: '4px solid transparent',
                           outline: 'none',
                           borderRadius: '5px',
@@ -674,17 +683,16 @@ const generateQuestions = async () => {
                         value={timer}
                         onChange={(e) => setTimer(e.target.value)}
                       />
-                      <h1 style={{ marginLeft: '-5px', fontSize: '26px' }}>Minutes</h1>
+                      <h1 style={{ marginLeft: '-5px', fontSize: '26px',   fontWeight: '600', }}>Minutes</h1>
                     </div>
                   ) : (
                     <span style={{
                       marginLeft: '-150px',
                       height: '30px',
                       width: '50px',
-                      fontWeight: 'bold',
                       textAlign: 'center',
                       marginTop: '0px',
-                      fontSize: '30px',
+                      fontSize: '30px',  fontWeight: '600',
                       color: 'grey'
                     }}>
                       Off
@@ -709,8 +717,8 @@ const generateQuestions = async () => {
                         width: '160px',
                         textAlign: 'center',
                         transition: '.3s',
-                        borderRadius: '5px',
-                        fontWeight: feedback === 'instant' ? 'bold' : '600',
+                        borderRadius: '10px',
+                        fontWeight: feedback === 'instant' ? '600' : '500',
                         backgroundColor: feedback === 'instant' ? '#AEF2A3' : 'white',
                         color: feedback === 'instant' ? '#2BB514' : 'grey',
                         border: feedback === 'instant' ? '4px solid #2BB514' : '4px solid transparent',
@@ -729,9 +737,9 @@ const generateQuestions = async () => {
                         width: '230px',
                         textAlign: 'center',
                         transition: '.3s',
-                        borderRadius: '5px',
+                        borderRadius: '10px',
                         backgroundColor: feedback === 'at_completion' ? '#AEF2A3' : 'white',
-                        fontWeight: feedback === 'at_completion' ? 'bold' : '600',
+                        fontWeight: feedback === 'at_completion' ? '600' : '500',
                         color: feedback === 'at_completion' ? '#2BB514' : 'grey',
                         border: feedback === 'at_completion' ? '4px solid #2BB514' : '4px solid transparent',
                         cursor: 'pointer'
@@ -788,7 +796,7 @@ const generateQuestions = async () => {
               </div>
             )}
 
-            <div style={{ width: '770px', padding: '10px', marginTop: '20px', border: '2px solid #eeeeee', borderRadius: '10px', marginBottom: '20px', zIndex: '-10' }}>
+            <div style={{ width: '770px', padding: '10px', marginTop: '20px', border: ' 2px solid #f4f4f4', borderRadius: '10px', marginBottom: '20px', zIndex: '-10' }}>
               <button
                 onClick={() => setContentDropdownOpen(!contentDropdownOpen)}
                 style={{
@@ -808,11 +816,8 @@ const generateQuestions = async () => {
               >
                 <Sparkles size={40} color="#000000" />
                 <h1 style={{ fontSize: '30px', marginLeft: '20px', marginRight: 'auto', fontFamily: "'montserrat', sans-serif" }}>Generate Questions</h1>
-                <img
-                  src={contentDropdownOpen ? '/Up.png' : '/Down.png'}
-                  alt={contentDropdownOpen ? "Collapse" : "Expand"}
-                  style={{ width: '20px' }}
-                />
+            {contentDropdownOpen ? <ChevronUp style={{color: 'grey'}}/> : <ChevronDown style={{color: 'grey'}}/>}
+              
               </button>
 
               <div className={`dropdown-content ${contentDropdownOpen ? 'open' : ''}`}>
@@ -820,7 +825,7 @@ const generateQuestions = async () => {
                
 
                   <div style={{ width: '750px', height: '80px', border: '4px solid transparent', display: 'flex', position: 'relative', alignItems: 'center', borderRadius: '10px', padding: '10px', marginLeft: '-10px' }}>
-                  <h1 style={{ fontSize: '25px', color: 'black', width: '400px', paddingLeft: '20px' }}>Choices Per Question</h1>
+                  <h1 style={{ fontSize: '25px', color: 'black', width: '400px', paddingLeft: '20px',   fontWeight: '600', }}>Choices Per Question:</h1>
                   <div style={{ marginLeft: 'auto', marginTop: '45px', display: 'flex', position: 'relative', alignItems: 'center' }}>
                     {[2, 3, 4, 5].map((num) => (
                       <button
@@ -833,13 +838,13 @@ const generateQuestions = async () => {
                           }
                         }}
                         style={{
-                          width: '85px',
+                          width: '60px',
                           height: '40px',
                           marginLeft: '20px',
                           marginTop: '-45px',
                           backgroundColor: selectedOptions.includes(num) ? optionStyles[num].background : 'white',
-                          border: selectedOptions.includes(num) ? `5px solid ${optionStyles[num].color}` : '4px solid lightgrey',
-                          borderRadius: '105px',
+                          border: selectedOptions.includes(num) ? `4px solid ${optionStyles[num].color}` : '4px solid lightgrey',
+                          borderRadius: '10px',
                           cursor: 'pointer',
                           transition: 'all 0.3s ease',
                         }}
@@ -880,7 +885,7 @@ const generateQuestions = async () => {
 
                     {/* Additional Instructions Section */}
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '-15px' }}>
-                      <h1 style={{ marginTop: '20px', color: 'grey', display: 'flex', fontSize: '25px', alignItems: 'center' }}>
+                      <h1 style={{ marginTop: '20px', color: 'grey', display: 'flex', fontSize: '25px', alignItems: 'center',  fontWeight: '600', }}>
                         Additional instructions
                         <p style={{ fontSize: '20px', marginTop: '20px', marginLeft: '10px', color: 'lightgrey' }}>- optional</p>
                       </h1>
@@ -912,7 +917,7 @@ const generateQuestions = async () => {
                           marginTop: '-20px',
                           fontFamily: "'montserrat', sans-serif",
                           borderRadius: '10px',
-                          border: '2px solid #eeeeee',
+                          border: ' 2px solid #f4f4f4',
                           outline: 'none'
                         }}
                         type='text'
@@ -986,11 +991,11 @@ const generateQuestions = async () => {
 
 
 
-
+    <div style={{display: 'flex', height: '50px'}}>
               <button
                  onClick={saveDraft}
                  style={{
-                  width: '260px',
+                  width: '270px',
                   height: '60px',
                   marginTop: '0px',
                   border: '4px solid lightgrey',
@@ -1012,29 +1017,46 @@ const generateQuestions = async () => {
 
 
 
-            {isReadyToPublish() && (
-                <button
-                  onClick={saveAssignment}
-                  style={{
-                    width: '790px',
-                    height: '50px',
-                    marginTop: '0px',
-                    border: '4px solid #348900',
-                    marginBottom: '40px',
-                    backgroundColor: '#AEF2A3',
-                    color: '#348900',
-                    borderRadius: '10px',
-                    fontSize: '20px',fontFamily: "'montserrat', sans-serif",  
-                    fontWeight: 'bold',
-                    cursor: 'pointer',
-                    transition: 'background-color 0.3s ease',
-                  }}
-                  onMouseEnter={(e) => e.target.style.backgroundColor = '#45a049'}
-                  onMouseLeave={(e) => e.target.style.backgroundColor = '#AEF2A3'}
-                >
-                  Publish Assignment
-                </button>
-              )}
+              <button
+              onClick={saveAssignment}
+              disabled={!assignmentName || generatedQuestions.length === 0}
+style={{
+  width: '480px',
+  height: '60px',
+  marginTop: '0px',
+  border: '4px solid ',
+  marginBottom: '40px',
+   marginLeft: 'auto',
+   marginRight :'16px',
+  opacity: (!assignmentName || generatedQuestions.length === 0) ? '0%' : '100%',
+  backgroundColor: (!assignmentName || generatedQuestions.length === 0) ? '#f4f4f4' : '#A6FFAF',
+  color: (!assignmentName || generatedQuestions.length === 0) ? 'lightgrey' : '#00D409',
+  
+  borderColor: (!assignmentName || generatedQuestions.length === 0) ? 'lightgrey' : '#00D409',
+  borderRadius: '10px',
+  fontSize: '20px',
+  fontFamily: "'montserrat', sans-serif",  
+  fontWeight: 'bold',
+  cursor: (!assignmentName || generatedQuestions.length === 0) ? 'default' : 'pointer',
+  display: 'flex',
+  transition: 'background-color 0.3s ease',
+}}
+onMouseEnter={(e) => {
+  if (assignmentName && generatedQuestions.length > 0) {
+    e.target.style.borderColor = '#2BB514';
+  }
+}}
+onMouseLeave={(e) => {
+  if (assignmentName && generatedQuestions.length > 0) {
+    e.target.style.borderColor = '#00D409';
+  }
+}}
+            >
+              <h1 style={{fontSize: '25px', marginTop: '10px', marginLeft: '15px',background: 'transparent'}}>Publish</h1>
+              <SendHorizonal size={40} style={{marginLeft: 'auto', marginTop: '5px', background: 'transparent'}} /> 
+            </button>
+         
+          </div>
           </div>
         </div>
       </div>

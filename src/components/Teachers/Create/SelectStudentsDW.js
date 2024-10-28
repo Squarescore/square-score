@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
-import { SquareDashedMousePointer } from 'lucide-react';
+import { ChevronDown, ChevronUp, SquareDashedMousePointer } from 'lucide-react';
 import SelectStudents from './SelectStudents';
 
 const SelectStudentsDW = ({ classId, selectedStudents, setSelectedStudents }) => {
   const [studentsDropdownOpen, setStudentsDropdownOpen] = useState(false);
 
   return (
-    <div style={{ width: '770px', padding: '10px', marginTop: '20px', border: '2px solid #eeeeee', borderRadius: '10px', marginBottom: '20px' }}>
+    <div style={{ width: '770px', padding: '10px', marginTop: '20px', border: ' 2px solid #f4f4f4', borderRadius: '10px', marginBottom: '20px' }}>
       <button
         onClick={() => setStudentsDropdownOpen(!studentsDropdownOpen)}
         style={{
@@ -25,11 +25,9 @@ const SelectStudentsDW = ({ classId, selectedStudents, setSelectedStudents }) =>
       >
         <SquareDashedMousePointer size={40} color="#000000" />  
         <h1 style={{ fontSize: '30px', marginRight: 'auto', marginLeft: '20px', fontFamily: "'montserrat', sans-serif" }}>Select Students</h1>
-        <img
-          src={studentsDropdownOpen ? '/Up.png' : '/Down.png'}
-          alt={studentsDropdownOpen ? "Collapse" : "Expand"}
-          style={{ width: '20px' }}
-        />
+    
+       {studentsDropdownOpen ? <ChevronUp  style={{color: 'grey'}}/> : <ChevronDown style={{color: 'grey'}}/>}
+          
       </button>
 
       <div className={`dropdown-content ${studentsDropdownOpen ? 'open' : ''}`}>

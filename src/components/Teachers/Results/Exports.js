@@ -152,7 +152,9 @@ const Exports = ({ assignmentId }) => {
           borderRadius: '20px',
           width: '1000px',
           maxHeight: '80vh',  
-          border: '10px solid #f4f4f4',
+          border: '10px solid white',
+          
+               boxShadow: '1px 1px 5px 1px rgb(0,0,155,.07)' ,
           display: 'flex',
           marginTop: '70px',
           flexDirection: 'column',

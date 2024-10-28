@@ -1,54 +1,75 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useRef } from 'react';
 import TextareaAutosize from 'react-textarea-autosize';
-import axios from 'axios';
+import { SquareX, CornerDownRight, Repeat, SquarePlus, Clipboard, ClipboardMinus, ClipboardList, SquareArrowLeft } from 'lucide-react';
+
+
 const TeacherPreviewASAQ = ({ questionsWithIds, setQuestionsWithIds, sourceText, questionCount, classId, teacherId }) => {
   const containerRef = useRef(null);
-  const [textareaHeight, setTextareaHeight] = useState({});
-
-
   const [showRegenerateDropdown, setShowRegenerateDropdown] = useState(false);
   const [regenerateInput, setRegenerateInput] = useState('');
   const [isRegenerating, setIsRegenerating] = useState(false);
-  
-  const updateTextareaHeight = (index, height) => {
-    setTextareaHeight(prev => ({...prev, [index]: height}));
+  const [showRubrics, setShowRubrics] = useState({});
+  const difficultyColors = {
+    easy: '#A6FFAF',
+    medium: '#FFDE67',
+    hard: '#FF6B6B',
   };
-  
+
   const handleDeleteQuestion = (indexToDelete) => {
     const newQuestions = questionsWithIds.filter((_, index) => index !== indexToDelete);
     setQuestionsWithIds(newQuestions);
   };
-  const difficultyColors = {
-    easy: 'lightblue',
-    medium: 'blue',
-    hard: 'darkblue'
+  const handleNevermind = () => {
+    setShowRegenerateDropdown(false);
+    setRegenerateInput('');
+  };
+  const toggleRubric = (index) => {
+    setShowRubrics(prev => ({
+      ...prev,
+      [index]: !prev[index]
+    }));
   };
   const handleChangeDifficulty = (index) => {
     const difficulties = ['easy', 'medium', 'hard'];
-    const currentDifficulty = questionsWithIds[index].difficulty;
+    const currentDifficulty = questionsWithIds[index].difficulty || 'easy';
     const currentIndex = difficulties.indexOf(currentDifficulty);
     const newDifficulty = difficulties[(currentIndex + 1) % 3];
     handleEditQuestion(index, 'difficulty', newDifficulty);
   };
+
+  const handleRegenerateSubmit = async () => {
+    setIsRegenerating(true);
+    try {
+      // Implement regeneration logic here
+      console.log('Regenerating questions...');
+      // After regeneration:
+      setShowRegenerateDropdown(false);
+      setRegenerateInput('');
+    } catch (error) {
+      console.error('Error regenerating questions:', error);
+    } finally {
+      setIsRegenerating(false);
+    }
+  };
+
   const handleAddQuestion = () => {
     const newQuestion = {
       questionId: `newQuestion${questionsWithIds.length}`,
       difficulty: 'easy',
-      question: "New question",
-      rubric: "New expected response"
+      question: 'New question',
+      rubric: 'New expected response',
     };
 
     let insertIndex = questionsWithIds.length;
     if (containerRef.current) {
       const containerHeight = containerRef.current.clientHeight;
       const scrollPosition = containerRef.current.scrollTop;
-      const approximateQuestionHeight = 150; // Adjust this value based on your average question height
+      const approximateQuestionHeight = 150;
       
       insertIndex = Math.floor((scrollPosition + containerHeight / 2) / approximateQuestionHeight);
       insertIndex = Math.min(insertIndex, questionsWithIds.length);
     }
 
-   
     const newQuestions = [
       ...questionsWithIds.slice(0, insertIndex),
       newQuestion,
@@ -56,7 +77,6 @@ const TeacherPreviewASAQ = ({ questionsWithIds, setQuestionsWithIds, sourceText,
     ];
     setQuestionsWithIds(newQuestions);
 
-    // Scroll to the new question after it's added
     setTimeout(() => {
       if (containerRef.current) {
         const newQuestionElement = containerRef.current.children[insertIndex];
@@ -65,33 +85,6 @@ const TeacherPreviewASAQ = ({ questionsWithIds, setQuestionsWithIds, sourceText,
         }
       }
     }, 0);
-  };
-  const handleRegenerateSubmit = async () => {
-    setIsRegenerating(true);
-    try {
-      const response = await axios.post('https://us-central1-square-score-ai.cloudfunctions.net/RegenerateASAQ', {
-        sourceText,
-        questionCount,
-        QuestionsPreviouslyGenerated: JSON.stringify(questionsWithIds),
-        instructions: regenerateInput,
-        classId,
-        teacherId
-      });
-
-      const regeneratedQuestions = response.data.questions.map((newQuestion, index) => ({
-        ...newQuestion,
-        questionId: questionsWithIds[index] ? questionsWithIds[index].questionId : `newQuestion${index}`
-      }));
-
-      setQuestionsWithIds(regeneratedQuestions);
-      setShowRegenerateDropdown(false);
-      setRegenerateInput('');
-    } catch (error) {
-      console.error('Error regenerating questions:', error);
-      // Optionally, show an error message to the user
-    } finally {
-      setIsRegenerating(false);
-    }
   };
 
   const handleEditQuestion = (index, field, value) => {
@@ -103,213 +96,326 @@ const TeacherPreviewASAQ = ({ questionsWithIds, setQuestionsWithIds, sourceText,
   return (
     <div style={{
       width: '900px',
-      height: '500px',
+      height: '550px',
       marginTop: '-20px',
-      border: '10px solid lightgrey',
-      background: 'RGB(255,255,255,.95)',
+      border: '10px solid white',
+      
+               boxShadow: '1px 1px 5px 1px rgb(0,0,155,.07)' ,
+      background: 'RGB(255,255,255)',
       backdropFilter: 'blur(5px)',
-      borderRadius: '30px',
+      borderRadius: '20px',
       padding: '20px',
       marginLeft: 'auto',
       marginRight: 'auto',
       position: 'relative',
     }}>
-        <div style={{
+      <div style={{
         width: '940px',
-        backgroundColor: '#FFDE67',
+        backgroundColor: '#FCD3FF',
         marginLeft: '-30px',
         display: 'flex',
-        height: '50px',
-        border: '10px solid #F5A200',
-        borderTopRightRadius: '30px',
-        borderTopLeftRadius: '30px',
+        height: '70px',
+        border: '10px solid #D800FB',
+        borderTopRightRadius: '20px',
+        borderTopLeftRadius: '20px',
         marginTop: '-30px'
       }}>
-        <h1 style={{fontSize: '20px', fontFamily: "'montserrat', sans-serif", color: '#F5A200', marginLeft: 'auto'}}>Don't like these questions?</h1>
-        <h1 
-          style={{fontSize: '20px', fontFamily: "'montserrat', sans-serif", color: '#1421FF', cursor: 'pointer', marginLeft: '20px', marginRight: 'auto'}}
-          onClick={() => setShowRegenerateDropdown(!showRegenerateDropdown)}
-        >
-          Regenerate
-        </h1>
+        <h1 style={{fontSize: '30px', fontFamily: "'montserrat', sans-serif", color: '#D800FB', marginLeft: '80px',marginTop: '15px', }}>Question Bank</h1>
+       
       </div>
       {showRegenerateDropdown && (
         <div style={{
-          backgroundColor: '#FFDE67',
+          backgroundColor: 'white',
           padding: '10px',
           position: 'absolute',
-          zIndex:'100',
+          zIndex:'101',
           width: 'calc(100% - 20px)',
           marginLeft: '-30px',
-          marginTop: '-90px',
-          border: '10px solid #F5A200',
-          borderTop: '10px solid #F5A200',
-          borderTopLeftRadius: '20px',
-          borderTopRightRadius: '20px',
+          marginTop: '0px',
+          border: '10px solid white',
+          
+               boxShadow: '1px 1px 5px 1px rgb(0,0,155,.07)' ,
+          borderTop: '0px solid white',
+          borderRadius: '0px 0px 20px 20px',
+          height: '490px'
         }}>
-          <input
+
+          <h1 style={{marginLeft: '90px', marginTop:'60px'}}>Regenerate</h1>
+          <TextareaAutosize
             type="text"
             value={regenerateInput}
             onChange={(e) => setRegenerateInput(e.target.value)}
-            placeholder="Enter general adjustments you want made to questions..."
+            placeholder="Enter general adjustments you want made to questions"
             style={{
-              width: '400px',
-              marginLeft: '100px',
-              marginRight: '30px',
+              width: '700px',
+              marginLeft: '90px',
+              height:'100px',
+              marginRight: '40px',
               padding: '10px',
               fontFamily: "'montserrat', sans-serif",
-              margin: '10px 0',
+            fontSize: '25px',
               borderRadius: '5px',
-              border: '1px solid #48A49E',
+              fontWeight: '600',
+              border: '2px solid lightgrey',
             }}
+            minRows={4}
           />
           <button
             onClick={handleRegenerateSubmit}
             disabled={isRegenerating}
             style={{
-              padding: '10px 20px',
-              backgroundColor: isRegenerating ? '#A0A0A0' : '#F5A200',
-              color: 'white',
-              border: 'none',
-              borderRadius: '5px',
-              cursor: isRegenerating ? 'not-allowed' : 'pointer',
-              fontFamily: "'montserrat', sans-serif",
-              fontWeight: 'bold',
+             
+              padding: '5px 20px',
+                backgroundColor: '#FBD3FF',
+                color: '#D800FB',
+              marginLeft: '20px',
+                marginTop: "5px",
+                border: '4px solid #D800FB',
+                lineHeight: '20px',
+                borderRadius: '8px',
+                height: '40px',
+                fontFamily: "'montserrat', sans-serif",
+                cursor: 'pointer',
+                fontWeight: 'bold',
+                display:'flex',
+                fontSize: '16px',
+              
+              position: 'absolute', 
+              top: '310px',
+              left: '80px',
             }}
           >
+               <Repeat style={{marginLeft: '-10px', marginRight: '10px', marginTop: '-2px'}}/>
+       
             {isRegenerating ? 'Regenerating...' : 'Regenerate'}
+          </button>
+          <button
+            onClick={handleNevermind}
+            style={{
+              backgroundColor: 'white',
+              border: '0px solid lightgrey',
+              color: 'grey',
+              borderRadius: '10px',
+              cursor: 'pointer',
+              fontFamily: "'montserrat', sans-serif",
+              fontWeight: 'bold',
+              position: 'absolute', 
+              top: '70px',
+              left: '10px', 
+            }}
+          >
+            <SquareArrowLeft size={50}/>
           </button>
         </div>
       )}
-      <h2 style={{color: 'lightgrey', fontSize: '16px', fontWeight: 'normal'}}>Click on a question to edit, Possible answers indicate the most likely student responses, questions that have various answers should have etc at the end. Ex- cats,dogs,hamsters, etc.</h2>
-      <div ref={containerRef} style={{ height: '400px', overflowY: 'auto' , width: '880px', marginRight: 'auto', marginLeft: 'auto'}}>
+
+
+
+
+<div style={{display: 'flex', width: '840px', marginLeft: '20px', marginRight: 'auto', marginTop: '20px',  marginBottom: '20px'}}>
+      <h2 style={{color: 'lightgrey', fontSize: '16px', fontWeight: 'bold', width: '390px',  }}>Click to edit difficulty, questions and rubrics.</h2>
+  
+        <button
+        onClick={handleAddQuestion}
+        style={{
+        
+          padding: '5px 20px',
+          backgroundColor: '#A6FFAF',
+          color: '#2BB514',
+          width: '190px',
+          display: 'flex',
+          marginLeft: 'auto',
+          marginTop: "5px",
+          border: '4px solid #2BB514',
+          lineHeight: '24px',
+          borderRadius: '8px',
+          height: '40px',
+          fontFamily: "'montserrat', sans-serif",
+          cursor: 'pointer',
+          fontWeight: 'bold',
+          fontSize: '16px'
+        }}
+      >
+        
+        <SquarePlus style={{marginLeft: '-15px', marginRight: '10px', marginTop: '0px'}}/>
+        Add Question
+      </button>
+      <div 
+          style={{ padding: '5px 20px',
+            backgroundColor: '#FBD3FF',
+            color: '#D800FB',
+          marginLeft: '20px',
+            marginTop: "5px",
+            border: '4px solid #D800FB',
+            lineHeight: '20px',
+            borderRadius: '8px',
+            height: '20px',
+            fontFamily: "'montserrat', sans-serif",
+            cursor: 'pointer',
+            fontWeight: 'bold',
+            display:'flex',
+            fontSize: '16px'}}
+          
+          
+          
+          onClick={() => setShowRegenerateDropdown(!showRegenerateDropdown)}
+        >
+          <Repeat style={{marginLeft: '-10px', marginRight: '10px', marginTop: '-3px'}}/>
+          Regenerate
+        </div>
+        </div> 
+      
+      
+        <div ref={containerRef} style={{ height: '400px', overflowY: 'auto', width: '930px', marginLeft: '-40px' }}>
         {questionsWithIds.map((question, index) => (
           <div key={index} style={{ 
             padding: '10px', 
-            marginTop: '20px',
+            marginTop: '0px',
+            marginBottom: '-10px',
             border: '0px solid lightgrey', 
             borderRadius: '10px', 
-            width: '700px', 
+            width: '820px', 
             marginLeft: '50px', 
-            
             position: 'relative',
             display: 'flex',
             flexDirection: 'column',
           }}>
-           <div style={{
-  width: '100%', 
-  borderRadius: '10px', 
-  display: 'flex',
-  position: 'relative',
-  alignItems: 'flex-start', // Changed to 'flex-start'
-  marginBottom: '10px',
-}}>
-  <h1 style={{marginRight: '20px', marginTop: '15px'}}>{index + 1}.</h1>
-  <div style={{display: 'flex', alignItems: 'stretch', marginLeft: '0px'}}>
-    <button
-      onClick={() => handleChangeDifficulty(index)}
-      style={{
-        background: difficultyColors[question.difficulty],
-        border: '0px solid transparent',
-        fontWeight: 'bold',
-        color: 'white',
-        zIndex: '100',
-        fontSize: '25px',
-        borderRadius: '10px',
-        borderTopRightRadius: '0px',
-        borderBottomRightRadius: '0px',
-        padding: '15px',
-        textAlign: 'center',
-        width: '120px',
-        fontFamily: "'montserrat', sans-serif",
-        cursor: 'pointer',
-        height: textareaHeight[index] ? `${parseInt(textareaHeight[index]) + 34}px` : 'auto', // Use the stored height
-        minHeight: '56px', // Minimum height for single line
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-      }}
-    >
-      {question.difficulty}
-    </button>
-  </div>
+            <div style={{
+              width: '820px', 
+              borderRadius: '10px', 
+              display: 'flex',
+              fontSize: '12px',
+              position: 'relative',
+              marginBottom: '10px', 
+            }}>
+              
+              <div 
+               onClick={() => handleChangeDifficulty(index)}
 
-  <TextareaAutosize
-    style={{
-      border: `2px solid ${difficultyColors[question.difficulty]}`, 
-      padding: '15px',
-      fontFamily: "'montserrat', sans-serif",
-      fontWeight: 'bold',
-      fontSize: '18px',
-      background: 'rgb(255,255,255,.01)',
-      backdropFilter: 'blur(5px)',
-      borderRadius: '10px',
-      borderTopLeftRadius: '0px',
-      borderBottomLeftRadius: '0px',
-      width: '100%',
-      resize: 'none',
-      overflow: 'hidden',
-      minRows: '1', // Adjust this value as needed
-    }}
-    value={question.question}
-    onChange={(e) => handleEditQuestion(index, 'question', e.target.value)}
-    onHeightChange={(height) => updateTextareaHeight(index, height)}
-    minRows={1}
-  />
-
-              <button 
-                onClick={() => handleDeleteQuestion(index)}
-                style={{position: 'absolute', right: '-14px', top: '-10px', background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer'}}
-              >
-                <img style={{width: '30px'}} src='/redcirclex.png' alt="Delete"/>
-              </button>
-            </div>
-           
-
-
-            <div style={{display: 'flex', alignItems: 'center', marginLeft: '50px', position: 'relative', }}>
-              <img style={{width: '50px', height: '31px', marginRight: '20px',marginLeft: '100px', marginTop: '-10px'}} src='/greydownrightarrow.png' alt="Arrow"/>
+               style={{width:'70px ', background: 'white', position: 'absolute', top: '-10px', left: '60px', border: '2px solid #f4f4f4', 
+                textAlign: 'center', fontWeight: '600', borderRadius: '5px',
+                  fontFamily: "'montserrat', sans-serif",
+              }}> {question.difficulty || 'easy'}</div>
+              <div style={{
+                marginRight: '-4px',
+                zIndex: '1',
+                background: '#FBD3FF',
+                color: '#D800FB',
+                padding: '6px 8px',
+                border: '4px solid #D800FB',
+                position: 'relative',
+                borderRadius: '10px 0px 0px 10px',
+                display: 'flex',
+                alignItems: 'center',
+                alignSelf: 'stretch',
+              }}>
+            
+                <h1 style={{ margin: 'auto' }}>{index + 1}.</h1>
+              </div>
               <TextareaAutosize
                 style={{
-                  width: '480px',
-                  border: '2px solid lightgrey',
-               
+                  border: '4px solid #f4f4f4',
                   padding: '15px',
-                  borderRadius: '10px',
+                  paddingRight: '8%',
                   fontFamily: "'montserrat', sans-serif",
+                  fontWeight: 'bold',
+                  fontSize: '20px',
+                  borderRadius: '0px 10px 10px 0px',
+                  width: '100%',
                   resize: 'none',
-                  overflow: 'hidden'
+                  lineHeight: '1.2', // Add this to control line height
                 }}
-                value={`Probable answer: ${question.rubric}`}
-                onChange={(e) => handleEditQuestion(index, 'rubric', e.target.value.replace('Probable answer: ', ''))}
+                value={question.question}
+                onChange={(e) => handleEditQuestion(index, 'question', e.target.value)}
                 minRows={1}
               />
-            </div>
+
+      <button
+        onClick={() => toggleRubric(index)}
+        style={{
+          position: 'absolute',
+          right: '21px',
+          top: '50%',
+          transform: 'translateY(-50%)',
+          fontSize: '20px', 
+          background: '#f4f4f4',
+          border: '4px solid lightgrey',
+          borderRadius: '8px',
+          height: '40px',
+          width: '40px',
+          color: 'grey'
+        }}
+      >
+        {showRubrics[index] ? (
+          <ClipboardMinus style={{marginLeft: '-2px', marginTop: '2px'}}/>
+        ) : (
+          <ClipboardList style={{marginLeft: '-2px', marginTop: '2px'}}/>
+        )}
+      </button>
+      <button 
+                onClick={() => handleDeleteQuestion(index)}
+                style={{position: 'absolute', right: '-10px', top: '-10px', fontSize: '20px', 
+     
             
+                  zIndex: '10',
+                  height: '30px', 
+                  width: '30px',
+                  borderRadius: '6px',
+                  background: 'white',
+                  border: 'none',
+                  cursor: 'pointer',
+                  
+                }}
+              >
+                <div style={{marginTop: '-2px', marginLeft: '-4px', }}>
+                <SquareX size={30} color="#e60000" strokeWidth={3} /></div>
+          
+              </button>
+            </div>
+        
+            
+            {showRubrics[index] && (
+              <div style={{display: 'flex', alignItems: 'center', marginLeft: '-80px', position: 'relative', marginBottom: '20px'}}>
+                <div style={{marginLeft: '100px'}}>
+                  <CornerDownRight size={40} color="#c9c9c9" strokeWidth={3} />
+                </div>
+                <div style={{  width: '30px', 
+                padding: '8px', 
+                background: '#f4f4f4', 
+                border: '4px solid lightgrey', 
+                color: 'grey', 
+                zIndex: '10', 
+                marginLeft: '20px',
+                borderRadius: '10px 0px 0px 10px',
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                alignSelf: 'stretch',
+                }}> 
+
+                  <ClipboardList style={{margin: 'auto'}}size={30}/>
+                </div>
+                <TextareaAutosize
+                  style={{
+                    width: '700px',
+                    border: '4px solid #F4F4F4',
+                    padding: '15px',
+                    fontWeight: '600',
+                    color: 'grey',
+                    marginLeft: '-4px',
+                    borderRadius: ' 0px 10px 10px 0px',
+                    fontFamily: "'montserrat', sans-serif",
+                    resize: 'none',
+                  }}
+                  value={`${question.rubric}`}
+                  onChange={(e) => handleEditQuestion(index, 'rubric', e.target.value.replace('Probable answer: ', ''))}
+                  minRows={1}
+                />
+              </div>
+            )}
           </div>
         ))}
       </div>
-      <button
-        onClick={handleAddQuestion}
-        style={{
-          position: 'fixed',
-          bottom: '-30px',
-          left: '50%',
-          transform: 'translateX(-50%)',
-          padding: '10px 40px',
-          backgroundColor: '#A6FFAF',
-          color: '#2BB514',
-          width: '300px',
-          border: '4px solid #2BB514',
-          borderRadius: '10px',
-          fontFamily: "'montserrat', sans-serif",
-          cursor: 'pointer',
-          fontWeight: 'bold',
-          fontSize: '20px'
-        }}
-      >
-        Add Question
-      </button>
     </div>
   );
 };

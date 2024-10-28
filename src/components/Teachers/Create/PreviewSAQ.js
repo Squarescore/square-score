@@ -108,8 +108,10 @@ const TeacherPreview = ({ questionsWithIds, setQuestionsWithIds, sourceText, que
       width: '900px',
       height: '550px',
       marginTop: '-20px',
-      border: '10px solid #f4f4f4',
-      background: 'RGB(255,255,255,.95)',
+      border: '10px solid white',
+      
+               boxShadow: '1px 1px 5px 1px rgb(0,0,155,.07)' ,
+      background: 'RGB(255,255,255,)',
       backdropFilter: 'blur(5px)',
       borderRadius: '20px',
       padding: '20px',
@@ -140,7 +142,9 @@ const TeacherPreview = ({ questionsWithIds, setQuestionsWithIds, sourceText, que
           width: 'calc(100% - 20px)',
           marginLeft: '-30px',
           marginTop: '0px',
-          border: '10px solid #f4f4f4',
+          border: '10px solid white',
+          
+               boxShadow: '1px 1px 5px 1px rgb(0,0,155,.07)' ,
           borderTop: '0px solid white',
           borderRadius: '0px 0px 20px 20px',
           height: '490px'
@@ -151,7 +155,7 @@ const TeacherPreview = ({ questionsWithIds, setQuestionsWithIds, sourceText, que
             type="text"
             value={regenerateInput}
             onChange={(e) => setRegenerateInput(e.target.value)}
-            placeholder="Enter general adjustments you want made to questions..."
+            placeholder="Enter general adjustments you want made to questions"
             style={{
               width: '700px',
               marginLeft: '90px',
@@ -187,7 +191,7 @@ const TeacherPreview = ({ questionsWithIds, setQuestionsWithIds, sourceText, que
                 fontSize: '16px',
               
               position: 'absolute', 
-              top: '310px',
+              top: '70px',
               left: '80px',
             }}
           >

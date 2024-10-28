@@ -1,13 +1,15 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { auth, db } from '../Universal/firebase'; // Ensure this path is correct
+import { auth, db } from '../Universal/firebase';
 import { collection, query, where, getDocs } from "firebase/firestore";
-import { signOut } from 'firebase/auth'; // Import signOut function
+import { signOut } from 'firebase/auth';
 import { useNavigate } from 'react-router-dom';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import HomeNavbar from '../Universal/HomeNavbar';
 import FooterAuth from '../unAuthenticated/FooterAuth';
-import JoinClassModal from './JoinClassModal'; // Adjust the path as needed
+import JoinClassModal from './JoinClassModal';
+import { RefreshCw } from 'lucide-react';
+
 const loaderStyle = `
   .loader {
     height: 4px;
@@ -27,10 +29,14 @@ const StudentHome = () => {
   const navigate = useNavigate();
   const [classes, setClasses] = useState([]);
   const studentUID = auth.currentUser.uid;
+  
   const [pendingRequests, setPendingRequests] = useState([]);
   const [showJoinClassModal, setShowJoinClassModal] = useState(false);
 const [classCode, setClassCode] = useState('');
 const [code, setCode] = useState(['', '', '', '', '', '']);
+const [loading, setLoading] = useState(true);
+const [error, setError] = useState(null);
+const [retryCount, setRetryCount] = useState(0);
 const [joinClassError, setJoinClassError] = useState('');
 const inputRefs = useRef([]);
   const periodStyles = {
@@ -97,38 +103,117 @@ const inputRefs = useRef([]);
       setJoinClassError(err.message);
     }
   };
-  useEffect(() => {
-    const fetchClassesAndRequests = async () => {
+  
+  const fetchClassesAndRequests = useCallback(async () => {
+    if (!studentUID) {
+      console.error("No student UID available");
+      setError("User not authenticated");
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+    try {
       const classesRef = collection(db, 'classes');
       const classQuery = query(classesRef, where('students', 'array-contains', studentUID));
       const requestQuery = query(classesRef, where('joinRequests', 'array-contains', studentUID));
-  
+
       const [classesSnapshot, requestsSnapshot] = await Promise.all([
         getDocs(classQuery),
         getDocs(requestQuery)
       ]);
-  
+
       let classesData = classesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       const requestsData = requestsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       
-      // Sort classes by period number
       classesData.sort((a, b) => {
         const periodA = parseInt(a.className.split(' ')[1]);
         const periodB = parseInt(b.className.split(' ')[1]);
         return periodA - periodB;
       });
-  
+
       setClasses(classesData);
       setPendingRequests(requestsData);
-    };
-  
-    fetchClassesAndRequests();
-    const interval = setInterval(fetchClassesAndRequests, 5000); // Fetch every 5 seconds
-  
-    return () => clearInterval(interval);
+      setLoading(false);
+    } catch (err) {
+      console.error("Error fetching classes and requests:", err);
+      setError("Failed to load classes. Please try again.");
+      setLoading(false);
+    }
   }, [studentUID]);
+
+  useEffect(() => {
+    // Initial fetch
+    fetchClassesAndRequests();
+
+    // Only set up the interval if there are pending requests
+    let interval;
+    if (pendingRequests.length > 0) {
+      interval = setInterval(() => {
+        // Only fetch if the page is visible
+        if (document.visibilityState === 'visible') {
+          fetchClassesAndRequests();
+        }
+      }, 30000); // Changed to 30 seconds to reduce frequency
+    }
+
+    return () => {
+      if (interval) {
+        clearInterval(interval);
+      }
+    };
+  }, [fetchClassesAndRequests, pendingRequests.length]);
+
+  useEffect(() => {
+    if (error && retryCount < 3) {
+      const timer = setTimeout(() => {
+        setRetryCount(prevCount => prevCount + 1);
+        fetchClassesAndRequests();
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [error, retryCount, fetchClassesAndRequests]);
+  if (loading) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh', background: '#fcfcfc' }}>
+        <HomeNavbar userType="student" />
+        <div style={{ textAlign: 'center', marginTop: '20px' }}>
+          <RefreshCw size={50} color="#020CFF" style={{ animation: 'spin 1s linear infinite' }} />
+          <p style={{ marginTop: '10px', fontFamily: "'montserrat', sans-serif", fontSize: '18px' }}>Loading your classes...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh', background: '#fcfcfc' }}>
+        <HomeNavbar userType="student" />
+        <div style={{ textAlign: 'center', marginTop: '20px' }}>
+          <p style={{ color: 'red', fontFamily: "'montserrat', sans-serif", fontSize: '18px' }}>{error}</p>
+          <button 
+            onClick={fetchClassesAndRequests} 
+            style={{
+              marginTop: '10px',
+              padding: '10px 20px',
+              backgroundColor: '#020CFF',
+              color: 'white',
+              border: 'none',
+              borderRadius: '5px',
+              cursor: 'pointer',
+              fontFamily: "'montserrat', sans-serif",
+              fontSize: '16px'
+            }}
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', backgroundColor: 'white', flexWrap: 'wrap' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', backgroundColor: '#fcfcfc', flexWrap: 'wrap', }}>
       <HomeNavbar userType="student" />
       <style>{loaderStyle} </style>
       {pendingRequests.length > 0 && (
@@ -167,14 +252,14 @@ const inputRefs = useRef([]);
           </div>
         </div>
       )}
-      <main style={{ flexGrow: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: '10px', backgroundColor: 'white', marginBottom: '230px' }}>
+      <main style={{ flexGrow: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: '10px', backgroundColor: '#fcfcfc', marginBottom: '230px' }}>
         <div style={{
           marginTop: '70px',
           display: 'flex',
           flexWrap:'wrap', 
           width: '1000px',
           fontFamily: "'montserrat', sans-serif",
-          backgroundColor: 'white',
+          backgroundColor: '#fcfcfc',
           marginLeft: 'auto',
           marginRight: 'auto'
         }}>
@@ -220,7 +305,8 @@ const inputRefs = useRef([]);
                     border: `6px solid ${periodStyle.color}`,
                     backgroundColor: periodStyle.background,
                     paddingLeft: '0px',
-                    paddingRight: '0px',
+                    paddingRight: '0px'
+                    , marginTop: '40px',
                     marginLeft: '0px',
                     height: '30px',
                     fontWeight: 'bold',
@@ -232,8 +318,8 @@ const inputRefs = useRef([]);
                   }}>
                     <p style={{marginTop: '0px',  overflow: 'hidden',
                     textOverflow: 'ellipsis', 
-                    textAlign: 'left',
-                    whiteSpace: 'nowrap',width: '240px', background: 'tranparent', marginLeft: '20px',  }}>{classItem.classChoice}</p>
+                    textAlign: 'center',
+                    whiteSpace: 'nowrap',width: '240px', background: 'tranparent', marginLeft: 'auto', marginRight: 'auto', }}>{classItem.classChoice}</p>
                     
                   </div>
                 </div>
@@ -246,15 +332,16 @@ const inputRefs = useRef([]);
                     flex: 1,
                     fontWeight: '800',
                     width: '280px',
-                    height: '100px',
+                    height: '130px',
                     justifyContent: 'center',
                     display: 'flex',
                     backgroundColor: 'transparent',  
                     color: 'grey', 
                     cursor: 'pointer',
-                    border: '6px solid #F4F4F4', 
+                    border: '2px solid white', 
+                    boxShadow: '1px 1px 5px 1px rgb(0,0,155,.1)',
                     borderRadius: '15px', 
-                    lineHeight: '90px',
+                    lineHeight: '30px',
                     textAlign: 'left',
                     flexDirection: 'column',
                     alignItems: 'center',
@@ -266,14 +353,14 @@ const inputRefs = useRef([]);
                     transform: 'scale(1)',
                   }}
                   onMouseEnter={(e) => {
-                    e.target.style.borderColor = '#E8E8E8';
+                    e.target.style.borderColor = '#f4f4f4';
                   }}
                   onMouseLeave={(e) => {
-                    e.target.style.borderColor = '#f4f4f4';
+                    e.target.style.borderColor = 'white';
                   }}
                   className="hoverableButton"
                 >
-                   <h1 style={{fontSize: '30px', marginTop: '30px', width: '250px',  textAlign: 'left', marginLeft: '20px',
+                 <h1 style={{fontSize: '35px', marginTop: '60px', width: '250px',  textAlign: 'center',
                       fontWeight: '600',}}>{classItem.className}</h1>
                 </button>
               </div>

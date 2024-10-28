@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { doc, getDoc, writeBatch, arrayUnion, serverTimestamp } from 'firebase/firestore';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import { doc, setDoc,updateDoc, writeBatch, arrayUnion, serverTimestamp } from 'firebase/firestore';
 
-import { CalendarCog, SquareDashedMousePointer, Sparkles, GlobeLock,  } from 'lucide-react';
+import { CalendarCog, SquareDashedMousePointer, Sparkles, GlobeLock, PencilRuler, Eye, SendHorizonal, SquareX, ChevronUp, ChevronDown,  } from 'lucide-react';
 import { db } from '../../Universal/firebase';  // Ensure the path is correct
 import TeacherPreviewASAQ from './PreviewASAQ';
 import { auth } from '../../Universal/firebase';
@@ -12,7 +12,11 @@ import Navbar from '../../Universal/Navbar';
 import CustomDateTimePicker from './CustomDateTimePicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import axios from 'axios';
+import DateSettings, { formatDate } from './DateSettings';
+import SecuritySettings from './SecuritySettings';
+import SelectStudentsDW from './SelectStudentsDW';
 
+import CustomExpandingFormatSelector from './ExpandingFormatSelector';
 const dropdownContentStyle = `
   .dropdown-content {
     max-height: 0;
@@ -56,6 +60,8 @@ function SAQA() {
   const [generating, setGenerating] = useState(false);
   const [lockdown, setLockdown] = useState(false);
   
+  const [assignmentType, setAssignmentType] = useState('');
+  const [selectedFormat, setSelectedFormat] = useState('ASAQ');
   const [teacherId, setTeacherId] = useState(null);
   const [contentDropdownOpen, setContentDropdownOpen] = useState(false);
   const [studentsDropdownOpen, setStudentsDropdownOpen] = useState(false);
@@ -67,6 +73,9 @@ function SAQA() {
   const [youtubeLink, setYoutubeLink] = useState('10');
   const [questionBank, setQuestionBank] = useState('40');
   const [timerOn, setTimerOn] = useState(false);
+  const location = useLocation();
+  
+  const [isAdaptive, setIsAdaptive] = useState(true);
   const [additionalInstructions, setAdditionalInstructions] = useState(['']);
   const [selectedStudents, setSelectedStudents] = useState(new Set());
   const [showAdditionalInstructions, setShowAdditionalInstructions] = useState(false);
@@ -138,7 +147,7 @@ function SAQA() {
     return `${dateString.replace(/,/g, '')} ${timeString}`;
   };
 
-  const GenerateASAQ = async (sourceText, questionCount, additionalInstructions,  classId) => {
+  const GenerateASAQ = async (sourceText, questionCount, additionalInstructions, classId) => {
     try {
       const response = await axios.post('https://us-central1-square-score-ai.cloudfunctions.net/GenerateASAQ', {
         sourceText: sourceText,
@@ -161,6 +170,9 @@ function SAQA() {
   
       let questionsString = data.questions;
       if (typeof questionsString === 'string') {
+        // Remove the "Questions: " prefix if it exists
+        questionsString = questionsString.replace(/^Questions:\s*/, '');
+        
         const jsonMatch = questionsString.match(/```json\s*([\s\S]*?)\s*```/);
         if (jsonMatch) {
           questionsString = jsonMatch[1];
@@ -203,13 +215,22 @@ function SAQA() {
       throw error;
     }
   };
-
+  useEffect(() => {
+    if (location.state) {
+      const { assignmentType, isAdaptive } = location.state;
+      setAssignmentType(assignmentType);
+      setIsAdaptive(isAdaptive);
+    }
+  }, [location.state]);
   const saveAssignment = async () => {
+    const finalAssignmentId = assignmentId.startsWith('DRAFT') ? assignmentId.slice(5) : assignmentId;
+  
     const assignmentData = {
       classId,
       assignmentName,
       timer: timerOn ? timer : 0,
       halfCredit,
+      assignmentType,
       assignDate: convertToDateTime(assignDate),
       dueDate: convertToDateTime(dueDate),
      
@@ -223,40 +244,45 @@ function SAQA() {
       lockdown,
       saveAndExit
     };
-  
-    const assignmentRef = doc(db, 'assignments(Asaq)', assignmentId);
-    
-    const batch = writeBatch(db);
-  
-    batch.set(assignmentRef, assignmentData);
     generatedQuestions.forEach((question, index) => {
-      const questionId = `${assignmentId}(question${index + 1})`;
-      assignmentData.questions[questionId] = {
+      assignmentData.questions[`question${index + 1}`] = {
         question: question.question,
         rubric: question.rubric
       };
     });
+      const collectionName = `assignments(Asaq)`;
+      const assignmentRef = doc(db, collectionName, finalAssignmentId);
+      await setDoc(assignmentRef, assignmentData);
+    
+      // Update the class document
+      const classRef = doc(db, 'classes', classId);
+      await updateDoc(classRef, {
+        [`assignment(${assignmentType.toLowerCase()})`]: arrayUnion(finalAssignmentId)
+      });
+    
+      // Remove the draft if it exists
+ 
+    
+      // Assign to students
+      await assignToStudents(finalAssignmentId);
+    
+      navigate(`/class/${classId}`, {
+        state: {
+          successMessage: `Success: ${assignmentName} published`,
+          assignmentId: finalAssignmentId,
+          format: 'ASAQ'
+        }
+      });
+    };
   
-    batch.update(assignmentRef, { questions: assignmentData.questions });
   
-    await batch.commit();
-  
-    await assignToStudents();
-    console.log('Assignment and questions saved to Firebase:', assignmentData);
-    const format = assignmentId.split('+').pop();
-    navigate(`/class/${classId}`, {
-      state: {
-        successMessage: `Success: ${assignmentName} published`,
-        assignmentId: assignmentId
-      }
-    });
-  };
   
 
   const renderForm = () => {
     return (
-      <div style={{ marginTop: '100px', width: '800px', marginLeft: 'auto', marginRight: 'auto', fontFamily: "'montserrat', sans-serif" }}>
-        <style>{loaderStyle} {dropdownContentStyle}</style>
+      <div style={{ marginTop: '150px', width: '860px', padding: '15px', marginLeft: 'auto', marginRight: 'auto', fontFamily: "'montserrat', sans-serif", background: 'white', borderRadius: '25px', 
+        boxShadow: '1px 1px 10px 1px rgb(0,0,155,.1)'}}>
+           <style>{loaderStyle} {dropdownContentStyle}</style>
         {showPreview && generatedQuestions.length > 0 && (
           <div style={{
             position: 'fixed',
@@ -280,11 +306,12 @@ function SAQA() {
                   zIndex: '990',
                   background: 'none',
                   border: 'none',
+                  color: '#D800FB',
                   fontSize: '24px',
                   cursor: 'pointer'
                 }}
               >
-                <img style={{width: '60px'}} src='/redcirclex.png'/>
+                <SquareX size={50} style={{ marginTop: '30px', marginRight: '40px'}}/>
               </button>
               <TeacherPreviewASAQ
             questionsWithIds={generatedQuestions}
@@ -297,41 +324,22 @@ function SAQA() {
         </div>
           </div>
         )}
-         <button
-            onClick={handlePrevious}
-            style={{
-              position: 'absolute',
-              width: '75px',
-              height: '75px',
-              padding: '10px 20px',
-              left: '10%',
-              top: '50%',
-              bottom: '20px',
-              backgroundColor: 'transparent',
-              cursor: 'pointer',
-              border: 'none',
-              fontSize: '30px',
-              color: '#45B434',
-              borderRadius: '10px',
-              fontWeight: 'bold',
-              fontFamily: "'montserrat', sans-serif",
-              transition: '.5s',
-              transform: 'scale(1)',
-              opacity: '100%'
-            }}
-            onMouseEnter={(e) => {
-              e.target.style.transform = 'scale(1.04)';
-            }}
-            onMouseLeave={(e) => {
-              e.target.style.transform = 'scale(1)';
-            }}
-          >
-            <img src='/LeftGreenArrow.png' style={{width: '75px', transition: '.5s'}} />
-          </button>
-        <h1 style={{ marginLeft: '40px', fontFamily: "'montserrat', sans-serif", color: 'black', fontSize: '60px', display: 'flex' }}>
-          Create (<h1 style={{ fontSize: '50px', marginTop: '10px', marginLeft: '0px', color: '#020CFF' }}> SAQ*</h1>)
-        </h1>
-        <div style={{ width: '100%', padding: '20px', border: '10px solid transparent', borderRadius: '30px' , marginTop: '-50px'}}>
+        
+        <div style={{marginLeft: '30px'}}>
+        <div style={{ marginLeft: '0px',  fontFamily: "'montserrat', sans-serif", color: 'black', fontSize: '60px', display: 'flex',marginTop: '20px', marginBottom: '40px', fontWeight: 'bold' }}>
+        Create
+     
+        <CustomExpandingFormatSelector
+  classId={classId}
+  selectedFormat={selectedFormat}
+  onFormatChange={(newFormat) => {
+    setSelectedFormat(newFormat);
+    // Any additional logic you want to run when the format changes
+  }}
+/>
+          
+        </div>
+        <div style={{ width: '100%', padding: '20px', border: '10px solid transparent', borderRadius: '30px' , marginTop: '-30px', marginLeft: '-30px'}}>
         <div style={{ position: 'relative' }}>
   {assignmentName && (
     <h1 style={{
@@ -360,7 +368,7 @@ function SAQA() {
       padding: '10px',
       paddingLeft: '25px',
       outline: 'none',
-      border: '4px solid #F4F4F4',
+      border: ' 2px solid #f4f4f4',
       borderRadius: '10px',
       fontFamily: "'montserrat', sans-serif",
       fontWeight: 'bold',
@@ -371,7 +379,7 @@ function SAQA() {
   />
   <span style={{
     position: 'absolute',
-    right: '10px',
+    right: '50px',
     bottom: '30px',
     fontSize: '14px',
     color: 'grey',
@@ -380,8 +388,8 @@ function SAQA() {
     {assignmentName.length}/25
   </span>
 </div>
-          <div style={{ marginBottom: '20px', width: '790px', height: '200px', borderRadius: '10px',  border: '4px solid #F4F4F4' }}>
-            <div style={{ width: '730px', marginLeft: '20px', height: '80px', borderBottom: '4px solid lightgrey', display: 'flex', position: 'relative', alignItems: 'center', borderRadius: '0px', padding: '10px' }}>
+          <div style={{ marginBottom: '20px', width: '790px', height: '200px', borderRadius: '10px',  border: ' 2px solid #f4f4f4' }}>
+            <div style={{ width: '730px', marginLeft: '20px', height: '80px', borderBottom: ' 2px solid #f4f4f4', display: 'flex', position: 'relative', alignItems: 'center', borderRadius: '0px', padding: '10px' }}>
               <h1 style={{ fontSize: '30px', color: 'black', width: '300px', paddingLeft: '0px' }}>Timer:</h1>
              
               {timerOn ? (
@@ -393,27 +401,29 @@ function SAQA() {
                       height: '30px',
                       width: '50px',
                       textAlign: 'center',
-                      fontWeight: 'bold',
+                      fontFamily: "'montserrat', sans-serif",
                       border: '4px solid transparent',
                       outline: 'none',
                       borderRadius: '5px',
+                      fontWeight: '600',
                       fontSize: '30px',
                     }}
                     placeholder="10"
                     value={timer}
                     onChange={(e) => setTimer(e.target.value)}
                   />
-                  <h1 style={{ marginLeft: '-5px',fontSize:'26px' }} >Minutes</h1>
+                  <h1 style={{ marginLeft: '-5px',
+                  fontWeight: '600',fontSize:'26px' }} >Minutes</h1>
                 </div>
               ) : (
                 <span style={{
                   marginLeft: '-150px',
                   height: '30px',
                   width: '50px',
-                  fontWeight: 'bold',
+                  fontWeight: '600',
                   textAlign: 'center',
                   marginTop: '0px',
-                  fontSize: '30px',
+                  fontSize: '30px',  fontFamily: "'montserrat', sans-serif",
                   color: 'grey'
                 }}>
                   Off
@@ -441,100 +451,48 @@ function SAQA() {
            
           </div>
 
-        {/* Timer Button and Settings */}
-<div style={{ width: '770px', padding: '10px',  border: '4px solid #F4F4F4', borderRadius: '10px' }}>
-  <button
-    onClick={() => setTimeDropdownOpen(!timeDropdownOpen)}
-    style={{
-      width: '100%',
-      padding: '10px',
-      fontSize: '30px',
-      backgroundColor: 'white',
-      color: 'black',
-      border: 'none',
-      cursor: 'pointer',
-      height: '50px',
-      display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'center'
-    }}
-  >
-    <img style={{ width: '40px' }} src='/clock.png' />
-    <h1 style={{ fontSize: '30px', marginLeft: '20px', marginRight: 'auto',fontFamily: "'montserrat', sans-serif" }}> Dates</h1>
-    <img
-      src={timeDropdownOpen ? '/Up.png' : '/Down.png'}
-      alt={timeDropdownOpen ? "Collapse" : "Expand"}
-      style={{ width: '20px' }}
-    />
-  </button>
 
-  <div className={`dropdown-content ${timeDropdownOpen ? 'open' : ''}`}>
-    <div style={{ marginTop: '10px' }}>
-      {/* Assign and Due Dates */}
-      <div style={{ marginTop: '10px', display: 'flex', position: 'relative', alignItems: 'center' }}>
-        <h1 style={{ marginLeft: '20px' }}>Assign on:</h1>
-        <div style={{ marginLeft: 'auto', marginRight: '20px' }}>
-          <CustomDateTimePicker
-            selected={assignDate}
-            onChange={(date) => setAssignDate(date)}
-            label="Assign Date"
-          />
-        </div>
-      </div>
-      <div style={{ marginTop: '10px', display: 'flex', position: 'relative', alignItems: 'center' }}>
-        <h1 style={{ marginLeft: '20px' }}>Due on:</h1>
-        <div style={{ marginLeft: 'auto', marginRight: '20px' }}>
-          <CustomDateTimePicker
-            selected={dueDate}
-            onChange={(date) => setDueDate(date)}
-            label="Due Date"
-          />
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
 
-{/* Select Students */}
-<div style={{ width: '770px', padding: '10px', marginTop: '20px',  border: '4px solid #F4F4F4', borderRadius: '10px', marginBottom: '20px' }}>
-  <button
-    onClick={() => setStudentsDropdownOpen(!studentsDropdownOpen)}
-    style={{
-      width: '100%',
-      padding: '10px',
-      fontSize: '30px',
-      height: '50px',
-      backgroundColor: 'white',
-      color: 'black',
-      border: 'none',
-      cursor: 'pointer',
-      display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'center'
-    }}
-  >
-    <img style={{ width: '40px' }} src='/select.png' />
-    <h1 style={{ fontSize: '30px', marginRight: 'auto', marginLeft: '20px', fontFamily: "'montserrat', sans-serif" }}>Select Students</h1>
-    <img
-      src={studentsDropdownOpen ? '/Up.png' : '/Down.png'}
-      alt={studentsDropdownOpen ? "Collapse" : "Expand"}
-      style={{ width: '20px' }}
-    />
-  </button>
 
-  <div className={`dropdown-content ${studentsDropdownOpen ? 'open' : ''}`}>
-    <div style={{ marginTop: '10px' }}>
-      <SelectStudents
-        classId={classId}
-        selectedStudents={selectedStudents}
-        setSelectedStudents={setSelectedStudents}
-      />
-    </div>
-  </div>
-</div>
+          <SelectStudentsDW
+          classId={classId}
+          selectedStudents={selectedStudents}
+          setSelectedStudents={setSelectedStudents}
+        />
+ 
+          <DateSettings
+          assignDate={assignDate}
+          setAssignDate={setAssignDate}
+          dueDate={dueDate}
+          setDueDate={setDueDate}
+        />
 
+
+          <SecuritySettings
+          saveAndExit={saveAndExit}
+          setSaveAndExit={setSaveAndExit}
+          lockdown={lockdown}
+          setLockdown={setLockdown}
+        />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 
 {/* Content Dropdown */}
-<div style={{ width: '770px', padding: '10px', marginTop: '20px',  border: '4px solid #F4F4F4', borderRadius: '10px', marginBottom: '20px' }}>
+<div style={{ width: '770px', padding: '10px', marginTop: '20px',  border: ' 2px solid #f4f4f4', borderRadius: '10px', marginBottom: '20px' }}>
   <button
     onClick={() => setContentDropdownOpen(!contentDropdownOpen)}
     style={{
@@ -551,13 +509,13 @@ function SAQA() {
       alignItems: 'center'
     }}
   >
-    <img style={{ width: '30px', marginRight: '20px', marginLeft: '5px' }} src='/idea.png' />
-    <h1 style={{ fontSize: '30px', marginLeft: '0px', marginRight: 'auto', fontFamily: "'montserrat', sans-serif" }}>Generate Questions</h1>
-    <img
-      src={contentDropdownOpen ? '/Up.png' : '/Down.png'}
-      alt={contentDropdownOpen ? "Collapse" : "Expand"}
-      style={{ width: '20px' }}
-    />
+
+<Sparkles size={40} color="#000000" />
+  
+  
+<h1 style={{ fontSize: '30px', marginLeft: '20px', marginRight: 'auto',  fontFamily: "'montserrat', sans-serif"}}>Generate Questions</h1>
+{contentDropdownOpen ? <ChevronUp style={{color: 'grey'}}/> : <ChevronDown style={{color: 'grey'}}/>}
+            
   </button>
 
   <div className={`dropdown-content ${contentDropdownOpen ? 'open' : ''}`}>
@@ -589,7 +547,7 @@ function SAQA() {
 
       {/* Additional Instructions Section */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '-15px' }}>
-                      <h1 style={{ marginTop: '20px', color: 'grey', display: 'flex', fontSize: '25px', alignItems: 'center' }}>
+                      <h1 style={{ marginTop: '20px', color: 'grey', display: 'flex', fontSize: '25px', alignItems: 'center',   fontWeight: '600', }}>
                         Additional instructions
                         <p style={{ fontSize: '20px', marginTop: '20px', marginLeft: '10px', color: 'lightgrey' }}>- optional</p>
                       </h1>
@@ -621,7 +579,7 @@ function SAQA() {
                           marginTop: '-20px',
                           fontFamily: "'montserrat', sans-serif",
                           borderRadius: '10px',
-                           border: '4px solid #F4F4F4',
+                           border: ' 2px solid #f4f4f4',
                           outline: 'none'
                         }}
                         type='text'
@@ -655,33 +613,45 @@ function SAQA() {
       }}
       disabled={generating}
       style={{
-        width: '300px',
+        width: '180px',
         fontWeight: 'bold',
         height: '50px',
         padding: '10px',
         fontSize: '24px',
         backgroundColor: generating ? 'lightgrey' : 
-                        generatedQuestions.length > 0 ? '#4CAF50' : '#020CFF',
+                        generatedQuestions.length > 0 ? '#FCD3FF' : '#FCD3FF',
         color: 'white',
-        border: 'none',
         borderRadius: '10px',
+        border: generating ? '4px solid lightgrey' : 
+                generatedQuestions.length > 0 ? '4px solid #D800FB' : '4px solid #D800FB',
         cursor: generating ? 'default' : 'pointer',
-        transition: 'box-shadow 0.3s ease, background-color 0.3s ease',
-        boxShadow: generating ? 'none' : '0 4px 6px rgba(0, 0, 0, 0.1)',
+        transition: 'box-shadow 0.3s ease',
       }}
-      onMouseEnter={(e) => {
-        if (!generating) {
-          e.target.style.boxShadow = '0 6px 8px rgba(0, 0, 0, 0.2)';
-        }
-      }}
-      onMouseLeave={(e) => {
-        if (!generating) {
-          e.target.style.boxShadow = '0 4px 6px rgba(0, 0, 0, 0.1)';
-        }
-      }}
+     
     >
-      {generating ? 'Generating...' : 
-       generatedQuestions.length > 0 ? 'Preview Questions' : 'Generate Questions'}
+    {generating ? 'Generating...' : 
+       generatedQuestions.length > 0 ? 
+       <div style={{ display: 'flex', marginTop: '-4px' }}> 
+       
+           <Eye size={30} color="#D800FB" strokeWidth={2.5} />
+           <h1 style={{
+             fontSize: '25px',  
+             marginTop: '0px', 
+             color: '#D800FB', 
+             marginLeft: '10px',
+             fontFamily: "'montserrat', sans-serif",
+           }}>Preview</h1>
+         </div>
+       : <div style={{ display: 'flex', marginTop: '-4px' }}> 
+           <Sparkles size={30} color="#E441FF" strokeWidth={3} />
+           <h1 style={{
+             fontSize: '25px',  
+             marginTop: '0px', 
+             marginLeft: '4px', 
+             color: '#E441FF', 
+             fontFamily: "'montserrat', sans-serif",
+           }}>Generate</h1>
+         </div>}
     </button>
     {generating && (
       <div className="loader" style={{ marginLeft: '20px' }}></div>
@@ -697,107 +667,89 @@ function SAQA() {
 
 </div>
 
-{/* Security Dropdown */}
-<div style={{ width: '770px', padding: '10px', marginTop: '20px',  border: '4px solid #F4F4F4', borderRadius: '10px', marginBottom: '20px' }}>
-  <button
-    onClick={() => setSecurityDropdownOpen(!securityDropdownOpen)}
-    style={{
-      width: '100%',
-      padding: '10px',
-      fontSize: '30px',
-      backgroundColor: 'white',
-      color: 'black',
-      border: 'none',
-      cursor: 'pointer',
-      height: '50px',
-      display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'center'
-    }}
-  >
-    <img style={{ width: '40px' }} src='/astrid.png' />
-    <h1 style={{ fontSize: '30px', marginLeft: '20px', marginRight: 'auto',fontFamily: "'montserrat', sans-serif" }}>Security</h1>
-    <img
-      src={securityDropdownOpen ? '/Up.png' : '/Down.png'}
-      alt={securityDropdownOpen ? "Collapse" : "Expand"}
-      style={{ width: '20px' }}
-    />
-  </button>
-
-  <div className={`dropdown-content ${securityDropdownOpen ? 'open' : ''}`}>
-    <div style={{ marginTop: '10px' }}>
-      <div style={{ display: 'flex', alignItems: 'center', marginBottom: '10px' }}>
-        <h1 style={{ fontSize: '30px', color: 'black', marginLeft: '20px', flex: 1 }}>Save & Exit</h1>
-        <input
-          style={{ marginRight: '20px' }}
-          type="checkbox"
-          className="greenSwitch"
-          checked={saveAndExit}
-          onChange={() => setSaveAndExit(!saveAndExit)}
-        />
-      </div>
-      <div style={{ display: 'flex', alignItems: 'center' }}>
-        <h1 style={{ fontSize: '30px', color: 'black', marginLeft: '20px', flex: 1 }}>Lockdown</h1>
-        <input
-          style={{ marginRight: '20px' }}
-          type="checkbox"
-          className="greenSwitch"
-          checked={lockdown}
-          onChange={() => setLockdown(!lockdown)}
-        />
-      </div>
-    </div>
-  </div>
-</div>
 
 
-          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-            <button
-              onClick={() => console.log('Save Draft')}
+
+          <div style={{ display: 'flex', justifyContent: 'space-between', width: '796px',height: '50px' }}>
+         
+          <button
+              
+             
               style={{
-                width: '400px',
-                position: 'fixed',
-                right: '-180px',
-                border: '15px solid #E01FFF',
-                borderRadius: '30px',
-                top: '-40px',
-                padding: '10px',
-                fontSize: '24px',
-                backgroundColor: '#FBD3FF',
-                color: '#E01FFF',
-                cursor: 'pointer'
+                width: '270px',
+                height: '60px',
+                marginTop: '0px',
+                border: '4px solid lightgrey',
+                marginBottom: '40px',
+                backgroundColor: '#f4f4f4',
+                color: 'grey',
+                borderRadius: '10px',
+                fontSize: '20px',fontFamily: "'montserrat', sans-serif",  
+                fontWeight: 'bold',
+                display: 'flex',
+                cursor: 'pointer',
+                transition: 'border-color 0.3s ease',
               }}
+              onMouseEnter={(e) => e.target.style.borderColor = 'grey'}
+              onMouseLeave={(e) => e.target.style.borderColor = 'lightgrey'}
             >
-              <h1 style={{fontSize: '35px', width: '200px',  marginTop: '100px'}}>Save as Draft</h1>
+             <PencilRuler size={40} style={{marginLeft: '0px', marginTop: '5px', background: 'transparent'}} /> <h1 style={{fontSize: '25px', marginTop: '10px', marginLeft: '15px',background: 'transparent'}}>Save As Draft</h1>
             </button>
             <button
               onClick={saveAssignment}
               disabled={!assignmentName || generatedQuestions.length === 0}
-              style={{
-                width: '795px',
-                padding: '10px',
-                fontWeight: 'bold',
-                height: '60px',
-                fontSize: '24px',
-                backgroundColor: assignmentName && generatedQuestions.length > 0 ? '#020CFF' : '#A0A0A0',
-                color: 'white',
-                border: 'none',
-                borderRadius: '10px',
-                cursor: assignmentName && generatedQuestions.length > 0 ? 'pointer' : 'not-allowed',
-                opacity: assignmentName && generatedQuestions.length > 0 ? 1 : 0.5,
-              }}
+style={{
+  width: '480px',
+  height: '60px',
+  marginTop: '0px',
+  border: '4px solid ',
+  marginBottom: '40px',
+  marginLeft: '0px',
+  opacity: (!assignmentName || generatedQuestions.length === 0) ? '0%' : '100%',
+  backgroundColor: (!assignmentName || generatedQuestions.length === 0) ? '#f4f4f4' : '#A6FFAF',
+  color: (!assignmentName || generatedQuestions.length === 0) ? 'lightgrey' : '#00D409',
+  
+  borderColor: (!assignmentName || generatedQuestions.length === 0) ? 'lightgrey' : '#00D409',
+  borderRadius: '10px',
+  fontSize: '20px',
+  fontFamily: "'montserrat', sans-serif",  
+  fontWeight: 'bold',
+  cursor: (!assignmentName || generatedQuestions.length === 0) ? 'default' : 'pointer',
+  display: 'flex',
+  transition: 'background-color 0.3s ease',
+}}
+onMouseEnter={(e) => {
+  if (assignmentName && generatedQuestions.length > 0) {
+    e.target.style.borderColor = '#2BB514';
+  }
+}}
+onMouseLeave={(e) => {
+  if (assignmentName && generatedQuestions.length > 0) {
+    e.target.style.borderColor = '#00D409';
+  }
+}}
             >
-              Publish
+              <h1 style={{fontSize: '25px', marginTop: '10px', marginLeft: '15px',background: 'transparent'}}>Publish</h1>
+              <SendHorizonal size={40} style={{marginLeft: 'auto', marginTop: '5px', background: 'transparent'}} /> 
             </button>
           </div>
+        </div>
         </div>
       </div>
     );
   };
 
   return (
-    <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', backgroundColor: 'white' }}>
-      <Navbar userType="teacher" />
+    <div style={{
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      display: 'flex',
+      flexDirection: 'column',
+      backgroundColor: '#fcfcfc'
+    }}> <Navbar userType="teacher" />
       {renderForm()}
     </div>
   );

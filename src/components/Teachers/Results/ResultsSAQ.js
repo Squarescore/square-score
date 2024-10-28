@@ -974,7 +974,7 @@ const TeacherResults = () => {
 
   
   return (
-    <div style={{  display: 'flex', flexDirection: 'column', backgroundColor: '' }}>
+    <div style={{  display: 'flex', flexDirection: 'column',  backgroundColor: '#fcfcfc', position: 'absolute', left: 0, right: 0, bottom: 0, top: 0}}>
       <Navbar userType="teacher" />
    
     
@@ -1043,9 +1043,15 @@ const TeacherResults = () => {
 
 
       <div style={{ width: '1000px', display: 'flex', justifyContent: 'align', marginTop: '150px', marginLeft: 'auto', marginRight: 'auto' }}>
-        <div style={{ display: 'flex', width: '800px' , marginRight: 'auto', marginLeft: '120px', height: ' auto', lineHeight:'0px', borderBottom: '2px solid #e4e4e4', paddingBottom: '15px', marginBottom:'30px' }}>
-         <div style={{position: 'relative', width: '650px', }}>
+        <div style={{ display: 'flex', width: '900px' , marginRight: 'auto', marginLeft: '50px', height: ' auto', lineHeight:'0px', paddingBottom: '15px', marginBottom:'0px' }}>
+         <div style={{position: 'relative', width: '620px', backgroundColor: 'white',  height: '150px', padding: '20px 10px  20px 40px',  
+               boxShadow: '1px 1px 5px 1px rgb(0,0,155,.07)',  borderRadius: '20px', }}>
         <AdaptiveHeading text={assignmentName} />
+
+
+
+
+        
     <h1 style={{  fontSize: '25px', 
       color: 'grey', 
       width: '260px', // Use full width of parent
@@ -1055,19 +1061,22 @@ const TeacherResults = () => {
       hyphens: 'auto', // Enable automatic hyphenation
       lineHeight: '1.2', // Adjust line height for better readability
       margin: 0,
-      marginBottom: '10px', // Remove default margins
-      padding: '10px 0' }}>{submissionCount}/{assignedCount} Submissions</h1>
-
+      position: 'absolute', bottom: '20px', left: '40px', // Remove default margins
+      padding: '10px 0' }}>{submissionCount}/{assignedCount} Submissions </h1>
+<h1 style={{position: 'absolute', fontSize: '25px', right: '50px',  bottom: '25px',color: 'blue', }}>SAQ</h1>
       </div>
+      
+  <div style={{height: '190px', backgroundColor: 'white',  width: '190px', 
+               boxShadow: '1px 1px 5px 1px rgb(0,0,155,.07)', borderRadius: '20px',marginLeft: 'auto', }}>
       <Tooltip text="Class Average">
-  
-        <div style={{background: 'blue', border: '10px solid #627BFF', width:' 110px', height: '110px', borderRadius: '30px '}}>
-      <div style={{fontSize: '45px', fontWeight: 'bold', width: '88px', background: 'white', height: '88px', marginTop: '12px', borderRadius:  '10px', marginLeft: 'auto', marginRight: 'auto', textAlign: 'center', lineHeight: '90px'}}> 
+      
+      <img style={{ width: '150px', marginLeft: '20px' , marginTop: '23px' }} src="/score.svg" alt="logo" />
+      <div style={{fontSize: '45px', fontWeight: 'bold', width: '88px', position: 'absolute', background: 'transparent', height: '88px', borderRadius:  '10px', top: '50px', left: '50px', textAlign: 'center', lineHeight: '90px'}}> 
       {averageGrade !== null ? averageGrade : '-'}
-      </div>
+     
         </div>
 </Tooltip>
-
+</div>
         </div>
         
       </div>
@@ -1079,7 +1088,8 @@ const TeacherResults = () => {
         left: '-30px',
         top: '0px',
         height: '100%',
-        borderRight: ' 4px solid #f4f4f4',
+        
+               boxShadow: '1px 1px 5px 1px rgb(0,0,155,.07)',
         justifyContent: 'space-between',
         marginTop: '0px',
         alignSelf: 'center',
@@ -1150,8 +1160,7 @@ const TeacherResults = () => {
       )}
 
      
-          <h1 style={{position: 'absolute', top: '58px', color: 'blue', fontSize: '20px', width: '80px',textAlign: 'center', background: '#C7CFFF', borderRight: '4px solid blue', height: '40px', lineHeight: '40px' }}>SAQ</h1>
-    
+      
     <div style={{height: '4px', width: '70px', background: 'transparent', borderRadius: '10px', marginLeft: '10px', marginTop: '120px', marginBottom: '20px'}}></div>
 
     <Tooltip text="Question Bank">
@@ -1332,28 +1341,30 @@ const TeacherResults = () => {
     onDeleteSuccess={handleDeleteSuccess}
   />
 )}
-      <ul>
+      <ul style={{background: 'white', width: '860px', marginLeft: 'auto', marginRight: 'auto', backgroundColor: 'white',     
+               boxShadow: '1px 1px 5px 1px rgb(0,0,155,.07)',  borderRadius: '20px', paddingTop: '20px'}}>
 
 
 
   {students.map((student) => (
     <li key={student.uid} style={{ 
-      width: '780px', 
+      width: '800px', 
       height: '40px', 
       alignItems: 'center', 
       display: 'flex', 
       justifyContent: 'space-between', 
-      marginRight: 'auto', 
-      marginLeft: 'auto', 
-      border: '2px solid #E8E8E8', 
+
+      marginLeft: '10px', 
+      borderBottom: '2px solid #f4f4f4', 
       backgroundColor: 'white', 
-      borderRadius: '10px', 
-      padding: '10px', 
-      marginBottom: '20px', 
+      padding: '0px',
+      paddingBottom: '20px', 
+      
+      paddingTop: '20px', 
       position: 'relative',
       zIndex: '0', 
     }}>
-      <div style={{ marginLeft: '20px', width: '460px', display: 'flex', marginTop: '5px' }}>
+      <div style={{ marginLeft: '0px', width: '460px', display: 'flex', marginTop: '5px' }}>
         <div 
           style={{ 
             display: 'flex', 
@@ -1468,6 +1479,7 @@ const TeacherResults = () => {
             backgroundColor: 'transparent', 
             color: resetStatus[student.uid] === 'success' ? 'lightgreen' : 'red', 
             marginLeft: 'auto', 
+            marginRight: '60px',
             cursor: 'pointer', 
             textAlign: 'left', 
             borderColor: 'transparent', 
@@ -1475,7 +1487,6 @@ const TeacherResults = () => {
             fontWeight: 'bold', 
             fontSize: '16px', 
             marginTop: '-0px',
-            marginRight: '20px' 
           }} 
           onClick={() => handleReset(student.uid)}
         >
@@ -1487,8 +1498,7 @@ const TeacherResults = () => {
         <div
           style={{
             position: 'absolute',
-            right: '-80px',
-            top: '-4px',
+            right: '-20px',
             height: '38px',
             width: '50px',
             padding: '11px',
@@ -1507,7 +1517,7 @@ const TeacherResults = () => {
             navigate(`/teacherStudentResults/${assignmentId}/${student.uid}/${classId}`);
           }}
         >
-          <SquareArrowRight size={50} color="#020CFF" strokeWidth={2.5} />
+          <SquareArrowRight size={30} color="#020CFF" strokeWidth={2.5} />
         </div>
       )}
     </li>

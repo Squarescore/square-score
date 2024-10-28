@@ -28,7 +28,7 @@ const TeacherHome = () => {
   const [showCreateClassModal, setShowCreateClassModal] = useState(false); // Add this line
 
 
-
+const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
 
   const handleCreateClass = async (e, period, classChoice) => {
@@ -171,9 +171,9 @@ const TeacherHome = () => {
  
  
   return (
-    <div style={{  display: 'flex', flexDirection: 'column', backgroundColor: 'white', flexWrap: 'wrap' }}>
+    <div style={{  display: 'flex', flexDirection: 'column', backgroundColor: '#FCFCFC', flexWrap: 'wrap' }}>
      <HomeNavbar userType="teacher" />
-      <main style={{ flexGrow: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: '10px', backgroundColor: 'white', marginBottom: '230px' }}>
+      <main style={{ flexGrow: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: '10px', backgroundColor: '#FCFCFC', marginBottom: '230px' }}>
         {loading && <p>Loading...</p>}
         {error && <p>Error: {error.message}</p>}
 
@@ -183,7 +183,7 @@ const TeacherHome = () => {
          flexWrap:'wrap', 
          width: '1000px',
          fontFamily: "'montserrat', sans-serif",
-          backgroundColor: 'white',
+          backgroundColor: '#FCFCFC',
           
           marginLeft: 'auto',
           marginRight: 'auto'
@@ -354,8 +354,12 @@ zIndex: '100'
             return (
               <div key={classItem.id} style={{ 
                 marginBottom: '10px',
-                width: '300px',
+                width: '280px',
+                borderRadius: '15px',
                 marginLeft:'32px',
+                
+                
+               boxShadow: '1px 1px 5px 1px rgb(0,0,155,.1)',
                 display: 'inline-block',
                 flexDirection: 'column',
                 flexWrap: 'wrap',
@@ -391,6 +395,7 @@ zIndex: '100'
                     paddingRight: '0px',
                     marginLeft: '0px',
                     height: '30px',
+                    marginTop:'-10px',
                     fontWeight: 'bold',
                     color: periodStyle.color,
                     lineHeight: '30px',
@@ -400,8 +405,8 @@ zIndex: '100'
                   }}>
                     <p style={{marginTop: '0px',  overflow: 'hidden',
                     textOverflow: 'ellipsis', 
-                    textAlign: 'left',
-                    whiteSpace: 'nowrap',width: '240px', background: 'tranparent', marginLeft: '20px',  }}>{classItem.classChoice}</p>
+                    textAlign: 'center',
+                    whiteSpace: 'nowrap',width: '268px', background: 'tranparent',   }}>{classItem.classChoice}</p>
                     
                   </div>
                 </div>
@@ -420,10 +425,10 @@ zIndex: '100'
                       backgroundColor: 'transparent',  
                       color: 'grey', 
                       cursor: 'pointer',
-                      border: '6px solid #F4F4F4', 
+                      border: '1px solid white', 
                       borderRadius: '15px', 
                       lineHeight: '90px',
-                      textAlign: 'left',
+                      textAlign: 'center',
                       flexDirection: 'column',
                       alignItems: 'center',
                       transition: '.2s', 
@@ -434,14 +439,14 @@ zIndex: '100'
                       transform: 'scale(1)',
                     }}
                     onMouseEnter={(e) => {
-                      e.target.style.borderColor = '#E8E8E8';
+                      e.target.style.borderColor = '#f4f4f4';
                     }}
                     onMouseLeave={(e) => {
-                      e.target.style.borderColor = '#f4f4f4';
+                      e.target.style.borderColor = 'none';
                     }}
                     className="hoverableButton"
                   >
-                    <h1 style={{fontSize: '30px', marginTop: '30px', width: '250px',  textAlign: 'left', marginLeft: '20px',
+                    <h1 style={{fontSize: '35px', marginTop: '35px', width: '250px',  textAlign: 'center',
                       fontWeight: '600',}}>{classItem.className}</h1>
                   </button>
               </div>
@@ -466,13 +471,14 @@ zIndex: '100'
               transition: '.3s', 
               color: '#45B434',
               borderRadius: '10px',
-              padding: '10px 20px', 
+              padding: '10px 15px', 
               width: '200px', 
               fontFamily: "'montserrat', sans-serif",
               textAlign: 'center', 
               fontWeight: 'bold',
+              lineHeight: '20px',
               cursor: 'pointer',
-              
+              height: '48px',
             }}
             onMouseEnter={(e) => {
               e.target.style.borderColor = '#138E00';
@@ -511,7 +517,7 @@ zIndex: '100'
               borderRadius: '10px',
               padding: '20px 20px',
               fontFamily: "'montserrat', sans-serif",
-              height: '40px',
+              height: '45px',
               fontWeight: 'bold',
               cursor: 'pointer',
              marginTop: '0px',

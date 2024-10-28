@@ -1,18 +1,21 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { SquareArrowLeft } from 'lucide-react';
+import { SquareArrowLeft, Pencil, Check, Square, CheckSquare, X, SquareX } from 'lucide-react';
+
 const PreviewMCQ = ({ questions, onBack, onNext }) => {
   const [hoveredChoice, setHoveredChoice] = useState(null);
+  const [editingQuestionIndex, setEditingQuestionIndex] = useState(null);
+  const [editedQuestions, setEditedQuestions] = useState(questions);
 
   const choiceStyles = {
-    a: { background: '#A3F2ED', color: '#00645E' },
-    b: { background: '#AEF2A3', color: '#006428' },
-    c: { background: '#F8CFFF', color: '#E01FFF' },
-    d: { background: '#FFECA9', color: '#CE7C00' },
-    e: { background: '#627BFF', color: '#020CFF' },
-    f: { background: '#FF8E8E', color: '#CC0000' },
+    a: { background: '#C7CFFF', color: '#020CFF' },
+    b: { background: '#AEF2A3', color: '#2BB514' },
+    c: { background: '#F5B6FF', color: '#E441FF' },
+    d: { background: '#FFEAAF', color: '#FFAE00' },
+    e: { background: '#CAFFF4', color: '#00F1C2' },
+    f: { background: '#C2FBFF', color: '#CC0000' },
     g: { background: '#E3BFFF', color: '#8364FF' },
-    h: { background: '#9E9E9E', color: '#000000' }
+    h: { background: '#9E9E9E', color: '#000000' },
   };
 
   const getChoiceStyle = (choice) => {
@@ -32,121 +35,403 @@ const PreviewMCQ = ({ questions, onBack, onNext }) => {
     }
   };
 
-  const getDifficultyColor = (difficulty) => {
-    if (!difficulty) return 'gray'; // Default color if difficulty is undefined
-    switch (difficulty.toLowerCase()) {
-      case 'easy':
-        return 'lightblue';
-      case 'medium':
-        return 'blue';
-      case 'hard':
-        return 'darkblue';
-      default:
-        return 'blue';
+  const handleEdit = (index) => {
+    setEditingQuestionIndex(index === editingQuestionIndex ? null : index);
+  };
+
+  const handleQuestionChange = (index, field, value) => {
+    const updatedQuestions = [...editedQuestions];
+    updatedQuestions[index][field] = value;
+    setEditedQuestions(updatedQuestions);
+  };
+
+  const handleChoiceChange = (questionIndex, choice, value) => {
+    const updatedQuestions = [...editedQuestions];
+    updatedQuestions[questionIndex][choice] = value;
+    setEditedQuestions(updatedQuestions);
+  };
+
+  const handleExplanationChange = (questionIndex, choice, value) => {
+    const updatedQuestions = [...editedQuestions];
+    updatedQuestions[questionIndex][`explanation_${choice}`] = value;
+    setEditedQuestions(updatedQuestions);
+  };
+
+  const handleCorrectAnswerChange = (questionIndex, newCorrectChoice) => {
+    const updatedQuestions = [...editedQuestions];
+    updatedQuestions[questionIndex].correct = newCorrectChoice;
+    setEditedQuestions(updatedQuestions);
+  };
+
+  const handleDeleteChoice = (questionIndex, choiceToDelete) => {
+    if (window.confirm(`Are you sure you want to delete this choice?`)) {
+      const updatedQuestions = [...editedQuestions];
+      const question = updatedQuestions[questionIndex];
+
+      // Remove the choice and its explanation
+      delete question[choiceToDelete];
+      delete question[`explanation_${choiceToDelete}`];
+
+      // If the deleted choice was the correct answer, assign a new correct answer
+      if (question.correct.toLowerCase() === choiceToDelete) {
+        const remainingChoices = Object.keys(question).filter((key) => key.match(/^[a-z]$/));
+        if (remainingChoices.length > 0) {
+          question.correct = remainingChoices[0];
+        } else {
+          question.correct = '';
+        }
+      }
+
+      setEditedQuestions(updatedQuestions);
     }
   };
 
+  useEffect(() => {
+    // You can implement saving changes to a backend here if needed
+    console.log('Changes saved:', editedQuestions);
+  }, [editedQuestions]);
+
   return (
-    <div style={{ marginTop: '100px', width: '800px', marginLeft: 'auto', marginRight: 'auto', fontFamily: "'montserrat', sans-serif" }}>
-      <h1 style={{ marginLeft: '40px', fontFamily: "'montserrat', sans-serif", color: 'black', fontSize: '60px', display: 'flex' }}>
-        Preview (<h1 style={{ fontSize: '50px', marginTop: '10px', marginLeft: '0px', color: '#2BB514', display: 'flex' }}> MCQ </h1>)
-      </h1>
-      <button
-            onClick={onBack}
+    <div
+      style={{
+        marginTop: '100px',
+        width: '1000px',
+        marginLeft: 'auto',
+        marginRight: 'auto',
+        fontFamily: "'montserrat', sans-serif",
+        zIndex: 100,
+      }}
+    >
+      <div style={{ display: 'flex', marginTop: '-60px' }}>
+        <button
+          onClick={onBack}
+          style={{
+            backgroundColor: 'transparent',
+            cursor: 'pointer',
+            border: 'none',
+            fontSize: '30px',
+            color: '#45B434',
+            borderRadius: '10px',
+            fontWeight: 'bold',
+            fontFamily: "'montserrat', sans-serif",
+            transition: '.5s',
+            transform: 'scale(1)',
+            opacity: '100%',
+          }}
+        >
+          <SquareArrowLeft style={{ marginTop: '-70px' }} size={60} color="grey" />
+        </button>
+        <h1
+          style={{
+            marginLeft: '40px',
+            fontFamily: "'montserrat', sans-serif",
+            color: 'black',
+            fontSize: '60px',
+            display: 'flex',
+            marginTop: '50px',
+          }}
+        >
+          Preview{' '}
+          <h1
             style={{
-              position: 'fixed',
-              width: '75px',
-              height: '75px',
-              padding: '10px 20px',
-              left: '5%',
-              top: '360px',
-              bottom: '20px',
-              backgroundColor: 'transparent',
-              cursor: 'pointer',
-              border: 'none',
-              fontSize: '30px',
-              color: '#45B434',
-              borderRadius: '10px',
-              fontWeight: 'bold',
-              fontFamily: "'montserrat', sans-serif",
-              transition: '.5s',
-              transform: 'scale(1)',
-              opacity: '100%'
+              fontSize: '50px',
+              marginTop: '10px',
+              marginLeft: '30px',
+              color: '#2BB514',
+              display: 'flex',
             }}
-        
           >
-         <SquareArrowLeft size={100} color="#2BB514" />
-          </button>
-      {questions.map((question, questionIndex) => (
-        <div key={questionIndex} style={{ borderBottom: '10px solid lightgrey', padding: '20px', marginBottom: '30px' }}>
-          <div style={{ width: '100%', display: 'flex', marginBottom: '30px' }}>
-          
-            <div style={{ width: '1000px', border: '7px solid lightgrey', marginLeft: 'auto', position: 'relative', borderRadius: '20px'}}>
-              <h1 style={{ fontSize: '25px', color: 'grey', width: '160px', textAlign: 'center', background: '#f4f4f4', border: '4px solid white', padding: '5px', borderRadius: '10px', position: 'absolute', top: '-50px', left: '150px' }}>Question</h1>
-              <p style={{ width: '90%', marginLeft: 'auto', marginRight: 'auto', fontSize: '25px', fontWeight: 'bold' }}>{question.question}</p>
-            </div>
-          </div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center' }}>
-            {Object.keys(question).filter(key => key.match(/^[a-z]$/)).map((choice, index, array) => {
-              const style = getChoiceStyle(choice);
-              const width = getChoiceWidth(array.length);
-              const isLastRow = array.length === 5 && index >= 3;
-              const explanationKey = `explanation_${choice.toLowerCase()}`;
-              const isHovered = hoveredChoice === `${questionIndex}-${choice}`;
-              return (
-                <div key={choice} style={{
-                  width: width,
-                  margin: '10px 1%',
-                  padding: '10px',
-                  background: style.background,
-                  color: style.color,
-                  borderRadius: isHovered ? '10px 10px 0 0' : '10px',
-                  cursor: 'pointer',
-                  boxShadow: question.correct.toLowerCase() === choice ? '0px 4px 4px 0px #1BC200' : '0px 4px 4px 0px transparent',
+            {' '}
+            MCQ
+            <h1
+              style={{
+                fontSize: '50px',
+                marginTop: '-10px',
+                marginLeft: '0px',
+                color: '#FCCA18',
+                display: 'flex',
+              }}
+            >
+              *
+            </h1>{' '}
+          </h1>
+        </h1>
+      </div>
+      {editedQuestions.map((question, questionIndex) => (
+        <div
+          key={questionIndex}
+          style={{ borderBottom: '4px solid #f4f4f4', padding: '20px', marginBottom: '30px' }}
+        >
+          <div style={{ width: '100%', display: 'flex', marginBottom: '30px', position: 'relative' }}>
+            <div
+              style={{
+                width: '1000px',
+                border: '4px solid white',
+                boxShadow: '1px 1px 5px 1px rgb(0,0,155,.07)',
+                marginLeft: 'auto',
+                position: 'relative',
+                borderRadius: '15px',
+              }}
+            >
+              <h1
+                style={{
+                  fontSize: '25px',
+                  color: 'grey',
+                  width: '918px',
+                  textAlign: 'left',
+                  background: '#f4f4f4',
+                  padding: '5px',
+                  paddingLeft: '30px',
+                  borderRadius: '15px 15px 0px 0px ',
+                  position: 'absolute',
+                  top: '-55px',
+                  left: '-4px',
+                  border: '4px solid lightgrey',
                   display: 'flex',
-                  flexDirection: 'column',
-                  justifyContent: 'center',
                   alignItems: 'center',
-                  position: 'relative',
-                  transition: 'border-radius 0.2s',
-                  ...(isLastRow && { marginLeft: 'auto', marginRight: 'auto' })
                 }}
-                onMouseEnter={() => setHoveredChoice(`${questionIndex}-${choice}`)}
-                onMouseLeave={() => setHoveredChoice(null)}
+              >
+                <span>Question </span>
+              </h1>
+              {editingQuestionIndex === questionIndex ? (
+                <textarea
+                  value={question.question}
+                  onChange={(e) => handleQuestionChange(questionIndex, 'question', e.target.value)}
+                  style={{
+                    width: '90%',
+                    marginLeft: '30px',
+                    fontSize: '25px',
+                    fontWeight: 'bold',
+                    border: 'none',
+                    outline: 'none',
+                    resize: 'vertical',
+                    minHeight: '1em',
+                    overflow: 'hidden',
+                    marginTop: '30px',
+                    marginBottom: '20px',
+                  }}
+                  rows="1"
+                  onInput={(e) => {
+                    e.target.style.height = 'auto';
+                    e.target.style.height = e.target.scrollHeight + 'px';
+                  }}
+                />
+              ) : (
+                <p
+                  style={{
+                    width: '90%',
+                    marginLeft: '30px',
+                    fontSize: '25px',
+                    fontWeight: 'bold',
+                  }}
                 >
-                  <p style={{fontWeight: 'bold', fontSize: '20px', textAlign: 'center', margin: 0}}>{question[choice]}</p>
-                  <AnimatePresence>
-                    {isHovered && question[explanationKey] && (
-                      <motion.div
-                        initial={{ opacity: 0, y: -10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -10 }}
-                        transition={{ duration: 0.2 }}
+                  {question.question}
+                </p>
+              )}
+            </div>
+            <button
+              onClick={() => handleEdit(questionIndex)}
+              style={{
+                position: 'absolute',
+                right: '10px',
+                top: '-22px',
+                background: 'transparent',
+                border: 'none',
+                cursor: 'pointer',
+              }}
+            >
+              {editingQuestionIndex === questionIndex ? (
+                <Check size={24} color="#4CAF50" strokeWidth={2.5} />
+              ) : (
+                <Pencil strokeWidth={2} size={24} color="#757575" />
+              )}
+            </button>
+          </div>
+          <div
+            style={{
+              display: 'flex',
+              flexWrap: 'wrap',
+              justifyContent: 'center',
+              marginBottom: editingQuestionIndex === questionIndex ? '20px' : '0px',
+              marginTop: editingQuestionIndex === questionIndex ? '-40px' : '0px',
+            }}
+          >
+            {Object.keys(question)
+              .filter((key) => key.match(/^[a-z]$/))
+              .map((choice, index, array) => {
+                const style = getChoiceStyle(choice);
+                const width = getChoiceWidth(array.length);
+                const isLastRow = array.length === 5 && index >= 3;
+                const explanationKey = `explanation_${choice.toLowerCase()}`;
+                const isHovered = hoveredChoice === `${questionIndex}-${choice}`;
+                const isCorrect = question.correct.toLowerCase() === choice;
+
+                return (
+                  <div
+                    key={choice}
+                    style={{
+                      width: width,
+                      margin:
+                        editingQuestionIndex === questionIndex ? '40px 1% 40px 1%' : '10px 1%',
+                      padding: '10px',
+                      background: style.background,
+                      color: style.color,
+                      borderRadius:
+                        editingQuestionIndex === questionIndex ? '10px 10px 0px 0px' : '10px',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                      position: 'relative',
+                      transition: 'all 0.2s',
+                      border: `4px solid ${style.color}`,
+                      boxShadow:
+                        isCorrect && editingQuestionIndex !== questionIndex
+                          ? `0 0 0 4px white, 0 0 0 8px #AEF2A3`
+                          : 'none',
+                      ...(isLastRow && { marginLeft: 'auto', marginRight: 'auto' }),
+                    }}
+                    onMouseEnter={() => setHoveredChoice(`${questionIndex}-${choice}`)}
+                    onMouseLeave={() => setHoveredChoice(null)}
+                  >
+                    {editingQuestionIndex === questionIndex && (
+                      <>
+                        <div
+                          style={{
+                            position: 'absolute',
+                            top: '5px',
+                            left: '5px',
+                            cursor: 'pointer',
+                          }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleCorrectAnswerChange(questionIndex, choice);
+                          }}
+                        >
+                          {isCorrect ? (
+                            <CheckSquare size={20} color={style.color} />
+                          ) : (
+                            <Square size={20} color={style.color} />
+                          )}
+                        </div>
+                        <div
+                          style={{
+                            position: 'absolute',
+                            top: '-10px',
+                            right: '-10px',
+                            cursor: 'pointer',
+                          }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteChoice(questionIndex, choice);
+                          }}
+                        >
+                          <SquareX
+                            size={20}
+                            color={'red'}
+                            style={{ background: 'white', padding: '2px', borderRadius: '5px' }}
+                          />
+                        </div>
+                      </>
+                    )}
+                    {editingQuestionIndex === questionIndex ? (
+                      <textarea
+                        value={question[choice]}
+                        onChange={(e) => handleChoiceChange(questionIndex, choice, e.target.value)}
                         style={{
-                          position: 'absolute',
-                          top: '100%',
-                          left: 0,
-                          width: '91.2%',
-                          padding: '10px',
-                          background: 'rgb(255,255,255,.9)',
-                          border: `10px solid ${style.background}`,
-                          borderRadius: '0 0 10px 10px',
-                          zIndex: 1000,
+                          fontWeight: 'bold',
+                          fontSize: '20px',
+                          textAlign: 'center',
+                          margin: 0,
+                          width: '100%',
+                          background: 'transparent',
+                          border: 'none',
+                          resize: 'vertical',
+                          minHeight: '1em',
+                          overflow: 'hidden',
+                        }}
+                        rows="1"
+                        onInput={(e) => {
+                          e.target.style.height = 'auto';
+                          e.target.style.height = e.target.scrollHeight + 'px';
+                        }}
+                      />
+                    ) : (
+                      <p
+                        style={{
+                          fontWeight: 'bold',
+                          fontSize: '20px',
+                          textAlign: 'center',
+                          margin: 0,
                         }}
                       >
-                        <p style={{color: 'black', fontWeight: 'bold', margin: 0}}>{question[explanationKey]}</p>
-                      </motion.div>
+                        {question[choice]}
+                      </p>
                     )}
-                  </AnimatePresence>
-                </div>
-              );
-            })}
+                    <AnimatePresence>
+                      {(isHovered || editingQuestionIndex === questionIndex) &&
+                        question[explanationKey] && (
+                          <motion.div
+                            initial={{ opacity: 0, y: -10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -10 }}
+                            transition={{ duration: 0.2 }}
+                            style={{
+                              position: 'absolute',
+                              top: '110%',
+                              left: '-4px',
+                              width: 'calc(100% - 20px)',
+                              padding: '10px',
+                              background: 'rgb(255,255,255)',
+                              border: `4px solid #f4f4f4`,
+                              borderTop: 'none',
+                              borderRadius: '0 0 10px 10px',
+                              zIndex: 1000,
+                            }}
+                          >
+                            {editingQuestionIndex === questionIndex ? (
+                              <textarea
+                                value={question[explanationKey]}
+                                onChange={(e) =>
+                                  handleExplanationChange(questionIndex, choice, e.target.value)
+                                }
+                                style={{
+                                  color: 'black',
+                                  fontWeight: 'bold',
+                                  margin: 0,
+                                  width: '100%',
+                                  border: 'none',
+                                  resize: 'vertical',
+                                  minHeight: '1em',
+                                  overflow: 'hidden',
+                                }}
+                                rows="1"
+                                onInput={(e) => {
+                                  e.target.style.height = 'auto';
+                                  e.target.style.height = e.target.scrollHeight + 'px';
+                                }}
+                              />
+                            ) : (
+                              <p
+                                style={{
+                                  color: 'black',
+                                  fontWeight: 'bold',
+                                  margin: 0,
+                                }}
+                              >
+                                {question[explanationKey]}
+                              </p>
+                            )}
+                          </motion.div>
+                        )}
+                    </AnimatePresence>
+                  </div>
+                );
+              })}
           </div>
         </div>
       ))}
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '20px' }}>
-     
-      </div>
     </div>
   );
 };

@@ -56,11 +56,18 @@ const TeacherClassHome = ({ currentPage }) => {
   
     switch(assignmentFormat) {
       case 'AMCQ':
-      case 'MCQ':
+    
         navigate(`/class/${classId}/assignment/${fullAssignmentId}/TeacherResultsAMCQ`);
         break;
+      
+          case 'MCQ':
+            navigate(`/class/${classId}/assignment/${fullAssignmentId}/TeacherResultsMCQ`);
+            break;
+            
+          case 'ASAQ':
+            navigate(`/class/${classId}/assignment/${fullAssignmentId}/TeacherResultsASAQ`);
+            break;
       case 'SAQ':
-      case 'ASAQ':
         navigate(`/class/${classId}/assignment/${fullAssignmentId}/TeacherResults`);
         break;
       default:
@@ -81,7 +88,7 @@ const TeacherClassHome = ({ currentPage }) => {
           buttonBorder: '#CE7C00'
         };
       case 'SAQ':
-      case 'Asaq':
+      case 'ASAQ':
         return {
           background: '#9DA6FF',
           border: '#020CFF',
@@ -289,10 +296,11 @@ console.log('Current classChoiceStyle:', classChoiceStyle);
     };
   };
   const linkStyle = {
-    width: '350px', 
+    width: '354px', 
     marginLeft: '60px',
     fontFamily: "'montserrat', sans-serif", 
-   
+    
+               boxShadow: '1px 1px 5px 1px rgb(0,0,155,.07)',
     marginBottom: '0px', 
     height: '270px', 
  border: '0px solid ',
@@ -320,7 +328,7 @@ backgroundColor: 'rgb(50,50,50)',
 
 
   return (
-    <div style={{  display: 'flex', flexDirection: 'column', backgroundColor: 'white'}}>
+    <div style={{  display: 'flex', flexDirection: 'column', backgroundColor: '#FCFCFC', position: 'absolute', top: 0, left: 0, bottom: 0, right: 0}}>
 
       <Navbar userType="teacher" currentPage={currentPage}  />
      
@@ -401,7 +409,7 @@ backgroundColor: 'rgb(50,50,50)',
             </div>
           </div>
         )}
-     <div  style={{ flexGrow: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', marginTop: '70px', width: '1000px'}}>
+     <div  style={{ flexGrow: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', marginTop: '-60px', width: '1000px'}}>
 
 
       <div style={{width: '100%', display: 'flex', justifyContent: 'space-between', marginTop: '-100px', marginBottom: '190px'}}>
@@ -413,21 +421,25 @@ backgroundColor: 'rgb(50,50,50)',
 
 
       <div style={{fontSize: '36px',
-  height: '30px',
- marginLeft: '120px',
+  height: '160px',
+ marginLeft: '110px',
   fontFamily: "'montserrat', sans-serif",
- width: '100%',
+ width: '730px',
+ borderRadius: '15px',
+ paddingLeft: '40px',
   zIndex: '20',
   marginTop: '180px',
-  paddingBottom: '20px',
-  borderBottom: '2px solid #f4f4f4',
+  paddingBottom: '20px',  paddingTop: '20px',
+  background: 'white',
   backgroundColor: 'transparent',
   alignItems: 'center',
  
+  
+               boxShadow: '1px 1px 5px 1px rgb(0,0,155,.07)',
   justifyContent: 'center'
 }}>
   
-  <h1 style={{ textAlign: 'left', textShadow: 'none', marginTop: '-100px', marginRight: '40px',
+  <h1 style={{ textAlign: 'left', textShadow: 'none', marginTop: '10px', marginRight: '40px',
      fontSize: '60px', fontWeight: 'bold', color: 'black',fontFamily: "'montserrat', sans-serif", }}>
       {classChoice}</h1>
 <h1 style={{
@@ -464,32 +476,32 @@ marginLeft: '4px',
         }}>
 
   
-<div style={{display: 'flex',  marginTop: '-120px',width: '900px'}}>
+<div style={{display: 'flex',  marginTop: '-150px',width: '900px'}}>
 <Link 
   to={`./Assignments`} 
   style={{ 
     ...linkStyle,
     backgroundColor: 'white',
     marginTop: '20px',
-    border: '4px solid #eeeeee',
+    border: '2px solid ',
     textDecoration: 'none',
   }}
   onMouseEnter={(e) => {
-    e.currentTarget.style.borderColor = '#e5e5e5';
+    e.currentTarget.style.borderColor = '#f4f4f4';
     const subdiv = e.currentTarget.querySelector('.subdiv');
     if (subdiv) {
       subdiv.style.borderColor = '#2F37FF';
     }
   }}
   onMouseLeave={(e) => {
-    e.currentTarget.style.borderColor = '#eeeeee';
+    e.currentTarget.style.borderColor = 'white';
     const subdiv = e.currentTarget.querySelector('.subdiv');
     if (subdiv) {
       subdiv.style.borderColor = '#020CFF';
     }
   }}
 >
-  <div style={{marginTop: '30px'}} >
+  <div style={{marginTop: '30px', }} >
     <BookOpenText size={150} color="grey" strokeWidth={1.8} />
   </div>  
 
@@ -502,7 +514,7 @@ marginLeft: '4px',
       border: '10px solid #0009D9',
       height: '60px',
       width: '338px',
-      marginLeft: '-4px',
+      marginLeft: '-2px',
       borderBottomLeftRadius: '15px',
       borderBottomRightRadius: '15px',
     }}
@@ -517,18 +529,18 @@ marginLeft: '4px',
     ...linkStyle,
     backgroundColor: 'white',
     marginTop: '20px',
-    border: '4px solid #eeeeee',
+    border: '2px solid ',
     textDecoration: 'none',
   }}
   onMouseEnter={(e) => {
-    e.currentTarget.style.borderColor = '#e5e5e5';
+    e.currentTarget.style.borderColor = '#f4f4f4';
     const subdiv = e.currentTarget.querySelector('.subdiv');
     if (subdiv) {
       subdiv.style.borderColor = '#FFAA00';
     }
   }}
   onMouseLeave={(e) => {
-    e.currentTarget.style.borderColor = '#eeeeee';
+    e.currentTarget.style.borderColor = 'white';
     const subdiv = e.currentTarget.querySelector('.subdiv');
     if (subdiv) {
       subdiv.style.borderColor = '#FCBB18';
@@ -548,7 +560,7 @@ marginLeft: '4px',
       border: '10px solid #FCBB18',
       height: '60px',
       width: '338px',
-      marginLeft: '-4px',
+      marginLeft: '-2px',
       borderBottomLeftRadius: '15px',
       borderBottomRightRadius: '15px',
     }}

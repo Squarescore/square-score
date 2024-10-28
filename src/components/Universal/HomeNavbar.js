@@ -75,6 +75,8 @@ const HomeNavbar = ({ userType, currentPage, firstName, lastName }) => {
         <div style={{ 
             position: 'fixed', top: 0, width: '100%', display: 'flex',
             padding: '0px 0', alignItems: 'center', height: '70px',color: 'grey', zIndex: '1000',
+            
+               boxShadow: '1px 1px 5px 1px rgb(0,0,155,.07)',
 
 
             backgroundColor: 'rgba(255,255,255,0.9)', 
@@ -91,7 +93,7 @@ const HomeNavbar = ({ userType, currentPage, firstName, lastName }) => {
 
                 
             <div style={{width: '320px',   display: 'flex', marginLeft: 'auto', marginRight: 'auto',}}>
-<img style={{ width: '50px', marginLeft: '20px', marginTop: '-0px' }} src="/SquareScore.svg" alt="logo" /> <span style={{fontSize: '30px', fontWeight: '600', paddingLeft: '20px', 
+<img style={{ width: '30px', marginLeft: '20px', marginTop: '-0px' }} src="/SquareScore.svg" alt="logo" /> <span style={{fontSize: '30px', fontWeight: '600', paddingLeft: '20px', 
     color:'black', borderLeft: '4px solid #f4f4f4', marginLeft: '15px'}}>SquareScore</span>
     
             </div>
@@ -104,58 +106,99 @@ const HomeNavbar = ({ userType, currentPage, firstName, lastName }) => {
 
             </div>
             
-            <div style={{ flex: 0.15, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'fixed', top: '10px', right: '-20px' }}>
-               
-                
-            <div onClick={toggleDropdown} style={{
-                            width: '32px', height: '32px', borderRadius: '4px', backgroundColor: 'transparent',
-                            border: '8px solid #627BFF', boxShadow: '0px 2px 3px 1px rgba(0, 0, 0, 0.1)', cursor: 'pointer', marginLeft: 'auto', marginRight: '60px',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#020CFF', fontSize: '20px', fontWeight: 'bold'
-                        }}>
-                            <div style={{ fontSize: '10px', width: '44px', height: '30px', borderRadius: '2px', margin: '-4px', border: '5px solid #020CFF', userSelect: 'none' }}>
-                                <h1 style={{ fontSize: '20px', width: '30px', fontFamily: '"montserrat", sans-serif', marginTop: '11px ', marginLeft: '2px' }}>{userInitials}</h1>
-                            </div>    {showDropdown && (
-                  <div style={{
+<div  style={{
+              flex: 0.15,
+              display: 'flex',
+              alignItems: 'center',
+              background: '#ECECEC',
+              width: '2px', 
+              height: '40px',
+              justifyContent: 'center',
+              position: 'absolute',
+              top: '15px',
+              right: '70px',
+            }}></div>
+          <div
+            style={{
+              flex: 0.15,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              position: 'fixed',
+              top: '20px',
+              right: '-45px',
+            }}
+          >
+            
+            <div
+              onClick={toggleDropdown}
+              style={{
+                width: '25px',
+                height: '25px',
+                borderRadius: '5px',
+                backgroundColor: 'transparent',
+                border: '4px solid #6A6A6A',
+                cursor: 'pointer',
+                marginLeft: 'auto',
+                marginRight: '60px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#6A6A6A',
+                fontSize: '12px',
+                fontWeight: 'bold',
+              }}
+            >
+             
+                <h1
+                  style={{
+                    fontSize: '14px',
+                   userSelect: 'none',
+                   fontWeight: '800',
+                    fontFamily: '"montserrat", sans-serif',
+                    marginTop: '12px',
+                   
+                  }}
+                >
+                  {userInitials}
+                </h1>
+             
+              {showDropdown && (
+                <div
+                  style={{
                     position: 'absolute',
-                    marginTop: '130px', // Position right below the initials
+                    marginTop: '130px',
                     right: 25,
                     color: '#020CFF',
-                    boxShadow: '0px 2px 5px rgba(0, 0, 0, 0.2)',
                     borderRadius: '5px',
                     minWidth: '150px',
-                    zIndex: 10000,
-                    
-                }}>
-                    <ul style={{
-                        listStyleType: 'none',
-                        padding: 0,
-                        margin: 0,
+                    zIndex: 1000,
+                    background: 'white',
+                  }}
+                >
+                  <ul style={{ listStyleType: 'none', padding: 0, margin: 0 }}>
+                    <li
+                      onClick={handleLogout}
+                      style={{
+                        padding: '10px 15px',
+                        cursor: 'pointer',
+                        borderBottom: '1px solid #eee',
                         zIndex: 1000,
-                    }}>
-                        <li onClick={handleLogout} style={{
-                            padding: '10px 15px',
-                            cursor: 'pointer',
-                            zIndex: 1000,
-                            borderBottom: '1px solid #FFE279',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'space-between',
-                            fontSize: '16px',
-                            color: 'grey',
-                            
-                            '&:hover': {
-                                backgroundColor: '#FFE279'
-                            }
-                        }}>
-                            Logout
-                            </li>
-                        </ul>
-                    </div>
-                )}
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        fontSize: '16px',
+                        color: 'grey',
+                        background: 'white',
+                      }}
+                    >
+                      Logout
+                    </li>
+                  </ul>
                 </div>
-
-
+              )}
             </div>
+          </div>
         </div>
     );
 };

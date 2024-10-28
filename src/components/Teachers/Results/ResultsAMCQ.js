@@ -743,7 +743,9 @@ const TeacherResultsAMCQ = () => {
       height: '600px',
       width: '800px',  
       backgroundColor: 'white', 
-      border: '10px solid #f4f4f4',
+      border: '10px solid white',
+      
+               boxShadow: '1px 1px 5px 1px rgb(0,0,155,.07)' ,
       borderRadius: '20px',
       zIndex: 100,
       transition: 'all 0.3s ease-in-out',
@@ -856,8 +858,14 @@ const TeacherResultsAMCQ = () => {
 
 
   return (
-    <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', backgroundColor: 'white' }}>
-      <Navbar userType="teacher" />
+    <div style={{
+      minHeight: '100vh',
+      width: '100%',
+      backgroundColor: '#FCFCFC',
+      display: 'flex',
+      flexDirection: 'column',
+      position: 'relative'
+    }}>    <Navbar userType="teacher" />
      
       
           {showQuestionBank && assignmentDataRef.current && (
@@ -890,7 +898,7 @@ const TeacherResultsAMCQ = () => {
         left: '-30px',
         top: '0px',
         height: '100%',
-        borderRight: ' 4px solid #f4f4f4',
+         boxShadow: '1px 1px 5px 1px rgb(0,0,155,.07)',
         justifyContent: 'space-between',
         marginTop: '0px',
         alignSelf: 'center',
@@ -903,8 +911,6 @@ const TeacherResultsAMCQ = () => {
 
 
 
-     
-          <h1 style={{position: 'absolute', top: '58px', color: '#20BF00', fontSize: '20px', width: '80px',textAlign: 'center', background: '#DDFFDB', borderRight: '4px solid #20BF00', height: '40px', lineHeight: '40px' }}>MCQ<span style={{color: '#FFD13B'}}>*</span></h1>
     
     <div style={{height: '4px', width: '70px', background: 'transparent', borderRadius: '10px', marginLeft: '10px', marginTop: '120px', marginBottom: '20px'}}></div>
 
@@ -1064,11 +1070,12 @@ const TeacherResultsAMCQ = () => {
 
 
 
-  <div style={{ width: '1000px', display: 'flex', justifyContent: 'align', marginTop: '200px', marginLeft: 'auto', marginRight: 'auto' , }}>
-        <div style={{ display: 'flex', width: '800px' , marginRight: 'auto', marginLeft: '120px',  marginTop: '-50px', lineHeight:'0px', borderBottom: '2px solid #e4e4e4', paddingBottom: '15px', marginBottom:'30px' }}>
-         <div style={{position: 'relative', width: '650px', height: '150px' }}>
-         <AdaptiveHeading text={assignmentName} />
-    <h1 style={{  fontSize: '25px', 
+       <div style={{ width: '1000px', display: 'flex', justifyContent: 'align', marginTop: '150px', marginLeft: 'auto', marginRight: 'auto' }}>
+        <div style={{ display: 'flex', width: '900px' , marginRight: 'auto', marginLeft: '50px', height: ' auto', lineHeight:'0px', paddingBottom: '15px', marginBottom:'0px' }}>
+         <div style={{position: 'relative', width: '620px', backgroundColor: 'white',  height: '150px', padding: '20px 10px  20px 40px',  
+               boxShadow: '1px 1px 5px 1px rgb(0,0,155,.07)',  borderRadius: '20px', }}>
+      <AdaptiveHeading text={assignmentName} />
+      <h1 style={{  fontSize: '25px', 
       color: 'grey', 
       width: '260px', // Use full width of parent
       fontFamily: "'montserrat', sans-serif",
@@ -1077,18 +1084,23 @@ const TeacherResultsAMCQ = () => {
       hyphens: 'auto', // Enable automatic hyphenation
       lineHeight: '1.2', // Adjust line height for better readability
       margin: 0,
-      marginBottom: '10px', // Remove default margins
-      padding: '10px 0' }}>{submissionCount}/{assignedCount} Submissions</h1>
+      position: 'absolute', bottom: '20px', left: '40px', // Remove default margins
+      padding: '10px 0' }}>{submissionCount}/{assignedCount} Submissions </h1>
+<h1 style={{position: 'absolute', fontSize: '25px', right: '50px',  bottom: '25px',color: '#29DB0B', }}>MCQ<span style={{color: '#FFD13B'}}>*</span></h1>
+    
 
       </div>
+      <div style={{height: '190px', backgroundColor: 'white',  width: '190px', 
+               boxShadow: '1px 1px 5px 1px rgb(0,0,155,.07)', borderRadius: '20px',marginLeft: 'auto', }}>
       <Tooltip text="Class Average">
-  
-        <div style={{background: '#09BA00', border: '10px solid #AEF2A3', width:' 110px', height: '110px', borderRadius: '30px '}}>
-      <div style={{fontSize: '45px', fontWeight: 'bold', width: '88px', background: 'white', height: '88px', marginTop: '12px', borderRadius:  '10px', marginLeft: 'auto', marginRight: 'auto', textAlign: 'center', lineHeight: '90px'}}> 
+      
+        <img style={{ width: '150px', marginLeft: '20px' , marginTop: '23px' }} src="/score.svg" alt="logo" />
+      <div style={{fontSize: '45px', fontWeight: 'bold', width: '88px', position: 'absolute', background: 'transparent', height: '88px', borderRadius:  '10px', top: '50px', left: '50px', textAlign: 'center', lineHeight: '90px'}}> 
       {averageGrade !== null ? averageGrade : '-'}
-      </div>
+     
         </div>
 </Tooltip>
+</div>
 
         </div>
         
@@ -1121,25 +1133,28 @@ const TeacherResultsAMCQ = () => {
      
       
 
-      <ul>
+<ul style={{background: 'white', width: '860px', marginLeft: 'auto', marginRight: 'auto', backgroundColor: 'white',     
+               boxShadow: '1px 1px 5px 1px rgb(0,0,155,.07)',  borderRadius: '20px', paddingTop: '20px'}}>
+
       {students.map((student) => (
   <li key={student.uid} style={{ 
-    width: '780px', 
+    width: '800px', 
     height: '40px', 
     alignItems: 'center', 
     display: 'flex', 
     justifyContent: 'space-between', 
-    marginRight: 'auto', 
-    marginLeft: 'auto', 
-    border: '2px solid #E8E8E8', 
+
+    marginLeft: '10px', 
+    borderBottom: '2px solid #f4f4f4', 
     backgroundColor: 'white', 
-    borderRadius: '10px', 
-    padding: '10px', 
-    marginBottom: '20px', 
+    padding: '0px',
+    paddingBottom: '20px', 
+    
+    paddingTop: '20px', 
     position: 'relative',
     zIndex: '0', 
   }}>
-    <div style={{ marginLeft: '20px', width: '460px', display: 'flex', marginTop: '5px' }}>
+    <div style={{ marginLeft: '0px', width: '460px', display: 'flex', marginTop: '5px' }}>
       <div 
         style={{ 
           display: 'flex', 
@@ -1166,7 +1181,7 @@ const TeacherResultsAMCQ = () => {
 
     {student.isAssigned ? (
       <>
-        <div style={{ fontWeight: 'bold', textAlign: 'center', color: 'black', fontFamily: "'montserrat', sans-serif", marginTop: '0px', width: '100px', marginRight: '20px', marginLeft: '-40px' }}>
+        <div style={{ fontWeight: 'bold', textAlign: 'center', color: 'black', fontFamily: "'montserrat', sans-serif", marginTop: '0px', width: '100px', marginRight: '20px', marginLeft: '-140px' }}>
           {grades[student.uid] ? (
             <div style={{ display: 'flex', alignItems: 'center', marginTop: '-2px', width: '130px',  }}>
               <p style={{ fontWeight: 'bold', width: '23px', fontSize: '22px', backgroundColor: '#566DFF', height: '23px', border: '4px solid #003BD4', lineHeight: '23px', color: 'white', borderRadius: '7px', fontFamily: "'montserrat', sans-serif" }}>
@@ -1187,7 +1202,7 @@ const TeacherResultsAMCQ = () => {
             </div>
           )}
         </div>
-        <div style={{ color: 'lightgrey', width: '360px',  display: 'flex', alignItems: 'center', marginLeft: '20px', marginTop: '5px' }}>
+        <div style={{ color: 'lightgrey', width: '360px',  display: 'flex', alignItems: 'center', marginLeft: '0px', marginTop: '5px' }}>
           <div style={{ display: 'flex', alignItems: 'center' }}>
             <div style={{marginRight: '10px ', marginLeft: '10px'}}>  
               {getStatusIcon(grades[student.uid] && grades[student.uid].submittedAt ? 'completed' : assignmentStatuses[student.uid])}
@@ -1227,7 +1242,7 @@ const TeacherResultsAMCQ = () => {
           style={{ 
             backgroundColor: 'transparent', 
             color: resetStatus[student.uid] === 'success' ? 'lightgreen' : 'red', 
-            marginLeft: 'auto', 
+           
             cursor: 'pointer', 
             textAlign: 'left', 
             borderColor: 'transparent', 
@@ -1235,7 +1250,8 @@ const TeacherResultsAMCQ = () => {
             fontWeight: 'bold', 
             fontSize: '16px', 
             marginTop: '-0px',
-            marginRight: '20px' 
+            marginLeft: '0px',
+            marginRight: '0px' 
           }} 
           onClick={() => handleReset(student.uid)}
         >
@@ -1254,7 +1270,7 @@ const TeacherResultsAMCQ = () => {
             fontFamily: "'montserrat', sans-serif", 
             fontWeight: 'bold', 
             fontSize: '16px', 
-            marginRight: '10px' 
+            marginRight: '0px' 
           }} 
           onClick={() => handleAssign(student.uid)}
         >
@@ -1267,8 +1283,8 @@ const TeacherResultsAMCQ = () => {
       <div
         style={{
           position: 'absolute',
-          right: '-80px',
-          top: '-4px',
+          right: '80px',
+          top: '8px',
           height: '38px',
           width: '50px',
           padding: '11px',
@@ -1287,7 +1303,7 @@ const TeacherResultsAMCQ = () => {
           navigate(`/teacherStudentResultsAMCQ/${assignmentId}/${student.uid}/${classId}`);
         }}
       >
-        <SquareArrowRight size={50} color="#09BA00" strokeWidth={2.5} />
+        <SquareArrowRight size={30} color="#09BA00" strokeWidth={2.5} />
       </div>
     )}
   </li>

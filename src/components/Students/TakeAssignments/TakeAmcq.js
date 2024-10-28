@@ -302,44 +302,46 @@ const TakeAmcq = () => {
     setShowExplanation(false);
   };
 
-  // Points system
-  const updateScore = (isCorrect) => {
-    let points = 0;
-    if (isCorrect) {
-      if (currentQuestion.difficulty === 'Easy') points = 1.5;
-      if (currentQuestion.difficulty === 'Medium') points = 2.5;
-      if (currentQuestion.difficulty === 'Hard') points = 4;
-  
-      points += 0.5 * streak;
-    } else {
-      if (currentQuestion.difficulty === 'Easy') points = -4;
-      if (currentQuestion.difficulty === 'Medium') points = -2;
-      if (currentQuestion.difficulty === 'Hard') points = -1;
-  
-      if (streak > 6) {
-        setStreak(Math.floor(streak / 2));
-      } else {
-        setStreak(0);
-      }
-    }
-  
-    points = Math.round(points);
-    let newScore = SquareScore + points;
-  
-    // Check if newScore is NaN and set it to 0 if it is
-    if (isNaN(newScore)) {
-      newScore = 0;
-    } else if (newScore >= maxScore) {
-      newScore = maxScore;
-    }
-  
-    setSquareScore(newScore);
+ 
+    const updateScore = (isCorrect) => {
+      let points = 0;
+      if (isCorrect) {
+        if (currentQuestion.difficulty === 'Easy') points = 1.5;
+        if (currentQuestion.difficulty === 'Medium') points = 2.5;
+        if (currentQuestion.difficulty === 'Hard') points = 4;
     
-    // If the score reaches or exceeds maxScore, end the test
-    if (newScore >= maxScore) {
-      endTest();
-    }
-  };
+        points += 0.5 * streak;
+      } else {
+        if (currentQuestion.difficulty === 'Easy') points = -4;
+        if (currentQuestion.difficulty === 'Medium') points = -2;
+        if (currentQuestion.difficulty === 'Hard') points = -1;
+    
+        if (streak > 6) {
+          setStreak(Math.floor(streak / 2));
+        } else {
+          setStreak(0);
+        }
+      }
+    
+      points = Math.round(points);
+      let newScore = SquareScore + points;
+    
+      // Check if newScore is NaN and set it to 0 if it is
+      if (isNaN(newScore)) {
+        newScore = 0;
+      } else if (newScore >= maxScore) {
+        newScore = maxScore;
+      }
+    
+      setSquareScore(newScore);
+      
+      // Use a setTimeout to ensure the score update is reflected before ending the test
+      if (newScore >= maxScore) {
+        setTimeout(() => {
+          endTest();
+        }, 100); // Short delay to allow for state update
+      }
+    };
 
   // Grades
   const endTest = async () => {
@@ -588,7 +590,7 @@ const TakeAmcq = () => {
           backgroundColor: 'white',
           position: 'fixed',
           borderRadius: '10px',
-          color: 'white',
+          color: 'black',
           zIndex: '99',
           height: '90px',
           display: 'flex',
@@ -602,8 +604,7 @@ const TakeAmcq = () => {
           width: '100%',
         }}
       >
-        <link rel="preload" href="/greenCheck.png" as="image" type="image/png"></link>
-        <img style={{ width: '390px', marginLeft: '20px', marginTop: '-20px' }} src="/SquareScore.png" alt="logo" />
+       <h1>{assignmentName}</h1> 
       </header>
 
       {saveAndExit && (
@@ -731,53 +732,27 @@ const TakeAmcq = () => {
           </h1>
         </div>
         <div style={{ padding: '20px', marginBottom: '30px' }}>
-          <div style={{ width: '100%', display: 'flex', marginBottom: '30px', justifyContent: 'center' }}>
+          <div style={{ width: '100%', display: 'flex', marginBottom: '30px', justifyContent: 'center', marginTop: '100px' }}>
             <div
               style={{
                 width: '1000px',
-                border: '10px solid white',
+                border: '10px solid lightgrey',
                 marginLeft: 'auto',
                 marginRight: 'auto',
+                color: 'grey',
                 position: 'relative',
+                textAlign: 'left',
+                fontWeight: 'bold',
+                fontSize: '25px', 
+                padding:'10px 10px 10px 40px ',
                 background: '#F5F5F5',
-                borderRadius: '30px',
+                borderRadius: '15px 15px 0px 0px',
                 marginTop: '30px',
               }}
             >
-              <h1
-                style={{
-                  fontSize: '25px',
-                  color: 'grey',
-                  padding: '5px',
-                  textAlign: 'center',
-                  background: 'lightgrey',
-                  paddingLeft: '30px',
-                  paddingRight: '30px',
-                  border: '10px solid white',
-                  borderRadius: '20px',
-                  position: 'absolute',
-                  top: '-50px',
-                  left: '50%',
-                  transform: 'translateX(-50%)',
-                }}
-              >
-                {assignmentName}
-              </h1>
-              <p
-                style={{
-                  width: '85%',
-                  marginLeft: 'auto',
-                  marginRight: 'auto',
-                  fontSize: '35px',
-                  
-                  userSelect: 'none',
-                  fontWeight: 'bold',
-                  marginTop: '40px',
-                  marginBottom: '40px',
-                }}
-              >
+             
                 {currentQuestion.question}
-              </p>
+           
             </div>
           </div>
           <div
@@ -785,22 +760,28 @@ const TakeAmcq = () => {
               display: 'flex',
               flexWrap: 'wrap',
               justifyContent: 'center',
-              width: '100%',
+              width: '940px',
+              
+              borderRadius: '0px 0px 15px 15px ',
+              marginTop: '-30px',
+              border: '10px solid white',
+              
+               boxShadow: '1px 1px 5px 1px rgb(0,0,155,.07)' ,
+              borderTop: 'none',
               position: 'relative',
-              margin: '0 auto',
             }}
           >
             <div
               style={{
                 width: '100%',
-                marginTop: '-50px',
-                marginBottom: '-10px',
+                marginTop: '10px',
+                marginBottom: '10px',
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
               }}
             >
-              <button onClick={toggleDisplayFormat} style={{ background: 'none', border: 'none', cursor: 'pointer', marginLeft: '30px' }}>
+              <button onClick={toggleDisplayFormat} style={{ background: 'none', border: 'none', cursor: 'pointer', marginLeft: '30px',  }}>
               {displayFormat === 'grid' ? <Menu size={40} color="#969696" strokeWidth={2} /> : <LayoutGrid size={40} color="#969696" strokeWidth={2} />}
              
               </button>
@@ -808,18 +789,19 @@ const TakeAmcq = () => {
                 style={{
                   color: 'lightgrey',
                   marginRight: 'auto',
-                  marginLeft: '120px',
-                  fontWeight: 'bold',
-                  fontSize: '30px',
+                  marginLeft: '70px',
+                  fontWeight: '600',
+                  fontSize: '20px',
                 }}
               >
-                {' '}
+               
                 Type in a choice to confirm your response
               </p>
             </div>
             <div
               style={{
                 display: 'flex',
+                marginBottom: '30px',
                 flexDirection: displayFormat === 'grid' ? 'row' : 'column',
                 flexWrap: displayFormat === 'grid' ? 'wrap' : 'nowrap',
                 justifyContent: 'center',
@@ -995,22 +977,14 @@ const TakeAmcq = () => {
                       marginRight: 'auto',
                     }}
                   >
-                    <img
-                      style={{
-                        width: '130px',
-                        borderRadius: '200px',
-                        marginTop: '50px',
-                        marginLeft: '20px',
-                      }}
-                      src="/greenCheck.png"
-                      alt="Correct"
-                    />
+                  
+                 <SquareCheck style={{color:'green'}} width={100} />
                   </div>
                   <h1 style={{ fontSize: '60px', color: '#00B512' }}>Correct!</h1>
                 </div>
               ) : (
                 <div style={{ marginTop: '100px' }}>
-                  <img style={{ width: '100px' }} src="/bigRedx.png" />
+                 <SquareX style={{color:'red'}} width={100} />
                   <h1 style={{ fontSize: '60px', color: '#FF0000' }}>Incorrect</h1>
                 </div>
               )

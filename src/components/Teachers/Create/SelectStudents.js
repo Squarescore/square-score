@@ -68,7 +68,7 @@ function SelectStudents({ classId, selectedStudents = new Set(), setSelectedStud
          marginTop: '15px',
          marginBottom: '15px',
         flexWrap: 'wrap',
-        width: '700px',
+        width: '730px',
         
         justifyContent: 'flex-start',
         gap: '10px', 
@@ -80,7 +80,7 @@ function SelectStudents({ classId, selectedStudents = new Set(), setSelectedStud
             style={{
               width: 'calc(25.5% - 12px)',
               padding: '10px',
-              border: `3px solid ${selectedStudents.has(student.uid) ? '#73D87D' : 'lightgrey'}`,
+              border: `2px solid ${selectedStudents.has(student.uid) ? '#73D87D' : 'lightgrey'}`,
               borderRadius: '5px',
               height: '50px',
               alignItems: 'center' ,
@@ -90,7 +90,7 @@ function SelectStudents({ classId, selectedStudents = new Set(), setSelectedStud
               justifyContent: 'center',
               backgroundColor: 'white',
               color:  'black',
-              fontWeight: 'bold',
+              fontWeight: '600',
               transition: 'all 0.2s ease',
               userSelect: 'none',
               boxSizing: 'border-box',

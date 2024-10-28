@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { auth, db } from "./firebase";
 import { doc, getDoc, collection, query, where, getDocs, setDoc, updateDoc, arrayUnion } from "firebase/firestore";
 import { signOut } from "firebase/auth";
-import { ArrowLeft, SquarePlus, Users, BookOpenText, SquareX, Home, Repeat } from "lucide-react";
+import { ArrowLeft, SquarePlus, Users, BookOpenText, SquareX, Home, Repeat, ChevronDown } from "lucide-react";
 import TeacherAssignmentHome from "../Teachers/TeacherAssignments/TeacherAssignmentHome";
 import { motion, AnimatePresence } from 'framer-motion';
 import { v4 as uuidv4 } from 'uuid';
@@ -295,7 +295,8 @@ const handleFormatSelect = async (format) => {
   const logoUrl = "/logo.png";
 
   return (
-    <div style={{ position: 'relative',  }}>
+    <div style={{ position: 'relative',  
+    }}>
         {showClassDropdown  && <div onMouseEnter={handleBackgroundHover} style={{
                 position: 'fixed',
                 top: '70px',
@@ -321,8 +322,10 @@ const handleFormatSelect = async (format) => {
                top: '70px',
                left: '0',
                width: '100%',
-               backgroundColor: 'white',
-               boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+               backgroundColor: '#fcfcfc',
+               
+               boxShadow: '1px 1px 5px 1px rgb(0,0,155,.07)',
+
                zIndex: 1000,
                display: 'flex',
                justifyContent: 'center',
@@ -333,7 +336,7 @@ const handleFormatSelect = async (format) => {
                  display: 'flex',
                  flexWrap: 'wrap',
                  justifyContent: 'flex-start',
-                 width: '1200px',
+                 width: '90%',
                  marginLeft: 'auto',
                  marginRight: 'auto',
                  paddingBottom: '30px'
@@ -356,11 +359,11 @@ const handleFormatSelect = async (format) => {
                     transition={{ duration: 0.3, delay: index * 0.1 }}
                     onClick={e => handleClassChange(cls.id, e)}
                     style={{
-                      width: '280px',
-                      height: '140px',
+                      width: '180px',
                       margin: '15px',
                       marginLeft: '30px',
                       marginRight: '30px',
+                   
                       marginBottom: '0px',
                       cursor: 'pointer',
                       position: 'relative',
@@ -370,33 +373,36 @@ const handleFormatSelect = async (format) => {
                       key={cls.id}
                       onClick={e => handleClassChange(cls.id, e)}
                       style={{
-                        width: '280px',
-                        height: '140px',
+                        width: '212px',
+                        height: '105px',
+                        borderRadius: '10px',
                         margin: '15px',
                         marginLeft: '30px',
+                        
+                      
+               boxShadow: '1px 1px 5px 1px rgb(0,0,155,.07)',
                         marginRight: '30px',
-                        marginBottom: '20px',
+                        marginBottom: '-10px',
                         cursor: 'pointer',
                         position: 'relative',
                       }}
                     >
                       <div
                         style={{
-                          width: '243px',
-                          height: '30px',
-                          border: `6px solid ${periodStyle.color}`,
+                          width: '205px',
+                          marginTop: '20px',
+                          height: '25px',
+                          border: `4px solid ${periodStyle.color}`,
                           backgroundColor: periodStyle.background,
                           color: periodStyle.color,
-                          borderTopLeftRadius: '15px',
-                          borderTopRightRadius: '15px',
+                          borderTopLeftRadius: '10px',
+                          borderTopRightRadius: '10px',
                           fontFamily: "'montserrat', sans-serif",
                           fontWeight: 'bold',
-                          fontSize: '16px',
-                          display: 'flex',
-                          paddingLeft: '25px',
-                          alignItems: 'center',
-                          textAlign: 'left',
+                          fontSize: '14px',
+                          textAlign: 'center',
                           overflow: 'hidden',
+                          lineHeight: '25px',
                           textOverflow: 'ellipsis',
                           whiteSpace: 'nowrap',
                         }}
@@ -405,11 +411,12 @@ const handleFormatSelect = async (format) => {
                       </div>
                       <div
                         style={{
-                          width: '268px',
+                          width: '208px',
                           height: '70px',
-                          borderBottomLeftRadius: '15px',
-                          borderBottomRightRadius: '15px',
-                          backgroundColor: 'white',
+                          marginTop: '-0px',
+                          borderBottomLeftRadius: '10px',
+                          borderBottomRightRadius: '10px',
+                          backgroundColor: 'transparent',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
@@ -418,18 +425,12 @@ const handleFormatSelect = async (format) => {
                           fontSize: '35px',
                           color: 'grey',
                           transition: 'border-color 0.3s',
-                          border: '6px solid #F4F4F4',
                           borderTop: 'none',
                         }}
-                        onMouseEnter={e => {
-                          e.currentTarget.style.borderColor = '#E8E8E8';
-                        }}
-                        onMouseLeave={e => {
-                          e.currentTarget.style.borderColor = '#f4f4f4';
-                        }}
+                       
                       >
                        
-                            <h1 style={{fontSize: '30px', marginTop: '20px', width: '250px',  textAlign: 'left', marginLeft: '20px',
+                            <h1 style={{fontSize: '25px', marginTop: '10px', width: '208px',  textAlign: 'center', 
                       fontWeight: '600',}}>{cls.className}</h1>
                           
                      
@@ -438,7 +439,7 @@ const handleFormatSelect = async (format) => {
                     </motion.div>
                       );
                     })}
-              <div style={{ height: '60px', width: '100%', background: 'white' }}></div>
+              <div style={{ height: '60px', width: '100%', background: '#fcfcfc' }}></div>
             </div>
           </motion.div>
           )}
@@ -476,12 +477,14 @@ const handleFormatSelect = async (format) => {
           transition: 'background-color 0.3s ease',
           backdropFilter: 'blur(7px)',
           
-                borderBottom: '2px solid rgb(220,220,220,.2)'
+          
+               boxShadow: '1px 1px 5px 1px rgb(0,0,155,.07)',
+
         }}
       >
         {/* Back Button */}
         <Link to={homeRoute} style={{position: 'absolute', left: '20px'}} >
-          <img style={{ width: '40px', }} src="/SquareScore.svg" alt="logo" /> 
+          <img style={{ width: '30px', }} src="/SquareScore.svg" alt="logo" /> 
           
           </Link>
           <div  style={{
@@ -501,7 +504,7 @@ const handleFormatSelect = async (format) => {
         {!isLoading ? (
             <div style={{ display: 'flex', alignItems: 'center', position: 'fixed',
               top: '20px',
-              left: '110px', }}>
+              left: '100px', }}>
           
                 <div
                   onClick={toggleClassDropdown}
@@ -510,7 +513,7 @@ const handleFormatSelect = async (format) => {
                     transform: showClassDropdown ? 'rotate(180deg)' : 'rotate(0deg)',
                     userSelect: 'none',
                     marginTop: '5px',
-                    marginLeft: '3px',
+                    marginLeft: '-20px',
                     transition: 'transform 0.5s ease',
                    
                     position: 'absolute',
@@ -520,14 +523,15 @@ const handleFormatSelect = async (format) => {
                     fontSize: '13px',
                   }}
                 >
-                  <Repeat size={20} style={{marginTop: '-7px'}}/>
+                  <ChevronDown size={20} style={{marginTop: '-7px', }}/>
                 </div>
     
-              <Link
-                to={userType === 'teacher' ? `/class/${classId}` : `/studentassignments/${classId}`}
+              <div
+                 onClick={toggleClassDropdown}
                 style={{
-                  fontSize: '25px',
-                  width: '130px',
+                  fontSize: '20px',
+                  width: '110px',
+                  marginTop: '5px',
                   textAlign: 'left',
                   paddingRight: '10px',
                   fontFamily: "'montserrat', sans-serif",
@@ -535,11 +539,11 @@ const handleFormatSelect = async (format) => {
                     color: '#868686',
                   textDecoration: 'none',
                   background: 'white',
-                 
+                 cursor: 'pointer',
                 }}
               >
                 {currentClass || ''}
-              </Link>
+              </div>
             </div>
           ) : (
             <div style={{ width: '130px', height: '38px', backgroundColor: 'transparent', borderRadius: '7px' }}></div>
@@ -610,10 +614,9 @@ const handleFormatSelect = async (format) => {
                     marginTop: '130px',
                     right: 25,
                     color: '#020CFF',
-                    boxShadow: '0px 2px 5px rgba(0, 0, 0, 0.2)',
                     borderRadius: '5px',
                     minWidth: '150px',
-                    zIndex: 1000,
+                    zIndex: 10000,
                     background: 'white',
                   }}
                 >
@@ -724,7 +727,9 @@ const handleFormatSelect = async (format) => {
                           borderRadius: '20px',
                           height: '240px',
                           marginTop: '50%',
-                          border: '10px solid #f4f4f4',
+                          border: '10px solid white',
+                          
+               boxShadow: '1px 1px 5px 1px rgb(0,0,155,.07)' ,
                         }}
                       >
                         <button
@@ -786,12 +791,12 @@ const handleFormatSelect = async (format) => {
                 fontFamily: "'montserrat', sans-serif",
                 color: 'grey',
                 marginTop: '0px',
-                fontWeight: 'bold',
+                fontWeight: '600' ,
                 whiteSpace: 'nowrap', // Prevents text wrapping
                 padding: '5px 10px',  // Adds some space inside the div
               }}
             >
-              {classChoice}
+             SquareScore
             </div>
           )}
 

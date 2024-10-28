@@ -129,20 +129,8 @@ const Login = () => {
   };
 
   return (
-    <div style={{ position: 'relative', overflow: 'hidden', height: '100vh', display: 'flex', flexDirection: 'column', backgroundColor: 'rgb(255,255,255,.2)', backdropFilter: 'blur(7px)' }}>
-      {positions.map((pos, index) => (
-        <div
-          key={index}
-          className={`background-div ${getRandomColorClass()}`}
-          style={{
-            top: pos.top,
-            left: pos.left,
-            position: 'absolute',
-            width: '200px',
-            height: '200px',
-          }}
-        />
-      ))}
+    <div style={{ position: 'relative',  height: '100vh', display: 'flex', flexDirection: 'column', backgroundColor: '#fcfcfc',  }}>
+   
 
       <div style={{
         position: 'fixed', top: 0, width: '100%', display: 'flex',
@@ -151,22 +139,27 @@ const Login = () => {
         transition: 'background-color 0.3s ease',
         backdropFilter: 'blur(7px)',
       }}>
-        <img style={{ width: '320px', marginLeft: 'auto', marginRight: 'auto' }} src="/SquareScore.png" alt="logo" />
-        <button
-          onClick={handleBack}
-          style={{ position: 'fixed', fontFamily: "'montserrat', sans-serif", left: '20px', top: '20px', textDecoration: 'none', color: 'black', backgroundColor: 'white', border: 'none', cursor: 'pointer' }}>
-             <ArrowLeft size={30} color="grey" strokeWidth={2.5} />     </button>
+       <div style={{ marginLeft: 'auto', marginRight: 'auto', display: 'flex'}}>
+           
 
+           <h1 style={{color: 'black', fontWeight: "600"}}>SquareScore</h1>
+           
+   
+         </div>
         
       </div>
 
-      <div className="white-background" style={{
-        width: '60%', display: 'flex', flexDirection: 'column', alignItems: 'center', marginLeft: 'auto', marginRight: 'auto', marginTop: '6%', backgroundColor: 'rgba(255,255,255,0.8)', backdropFilter: 'blur(7px)', padding: '40px', borderRadius: '20px'
-      }}>
-        <form onSubmit={handleLogin} style={{ width: '500px' }}>
-          <h1 style={{
-            color: 'black', fontSize: '80px', fontFamily: "'montserrat', sans-serif", textAlign: 'left', fontWeight: 'bold'
-          }}>Login</h1>
+      <div  style={{width: '450px', marginLeft: 'auto', height: '380px', marginTop: '190px', marginRight: 'auto',  backgroundColor: 'white',padding: '20px', boxShadow: '1px 1px 5px 1px rgb(0,0,155,.07)', borderRadius: '30px', }}>
+        
+       
+        <form onSubmit={handleLogin} style={{ width: '450px' }}>
+        <div style={{background: '#F4F4F4 ', border: '10px solid #C1C1C1', margin: '-20px -20px 10px -20px', height: '70px', borderRadius: '30px 30px 0px 0px', display: 'flex' }}>
+        <h1 style={{ fontWeight: 'Bold',
+           color: '#C1C1C1', fontSize: '40px', fontFamily: "'montserrat', sans-serif", 
+            padding: '0px', backgroundColor: 'transparent', 
+             marginLeft: '30px',width: '370px', marginTop: '10px'}}>Login</h1>
+      
+      </div>
           
 
 
@@ -176,12 +169,11 @@ const Login = () => {
 
 
 
-<div style={{marginLeft: 'auto', marginRight: 'auto', width: '600px'}}>
-          <div style={{  marginBottom: '20px', position: 'relative' }}>
+<div style={{marginLeft :'15px', width: '400px', marginTop: '50px'}}>
+          <div style={{  marginBottom: '20px', position: 'relative', }}>
             
             <input
               type="email"
-              placeholder="Email"
               value={email}
               onFocus={() => handleInputFocus('email')}
               onBlur={(e) => handleInputBlur('email', e.target.value)}
@@ -190,26 +182,28 @@ const Login = () => {
                 e.target.style.borderColor = e.target.value.trim() !== '' ? 'lightgreen' : 'lightgrey';
               }}
               style={{
-                width: '92%', 
-                padding: '20px', 
+                width: '97%', 
+                padding: '15px', 
                 fontWeight: 'bold',
-                border: '4px solid lightgrey', 
+                border: '2px solid lightgrey', 
                 color: 'black',
                 borderRadius: '10px', 
                 outline: 'none', 
                 backdropFilter: 'blur(7px)',
-                fontSize: '30px',
+                fontSize: '20px',
                 backgroundColor: 'rgb(250,250,250,.5)', 
                 fontFamily: "'montserrat', sans-serif"
               }}
             />
-            {inputStyles.email && <label style={{ position: 'absolute', top: '-8px', left: '15px', backgroundColor: 'white', padding: '0 10px', borderTopRightRadius: '3px', borderTopLeftRadius: '3px', fontFamily: "'montserrat', sans-serif", fontWeight: 'bold', height: '13px', fontSize: '20px' }}>Email</label>}
-          </div>
+             <div style={{ position: 'absolute', top: '-30px', left: '-10px', backgroundColor: 'white', padding: '0 10px', borderTopRightRadius: '3px', borderTopLeftRadius: '3px', zIndex: '20', fontFamily: "'montserrat', sans-serif", fontWeight: '600', height: '13px', fontSize: '20px', display: 'flex' }}>
+            
+          <h1 style={{fontFamily: "'montserrat', sans-serif", fontWeight: '600', fontSize: '20px', marginTop: '0px'}}>Email</h1>
+          
+          </div></div>
 
           <div style={{  marginBottom: '40px', position: 'relative' }}>
             <input
               type="password"
-              placeholder="Password"
               value={password}
               onFocus={() => handleInputFocus('password')}
               onBlur={(e) => handleInputBlur('password', e.target.value)}
@@ -218,54 +212,33 @@ const Login = () => {
                 e.target.style.borderColor = e.target.value.trim() !== '' ? 'lightgreen' : 'lightgrey';
               }}
               style={{
-                width: '92%', 
-                padding: '20px', 
+                width: '97%', 
+                padding: '15px', 
                 marginTop: '30px',
                 fontWeight: 'bold',
-                border: '4px solid lightgrey', 
+                border: '2px solid lightgrey', 
                 color: 'black',
                 borderRadius: '10px', 
                 outline: 'none', 
                 backdropFilter: 'blur(7px)',
-                fontSize: '30px',
+                fontSize: '20px',
                 backgroundColor: 'rgb(250,250,250,.5)', 
                 fontFamily: "'montserrat', sans-serif",
               }}
             />
-            {inputStyles.password && <label style={{ position: 'absolute', top: '22px', left: '15px', backgroundColor: 'white', padding: '0 10px', borderTopRightRadius: '3px', borderTopLeftRadius: '3px', fontFamily: "'montserrat', sans-serif", fontWeight: 'bold', height: '13px', fontSize: '20px' }}>Password</label>}
-          </div>
-
-          <div style={{ display: 'flex' }}>
-            <button
-              type="submit"
-              style={{
-                width: '140px',
-                marginLeft: '0px',
-                background: '#99B6FF', border: '4px solid #020CFF', 
-               
-                height: '50px',
-                borderRadius: '10px',
-                cursor: 'pointer',
-                fontFamily: "'montserrat', sans-serif",
-                transition: '.2s'
-              }}
-              onMouseEnter={(e) => {     e.target.style.borderColor = '#0008C7';
-              }}
-              onMouseLeave={(e) => {
-                e.target.style.borderColor = '#020CFF';
-          
-              }}
-            >
-              <h1 style={{ marginTop: '2px',  pointerEvents: 'none',color: '#020CFF', }}>Login</h1>
-            </button>
+     
+     <div style={{ position: 'absolute', top: '0px', left: '-10px', backgroundColor: 'white', padding: '0 10px', borderTopRightRadius: '3px', borderTopLeftRadius: '3px', zIndex: '20', fontFamily: "'montserrat', sans-serif", fontWeight: '600', height: '13px', fontSize: '20px', display: 'flex' }}>
+            
+            <h1 style={{fontFamily: "'montserrat', sans-serif", fontWeight: '600', fontSize: '20px', marginTop: '0px'}}>Password</h1>
             <button
           onClick={handleForgotPassword}
           style={{
-            marginLeft: 'auto', 
-            marginTop: '0px',
+            marginLeft: '-10px', 
+            marginTop: '-5px',
+            zIndex: '1000',
             backgroundColor: 'transparent',
             border: 'none',
-            textDecoration: 'underline',
+            textDecoration: 'none',
             color: 'blue',
             borderRadius: '10px',
             padding: '10px 20px',
@@ -273,17 +246,45 @@ const Login = () => {
             fontFamily: "'montserrat', sans-serif",
           }}
         >
-          Forgot Password?
+         - Forgot Password?
         </button>
+            </div>
+                </div>
+
+          <div style={{ display: 'flex', width: '430px' }}>
+            <button
+              type="submit"
+              style={{
+                width: '120px',
+                marginLeft: '0px',
+                background: '#C7FFBE', border: '4px solid #2BB514', 
+            zIndex: '1000',
+               
+                height: '40px',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                fontFamily: "'montserrat', sans-serif",
+                transition: '.2s'
+              }}
+              onMouseEnter={(e) => {     e.target.style.borderColor = '#009006';
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.borderColor = '#2BB514';
+          
+              }}
+            >
+              <h1 style={{ marginTop: '2px', fontSize: '20px', pointerEvents: 'none',color: '#2BB514', }}>Login</h1>
+            </button>
+            <p style={{ fontFamily: "'montserrat', sans-serif", color: 'black', marginLeft: '20px', fontSize: '14px', width: '340px',  marginTop: '5px'}}>
+                  By Logging in you agree to SquareScore's <a href="/TermsofService" style={{ color: 'blue' }}>Terms of Service</a>  and <a href="/PrivacyPolicy" style={{ color: 'blue' }}>Privacy Policy</a>
+                </p>
           </div>
           </div>
         </form>
 
       
-        <p style={{ fontFamily: "'montserrat', sans-serif", color: 'black', marginLeft: '0px', fontSize: '16px', width: '600px', marginTop: '20px'}}>
-                  By Logging in you agree to SquareScore's <a href="/TermsofService" style={{ color: 'blue' }}>Terms of Service</a>  and <a href="/PrivacyPolicy" style={{ color: 'blue' }}>Privacy Policy</a>
-                </p>
-        {error && <p style={{ color: 'red', marginTop: '20px' }}>{error}</p>}
+     
+        {error && <p style={{ color: 'red', marginTop: '40px' }}>{error}</p>}
       </div>
       
     </div>

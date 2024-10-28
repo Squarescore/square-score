@@ -12,6 +12,7 @@ function StudentResults() {
   const navigate = useNavigate();
   const { assignmentId, studentUid } = useParams();
 
+  const [contentHeight, setContentHeight] = useState('auto');
   const [assignmentName, setAssignmentName] = useState('');
   const [results, setResults] = useState(null);
   const [studentName, setStudentName] = useState('');
@@ -21,6 +22,11 @@ const [incorrectCount, setIncorrectCount] = useState(0);
   const [flaggedIndexes, setFlaggedIndexes] = useState({});
   const [activeQuestionIndex, setActiveQuestionIndex] = useState(null);
   const questionRefs = useRef([]);
+  const [useSlider, setUseSlider] = useState(false);
+  const contentRef = useRef(null);
+    
+  const [isMapCollapsed, setIsMapCollapsed] = useState(false);
+
   const [isSticky, setIsSticky] = useState(false);
   const studentUID = auth.currentUser.uid;
   const scrollToQuestion = (index) => {
@@ -70,7 +76,39 @@ const [incorrectCount, setIncorrectCount] = useState(0);
     fetchStudentName();
   }, [studentUid]);
 
+  useEffect(() => {
+    const checkContentHeight = () => {
+      if (contentRef.current) {
+        const windowHeight = window.innerHeight;
+        const contentHeight = contentRef.current.scrollHeight;
+        setUseSlider(contentHeight > windowHeight - 230); // 230 = 180 (top) + 50 (header)
+      }
+    };
 
+    checkContentHeight();
+    window.addEventListener('resize', checkContentHeight);
+    return () => window.removeEventListener('resize', checkContentHeight);
+  }, [results]);
+  
+  useEffect(() => {
+    const updateHeight = () => {
+      if (contentRef.current) {
+        const headerHeight = 50; // Height of the header
+        const maxHeight = window.innerHeight - 230; // 230 = 180 (top) + 50 (header)
+        const contentScrollHeight = contentRef.current.scrollHeight + headerHeight;
+        
+        if (contentScrollHeight > maxHeight) {
+          setContentHeight(`${maxHeight}px`);
+        } else {
+          setContentHeight(`${contentScrollHeight}px`);
+        }
+      }
+    };
+
+    updateHeight();
+    window.addEventListener('resize', updateHeight);
+    return () => window.removeEventListener('resize', updateHeight);
+  }, [results]);
   useEffect(() => {
     const fetchResults = async () => {
       try {
@@ -139,14 +177,74 @@ const [incorrectCount, setIncorrectCount] = useState(0);
 
 
   return (
-    <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', backgroundColor: 'white' }}>
+    <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', backgroundColor: '#fcfcfc' }}>
       <Navbar userType="student" />
 
              
-              
 
+        <div style={{
+      position: 'fixed',
+      height: isMapCollapsed ? '50px' : contentHeight,
+      overflow: isMapCollapsed ? 'hidden' : 'auto',
+      top: '200px',
+      left: '40px',
+      width: '80px',
+      paddingBottom: isMapCollapsed ? '0px' : '30px',
+      backgroundColor: 'white',
+      boxShadow: '1px 1px 5px 1px rgb(0,0,155,.1)',
+      borderRadius: '10px',
+      transition: 'all 0.3s',
+      zIndex: 1000,
+      display: 'flex',
+      flexDirection: 'column'
+    }}>
+      <div style={{
+        display: 'flex',
+        width: '50px',
+        marginLeft: 'auto',
+        marginRight: 'auto',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        padding: '10px',
+        height: '30px'
+      }}>
+        <span style={{ fontWeight: 'bold' }}>Map</span>
+        <button
+          onClick={() => setIsMapCollapsed(!isMapCollapsed)}
+          style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '20px' }}
+        >
+          {isMapCollapsed ? '+' : '-'}
+        </button>
+      </div>
+      <div ref={contentRef} style={{ overflowY: 'auto', flex: 1 }}>
+        {results.questions.map((question, index) => (
+          <div
+            key={index}
+            onClick={() => scrollToQuestion(index)}
+            style={{
+              width: '50px',
+              marginLeft: 'auto',
+              marginRight: 'auto',
+              alignItems: 'center',
+              padding: '10px 5px',
+              display: 'flex',
+              borderTop: ' 2px solid #f4f4f4'
+            }}
+          >
+            <span style={{ marginLeft: '0px', fontWeight: '700', marginRight: 'auto' }}>{index + 1}.</span>
+            {question.score === results.scaleMax ? (
+              <SquareCheck size={25} color="#00d12a" style={{ marginRight: '0px' }} />
+            ) : question.score === results.scaleMin ? (
+              <SquareX size={25} color="#FF0000" style={{ marginRight: '0px' }} />
+            ) : (
+              <SquareSlash size={25} color="#FFD13B" style={{ marginRight: '0px' }} />
+            )}
+          </div>
+         ))}
+                </div>
+            </div>
 
-            <div style={{  fontFamily: "'montserrat', sans-serif", backgroundColor: 'white', width: '860px', zIndex: '100', alignItems: 'center', marginLeft: 'auto', marginRight: 'auto', marginTop: '100px'}}>
+            <div style={{  fontFamily: "'montserrat', sans-serif", backgroundColor: '#fcfcfc', width: '860px', zIndex: '100', alignItems: 'center', marginLeft: 'auto', marginRight: 'auto', marginTop: '100px'}}>
            
            
            
@@ -157,7 +255,7 @@ const [incorrectCount, setIncorrectCount] = useState(0);
 
 
 
-           <div style={{display: 'flex', border: '2px solid #EEEEEE', paddingRight: '0px', width: '880px ', borderRadius: '15px', marginBottom: '20px', height: '200px', marginLeft: '-10px' }}>
+           <div style={{display: 'flex',  boxShadow: '1px 1px 5px 1px rgb(0,0,155,.1)',  background: 'white', paddingRight: '0px', width: '880px ', borderRadius: '15px', marginBottom: '20px', height: '200px', marginLeft: '-10px', marginTop: '100px' }}>
        <div style={{marginLeft: '30px', marginBottom: '40px'}}>
        <h1 style={{ fontSize: '40px', color: 'black', marginBottom: '0px',  marginLeft: '-5px',fontFamily: "'montserrat', sans-serif", textAlign: 'left',  }}>{assignmentName}</h1>
      
@@ -179,7 +277,7 @@ const [incorrectCount, setIncorrectCount] = useState(0);
                    </div>
            </div>
            <div style={{display: 'flex', width: '880px'}}>
-               <div style={{width: '450px', border: '2px solid #EEEEEE', borderRadius: '15px', height: '135px',  padding: '0px 0px', marginLeft: '-10px'}}>
+               <div style={{width: '430px',  boxShadow: '1px 1px 5px 1px rgb(0,0,155,.1)', background: 'white', borderRadius: '15px', height: '135px',  padding: '0px 0px', marginLeft: '-10px'}}>
                    <h1 style={{  marginBottom: '-20px', marginTop:'15px', marginLeft: '30px', fontSize: '25px', }}> Point Distribution</h1>
                  <div style={{display: 'flex', justifyContent: 'space-around'}}> 
                    <div style={{ fontSize: '30px', fontWeight: 'bold', color: 'black', display: 'flex', alignItems: 'center',  justifyContent: 'space-around', marginLeft: '5px', width: '90px', marginTop: '50px' , }}>
@@ -212,11 +310,11 @@ const [incorrectCount, setIncorrectCount] = useState(0);
                    </div>
 
 
-                   <div style={{width: '430px', border: '2px solid #EEEEEE', borderRadius: '15px', height: '135px',  padding: '0px 0px', marginLeft: '20px' }}>
+                   <div style={{width: '430px',  boxShadow: '1px 1px 5px 1px rgb(0,0,155,.1)', background: 'white',  borderRadius: '15px', height: '135px',  padding: '0px 0px', marginLeft: '20px' }}>
                    <h1 style={{  marginBottom: '-20px', marginTop:'15px', marginLeft: '30px', fontSize: '25px', }}>Grade</h1>
                    <div style={{display: 'flex', justifyContent: 'space-around', marginTop: '25px'}}> 
                    <p style={{fontSize: '25px', width: '20px',color: 'grey', padding: '5px 30px', background: '#f4f4f4', borderRadius: '5px', fontWeight: 'bold',  textAlign: 'center'}}>{letterGrade}</p>
-                   <p style={{fontSize: '25px', width: '40px',color: 'grey', padding: '5px 25px', background: '#f4f4f4', borderRadius: '5px', fontWeight: 'bold',  textAlign: 'center'}}>   {results.percentageScore.toFixed(0)}%</p>
+                   <p style={{fontSize: '25px', width: '60px',color: 'grey', padding: '5px 25px', background: '#f4f4f4', borderRadius: '5px', fontWeight: 'bold',  textAlign: 'center'}}>   {results.percentageScore.toFixed(0)}%</p>
                    <p style={{fontSize: '25px', width: '90px',color: 'grey', padding: '5px 0px', background: '#f4f4f4', borderRadius: '5px', fontWeight: 'bold',  textAlign: 'center'}}>     {`${results.rawTotalScore}/${results.questions.length * results.scaleMax}`}</p>
 
                    </div>
@@ -254,47 +352,8 @@ const [incorrectCount, setIncorrectCount] = useState(0);
                        backdropFilter: 'blur(5px)',
                
                marginLeft: 'auto', marginRight: 'auto', textAlign: 'center',  borderRadius: '10px', position: 'relative' }}>
-               <div 
-                   ref={stickyRef}
-                   style={{
-                       display: 'flex',
-                       flexWrap: 'wrap',
-                       justifyContent: 'left',
-                       gap: '20px',
-                       marginBottom: '40px',
-                       width: '890px',
-                       position: 'sticky',
-                       backgroundColor: 'rgb(255,255,255,.8)',
-                       backdropFilter: 'blur(5px)',
-                       top: '70px',
-                       height: '30px',
-                       padding: '10px 0',
-                       zIndex: 1000,
-                       marginLeft: 'auto', marginRight: 'auto',
-                   }}
-               >
-                   <div style={{
-                       width: '870px',
-                       marginLeft: '30px',
-                       margin: '0 auto',
-                       display: 'flex',
-                       flexWrap: 'wrap',
-                       justifyContent: 'left',
-                       gap: '20px'
-                   }}>
-                       {results.questions.map((question, index) => (
-                           <Square
-                               key={index}
-                               size={20}
-                               style={{ cursor: 'pointer' }}
-                               strokeWidth={5}
-                               color={question.score === results.scaleMax ? "#00d12a" : question.score === results.scaleMin ? "#FF0000" : "#FFD13B"}
-                               onClick={() => scrollToQuestion(index)}
-                           />
-                       ))}
-                   </div>
-               </div>
-        <ul style={{ listStyle: 'none', padding: '0' , marginTop: '-20px'}}>
+           
+        <ul style={{ listStyle: 'none', padding: '0' , marginTop: '0px',  boxShadow: '1px 1px 5px 1px rgb(0,0,155,.1)', background: 'white', width: '880px',marginLeft: 'auto', marginRight: 'auto', borderRadius: '15px'}}>
         {results.questions && results.questions.map((question, index) => {
             const studentResponseLength = (question.studentResponse || "").length;
             const isShortResponse = studentResponseLength < 50;
@@ -303,7 +362,7 @@ const [incorrectCount, setIncorrectCount] = useState(0);
             
             return (
               <li key={index} 
-              ref={el => questionRefs.current[index] = el} style={{ position: 'relative', fontFamily: "'montserrat', sans-serif", marginBottom: '20px', width: '840px', borderRadius: '15px', border: '2px solid #EEEEEE', padding: '20px 20px 20px 20px',marginLeft: 'auto', marginRight: 'auto',}}>
+              ref={el => questionRefs.current[index] = el} style={{ position: 'relative', fontFamily: "'montserrat', sans-serif", marginBottom: '20px', width: '840px', borderBottom: ' 2px solid #f4f4f4', padding: '20px 0px 30px 0px',marginLeft: 'auto', marginRight: 'auto',}}>
                <div style={{ display: 'flex', fontFamily: "'montserrat', sans-serif",   alignItems: 'center', marginTop: '-20px' }}>
                  
                   <div style={{marginTop: '20px'}}>
@@ -315,7 +374,7 @@ const [incorrectCount, setIncorrectCount] = useState(0);
                       <SquareX size={60} color="#FF0000" />
                     )}
                   </div>
-                  <div style={{ width: '700px', backgroundColor: 'white', fontWeight: 'bold',   lineHeight: '1.4',fontSize: '20px', textAlign: 'left', border: '0px solid lightgrey', position: 'relative', display: 'flex', flexDirection: 'column', marginLeft: '20px' }}>
+                  <div style={{ width: '700px', backgroundColor: 'white', marginTop: '10px', fontWeight: 'bold',   lineHeight: '1.4',fontSize: '20px', textAlign: 'left', border: '0px solid lightgrey', position: 'relative', display: 'flex', flexDirection: 'column', marginLeft: '20px' }}>
                     {question.question}
                   </div>
                   <button onClick={() => flagForReview(index)} style={{

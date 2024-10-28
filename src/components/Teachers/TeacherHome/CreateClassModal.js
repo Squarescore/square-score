@@ -174,7 +174,9 @@ const CreateClassModal = ({ handleCreateClass, setShowCreateClassModal }) => {
     }}>
       <div style={{
         backgroundColor: 'rgba(255,255,255,.8)',
-        border: '10px solid #f4f4f4',
+        border: '10px solid white',
+        
+               boxShadow: '1px 1px 5px 1px rgb(0,0,155,.07)' ,
         padding: '20px',
         borderRadius: '20px',
         width: '80%',

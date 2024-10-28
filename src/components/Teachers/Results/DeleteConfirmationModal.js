@@ -41,7 +41,9 @@ const DeleteConfirmationModal = ({ onClose, assignmentId, classId, assignmentNam
         width: '500px',
         backgroundColor: 'white',
         borderRadius: '20px',
-        border: '10px solid #f4f4f4',
+        border: '10px solid white',
+        
+               boxShadow: '1px 1px 5px 1px rgb(0,0,155,.07)' ,
         fontFamily: '"montserrat", sans-serif',
       }}>
         <div style={{

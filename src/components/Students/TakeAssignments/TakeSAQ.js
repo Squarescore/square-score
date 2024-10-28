@@ -107,44 +107,46 @@ const [scaleMax, setScaleMax] = useState(2);
 
 
 
-
-
   useEffect(() => {
-    const initializeAssignment = async () => {
-      try {
-        const studentRef = doc(db, 'students', studentUid);
-        await updateDoc(studentRef, {
-          assignmentsToTake: arrayRemove(assignmentId),
-          assignmentsInProgress: arrayUnion(assignmentId)
-        });
-  
-        // Create initial progress document
-        const progressRef = doc(db, 'assignments(progress:saq)', `${assignmentId}_${studentUid}`);
-        await setDoc(progressRef, {
-          assignmentId,
-          studentUid,
-          firstName: firstName,
-          lastName: lastName,
-          questions: questions.map(q => ({
-            questionId: q.questionId,
-            text: q.text,
-            rubric: q.rubric,
-            studentResponse: ''
-          })),
-          timeRemaining: timeLimit,
-          savedAt: serverTimestamp(),
-          status: 'in_progress'
-        });
-      } catch (error) {
-        console.error("Error initializing assignment:", error);
-      }
-    };
-  
-    if (assignmentId && studentUid) {
+    if (assignmentId && studentUid && questions.length > 0 && timeLimit !== null && firstName && lastName) {
       initializeAssignment();
     }
-  }, [assignmentId, studentUid, questions, timeLimit]);
+  }, [assignmentId, studentUid, questions, timeLimit, firstName, lastName]);
 
+  const initializeAssignment = async () => {
+    try {
+      const studentRef = doc(db, 'students', studentUid);
+      await updateDoc(studentRef, {
+        assignmentsToTake: arrayRemove(assignmentId),
+        assignmentsInProgress: arrayUnion(assignmentId)
+      });
+
+      const progressRef = doc(db, 'assignments(progress:saq)', `${assignmentId}_${studentUid}`);
+      await setDoc(progressRef, {
+        assignmentId,
+        studentUid,
+        firstName: firstName,
+        lastName: lastName,
+        questions: questions.map(q => ({
+          questionId: q.questionId,
+          text: q.text,
+          rubric: q.rubric,
+          studentResponse: ''
+        })),
+        timeRemaining: timeLimit,
+        savedAt: serverTimestamp(),
+        status: 'in_progress'
+      });
+    } catch (error) {
+      console.error("Error initializing assignment:", error);
+    }
+  };
+
+  const handleLockdownViolation = async () => {
+    await saveProgress('paused');
+    setAssignmentStatus('paused');
+    navigate(`/studentassignments/${classId}?tab=completed`);
+  };
 
 
 
@@ -180,11 +182,7 @@ const [scaleMax, setScaleMax] = useState(2);
     }
   }, [lockdown]);
 
-  const handleLockdownViolation = async () => {
-    await saveProgress('paused');
-    setAssignmentStatus('paused');
-    navigate(`/studentassignments/${classId}?tab=completed`);
-  };
+
   
   const saveProgress = async (status = 'in_progress') => {
     try {
@@ -580,7 +578,7 @@ const [scaleMax, setScaleMax] = useState(2);
           color: 'black',
           height: '90px',
           display: 'flex',
-          borderBottom: '2px solid #e4e4e4',
+          borderBottom: ' 2px solid #f4f4f4',
           marginTop: '0px',
           marginBottom: '40px',
           alignItems: 'center',
@@ -636,7 +634,8 @@ const [scaleMax, setScaleMax] = useState(2);
       {questions.length > 0 && (
         <div style={{ width: '1000px', marginLeft: 'auto', marginRight: 'auto', marginTop: '150px', position: 'relative' }}>
           <div style={{
-            backgroundColor: 'white', width: '700px', color: 'black', border: '10px solid #f4f4f4', 
+            backgroundColor: 'white',  
+               boxShadow: '1px 1px 5px 1px rgb(0,0,155,.07)' , width: '700px', color: 'black', border: '10px solid white', 
             textAlign: 'left', fontWeight: 'bold', padding: '40px', borderRadius: '0px 0px 20px 20px', fontSize: '30px', position: 'relative',
             marginLeft: 'auto', marginRight: 'auto', marginTop: '40px', fontFamily: "'montserrat', sans-serif", userSelect: 'none'
           }}>

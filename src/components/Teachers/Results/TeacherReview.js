@@ -258,7 +258,9 @@ const TeacherReview = () => {
               backgroundColor: 'white',
               borderRadius: '30px',
               color: 'black',
-              border: '10px solid #f4f4f4'
+              border: '10px solid white',
+              
+               boxShadow: '1px 1px 5px 1px rgb(0,0,155,.07)' 
             }}
           >
             <p

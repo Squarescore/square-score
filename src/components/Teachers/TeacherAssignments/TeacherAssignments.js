@@ -38,6 +38,8 @@ function Assignments() {
     // Retrieve the sort method from localStorage or default to 'assignments'
     return localStorage.getItem('sortBy') || 'assignments';
   });
+  const [classChoice, setClassChoice] = useState('');
+  const [className, setClassName] = useState('');
   const [selectedFolder, setSelectedFolder] = useState(null);
   const [selectedFormat, setSelectedFormat] = useState(null);
   const [hasContent, setHasContent] = useState(false);
@@ -205,6 +207,8 @@ function Assignments() {
       fontWeight: 'bold',
       width: '60px',
       display: 'flex',
+      
+   
       fontFamily: "'montserrat', sans-serif",
       borderRadius: '8px',
       border: '4px solid ',
@@ -222,13 +226,13 @@ function Assignments() {
     if (sortBy === option) {
       switch (option) {
         case 'assignments':
-          style = { ...style, backgroundColor: '#B0BDFF', color: '#020CFF', borderColor: '#020CFF' };
+          style = { ...style, backgroundColor: '#B0BDFF', color: '#020CFF', borderColor: '#B0BDFF',   boxShadow: '1px 1px 2px 1px rgb(0,0,155,.07)' , };
           break;
         case 'folders':
-          style = { ...style, backgroundColor: '#FFECA9', color: '#F0856E', borderColor: '#F0856E' };
+          style = { ...style, backgroundColor: '#FFECA9', color: '#F0856E', borderColor: '#FFECA9', boxShadow: '1px 1px 2px 1px rgb(0,0,155,.07)' , };
           break;
         case 'drafts':
-          style = { ...style, backgroundColor: '#f4f4f4', color: '#A7A7A7', borderColor: '#A7A7A7' };
+          style = { ...style, backgroundColor: '#f4f4f4', color: '#A7A7A7', borderColor: '#f4f4f4',  boxShadow: '1px 1px 2px 1px rgb(0,0,155,.07)' , };
           break;
         default:
           break;
@@ -463,7 +467,8 @@ function Assignments() {
         }}
       >
       
-        <div style={{position: 'relative', width:'450px', background: 'white', padding: '10px', borderRadius: '20px', height:'240px', border: '10px solid #f4f4f4'}}>
+        <div style={{position: 'relative',
+               boxShadow: '1px 1px 5px 1px rgb(0,0,155,.07)' , width:'450px', background: 'white', padding: '10px', borderRadius: '20px', height:'240px', border: '10px solid white'}}>
         <button 
           onClick={toggleCreateModal}
           style={{
@@ -603,6 +608,23 @@ function Assignments() {
     }
   };
 
+  useEffect(() => {
+    const fetchClassData = async () => {
+      const classDocRef = doc(db, 'classes', classId);
+      const classDoc = await getDoc(classDocRef);
+
+      if (classDoc.exists()) {
+        setClassName(classDoc.data().className);
+        setClassChoice(classDoc.data().classChoice);
+      }
+
+
+
+    
+    };
+
+    fetchClassData();
+  }, [classId,]);
 
   useEffect(() => {
     const handleFilter = () => {
@@ -748,7 +770,9 @@ function Assignments() {
         width: '854px', // Increased width to accommodate 2 columns
         backdropFilter: 'blur(5px)',
         backgroundColor: 'rgb(255,255,255,1)',
-        border: `10px solid #f4f4f4`,
+        border: `10px solid white`,
+        
+               boxShadow: '1px 1px 5px 1px rgb(0,0,155,.07)' ,
         borderTop: "none",
         padding: '20px',
 marginLeft: '-67px',
@@ -779,7 +803,7 @@ marginLeft: '-67px',
             style={{
               width: '760px',
               padding: '10px',
-              border: `2px solid #e4e4e4`,
+              border: ` 2px solid #f4f4f4`,
               borderRadius: '5px',
               flexGrow: 1,
             }}
@@ -808,7 +832,7 @@ marginLeft: '-67px',
                   height: '60px',
                   position: 'relative',
                   backgroundColor: 'white',
-                  border: '2px solid #e4e4e4',
+                  border: ' 2px solid #f4f4f4',
                 }}>
                   <div>
                     <div style={{
@@ -898,7 +922,9 @@ marginLeft: '-67px',
           width: '60%',
           height: '50%',
           backgroundColor: 'white',
-          border: `10px solid #f4f4f4`,
+          border: `10px solid white`,
+          
+               boxShadow: '1px 1px 5px 1px rgb(0,0,155,.07)' ,
           borderRadius: '20px',
           padding: '20px',
           display: 'flex',
@@ -986,7 +1012,8 @@ marginLeft: '-67px',
                     backgroundColor: 'white',
                     borderRadius: '10px',
                     cursor: 'pointer',
-                    border: `2px solid #e6e6e6`,
+                    
+               boxShadow: '1px 1px 5px 1px rgb(0,0,155,.07)' ,
                     position: 'relative',
                   }}
                 >
@@ -1055,9 +1082,97 @@ marginLeft: '-67px',
 
 
   return (
-    <div style={{ height: '100vh', display: 'flex', flexDirection: 'column' }} onClick={() => showCreateSection && setShowCreateSection(false)}>
+    <div style={{   minHeight: '100vh',
+      width: '100%',
+      backgroundColor: '#FCFCFC',
+      display: 'flex',
+      flexDirection: 'column',
+      position: 'relative' }} onClick={() => showCreateSection && setShowCreateSection(false)}>
        <Navbar userType="teacher" />
+       <div style={{ width: '350px', height: '40px', position: 'absolute',  right: '50px', top: '100px'}}>
+           
 
+
+           {!showSearchBar ? (
+                             <button
+                               onClick={() => setShowSearchBar(true)}
+                               style={{ 
+                                 height: '40px', 
+                                 backgroundColor: 'transparent', 
+                                 border: 'none',
+                                 position: 'absolute', 
+                                 right: '-26px',
+                                 top: '2px',
+                                 padding: '5px', 
+                                 width: '80px',
+                                 cursor: 'pointer',
+                               }}
+                             >
+                                <Search size={25} strokeWidth={2.8}  color={getSearchBarStyle().color} />
+                            </button>
+                         ) : (
+           
+           
+           
+           
+           
+           
+           
+           
+           
+           
+           
+           
+           
+           
+                           <div style={{ position: 'relative', width: '360px', height: '55px',  marginLeft: '-10px', marginTop: '0px'}}>
+                           <input
+                             type="text"
+                             placeholder="Search..."
+                             value={searchTerm}
+                             onChange={(e) => setSearchTerm(e.target.value)}
+                             style={{
+                               width: '300px',
+                               height: '35px',
+                               fontSize: '20px',
+                               border: '4px solid white',
+                               fontFamily: "'montserrat', sans-serif",
+                               padding: '0px 40px 0px 20px',
+                              
+                          boxShadow: '1px 1px 5px 1px rgb(0,0,155,.07)',
+                               marginLeft: '0px',
+                               marginTop: '0px',
+                               backgroundColor: 'white',
+                               color: getSearchBarStyle().color,
+                               borderRadius: '10px',
+                               outline: 'none',
+                             }}
+                           />
+                           <button
+                             onClick={() => {
+                               setShowSearchBar(false);
+                               setSearchTerm('');
+                             }}
+                             style={{
+                               position: 'absolute',
+                               top: '28px',
+                               right: '-8px',
+                               height: '44px',
+                               width: '45px',
+                               borderRadius: '0px 10px 10px  0px ',
+                               transform: 'translateY(-65%)',
+                               backgroundColor: getSearchBarStyle().backgroundColor,
+                               border: `4px solid ${getSearchBarStyle().color}`,
+                               cursor: 'pointer',
+                               padding: '0',
+                             }}
+                           >
+                                    <Search size={25} strokeWidth={2.8} color={getSearchBarStyle().color} />
+                        
+                           </button>
+                         </div>
+                       )}
+                       </div>
       
     {isLoading ? (
       <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
@@ -1069,6 +1184,111 @@ marginLeft: '-67px',
        
           {renderCreateModal()}
 
+
+
+<div style={{marginTop: '180px', display: 'flex', width: '770px'}}>
+
+<div style={{width: '400px', height: '130px', padding: '10px',  borderRadius: '15px', background: 'white',   boxShadow: '1px 1px 5px 1px rgb(0,0,155,.07)',}}>
+<h1 style={{ 
+  color: 'black', 
+  marginLeft: '15px',marginTop: '10px', 
+  fontSize: activeTab === 'assignments' ? '45px' : '50px', 
+  fontFamily: "'montserrat', sans-serif", 
+
+}}>
+  {activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}
+</h1>
+{activeTab === 'assignments' && (
+    <button
+      onClick={toggleCreateModal}
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: '10px',
+        background: 'none',
+        border: 'none',
+        color: 'grey',
+        fontWeight: '600',
+        marginLeft: '10px',
+        marginTop: '-10px',
+        cursor: 'pointer',
+        fontFamily: "'montserrat', sans-serif",
+        fontSize: '20px',
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.color = 'black';
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.color = 'grey';
+      }}
+    >
+     
+      Create Assignment
+      <SquarePlus size={25} />
+    </button>
+  )}
+  
+  {activeTab === 'folders' && (
+    <button
+      onClick={() => setShowFolderForm(true)}
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: '10px',
+        background: 'none',
+        border: 'none',
+        color: 'grey',
+        fontWeight: '600',
+        marginLeft: '10px',
+        marginTop: '-20px',
+        cursor: 'pointer',
+        fontFamily: "'montserrat', sans-serif",
+        fontSize: '20px',
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.color = 'black';
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.color = 'grey';
+      }}
+    >
+         Create Folder
+      <FolderPlus size={25} />
+   
+    </button>
+  )}
+  
+  {activeTab === 'drafts' && (
+    <h2 style={{
+      color: 'grey',
+      fontWeight: '600',
+      marginLeft: '20px',
+      marginTop: '-10px',
+      fontFamily: "'montserrat', sans-serif",
+      fontSize: '16px',
+    }}>
+      Continue where you left off
+    </h2>
+  )}
+</div>
+
+
+<div style={{width: '300px', border: '6px solid white',   marginTop: '0px' ,  marginLeft: 'auto',
+    background: 'white',
+               boxShadow: '1px 1px 5px 1px rgb(0,0,155,.07)',
+      
+       borderRadius: '15px', padding: '10px', marginBottom: '10px', height: '120px'}}>
+  
+  <h1 style={{fontSize: '20px', color: '#020CFF', fontFamily: "'montserrat', sans-serif",  margin: '-16px', padding: '5px 0px 5px 0px', borderRadius: '15px 15px 0px 0px ',
+    
+    background: '#B0BDFF', border: '6px solid #020CFF', textAlign: 'center' }}>{classChoice}</h1>  
+       <h2 style={{ width: '100%', textAlign: 'center', fontSize: '40px',fontWeight: '600', overflow: 'hidden',
+                    textOverflow: 'ellipsis',  color: '#7C7C7C',  marginTop: '40px', fontFamily: "'montserrat', sans-serif",}}>
+       {className}
+    </h2>
+    
+  </div>
+  </div>
       <div style={{
             marginLeft: 'auto',
             marginRight: 'auto',
@@ -1077,131 +1297,6 @@ marginLeft: '-67px',
             backgroundColor: 'transparent',
             borderRadius: '10px'
           }}>
-            <div style={{display: 'flex'}}>
-            <h1 style={{ 
-  color: 'black', 
-  fontSize: activeTab === 'assignments' ? '55px' : '60px', 
-  fontFamily: "'montserrat', sans-serif", 
-  marginLeft: '0px' 
-}}>
-  {activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}
-</h1>
-
-            {sortBy === 'folders' && (
-                <button
-                  onClick={() => setShowFolderForm(!showFolderForm)}
-                  style={{
-                    backgroundColor: "white",
-                   marginTop: '55px',
-                   marginLeft: '30px',
-                    width: '70px',
-                    height: '50px',
-                    cursor: 'pointer',
-                    fontSize: showSearchBar ? '18px' : '18px', 
-                    borderRadius: '10px',
-                    color: 'grey',
-                    border: `4px solid white`,
-                    fontFamily: "'montserrat', sans-serif",
-                    fontWeight: 'bold',
-                    zIndex: 9,
-                    display: 'flex',
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    transition: '.3s'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.color = '#00D909';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.color = 'grey';
-                  }}
-                >
-              <FolderPlus  size={60} />
-                </button>
-              )}
-            <div style={{marginTop: '50px', width: '350px', height: '60px', marginLeft: 'auto', position: 'relative', marginRight: '10px' }}>
-           
-
-
-{!showSearchBar ? (
-                  <button
-                    onClick={() => setShowSearchBar(true)}
-                    style={{ 
-                      height: '50px', 
-                      backgroundColor: 'transparent', 
-                      border: 'none',
-                      position: 'absolute', 
-                      right: '-18px',
-                      top: '2px',
-                      padding: '5px', 
-                      width: '80px',
-                      cursor: 'pointer',
-                    }}
-                  >
-                     <Search size={30} strokeWidth={2.8}  color={getSearchBarStyle().color} />
-                 </button>
-              ) : (
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-                <div style={{ position: 'relative', width: '360px', height: '55px',  marginLeft: '-10px', marginTop: '0px'}}>
-                <input
-                  type="text"
-                  placeholder="Search..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  style={{
-                    width: '300px',
-                    height: '45px',
-                    fontSize: '20px',
-                    fontFamily: "'montserrat', sans-serif",
-                    padding: '0px 40px 0px 20px',
-                    border: '4px solid #f4f4f4',
-                    marginLeft: '0px',
-                    marginTop: '0px',
-                    backgroundColor: 'white',
-                    color: getSearchBarStyle().color,
-                    borderRadius: '10px',
-                    outline: 'none',
-                  }}
-                />
-                <button
-                  onClick={() => {
-                    setShowSearchBar(false);
-                    setSearchTerm('');
-                  }}
-                  style={{
-                    position: 'absolute',
-                    top: '35px',
-                    right: '-8px',
-                    height: '52px',
-                    width: '60px',
-                    borderRadius: '0px 10px 10px  0px ',
-                    transform: 'translateY(-65%)',
-                    backgroundColor: getSearchBarStyle().backgroundColor,
-                    border: `4px solid ${getSearchBarStyle().color}`,
-                    cursor: 'pointer',
-                    padding: '0',
-                  }}
-                >
-                         <Search size={30} strokeWidth={2.8} color={getSearchBarStyle().color} />
-             
-                </button>
-              </div>
-            )}
-            </div>
-                        </div>
 
 
 
@@ -1225,10 +1320,11 @@ marginLeft: '-67px',
                  position: 'fixed',
                  left: '0px', top: '0px' ,
                  height: '100%',
-                 borderRight: '4px solid #f4f4f4',
+                 
+               boxShadow: '1px 1px 5px 1px rgb(0,0,155,.07)',
               background:'white'
               }}>
-               <div style={{  height: '25px', zIndex: '10', width: '100px', marginTop: '80px', marginLeft: '-10px'
+               <div style={{  height: '25px', zIndex: '10', width: '100px', marginTop: '180px', marginLeft: '-10px'
                  
                 }}>
                      
@@ -1237,17 +1333,15 @@ marginLeft: '-67px',
             style={{
               padding: '5px',
               zIndex: 100,
-              width: '85px',
+              width: '60px',
               height: '60px',
-              marginLeft: '10px',
               color:'grey',
               fontFamily: "'montserrat', sans-serif",
-              display: 'flex',
-              backgroundColor: '#f4f4f4',
+              display: 'flex',marginLeft: 'auto', marginRight: 'auto',
+              backgroundColor: 'white',
               border: 'none',
-              borderRight: '4px solid lightgrey',
               textAlign: 'left',
-              borderRadius: '0px',
+              borderRadius: '8px',
               cursor: 'pointer',
               transition: '.3s',
               alignItems: 'center',
@@ -1257,12 +1351,15 @@ marginLeft: '-67px',
               e.currentTarget.style.borderRightColor = '#00D309';
               e.currentTarget.style.color = '#00D309';
               
+              e.target.style.boxShadow= '1px 1px 5px 1px rgb(0,0,155,.07)' 
               e.currentTarget.style.backgroundColor = '#C1FFB7';
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.borderRightColor = 'lightgrey';
               e.currentTarget.style.color = 'grey';
-              e.currentTarget.style.backgroundColor = '#f4f4f4';
+              
+              e.target.style.boxShadow= '' 
+              e.currentTarget.style.backgroundColor = 'white';
             }}
           >
               <Tooltip text="Create">
@@ -1295,6 +1392,7 @@ marginLeft: '-67px',
                       e.currentTarget.style.color = 'grey';
                       e.currentTarget.querySelector('svg').style.color = 'grey';
                       e.currentTarget.querySelector('svg').style.strokeWidth = '2';
+                      e.target.style.boxShadow= '1px 1px 5px 1px rgb(0,0,155,.07)' 
                     }
                   }}
                   onMouseLeave={(e) => {
@@ -1302,8 +1400,12 @@ marginLeft: '-67px',
                       e.currentTarget.style.color = '#9C9C9C';
                       e.currentTarget.querySelector('svg').style.color = '#9C9C9C';
                       e.currentTarget.querySelector('svg').style.strokeWidth = '1.8';
+                      e.target.style.boxShadow= 'none' 
                     }
                   }}
+
+
+               
                 >
                   <div style={{ marginTop: '5px'}}> <Tooltip text={tooltip}>
                
@@ -1399,7 +1501,9 @@ marginLeft: '-67px',
         width: '758px',
          borderRadius: '0 0 20px 20px ',
         backgroundColor: 'white'  ,
-        border: `10px solid #f4f4f4`,
+        border: `10px solid white`,
+        
+               boxShadow: '1px 1px 5px 1px rgb(0,0,155,.07)' ,
    
         zIndex: '10',
         marginTop: '-20px',
@@ -1538,7 +1642,7 @@ marginLeft: '-67px',
 
 
     <div style={{
-      marginTop: '-100px', 
+      marginTop: '-150px', 
       display: 'flex', 
       flexWrap: 'wrap', 
       width: '790px', 
@@ -1552,7 +1656,7 @@ marginLeft: '-67px',
             key={folder.id} 
             onClick={() => openFolderModal(folder)}
             style={{ 
-              width: 'calc(50% - 20px)', 
+              width: 'calc(49% - 22px)', 
               marginBottom: '-10px',
               cursor: 'pointer',
             }}
@@ -1561,7 +1665,9 @@ marginLeft: '-67px',
               padding: '10px',
               height: '50px',
               position: 'relative',
-              border: '2px solid #e4e4e4',
+             
+              
+               boxShadow: '1px 1px 5px 1px rgb(0,0,155,.07)' ,
               backgroundColor: 'white',
               color: 'black',
               borderRadius: '10px',
@@ -1572,7 +1678,7 @@ marginLeft: '-67px',
               fontFamily: "'montserrat', sans-serif",
               fontSize: '25px',
             }}>
-              <Folder size={40} style={{marginLeft: '10px',
+              <Folder size={30} style={{marginLeft: '10px',
               color: folder.color.text,}}/>
              <h1 style={{fontSize:'20px',marginLeft: '10px' }}></h1>
               {folder.name} 
@@ -1592,7 +1698,7 @@ marginLeft: '-67px',
         </div>
       </div>
       {sortBy !== 'folders' && (
-        <ul style={{ width: '100%', display: 'flex', flexWrap: 'wrap', padding: 0, margin: 'auto' }}>
+        <ul style={{ width: '100%', display: 'flex', flexWrap: 'wrap', padding: 0, margin: 'auto', marginTop: '-40px' }}>
         {filteredAssignments.length > 0 ? (
                 filteredAssignments.map((item, index) => (
 
@@ -1600,7 +1706,7 @@ marginLeft: '-67px',
             key={item.id}
             onClick={() => handleItemClick(item)}
             style={{
-              backgroundColor: sortBy === 'drafts' ? '#f4f4f4' : 'white',
+              backgroundColor: sortBy === 'drafts' ? 'white' : 'white',
               fontSize: '23px',
               color: sortBy === 'drafts' ? 'grey' : 'black',
               width: '350px',
@@ -1610,7 +1716,8 @@ marginLeft: '-67px',
               fontFamily: "'montserrat', sans-serif",
               listStyleType: 'none',
               textAlign: 'left',
-              border: sortBy === 'drafts' ? '2px solid lightgrey' : '2px solid #E8E8E8',
+              
+              boxShadow: '1px 1px 3px 2px rgb(0,0,155,.05)' ,
               padding: '10px',
               borderRadius: '10px',
               transition: 'all 0.3s ease',
@@ -1756,7 +1863,7 @@ marginLeft: '-67px',
           size={20}
           strokeWidth={3}
           color="#92A3FF"
-          style={{   position: 'absolute', left: '210px',
+          style={{   position: 'absolute', left: '240px',
             bottom: '16px',}}
         />
       )}

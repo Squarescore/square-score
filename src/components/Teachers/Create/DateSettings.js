@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { CalendarCog } from 'lucide-react';
+import { CalendarCog, ChevronDown, ChevronUp } from 'lucide-react';
 import CustomDateTimePicker from './CustomDateTimePicker';
 
 export const formatDate = (date) => {
@@ -29,7 +29,7 @@ const DateSettings = ({ assignDate, setAssignDate, dueDate, setDueDate }) => {
   const [timeDropdownOpen, setTimeDropdownOpen] = useState(false);
 
   return (
-    <div style={{ width: '770px', padding: '10px', border: '2px solid #eeeeee', borderRadius: '10px' }}>
+    <div style={{ width: '770px', padding: '10px', border: ' 2px solid #f4f4f4', borderRadius: '10px' }}>
       <button
         onClick={() => setTimeDropdownOpen(!timeDropdownOpen)}
         style={{
@@ -48,11 +48,7 @@ const DateSettings = ({ assignDate, setAssignDate, dueDate, setDueDate }) => {
       >
         <CalendarCog size={40} color="#000000" />
         <h1 style={{ fontSize: '30px', marginLeft: '20px', marginRight: 'auto', fontFamily: "'montserrat', sans-serif" }}> Dates</h1>
-        <img
-          src={timeDropdownOpen ? '/Up.png' : '/Down.png'}
-          alt={timeDropdownOpen ? "Collapse" : "Expand"}
-          style={{ width: '20px' }}
-        />
+        {timeDropdownOpen ? <ChevronUp  style={{color: 'grey'}}/> : <ChevronDown style={{color: 'grey'}}/>}
       </button>
 
       <div className={`dropdown-content ${timeDropdownOpen ? 'open' : ''}`}>

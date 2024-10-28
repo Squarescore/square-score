@@ -10,7 +10,7 @@ import { db, auth } from '../../Universal/firebase'; // Ensure the path is corre
 
 import 'react-datepicker/dist/react-datepicker.css';
 import { v4 as uuidv4 } from 'uuid';
-import {Sparkles,Landmark, Eye, User, Repeat, PencilRuler   } from 'lucide-react';
+import {Sparkles,Landmark, Eye, User, Repeat, PencilRuler, ChevronUp, ChevronDown, SendHorizonal   } from 'lucide-react';
 
 import Navbar from '../../Universal/Navbar';
 import DateSettings, { formatDate } from './DateSettings';
@@ -478,15 +478,23 @@ const [progressText, setProgressText] = useState('');
 
 
   return (
-    <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', backgroundColor: 'white' }}>
+    <div style={{    position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,    overflowY: 'auto',
+      display: 'flex',
+      flexDirection: 'column',
+      backgroundColor: '#fcfcfc'}}>
       <Navbar userType="teacher" />
       <style>{dropdownContentStyle}{loaderStyle}</style>
-      <div style={{ marginTop: '30px', width: '800px', marginLeft: 'auto', marginRight: 'auto', fontFamily: "'montserrat', sans-serif",  }}>
-     
+      <div style={{ marginTop: '150px', width: '860px', padding: '15px', marginLeft: 'auto', marginRight: 'auto', fontFamily: "'montserrat', sans-serif", background: 'white', borderRadius: '25px',  marginBottom: '40px',
+              boxShadow: '1px 1px 10px 1px rgb(0,0,155,.1)' }}>
+       
               
     
         
-        <div style={{ marginLeft: '30px',  fontFamily: "'montserrat', sans-serif", color: 'black', fontSize: '60px', display: 'flex',marginTop: '130px', marginBottom: '180px', fontWeight: 'bold' }}>
+        <div style={{ marginLeft: '30px',  fontFamily: "'montserrat', sans-serif", color: 'black', fontSize: '60px', display: 'flex',marginTop: '20px', marginBottom: '180px', fontWeight: 'bold' }}>
         Create
      
   
@@ -509,8 +517,8 @@ const [progressText, setProgressText] = useState('');
 
         
         <div style={{ width: '100%', height: 'auto', marginTop: '-200px', border: '10px solid transparent', borderRadius: '30px', padding: '20px' }}>
-          <div style={{ width: '800px', marginLeft: 'auto', marginRight: 'auto', marginTop: '30px' }}>
-          <div style={{ position: 'relative' }}>
+          <div style={{ width: '800px', marginLeft: '0px',  marginTop: '30px' }}>
+          <div style={{ position: 'relative' ,}}>
   {assignmentName && (
     <h1 style={{
       position: 'absolute',
@@ -538,7 +546,7 @@ const [progressText, setProgressText] = useState('');
       padding: '10px',
       paddingLeft: '25px',
       outline: 'none',
-      border: '2px solid #eeeeee',
+      border: ' 2px solid #f4f4f4',
       borderRadius: '10px',
       fontFamily: "'montserrat', sans-serif",
       fontWeight: 'bold',
@@ -559,8 +567,8 @@ const [progressText, setProgressText] = useState('');
   </span>
 </div>
             <div style={{ width: '810px', display: 'flex' }}>
-              <div style={{ marginBottom: '0px', width: '790px', height: '200px', borderRadius: '10px',  border: '2px solid #eeeeee',}}>
-                <div style={{ width: '730px', marginLeft: '20px', height: '80px', borderBottom: '2px solid #eeeeee', display: 'flex', position: 'relative', alignItems: 'center', borderRadius: '0px', padding: '10px' }}>
+              <div style={{ marginBottom: '0px', width: '790px', height: '200px', borderRadius: '10px',  border: ' 2px solid #f4f4f4',}}>
+                <div style={{ width: '730px', marginLeft: '20px', height: '80px', borderBottom: ' 2px solid #f4f4f4', display: 'flex', position: 'relative', alignItems: 'center', borderRadius: '0px', padding: '10px' }}>
                   <h1 style={{ fontSize: '30px', color: 'black', width: '300px', paddingLeft: '0px' ,
       fontFamily: "'montserrat', sans-serif",}}>Timer:</h1>
                   {timerOn ? (
@@ -571,29 +579,31 @@ const [progressText, setProgressText] = useState('');
                           marginLeft: '-200px',
                           height: '30px',
                           width: '50px',
+                          fontWeight: '600',
                           textAlign: 'center',
-                          fontWeight: 'bold',
                           border: '4px solid transparent',
                           outline: 'none',
                           borderRadius: '5px',
+                          fontFamily: "'montserrat', sans-serif",
                           fontSize: '30px',
                         }}
                         placeholder="10"
                         value={timer}
                         onChange={(e) => setTimer(e.target.value)}
                       />
-                      <h1 style={{ marginLeft: '-5px', fontSize: '26px' }}>Minutes</h1>
+                      <h1 style={{ marginLeft: '-5px', fontSize: '26px', 
+                  fontWeight: '600', }}>Minutes</h1>
                     </div>
                   ) : (
                     <span style={{
                       marginLeft: '-150px',
                       height: '30px',
                       width: '50px',
-                      fontWeight: 'bold',
                       textAlign: 'center',
                       marginTop: '0px',
                       fontSize: '30px',
-                      color: 'grey'
+                      color: 'grey',
+                  fontWeight: '600',
                     }}>
                       Off
                     </span>
@@ -670,7 +680,7 @@ const [progressText, setProgressText] = useState('');
               </div>
             )}
 
-            <div style={{ width: '770px', padding: '10px', marginTop: '20px', border: '2px solid #eeeeee', borderRadius: '10px', marginBottom: '20px', zIndex: '-10' }}>
+            <div style={{ width: '770px', padding: '10px', marginTop: '20px', border: ' 2px solid #f4f4f4', borderRadius: '10px', marginBottom: '20px', zIndex: '-10' }}>
               <button
                 onClick={() => setContentDropdownOpen(!contentDropdownOpen)}
                 style={{
@@ -690,11 +700,8 @@ const [progressText, setProgressText] = useState('');
                 
               <Sparkles size={40} color="#000000" />    
                 <h1 style={{ fontSize: '30px', marginLeft: '20px', marginRight: 'auto' , fontFamily: "'montserrat', sans-serif", }}>Generate Questions</h1>
-                <img
-                  src={contentDropdownOpen ? '/Up.png' : '/Down.png'}
-                  alt={contentDropdownOpen ? "Collapse" : "Expand"}
-                  style={{ width: '20px' }}
-                />
+                {contentDropdownOpen ? <ChevronUp style={{color: 'grey'}}/> : <ChevronDown style={{color: 'grey'}}/>}
+            
               </button>
 
               <div className={`dropdown-content ${contentDropdownOpen ? 'open' : ''}`}>
@@ -715,7 +722,7 @@ const [progressText, setProgressText] = useState('');
         placeholder="10"
         value={questionBank}
         onChange={(e) => setQuestionBank(e.target.value)}
-        style={{ width: '50px', fontWeight:'bold',marginBottom: '0px', textAlign: 'center' ,fontFamily: "'montserrat', sans-serif", marginTop: '25px', marginLeft: 'auto', marginRight: '20px',padding: '0px', paddingLeft: '15px', height: '35px', fontSize: '30px',  border: '2px solid #eeeeee', borderRadius: '10px' }}
+        style={{ width: '50px', fontWeight:'bold',marginBottom: '0px', textAlign: 'center' ,fontFamily: "'montserrat', sans-serif", marginTop: '25px', marginLeft: 'auto', marginRight: '20px',padding: '0px', paddingLeft: '15px', height: '35px', fontSize: '30px',  border: ' 2px solid #f4f4f4', borderRadius: '10px' }}
       />
       </div>
       </div>
@@ -728,7 +735,7 @@ const [progressText, setProgressText] = useState('');
         placeholder="5"
         value={questionStudent}
         onChange={(e) => setQuestionStudent(e.target.value)}
-        style={{ width: '50px', fontWeight:'bold',marginBottom: '10px',fontFamily: "'montserrat', sans-serif",marginTop: '25px', textAlign: 'center' , marginLeft: 'auto', marginRight: '20px',padding: '0px', paddingLeft: '15px',fontSize: '30px', height: '35px', border: '2px solid #eeeeee', borderRadius: '10px' }}
+        style={{ width: '50px', fontWeight:'bold',marginBottom: '10px',fontFamily: "'montserrat', sans-serif",marginTop: '25px', textAlign: 'center' , marginLeft: 'auto', marginRight: '20px',padding: '0px', paddingLeft: '15px',fontSize: '30px', height: '35px', border: ' 2px solid #f4f4f4', borderRadius: '10px' }}
         />
         </div>
 
@@ -742,7 +749,8 @@ const [progressText, setProgressText] = useState('');
         <div style={{ width: '730px', background: '#f4f4f4', height: '3px', marginLeft: '20px', marginTop: '20px' }}></div>
                   
                   <div style={{ width: '750px', height: '80px', border: '4px solid transparent', display: 'flex', position: 'relative', alignItems: 'center', borderRadius: '10px', padding: '10px', marginLeft: '-15px' }}>
-                  <h1 style={{ fontSize: '25px', color: 'black', width: '400px', paddingLeft: '20px' }}>Choices Per Question</h1>
+                  <h1 style={{ fontSize: '25px', color: 'black', width: '400px', paddingLeft: '20px', 
+                  fontWeight: '600', }}>Choices Per Question:</h1>
                   <div style={{ marginLeft: 'auto', marginTop: '45px', display: 'flex', position: 'relative', alignItems: 'center' }}>
                     {[2, 3, 4, 5].map((num) => (
                       <button
@@ -755,13 +763,13 @@ const [progressText, setProgressText] = useState('');
                           }
                         }}
                         style={{
-                          width: '85px',
+                          width: '60px',
                           height: '40px',
                           marginLeft: '20px',
                           marginTop: '-45px',
                           backgroundColor: selectedOptions.includes(num) ? optionStyles[num].background : 'white',
-                          border: selectedOptions.includes(num) ? `5px solid ${optionStyles[num].color}` : '2px solid #eeeeee',
-                          borderRadius: '105px',
+                          border: selectedOptions.includes(num) ? `4px solid ${optionStyles[num].color}` : ' 2px solid #f4f4f4',
+                          borderRadius: '10px',
                           cursor: 'pointer',
                           transition: 'all 0.3s ease',
                         }}
@@ -802,7 +810,8 @@ const [progressText, setProgressText] = useState('');
                
                     {/* Additional Instructions Section */}
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '-15px' }}>
-                      <h1 style={{ marginTop: '20px', color: 'grey', display: 'flex', fontSize: '25px', alignItems: 'center' }}>
+                      <h1 style={{ marginTop: '20px', color: 'grey', display: 'flex', fontSize: '25px', alignItems: 'center',
+                  fontWeight: '600', }}>
                         Additional instructions
                         <p style={{ fontSize: '20px', marginTop: '20px', marginLeft: '10px', color: 'lightgrey' }}>- optional</p>
                       </h1>
@@ -834,7 +843,7 @@ const [progressText, setProgressText] = useState('');
                           marginTop: '-20px',
                           fontFamily: "'montserrat', sans-serif",
                           borderRadius: '10px',
-                          border: '2px solid #eeeeee',
+                          border: ' 2px solid #f4f4f4',
                           outline: 'none'
                         }}
                         type='text'
@@ -903,57 +912,78 @@ const [progressText, setProgressText] = useState('');
               </div>
               </div>
 
+              <div style={{ display: 'flex', justifyContent: 'space-between', width: '796px', height: '50px' }}>
+           
 
-              <button
-                 onClick={saveDraft}
-                 style={{
-                  width: '260px',
-                  height: '60px',
-                  marginTop: '0px',
-                  border: '4px solid lightgrey',
-                  marginBottom: '40px',
-                  backgroundColor: '#f4f4f4',
-                  color: 'grey',
-                  borderRadius: '10px',
-                  fontSize: '20px',fontFamily: "'montserrat', sans-serif",  
-                  fontWeight: 'bold',
-                  display: 'flex',
-                  cursor: 'pointer',
-                  transition: 'border-color 0.3s ease',
-                }}
-                onMouseEnter={(e) => e.target.style.borderColor = 'grey'}
-                onMouseLeave={(e) => e.target.style.borderColor = 'lightgrey'}
-              >
-               <PencilRuler size={40} style={{marginLeft: '0px', marginTop: '5px', background: 'transparent'}} /> <h1 style={{fontSize: '25px', marginTop: '10px', marginLeft: '15px',background: 'transparent'}}>Save As Draft</h1>
-              </button>
 
-            {isReadyToPublish() && (
-                <button
-                  onClick={saveAssignment}
-                  style={{
-                    width: '790px',
-                    height: '50px',
-                    marginTop: '0px',
-                    border: '4px solid #348900',
-                    marginBottom: '40px',
-                    backgroundColor: '#AEF2A3',
-                    color: '#348900',
-                    borderRadius: '10px',
-                    fontSize: '20px',fontFamily: "'montserrat', sans-serif",  
-                    fontWeight: 'bold',
-                    cursor: 'pointer',
-                    transition: 'background-color 0.3s ease',
-                  }}
-                  onMouseEnter={(e) => e.target.style.backgroundColor = '#7BE06A'}
-                  onMouseLeave={(e) => e.target.style.backgroundColor = '#AEF2A3'}
-                >
-                  Publish Assignment
-                </button>
-              )}
-          </div>
-        </div>
-      </div>
-    </div>
+           <button
+              onClick={saveDraft}
+            
+             style={{
+               width: '270px',
+               height: '60px',
+               marginTop: '0px',
+               border: '4px solid lightgrey',
+               marginBottom: '40px',
+               backgroundColor: '#f4f4f4',
+               color: 'grey',
+               borderRadius: '10px',
+               fontSize: '20px',fontFamily: "'montserrat', sans-serif",  
+               fontWeight: 'bold',
+               display: 'flex',
+               cursor: 'pointer',
+               transition: 'border-color 0.3s ease',
+             }}
+             onMouseEnter={(e) => e.target.style.borderColor = 'grey'}
+             onMouseLeave={(e) => e.target.style.borderColor = 'lightgrey'}
+           >
+            <PencilRuler size={40} style={{marginLeft: '0px', marginTop: '5px', background: 'transparent'}} /> <h1 style={{fontSize: '25px', marginTop: '10px', marginLeft: '15px',background: 'transparent'}}>Save As Draft</h1>
+           </button>
+           
+         
+           <button
+             onClick={saveAssignment}
+             disabled={!assignmentName || generatedQuestions.length === 0}
+style={{
+ width: '480px',
+ height: '60px',
+ marginTop: '0px',
+ border: '4px solid ',
+ marginBottom: '40px',
+ 
+ opacity: (!assignmentName || generatedQuestions.length === 0) ? '0%' : '100%',
+ backgroundColor: (!assignmentName || generatedQuestions.length === 0) ? '#f4f4f4' : '#A6FFAF',
+ color: (!assignmentName || generatedQuestions.length === 0) ? 'lightgrey' : '#00D409',
+ 
+ borderColor: (!assignmentName || generatedQuestions.length === 0) ? 'lightgrey' : '#00D409',
+ borderRadius: '10px',
+ fontSize: '20px',
+ fontFamily: "'montserrat', sans-serif",  
+ fontWeight: 'bold',
+ cursor: (!assignmentName || generatedQuestions.length === 0) ? 'default' : 'pointer',
+ display: 'flex',
+ transition: 'background-color 0.3s ease',
+}}
+onMouseEnter={(e) => {
+ if (assignmentName && generatedQuestions.length > 0) {
+   e.target.style.borderColor = '#2BB514';
+ }
+}}
+onMouseLeave={(e) => {
+ if (assignmentName && generatedQuestions.length > 0) {
+   e.target.style.borderColor = '#00D409';
+ }
+}}
+           >
+             <h1 style={{fontSize: '25px', marginTop: '10px', marginLeft: '15px',background: 'transparent'}}>Publish</h1>
+             <SendHorizonal size={40} style={{marginLeft: 'auto', marginTop: '5px', background: 'transparent'}} /> 
+           </button>
+           </div>
+         </div>
+       </div>
+     </div>
+     </div>
+  
   );
 };
 
