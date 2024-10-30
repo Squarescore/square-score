@@ -375,7 +375,7 @@ function TeacherStudentResults() {
 
        </div>
        <div style={{height: '190px ', position: 'relative', marginLeft:'auto', boxShadow: '1px 1px 5px 1px rgb(0,0,155,.07)' , borderRadius: '15px', width: '190px ', background: 'white'}}>
-       <img style={{ width: '150px', marginLeft: '20px' , marginTop: '23px' }} src="/score.svg" alt="logo" />
+       <img style={{ width: '150px', marginLeft: '20px' , marginTop: '23px' }} src="/Score.svg" alt="logo" />
      
        <div style={{fontSize: '60px', fontWeight: 'bold', width: '150px', height: '150px',position: 'absolute', background: 'transparent',  borderRadius:  '10px', top: '20px', left: '20px', textAlign: 'center', lineHeight: '150px'}}> 
        {letterGrade}

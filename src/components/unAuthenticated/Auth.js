@@ -4,12 +4,67 @@ import { Link as ScrollLink } from 'react-scroll';
 import FeatureTicker from './FeatureTicker';
 import FooterAuth from './FooterAuth';
 import './BackgroundDivs.css'; // Import the CSS file
-import { SquareArrowRight } from 'lucide-react';
+import { ArrowRight, ArrowRightFromLine, Bot, ChevronLeft, ChevronRight, MoveLeft, MoveRight } from 'lucide-react';
 const Auth = () => {
-  const [navbarBg, setNavbarBg] = useState('rgba(255,255,255,0.7)');
+  const [navbarBg, setNavbarBg] = useState('rgba(255,255,255,0.9)');
 
+  const [selectedFormat, setSelectedFormat] = useState('SAQ*');
+  const [currentSlide, setCurrentSlide] = useState(0);
 
+  const formats = [
+    {
+      id: 'SAQ*',
+      name: 'SAQ*',
+      color: '#020CFF',
+      description: 'Adaptive short answer assessments automatically adjust question difficulty based on student responses, making each assessment uniquely challenging. This format excels at providing personalized learning paths while accurately measuring student knowledge.'
+    },
+    {
+      id: 'MCQ*',
+      name: 'MCQ*',
+      color: '#2BB514',
+      description: 'These assessments intelligently select multiple choice questions based on previous answers, combining automated grading efficiency with personalized progression. This format is ideal for large-scale testing while maintaining individualized difficulty adjustment.'
+    },
+    {
+      id: 'SAQ',
+      name: 'SAQ',
+      color: '#020CFF',
+      description: 'Fixed-format open response questions that remain consistent for all students, allowing written explanations of understanding. This classic format effectively measures critical thinking and detailed knowledge expression.'
+    },
+    {
+      id: 'MCQ',
+      name: 'MCQ',
+      color: '#2BB514',
+      description: 'Standard multiple choice tests with preset questions and answer options, providing consistent assessment across all students. This format offers efficient grading and clear metrics while maintaining reliable evaluation standards.'
+    }
+  ];
 
+  const handlePrevSlide = () => {
+    const newSlide = currentSlide === 0 ? formats.length - 1 : currentSlide - 1;
+    setCurrentSlide(newSlide);
+    setSelectedFormat(formats[newSlide].id);
+  };
+
+  const handleNextSlide = () => {
+    const newSlide = currentSlide === formats.length - 1 ? 0 : currentSlide + 1;
+    setCurrentSlide(newSlide);
+    setSelectedFormat(formats[newSlide].id);
+  };
+
+  const handleFormatSelect = (formatId) => {
+    setSelectedFormat(formatId);
+    setCurrentSlide(formats.findIndex(f => f.id === formatId));
+  };
+  const formatButtonText = (text) => {
+    if (text.includes('*')) {
+      return (
+        <>
+          {text.replace('*', '')}
+          <span style={{ color: '#FFAE00' }}>*</span>
+        </>
+      );
+    }
+    return text;
+  };
 
 
 
@@ -65,27 +120,13 @@ const Auth = () => {
   const positions = generateUniquePositions(20, 200, 100);
 
   return (
-    <div style={{ position: 'relative', overflow: 'hidden' }}>
+    <div style={{ position: 'relative', background: '#fcfcfc' }}>
       {/* Background Divs */}
-      {positions.map((pos, index) => (
-          <div
-            key={index}
-            className={`background-div ${getRandomColorClass()}`}
-            style={{
-              top: pos.top,
-              left: pos.left,
-              position: 'absolute',
-              width: '200px',
-              height: '200px',
-             
-            }}
-          />
-        ))}
-      
+   
       {/* Main Content */}
       <div  style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
         <div style={{ 
-          position: 'fixed', top: 0, width: '100%', display: 'flex',
+          position: 'fixed', top: 0, width: '100%', display: 'flex',boxShadow: '1px 1px 5px 1px rgb(0,0,155,.1)',
           padding: '0px 0', alignItems: 'center', height: '70px', color: 'grey', zIndex: 1000,
           backgroundColor: navbarBg, transition: 'background-color 0.3s ease',
           backdropFilter: 'blur(7px)',
@@ -113,31 +154,39 @@ const Auth = () => {
                  
                 </Link>
               </div>
-              <img style={{ width: '320px', marginLeft: 'auto', marginRight: 'auto' }} src="/SquareScoreLong.svg" alt="logo" />
+              <div style={{display: 'flex',  position: 'absolute',
+      left: '50%',
+      top: '50%',
+      transform: 'translate(-50%, -50%)'}}>
+              <img style={{width: '30px',  }} src="/SquareScore.svg" alt="logo" />
+              <h1 style={{fontWeight: '600', color: 'black', paddingLeft: '10px', borderLeft: '4px solid #f4f4f4', marginLeft: '10px', fontSize: '25px'}}>SquareScore</h1>
+              </div>
             </div>
-            <div style={{ width: '380px', display: 'flex', position: 'fixed', right: '20px' }}>
+            <div style={{ width: '380px', display: 'flex', position: 'fixed', right: '-20px' }}>
               <Link to="/signup" style={{
-                height: '10px', marginTop: '20px', width: '160px', lineHeight: '10px', borderRadius: '8px',
-                fontWeight: 'bold',  background: '#AEF2A3', color: '#2BB514',border: '4px solid #2BB514 ', 
+                height: '10px', marginTop: '15px', width: '160px', lineHeight: '10px', borderRadius: '8px',
+                fontWeight: '600',  background: 'transparent', color: 'black',
                 textDecoration: 'none',  marginLeft: '30px',
-                padding: '10px', textAlign: 'center', transition: '.2s',
-                fontFamily: "'montserrat', sans-serif", fontSize: '18px'
+                padding: '15px', textAlign: 'center', transition: '.2s',
+                fontFamily: "'montserrat', sans-serif", fontSize: '16px'
               }}
-              onMouseEnter={(e) => {     e.target.style.borderColor = '#00A007';
-              }}
-              onMouseLeave={(e) => {     e.target.style.borderColor = '#2BB514';
-              }}>Create Account</Link>
-              <Link to="/login" style={{
-                height: '10px', marginTop: '20px', lineHeight: '10px', borderRadius: '8px',
-                fontWeight: 'bold', background: '#F5BBFF', border: '4px solid #E01FFF', color: '#E01FFF',
-                textDecoration: 'none', width: '60px', marginLeft: '10px',
-                padding: '10px', textAlign: 'center', transition: '.2s',
-                fontFamily: "'montserrat', sans-serif", fontSize: '18px'
-              }}
-              onMouseEnter={(e) => {     e.target.style.borderColor = '#D94BF0';
+              onMouseEnter={(e) => {     e.target.style.background = '#f4f4f4';
               }}
               onMouseLeave={(e) => {
-                e.target.style.borderColor = '#E01FFF';
+                e.target.style.background = 'transparent';
+          
+              }}>Create Account</Link>
+              <Link to="/login" style={{
+                height: '10px', marginTop: '15px', lineHeight: '10px', borderRadius: '8px',
+                fontWeight: '600', background: 'transparent',  color: 'black',
+                textDecoration: 'none', width: '60px', marginLeft: '10px',
+                padding: '15px', textAlign: 'center', transition: '.2s',
+                fontFamily: "'montserrat', sans-serif", fontSize: '16px'
+              }}
+              onMouseEnter={(e) => {     e.target.style.background = '#f4f4f4';
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.background = 'transparent';
           
               }}>Login</Link>
             </div>
@@ -146,48 +195,13 @@ const Auth = () => {
 
 
 
-        <div  className="white-background" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '700px', marginTop: '150px' }}>
+        <div  className="white-background" style={{ display: 'flex', flexDirection: 'column', width: '100%',   marginTop: '150px' }}>
           
-            <h1 style={{ color: 'black', width: '800px', marginLeft: 'auto', marginRight: 'auto', fontFamily: "'montserrat', sans-serif", fontSize: '60px', marginTop: '100px', fontWeight: 'bold' }}>
-              Empowering students AND teachers with AI</h1>
-         
-          <div style={{ width: '800px', marginTop: '-20px', borderRadius: '5px', display: 'flex' }}>
-            <Link to="/signup"  style={{
-              height: '40px', lineHeight: '40px', marginTop: '20px', marginBottom: '20px',
-              background: '#AEF2A3', color: '#2BB514', fontWeight: 'bold', display: 'block',
-              width: '320px',  textDecoration: 'none', border: '4px solid #2BB514',
-              borderRadius: '10px', textAlign: 'center', transition: '.3s', marginLeft: '50px',
-              fontFamily: "'montserrat', sans-serif", fontSize: '25px'
-            }}
-            onMouseEnter={(e) => {     e.target.style.borderColor = '#00A007';
-            }}
-            onMouseLeave={(e) => {     e.target.style.borderColor = '#2BB514';
-            }}>Create an Account +</Link>
-
-            <Link to="/login"  style={{
-              height: '40px', lineHeight: '40px', marginTop: '20px', marginBottom: '20px',
-              background: '#F5BBFF', border: '4px solid #E01FFF', color: '#E01FFF', fontWeight: 'bold',
-              display: 'block', width: '140px', marginLeft: '30px',
-              textDecoration: 'none', borderRadius: '10px', textAlign: 'center',
-              transition: '.2s', fontFamily: "'montserrat', sans-serif", fontSize: '25px'
-            }}
-            onMouseEnter={(e) => {     e.target.style.borderColor = '#D94BF0';
-            }}
-            onMouseLeave={(e) => {
-              e.target.style.borderColor = '#E01FFF';
         
-            }}>Login</Link>
-
-           
-          </div>
-      
-        </div>
-
-        <div className="white-background" style={{ display: 'flex', width: '700px', marginTop: '70px' }}>
-          <img src='/SquareScore.svg' style={{ width: '150px', marginTop: '-20px'}} />
-          <div style={{height: '90px', background: '#e4e4e4', width: '2px', marginLeft: '20px', marginTop: '15px', marginRight: '20px'}}></div>
-          <h1 style={{ width: '600px', fontFamily: "'montserrat', sans-serif", color: 'grey', marginTop: '-0px', marginLeft: '20px', fontSize: '25px', lineHeight: '1.6' }}>
-            <span style={{background: '#AEF2A3', color: '#2BB514', paddingLeft: '5px', marginRight: '10px', paddingRight: '5px'}}>Generate</span> 
+<div style={{width: '1000px',marginLeft: 'auto', marginRight: 'auto',}}>
+        <div style={{ display: 'flex', width: '1200px', marginTop: '70px', marginLeft: '0px', position: 'relative'  }}>
+          <h1 style={{ width: '800px', fontFamily: "'montserrat', sans-serif", color: 'black', marginTop: '-0px', marginLeft: '0px', fontWeight: '600', fontSize: '35px', lineHeight: '1.4' }}>
+            <span style={{background: '#F5B6FF', color: '#E441FF', paddingLeft: '5px', marginRight: '10px', paddingRight: '5px'}}>Generate</span> 
             and 
             <span style={{background: '#92A3FF', color: '#020CFF', paddingLeft: '5px', paddingRight: '5px',marginRight: '10px', marginLeft: '10px',}}>grade</span>  
             <span style={{background: '#FFEAAF', color: '#FFAE00', paddingLeft: '5px', paddingRight: '5px', marginRight: '10px', marginLeft: '0px',}}>adaptive</span> <br></br>
@@ -204,168 +218,241 @@ const Auth = () => {
             <span style={{background: '#F5B6FF', color: '#E441FF', paddingLeft: '5px', marginRight: '10px',marginLeft: '10px',  paddingRight: '5px'}}>AI.</span> 
            
           </h1>
-        </div>
+          <img src='/Mac.png' style={{ width: '450px', marginTop: '-20px', position: 'absolute', right: '150px', top: '-30px'}} />
+          <a href="https://www.youtube.com/watch?v=vAT3O0b3eDA" 
+            target="_blank" 
+            rel="noopener noreferrer"  style={{
 
+              height: '20px', lineHeight: '30px',  position: 'absolute', right: '200px', bottom: '-100px',
+               fontWeight: '600', padding: '8px',
+            width: '110px', display: 'flex',
+              textDecoration: 'none', borderRadius: '10px', textAlign: 'center',color: 'black', background: 'white',boxShadow: '1px 1px 5px 1px rgb(0,0,155,.1)', 
+              transition: '.2s', fontFamily: "'montserrat', sans-serif", fontSize: '20px'
+            }}
+          ><h1 style={{fontWeight: '600', fontSize: '20px',marginTop: '-5px', marginLeft: '10px' }}>Demo</h1> <ArrowRight style={{marginTop: '-1px', marginLeft: '10px'}}/></a>
 
-        <div style={{width: '100%', background: '#f4f4f4', marginBottom: '100px', borderTop: '4px solid lightgrey', borderBottom: '4px solid lightgrey',marginTop: '50px'}}>
-<h1 style={{width: '400px', fontSize: '40px', marginLeft: 'auto', marginRight: 'auto',  }}>Free For Teachers</h1>
-
-</div>
-
-
-        <div className="white-background">
-        <img style={{ width: '1000px', padding: '15px', border: ' 2px solid #f4f4f4', borderRadius: '15px' }} src='/CountlessFeatures.png' />
-        </div>
-        <div className="white-background" style={{ marginTop: '0px' }}>
-          <div style={{display: 'flex'}}>
-            <h1 style={{fontFamily: '"montserrat", sans- serif', fontSize: '70px'}}>4 Formats</h1>
-            <h1 style={{fontFamily: '"montserrat", sans- serif', fontSize: '40px', marginTop: '75px', marginLeft: '20px'}}>-Unlimited Possibilities</h1>
           </div>
-          <img style={{ width: '750px', }} src='/4Formats.png' />
+
+          <div style={{ width: '800px',  display: 'flex', marginLeft: '-50px', marginTop: '20px' }}>
+            <Link to="/signup"  style={{
+              height: '40px', lineHeight: '40px', marginTop: '20px', marginBottom: '20px',
+              display: 'block', color: 'black', background: 'white',boxShadow: '1px 1px 5px 1px rgb(0,0,155,.1)', fontWeight: '600', padding: '8px',
+              width: '320px',  textDecoration: 'none', 
+              borderRadius: '10px', textAlign: 'center', transition: '.3s', marginLeft: '50px',
+              fontFamily: "'montserrat', sans-serif", fontSize: '25px'
+            }}
+            onMouseEnter={(e) => {     e.target.style.boxShadow = '1px 1px 10px 1px rgb(0,0,155,.1)';
+            }}
+            onMouseLeave={(e) => {     e.target.style.boxShadow = '1px 1px 5px 1px rgb(0,0,155,.1)';
+            }}>Create an Account +</Link>
+
+            <Link to="/login"  style={{
+              height: '40px', lineHeight: '40px', marginTop: '20px', marginBottom: '20px',
+              color: 'black', background: 'white',boxShadow: '1px 1px 5px 1px rgb(0,0,155,.1)', fontWeight: '600', padding: '8px',
+              display: 'block', width: '140px', marginLeft: '30px',
+              textDecoration: 'none', borderRadius: '10px', textAlign: 'center',
+              transition: '.2s', fontFamily: "'montserrat', sans-serif", fontSize: '25px'
+            }}
+            onMouseEnter={(e) => {     e.target.style.boxShadow = '1px 1px 10px 1px rgb(0,0,155,.1)';
+            }}
+            onMouseLeave={(e) => {     e.target.style.boxShadow = '1px 1px 5px 1px rgb(0,0,155,.1)';
+            }}>Login</Link>
+
+           
+          </div>
+          <h1 style={{fontSize: '20px', fontWeight: '600', marginLeft: '-0px', color: 'grey', marginTop:'0px'}}>Free for Teachers</h1>
         </div>
 
 
-<div className="white-background"  style={{display: 'flex', padding: '60px 60px 0px 60px', border: ' 2px solid #f4f4f4'}}>
-  <div style={{fontSize: '80px', width: '350px', fontFamily: '"montserrat", sans- serif', fontWeight: 'bold', marginTop: '10px', borderRight: ' 2px solid #f4f4f4',
-    height: '190px'
-  }}>
-    Just 6 Steps
-  </div>
-<div style={{marginLeft: '40px', marginBottom: '50px'}}>
-              
-                 <ul style={{fontFamily: '"montserrat", sans- serif',width: '500px', marginTop: '0px', fontSize: '25px', fontWeight: '600', color: 'grey',listStyleType: 'none'}}>
-                  <li style={{marginBottom: '10px'}}>
-                 1.  Create a class
-                  </li>
-                  <li style={{marginBottom: '10px'}}>
-                 2.  Add Your Students
-                  </li>
-                  <li style={{marginBottom: '10px'}}>
-                  3. Input Your Source
-                  </li>
-                  <li style={{marginBottom: '10px'}}>
-                  4. Generate questions
-                  </li>
-                  <li style={{marginBottom: '10px'}}>
-                 5. Publish
-                  </li>
-                  <li style={{marginBottom: '10px'}}>
-                 6. Grade Automatically!
-                  </li>
-                 </ul>
-              
-            </div>
-
-</div>
 
 
-        <div className="white-background" style={{ marginTop: '100px', width: '1000px' }}>
-          <h1 style={{fontFamily: '"montserrat", sans- serif', fontSize: '70px'}}>Simple, Clean, Intuitive.</h1>
-          <div style={{display: 'flex', marginTop: '80px'}}>
-          <div style={{width: '500px'}}>
-          <h1 style={{fontFamily: '"montserrat", sans- serif', fontSize: '25px', marginTop: '-20px', color: 'grey'}}>Designed For Teachers</h1>
+
+
+         
+      
+      
+        </div>
+
+
+
+     
+
+        <div style={{ width: '1000px', marginTop: '100px' }}>
+      <h1 style={{
+        textAlign: 'left',
+        fontSize: '50px',
+        fontFamily: '"montserrat", sans-serif',
+        fontWeight: '600',
+        marginBottom: '40px'
+      }}>
+        4 Formats, <span style={{color: '#E01FFF', background: '#F5B6FF', paddingLeft: '10px'}}> Unlimited </span>Possibilities
+      </h1>
+
+      <div style={{
+        display: 'flex', 
+        width: '480px',
+        justifyContent: 'center',
+        gap: '20px',
+        marginTop: '60px',
+        marginBottom: '40px'
+      }}>
+        {formats.map(format => (
+          <button
+            key={format.id}
+            onClick={() => handleFormatSelect(format.id)}
+            style={{
+              padding: '10px 20px',
+              border: 'none',
+              borderRadius: '5px',
+              fontSize: '25px',
+              fontFamily: '"montserrat", sans-serif',
+              fontWeight: '700',
+              color: format.color,
+              background: selectedFormat === format.id ? 'white' : '#fcfcfc',
+              boxShadow:selectedFormat === format.id ? '1px 1px 5px 1px rgb(0,0,155,.1)' : 'none' ,
               
-            <img src='AuthTeachers.png' style={{width: '441px',  padding: '15px', background: 'white', borderRadius: '15px', border: ' 2px solid #f4f4f4'}}/>
+              cursor: 'pointer'
+            }}
+          >
+            {formatButtonText(format.id)}
+          </button>
+        ))}
+      </div>
+
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        padding: '0px',
+        borderRadius: '10px'
+      }}>
+        <ChevronLeft 
+          size={40}
+          style={{ cursor: 'pointer', color: 'grey' }}
+          onClick={handlePrevSlide}
+        />
+
+        <div style={{
+          textAlign: 'left',
+          width: '90%',
+          height: '260px',
+          boxShadow: '1px 1px 5px 1px rgb(0,0,155,.1)',
+          background: 'white',
+          borderRadius: '20px'
+        }}>
+          <h2 style={{
+            fontSize: '32px',
+            fontFamily: '"montserrat", sans-serif',
+            fontWeight: 'bold',
+            marginBottom: '20px',
+            marginTop: '60px',
+            marginLeft: '100px',
+            color: formats[currentSlide].color
+          }}>
+            {formatButtonText(formats[currentSlide].name)}
+          </h2>
+          <p style={{
+            fontSize: '20px',
+            fontFamily: '"montserrat", sans-serif',
+            color: '#666',
+            maxWidth: '700px',
+            margin: '0 auto'
+          }}>
+            {formats[currentSlide].description}
+          </p>
+        </div>
+
+        <ChevronRight 
+          size={40}
+          style={{ cursor: 'pointer',color: 'grey' }}
+          onClick={handleNextSlide}
+        />
+      </div>
+    </div>
+
+
+
+    <div  style={{  width: '100%', height: '450px', boxShadow: '1px 1px 5px 1px rgb(0,0,155,.1)', background: 'white', marginTop: '100px'}}>
+        <div  style={{  width: '1000px', display: 'flex',marginLeft: 'auto', marginRight: 'auto', }}>
+           <div>
+           <h1 style={{fontSize: '40px', width: '500px', color: 'black', fontWeight: '600',}}>
+                
+                Adaptive Assignments
+                </h1>   
+          <img src='/Adaptive.svg' style={{width: '500px',  marginLeft: '-30px', marginTop: '30px' }}/>
+          </div>
+         <h1 style={{fontSize: '25px',  width: '410px', color: 'grey', fontWeight: '600', lineHeight: '2.5', marginTop: '40px', marginLeft:'20px',borderLeft: '4px solid #f4f4f4', paddingLeft: '50px'}}>Our adaptive assignments give 
+
+students questions at  their level,
+
+allowing students get the workload 
+
+they need to succeed. Reducing stress
+
+while increasing retention </h1>
           
-       
-          </div>
-          <div style={{width: '500px', marginLeft: '80px'}}>
 
-<h1 style={{fontFamily: '"montserrat", sans- serif', fontSize: '25px', marginTop: '-20px', color: 'grey'}}>Designed For Students</h1>
-    
-  <img src='AuthStudents.png' style={{width: '425px',  padding: '15px', background: 'white', borderRadius: '15px', border: ' 2px solid #f4f4f4'}}/>
-
-</div>
+         
 </div>
        
              
         </div>
 
 
-<div className="white-background"  style={{width: '1000px'}}>
-<h1 style={{fontFamily: '"montserrat", sans- serif', fontSize: '70px'}}>Adaptive Assignments</h1>
-
-<div style={{display: 'flex', fontFamily: '"montserrat", sans- serif', marginTop: '10px' }}>
-       
-<img style={{width: '500px',  marginRight: '50px', marginTop: '10px'}}src='AdaptiveLogic.svg'/>
-  <p style={{width: '420px', marginRight: '-100px', fontWeight: '600', fontSize: '25px', color: 'grey', lineHeight: '2'}}> 
-
-  SquareScore focuses on 
-
-adaptive assignments to allow 
-
-students to take questions at 
-
-their level so students get the 
-
-workload they need to succeed 
-  </p>
-</div>
-</div>
 
 
 
 
+            <div style={{width: '1000px', marginLeft: 'auto', marginRight: 'auto', display: 'flex', position: 'relative'}}>
 
+            <div style={{width: '460px', boxShadow: '1px 1px 5px 1px rgb(0,0,155,.1)', borderRadius: '20px',background: 'white', marginTop: '100px', padding: '10px 25px'}}>
+            <h1 style={{fontSize: '38px',  fontWeight: '600',marginLeft:'10px',}}>100% Student X <br></br>Teacher Team</h1>
+            <p style={{fontSize: '20px',  width: '470px', color: 'grey', fontWeight: '600', lineHeight: '2.5', marginTop: '30px', marginLeft:'10px', paddingLeft: '0px'}}>
+            Understanding classroom dynamics and having used
 
+dozens of software tools, we added features to make 
 
+life easier for both teachers and students.
+
+            </p>
+            </div>
+            <ArrowRight size={40} style={{position: 'absolute', top: '270px', zIndex: '100', left: '525px', color: 'grey'}}/>
+            <div style={{width: '370px',borderRadius: '20px', boxShadow: '1px 1px 5px 1px rgb(0,0,155,.1)', background: 'white', marginTop: '100px', padding: '10px 25px', marginLeft: '70px'}}>
+            <h1 style={{fontSize: '30px', fontWeight: '600',marginLeft:'20px', }}>User Favorites</h1>
+            <p style={{fontSize: '25px',  width: '450px', color: 'grey', fontWeight: '600', lineHeight: '2.3', marginTop: '60px', marginLeft:'20px', paddingLeft: '0px'}}>
+            - Instant tailored feedback
+            <br></br>
+            - Built in Extended Time
+            <br></br>
+            - Unlimited Sources
+            <br></br>
+            - Lockdown Browser
+
+            </p>
+            </div>
+            </div>
 
 
    
+            <div style={{width: '1000px',marginBottom: '100px', display: 'flex', boxShadow: '1px 1px 5px 1px rgb(0,0,155,.1)', background: 'white', borderRadius: '20px', height: '150px', marginTop: '100px'}}>
+<div style={{width:'100px', height:' 130px', border: '10px solid #E01FFF', color: '#E01FFF',borderRadius: '20px 0px 0px 20px ', background: '#f7c4ff'}}>
+<Bot size={80} style={{ marginTop: '20px', marginLeft: '10px'}} />
 
+</div>
 
-              <div className="white-background"  style={{ marginTop: '100px', width: '1000px'}}>
-              <h1 style={{fontFamily: '"montserrat", sans- serif', lineHeight: '.8', fontSize: '70px', position: 'relative', }}>Watch Our Demo</h1>
-         <iframe width="1000" height="600"
-                  src="https://www.youtube.com/embed/vAT3O0b3eDA">
-                  </iframe>
-          
-  
-                  </div>
-
-
-
-                  <div className="white-background">
-        <img style={{ width: '1000px', padding: '15px', border: '0px solid #e4e4e4', borderRadius: '15px' , opacity: '80%'}} src='/MeetTheTeam.svg' />
-        </div>
-       
-                 
-              <div className="white-background" style={{width: '1000px', marginTop: '100px', position: 'relative'}}>
-            
-            <h1 style={{fontFamily: '"montserrat", sans- serif', fontSize: '70px'}}>Privacy</h1>
-            <h1 style={{fontFamily: '"montserrat", sans- serif', fontSize: '40px'}}>We never sell any user information to anyone!</h1>
-
-              <div style={{display: 'flex', marginTop: '-50px'}}>
-              <div>
-              <h1 style={{fontFamily: '"montserrat", sans- serif', fontSize: '40px', color: 'green',marginTop: '100px',  marginBottom: '-30px'}}>Students</h1>
-              <p style={{fontSize: '35px', width: '500px', fontWeight: 'normal'}}>
-            We store students: <strong> name, email, classes in, and grades. </strong>
-              </p>
-              </div>
-              <div style={{}}>
-              <h1 style={{fontFamily: '"montserrat", sans- serif', fontSize: '40px', color: 'blue',marginTop: '100px', marginBottom: '-30px', marginLeft: '20px'}}>Teachers</h1>
-              <p style={{fontSize: '35px', width: '500px', fontWeight: 'normal', marginLeft: '20px'}}>
-            We store <strong>teachers name, email, school if applicable and assignment data</strong>, however we never store source data. 
-              </p>
-              </div>
-               
-              </div>
-       
-             <Link to='/privacyPolicy'
-             style={{background: 'none',padding: '10px', width: '400px', fontSize: '30px', color: 'black', fontFamily: '"montserrat", sans- serif', fontWeight: 'bold', textDecoration: 'none', borderRadius: '15px', position: 'relative', bottom: '50px'}}
+<div style={{width: '780px', marginLeft: '20px', position: 'relative'}}>
+<div style={{display: 'flex',height: '25px', paddingBottom: '30px'}}><h1 style={{fontWeight: '600'}}>AI Safety</h1>
+<Link to='/privacyPolicy'
+             style={{background: 'none', color: 'blue', height: '30px', position: 'absolute', left: '160px', top: '30px', fontFamily: '"montserrat", sans- serif', fontWeight: 'bold', textDecoration: 'underline', }}
              >
-             Privacy Policy
-             <img style={{marginTop: '20px', marginLeft: '20px'}} src='ArrowAuth.png'/>
-
-             </Link>
-                </div>
-  
-                <div style={{width: '1000px', background: '#627BFF', padding: ' 5px 20px', borderRadius: '20px', color: 'white', marginTop: '100px'}}>
-            <h1 style={{fontFamily: '"montserrat", sans- serif', fontSize: '70px'}}>AI Safety</h1>
+             -  Privacy Policy
            
-            <h1 style={{fontFamily: '"montserrat", sans- serif', fontSize: '40px'}}>At SquareScore we use Anthropic API, Anthropic is commited to AI safety and will not train any models off of data entered through services like ours</h1>
+             </Link>
+</div>  
+  <p style={{ fontSize: '20px', fontWeight: '600', color: 'grey'}}>Squarescore uses Anthropic and OpenAI APIs for assessment generation and grading. Student data is not used to train AI models.</p>
+</div>
+</div>
 
-            </div>
 
 
          

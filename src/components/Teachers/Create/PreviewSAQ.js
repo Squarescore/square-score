@@ -107,7 +107,7 @@ const TeacherPreview = ({ questionsWithIds, setQuestionsWithIds, sourceText, que
     <div style={{
       width: '900px',
       height: '550px',
-      marginTop: '-20px',
+      marginTop: '80px',
       border: '10px solid white',
       
                boxShadow: '1px 1px 5px 1px rgb(0,0,155,.07)' ,
@@ -124,13 +124,13 @@ const TeacherPreview = ({ questionsWithIds, setQuestionsWithIds, sourceText, que
         backgroundColor: '#FCD3FF',
         marginLeft: '-30px',
         display: 'flex',
-        height: '70px',
+        height: '60px',
         border: '10px solid #D800FB',
         borderTopRightRadius: '20px',
         borderTopLeftRadius: '20px',
         marginTop: '-30px'
       }}>
-        <h1 style={{fontSize: '30px', fontFamily: "'montserrat', sans-serif", color: '#D800FB', marginLeft: '80px',marginTop: '15px', }}>Question Bank</h1>
+        <h1 style={{fontSize: '40px', fontFamily: "'montserrat', sans-serif", color: '#D800FB', marginLeft: '40px',marginTop: '5px', }}>Question Bank</h1>
        
       </div>
       {showRegenerateDropdown && (
@@ -279,11 +279,10 @@ const TeacherPreview = ({ questionsWithIds, setQuestionsWithIds, sourceText, que
         <div ref={containerRef} style={{ height: '400px', overflowY: 'auto', width: '930px', marginLeft: '-40px' }}>
         {questionsWithIds.map((question, index) => (
           <div key={index} style={{ 
-            padding: '10px', 
-            marginTop: '0px',
-            marginBottom: '-10px',
-            border: '0px solid lightgrey', 
-            borderRadius: '10px', 
+            padding: '0px', 
+            marginTop: '15px',
+            marginBottom: '15px',
+            borderBottom: '2px solid #f4f4f4', 
             width: '820px', 
             marginLeft: '50px', 
             position: 'relative',
@@ -301,10 +300,10 @@ const TeacherPreview = ({ questionsWithIds, setQuestionsWithIds, sourceText, que
               <div style={{
                 marginRight: '-4px',
                 zIndex: '1',
-                background: '#FBD3FF',
-                color: '#D800FB',
+                background: 'white',
+                color: 'black',
                 padding: '6px 8px',
-                border: '4px solid #D800FB',
+                border: '4px solid white',
                 borderRadius: '10px 0px 0px 10px',
                 display: 'flex',
                 alignItems: 'center',
@@ -314,14 +313,14 @@ const TeacherPreview = ({ questionsWithIds, setQuestionsWithIds, sourceText, que
               </div>
               <TextareaAutosize
                 style={{
-                  border: '4px solid #f4f4f4',
+                  border: '4px solid white',
                   padding: '15px',
                   paddingRight: '8%',
                   fontFamily: "'montserrat', sans-serif",
-                  fontWeight: 'bold',
+                  fontWeight: '600',
                   fontSize: '20px',
                   borderRadius: '0px 10px 10px 0px',
-                  width: '100%',
+                  width: '580px',
                   resize: 'none',
                   lineHeight: '1.2', // Add this to control line height
                 }}
@@ -334,12 +333,12 @@ const TeacherPreview = ({ questionsWithIds, setQuestionsWithIds, sourceText, que
         onClick={() => toggleRubric(index)}
         style={{
           position: 'absolute',
-          right: '21px',
+          right: '70px',
           top: '50%',
           transform: 'translateY(-50%)',
           fontSize: '20px', 
           background: '#f4f4f4',
-          border: '4px solid lightgrey',
+          border: '0px solid lightgrey',
           borderRadius: '8px',
           height: '40px',
           width: '40px',
@@ -354,7 +353,7 @@ const TeacherPreview = ({ questionsWithIds, setQuestionsWithIds, sourceText, que
       </button>
       <button 
                 onClick={() => handleDeleteQuestion(index)}
-                style={{position: 'absolute', right: '-10px', top: '-10px', fontSize: '20px', 
+                style={{position: 'absolute', right: '0px', top: '15px', fontSize: '20px', 
      
             
                   zIndex: '10',
@@ -368,7 +367,7 @@ const TeacherPreview = ({ questionsWithIds, setQuestionsWithIds, sourceText, que
                 }}
               >
                 <div style={{marginTop: '-2px', marginLeft: '-4px', }}>
-                <SquareX size={30} color="#e60000" strokeWidth={3} /></div>
+                <SquareX size={30} color="#e60000" strokeWidth={2} /></div>
           
               </button>
             </div>
@@ -397,11 +396,12 @@ const TeacherPreview = ({ questionsWithIds, setQuestionsWithIds, sourceText, que
                 </div>
                 <TextareaAutosize
                   style={{
-                    width: '700px',
+                    width: '585px',
                     border: '4px solid #F4F4F4',
                     padding: '15px',
                     fontWeight: '600',
                     color: 'grey',
+                    outline: 'none',
                     marginLeft: '-4px',
                     borderRadius: ' 0px 10px 10px 0px',
                     fontFamily: "'montserrat', sans-serif",

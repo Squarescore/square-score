@@ -12,7 +12,7 @@ return (
     <div style={
         {position: 'relative',width: '100%',
         height: '300px',
-        borderTop: '5px solid lightgrey',
+        boxShadow: '1px 1px 5px 1px rgb(0,0,155,.1)',
         backgroundColor: 'white' 
         }}>
 

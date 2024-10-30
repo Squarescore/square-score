@@ -257,11 +257,11 @@ const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 )}
 
 <div style={{ fontFamily: "'montserrat', sans-serif",width: '90%', display: 'flex',marginLeft: '32px', fontSize: '60px',  marginTop: '0px', height: '70px',
-  marginBottom: '100px',
+  marginBottom: '60px', marginTop: '50px'
 }}>
             <h4 style={{
-              fontSize: '60px', 
-             
+              fontSize: '40px', 
+             fontWeight: '600'
             }}>Your Classes</h4>
 
 
@@ -388,7 +388,7 @@ zIndex: '100'
                   justifyContent: 'center'
                 }}>
                   <div style={{
-                    width: '268px',
+                    width: '269px',
                     border: `6px solid ${periodStyle.color}`,
                     backgroundColor: periodStyle.background,
                     paddingLeft: '0px',
@@ -464,29 +464,31 @@ zIndex: '100'
             onClick={() => setShowCreateClassModal(true)}
             style={{
               marginRight: 'auto', 
-              backgroundColor: '#AEF2A3',
-              border: '4px solid #45B434',
+              backgroundColor: 'white',
+              border: '4px solid white',
+              boxShadow: '1px 1px 5px 1px rgb(0,0,155,.1)',
               marginLeft: '32px',
               fontSize: '20px', 
               transition: '.3s', 
-              color: '#45B434',
+              color: 'grey',
               borderRadius: '10px',
               padding: '10px 15px', 
               width: '200px', 
+              fontWeight: '600',
               fontFamily: "'montserrat', sans-serif",
               textAlign: 'center', 
-              fontWeight: 'bold',
               lineHeight: '20px',
               cursor: 'pointer',
               height: '48px',
             }}
             onMouseEnter={(e) => {
-              e.target.style.borderColor = '#138E00';
+              e.target.style.color = '#45B434';
             }}
             onMouseLeave={(e) => {
-              e.target.style.borderColor = '#45B434';
+              e.target.style.color = 'grey';
             }}
           >
+          
             Create Class +
           </button>
           
@@ -511,26 +513,27 @@ zIndex: '100'
             onClick={() => setModalOpen(true)}
             style={{
               marginRight: 'auto',
-              backgroundColor: '#9CACFF',
-              border: '4px solid #020CFF',
-              color: '#020CFF',
+              backgroundColor: 'white',
+              border: '4px solid white',
+              fontWeight: '600',
+              color: 'grey',
               borderRadius: '10px',
               padding: '20px 20px',
               fontFamily: "'montserrat', sans-serif",
               height: '45px',
-              fontWeight: 'bold',
               cursor: 'pointer',
              marginTop: '0px',
-             lineHeight: '0px',
+             lineHeight: '0px',  boxShadow: '1px 1px 5px 1px rgb(0,0,155,.1)',
+             
              marginLeft: '-570px',
               fontSize: '20px',
               transition: '.3s',
             }}
             onMouseEnter={(e) => {
-              e.target.style.borderColor = '#001CAE';
+              e.target.style.color = '#020CFF';
             }}
             onMouseLeave={(e) => {
-              e.target.style.borderColor = '#020CFF';
+              e.target.style.color = 'grey';
             }}
           >
             Join School

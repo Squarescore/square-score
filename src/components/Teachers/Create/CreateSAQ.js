@@ -405,7 +405,7 @@ const GenerateSAQ = async (sourceText, questionCount, additionalInstructions, cl
     return (
       
       <div style={{ marginTop: '150px', width: '860px', padding: '15px', marginLeft: 'auto', marginRight: 'auto', fontFamily: "'montserrat', sans-serif", background: 'white', borderRadius: '25px', 
-        boxShadow: '1px 1px 10px 1px rgb(0,0,155,.1)', marginBottom: '40px'}}>
+        boxShadow: '1px 1px 10px 1px rgb(0,0,155,.1)', marginBottom: '60px'}}>
         <style>{loaderStyle} {dropdownContentStyle}</style>
         {showPreview && generatedQuestions.length > 0 && (
           <div style={{
@@ -439,7 +439,7 @@ const GenerateSAQ = async (sourceText, questionCount, additionalInstructions, cl
                   
                 }}
               >
-                <div style={{marginTop: '-10px', marginLeft: '-9px', fontSize: '60px', fontWeight: 'bold'}}>
+                <div style={{marginTop: '85px', marginLeft: '-9px', fontSize: '60px', fontWeight: 'bold'}}>
                 <SquareX size={40} color="#D800FB" strokeWidth={3} /></div>
               </button>
               <TeacherPreview
@@ -895,7 +895,7 @@ const GenerateSAQ = async (sourceText, questionCount, additionalInstructions, cl
 
 
 
-          <div style={{ display: 'flex', justifyContent: 'space-between', width: '796px',height: '50px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', width: '796px',height: '50px', marginBottom: '40px' }}>
            
 
 

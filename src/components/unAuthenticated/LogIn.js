@@ -257,23 +257,23 @@ const Login = () => {
               style={{
                 width: '120px',
                 marginLeft: '0px',
-                background: '#C7FFBE', border: '4px solid #2BB514', 
+                color: 'black', background: 'white', fontWeight: '600', padding: '8px',
             zIndex: '1000',
-               
+               border: 'none',
                 height: '40px',
                 borderRadius: '8px',
                 cursor: 'pointer',
                 fontFamily: "'montserrat', sans-serif",
                 transition: '.2s'
               }}
-              onMouseEnter={(e) => {     e.target.style.borderColor = '#009006';
+              onMouseEnter={(e) => {     e.target.style.background = '#f8f8f8';
               }}
               onMouseLeave={(e) => {
-                e.target.style.borderColor = '#2BB514';
+                e.target.style.background = 'white';
           
               }}
             >
-              <h1 style={{ marginTop: '2px', fontSize: '20px', pointerEvents: 'none',color: '#2BB514', }}>Login</h1>
+              <h1 style={{ marginTop: '0px', fontSize: '20px', pointerEvents: 'none',color: 'black',fontWeight: '600', }}>Login</h1>
             </button>
             <p style={{ fontFamily: "'montserrat', sans-serif", color: 'black', marginLeft: '20px', fontSize: '14px', width: '340px',  marginTop: '5px'}}>
                   By Logging in you agree to SquareScore's <a href="/TermsofService" style={{ color: 'blue' }}>Terms of Service</a>  and <a href="/PrivacyPolicy" style={{ color: 'blue' }}>Privacy Policy</a>

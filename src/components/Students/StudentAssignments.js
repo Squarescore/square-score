@@ -472,8 +472,12 @@ const getAssignmentStyle = (assignment) => {
             const isAMCQ = grade.type === 'AMCQ';
             const isSAQ = grade.type === 'SAQ';
             const isMCQ = grade.type === 'MCQ';
-            const percentage = Math.round(isAMCQ ? grade.SquareScore : grade.percentageScore);
-            const letterGrade = getLetterGrade(percentage);
+            const percentage = Math.round(
+              isAMCQ ? grade.SquareScore :
+              isMCQ ? (grade.rawTotalScore / grade.maxRawScore) * 100 :
+              grade.percentageScore
+            );
+               const letterGrade = getLetterGrade(percentage);
 
             return (
               <div key={grade.id} style={{

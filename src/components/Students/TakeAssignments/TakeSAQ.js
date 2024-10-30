@@ -18,7 +18,9 @@ function TakeTests() {
   const [classId, setClassId] = useState(null);
   const [assignmentName, setAssignmentName] = useState('');
   const [timerStarted, setTimerStarted] = useState(false);
-  
+  const [progressExists, setProgressExists] = useState(false);
+
+
   const [HalfCredit, setHalfCredit] = useState(false);
   const studentUid = auth.currentUser.uid;
   const navigate = useNavigate();
@@ -67,6 +69,7 @@ const [scaleMax, setScaleMax] = useState(2);
           const savedDataDoc = await getDoc(progressRef);
 
           if (savedDataDoc.exists()) {
+            setProgressExists(true);
             const savedData = savedDataDoc.data();
             setQuestions(savedData.questions.map(q => ({
               questionId: q.questionId,
@@ -79,6 +82,7 @@ const [scaleMax, setScaleMax] = useState(2);
             })));
             setSecondsLeft(savedData.timeRemaining);
           } else {
+            setProgressExists(false);
             const allQuestions = Object.entries(assignmentData.questions).map(([id, data]) => ({
               questionId: id,
               text: data.question,
@@ -108,39 +112,44 @@ const [scaleMax, setScaleMax] = useState(2);
 
 
   useEffect(() => {
-    if (assignmentId && studentUid && questions.length > 0 && timeLimit !== null && firstName && lastName) {
+    if (!progressExists && assignmentId && studentUid && questions.length > 0 && timeLimit !== null && firstName && lastName) {
       initializeAssignment();
     }
-  }, [assignmentId, studentUid, questions, timeLimit, firstName, lastName]);
-
+  }, [progressExists, assignmentId, studentUid, questions, timeLimit, firstName, lastName]);
+  
   const initializeAssignment = async () => {
     try {
-      const studentRef = doc(db, 'students', studentUid);
-      await updateDoc(studentRef, {
-        assignmentsToTake: arrayRemove(assignmentId),
-        assignmentsInProgress: arrayUnion(assignmentId)
-      });
-
       const progressRef = doc(db, 'assignments(progress:saq)', `${assignmentId}_${studentUid}`);
-      await setDoc(progressRef, {
-        assignmentId,
-        studentUid,
-        firstName: firstName,
-        lastName: lastName,
-        questions: questions.map(q => ({
-          questionId: q.questionId,
-          text: q.text,
-          rubric: q.rubric,
-          studentResponse: ''
-        })),
-        timeRemaining: timeLimit,
-        savedAt: serverTimestamp(),
-        status: 'in_progress'
-      });
+      const progressDoc = await getDoc(progressRef);
+  
+      if (!progressDoc.exists()) {
+        const studentRef = doc(db, 'students', studentUid);
+        await updateDoc(studentRef, {
+          assignmentsToTake: arrayRemove(assignmentId),
+          assignmentsInProgress: arrayUnion(assignmentId)
+        });
+  
+        await setDoc(progressRef, {
+          assignmentId,
+          studentUid,
+          firstName: firstName,
+          lastName: lastName,
+          questions: questions.map(q => ({
+            questionId: q.questionId,
+            text: q.text,
+            rubric: q.rubric,
+            studentResponse: ''
+          })),
+          timeRemaining: timeLimit,
+          savedAt: serverTimestamp(),
+          status: 'in_progress'
+        });
+      }
     } catch (error) {
       console.error("Error initializing assignment:", error);
     }
   };
+  
 
   const handleLockdownViolation = async () => {
     await saveProgress('paused');
@@ -183,7 +192,6 @@ const [scaleMax, setScaleMax] = useState(2);
   }, [lockdown]);
 
 
-  
   const saveProgress = async (status = 'in_progress') => {
     try {
       const progressRef = doc(db, 'assignments(progress:saq)', `${assignmentId}_${studentUid}`);
@@ -203,16 +211,31 @@ const [scaleMax, setScaleMax] = useState(2);
   
       // Update student assignment status
       const studentRef = doc(db, 'students', studentUid);
-      await updateDoc(studentRef, {
-        assignmentsToTake: arrayRemove(assignmentId),
-        assignmentsInProgress: arrayUnion(assignmentId)
-      });
+      if (status === 'paused') {
+        await updateDoc(studentRef, {
+          assignmentsToTake: arrayRemove(assignmentId),
+          assignmentsInProgress: arrayRemove(assignmentId),
+          assignmentsPaused: arrayUnion(assignmentId)
+        });
+      } else if (status === 'in_progress') {
+        await updateDoc(studentRef, {
+          assignmentsToTake: arrayRemove(assignmentId),
+          assignmentsInProgress: arrayUnion(assignmentId)
+        });
+      } else if (status === 'submitted') {
+        await updateDoc(studentRef, {
+          assignmentsToTake: arrayRemove(assignmentId),
+          assignmentsInProgress: arrayRemove(assignmentId),
+          assignmentsTaken: arrayUnion(assignmentId)
+        });
+      }
   
       console.log('Progress saved and status updated');
     } catch (error) {
       console.error("Error saving progress:", error);
     }
   };
+  
   useEffect(() => {
     if (timeLimit !== null) {
       setSecondsLeft(timeLimit);

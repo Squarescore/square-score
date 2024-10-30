@@ -7,6 +7,7 @@ import { AnimatePresence } from 'framer-motion';
 import CustomDateTimePicker from './CustomDateTimePickerResults';
 import 'react-datepicker/dist/react-datepicker.css';
 import Exports from './Exports';
+import QuestionBankAMCQ from './QuestionBankAMCQ';
 import { Settings, ArrowRight, SquareArrowOutUpRight, SquareX, EyeOff, Eye, SquareCheck, SquareMinus, SquareArrowRight } from 'lucide-react';
 import Tooltip from './ToolTip';
 const TeacherResultsAMCQ = () => {
@@ -35,7 +36,10 @@ const TeacherResultsAMCQ = () => {
   const [students, setStudents] = useState([]);
     const { classId, assignmentId } = useParams();
     const { teacherId } = useParams(); // Assuming you have teacherId from URL params
-  
+    const [editingQuestionIndex, setEditingQuestionIndex] = useState(null);
+  const [editedQuestions, setEditedQuestions] = useState([]);
+
+  const [showChoices, setShowChoices] = useState({});
     const [showOverlay, setShowOverlay] = useState(false);
     
   const [showSettings, setShowSettings] = useState(false);
@@ -280,13 +284,14 @@ const TeacherResultsAMCQ = () => {
       if (assignmentDoc.exists()) {
         const data = assignmentDoc.data();
         setAssignmentData(data);
-        setAllViewable(data.viewable || false); 
+        setAllViewable(data.viewable || false);
         assignmentDataRef.current = data;
+        setEditedQuestions(data.questions || []);
       } else {
-        console.log("No such document!");
+        console.log('No such document!');
       }
     } catch (error) {
-      console.error("Error fetching assignment data:", error);
+      console.error('Error fetching assignment data:', error);
     }
   };
 
@@ -703,154 +708,6 @@ const TeacherResultsAMCQ = () => {
 
 
 
-  const QuestionBankModal = ({ onClose, setShowQuestionBank, setShowOverlay }) => {
-    const [hoveredOptions, setHoveredOptions] = useState({});
-  const modalRef = useRef(null);
-  const questions = assignmentDataRef.current?.questions || [];
-  const [isVisible, setIsVisible] = useState(false);
-  const optionStyles = {
-    a: { background: '#A3F2ED', color: '#00645E' },
-    b: { background: '#AEF2A3', color: '#006428' },
-    c: { background: '#F8CFFF', color: '#E01FFF' },
-    d: { background: '#FFECA8', color: '#CE7C00' },
-    e: { background: '#FFD1D1', color: '#FF0000' },
-  };
-
-  const handleOptionHover = (index, option) => {
-    setHoveredOptions(prev => ({
-      ...prev,
-      [index]: option
-    }));
-  };
-
-  const handleMouseLeave = () => {
-    setShowQuestionBank(false);
-    setShowOverlay(false);
-  };
-
-  useEffect(() => {
-    const timer = setTimeout(() => setIsVisible(true), 300);
-    return () => clearTimeout(timer);
-  }, []);
-
-
-  return (
-    <div style={{ 
-      position: 'fixed', 
-      top: '80px',
-      left: '50%',
-      transform: 'translateX(-50%)',
-      height: '600px',
-      width: '800px',  
-      backgroundColor: 'white', 
-      border: '10px solid white',
-      
-               boxShadow: '1px 1px 5px 1px rgb(0,0,155,.07)' ,
-      borderRadius: '20px',
-      zIndex: 100,
-      transition: 'all 0.3s ease-in-out',
-      opacity: isVisible ? 1 : 0,
-      visibility: isVisible ? 'visible' : 'hidden',
-    }}
-    
-    >
-      {isVisible && (
-   <>
-      <div style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        margin: '-10px -10px 0px -10px',
-        padding: '10px',
-        height: '40px',
-        background: '#FCD3FF',
-         color: '#D800FB',
-        borderRadius: '20px 20px 0px 0px',
-        border: '10px solid #D800FB',
-      }}
-      >
-         
-        <h2 style={{ 
-          fontSize: '30px', 
-          fontWeight: 'bold', 
-          fontFamily: "'montserrat', sans-serif",
-          marginLeft: '30px',
-         
-          marginTop: '20px',
-        
-        }}>Questions</h2>
-       <button onClick={onClose} style={{ 
-          backgroundColor: 'transparent', 
-          border: 'none', 
-          fontSize: '24px', 
-          color: '#D800FB',
-          cursor: 'pointer' 
-        }}>
-
-          <SquareX size={40}  strokeWidth={2.5}style={{}}/>
-        </button>
-      </div>
-      <div ref={modalRef} style={{
-        height: 'calc(100% - 80px)',
-        overflowY: 'auto',
-        padding: '0 20px',
-        scrollbarWidth: 'thin',
-        scrollbarColor: '#888 #f1f1f1',
-      }}>
-        {questions.map((question, index) => (
-          <div key={index} style={{ marginBottom: '20px', borderBottom: '1px solid #ccc', paddingBottom: '10px', textAlign: 'left' }}>
-           
-            <h3 style={{ fontSize: '30px', fontWeight: 'bold', fontFamily: "'montserrat', sans-serif", width: '100%' }}>
-              {question.question}<span style={{fontSize: '20px', color: 'grey'}}>-{question.difficulty}</span>
-            </h3>
-            <ul style={{ listStyleType: 'none', padding: 0 }}>
-              {['a', 'b', 'c', 'd'].slice(0, question.choices).map((option) => (
-                <li 
-                  key={option} 
-                  style={{ 
-                    marginBottom: '15px', 
-                    padding: '10px', 
-                    backgroundColor: optionStyles[option].background,
-                    color: optionStyles[option].color,
-                    borderRadius: '5px',
-                    cursor: 'pointer',
-                    fontFamily: "'montserrat', sans-serif",
-                    fontWeight: 'bold',
-                    width: '600px',
-                    transition: 'all 0.3s',
-                    boxShadow: option === question.correct ? '0 4px 4px rgb(0,200,0,.25)' : 
-                               (hoveredOptions[index] === option ? '0 4px 4px rgb(100,0,0,.25)' : 'none'),
-                  }}
-                  onMouseEnter={() => handleOptionHover(index, option)}
-                  onMouseLeave={() => handleOptionHover(index, null)}
-                >
-                  {question[option]}
-                  {option === question.correct && ' ✓'}
-                </li>
-              ))}
-            </ul>
-            {hoveredOptions[index] && hoveredOptions[index] !== question.correct && (
-              <p style={{ fontSize: '14px', color: '#ff4d4d', width: '100%', fontFamily: "'montserrat', sans-serif", fontWeight: 'bold' }}>
-                Explanation: {question[`explanation_${hoveredOptions[index]}`]}
-              </p>
-            )}
-            {(hoveredOptions[index] === question.correct || !hoveredOptions[index]) && (
-              <p style={{ fontSize: '14px', color: '#4CAF50', width: '100%', fontFamily: "'montserrat', sans-serif", fontWeight: 'bold' }}>
-                Explanation: {question[`explanation_${question.correct}`]}
-              </p>
-            )}
-          </div>
-        ))}
-      </div>
-      </>
-        )}
-    </div>
-  );
-};
-
-
-
-
 
 
 
@@ -868,19 +725,18 @@ const TeacherResultsAMCQ = () => {
     }}>    <Navbar userType="teacher" />
      
       
-          {showQuestionBank && assignmentDataRef.current && (
-     
-  <QuestionBankModal 
-    questions={assignmentData.questions} 
+         
+     {showQuestionBank && assignmentDataRef.current && (
+  <QuestionBankAMCQ
+    editedQuestions={editedQuestions}
+    setEditedQuestions={setEditedQuestions}
+    assignmentId={assignmentId}
     onClose={() => {
       setShowQuestionBank(false);
       setShowOverlay(false);
     }}
-    setShowQuestionBank={setShowQuestionBank}  // Add this line
-    setShowOverlay={setShowOverlay}
   />
 )}
-      
 
       
 
@@ -1094,7 +950,7 @@ const TeacherResultsAMCQ = () => {
                boxShadow: '1px 1px 5px 1px rgb(0,0,155,.07)', borderRadius: '20px',marginLeft: 'auto', }}>
       <Tooltip text="Class Average">
       
-        <img style={{ width: '150px', marginLeft: '20px' , marginTop: '23px' }} src="/score.svg" alt="logo" />
+        <img style={{ width: '150px', marginLeft: '20px' , marginTop: '23px' }} src="/Score.svg" alt="logo" />
       <div style={{fontSize: '45px', fontWeight: 'bold', width: '88px', position: 'absolute', background: 'transparent', height: '88px', borderRadius:  '10px', top: '50px', left: '50px', textAlign: 'center', lineHeight: '90px'}}> 
       {averageGrade !== null ? averageGrade : '-'}
      

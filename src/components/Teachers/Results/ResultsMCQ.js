@@ -32,6 +32,8 @@ import {
   ArrowRight,
 } from 'lucide-react';
 import Tooltip from './ToolTip';
+import QuestionBankAMCQ from './QuestionBankAMCQ';
+import QuestionBankMCQ from './QuestionBankMCQ';
 
 const TeacherResultsMCQ = () => {
   // State hooks
@@ -62,6 +64,7 @@ const TeacherResultsMCQ = () => {
   const [showOverlay, setShowOverlay] = useState(false);
 
   const [showSettings, setShowSettings] = useState(false);
+  const [editedQuestions, setEditedQuestions] = useState([]);
 
   const [assignmentSettings, setAssignmentSettings] = useState({
     assignDate: null,
@@ -467,6 +470,7 @@ const TeacherResultsMCQ = () => {
         setAssignmentData(data);
         setAllViewable(data.viewable || false);
         assignmentDataRef.current = data;
+        setEditedQuestions(data.questions || []);
       } else {
         console.log('No such document!');
       }
@@ -521,7 +525,7 @@ const TeacherResultsMCQ = () => {
         const classDocRef = doc(db, 'classes', classId);
         const classDoc = await getDoc(classDocRef);
         const classData = classDoc.data();
-
+  
         if (classData && classData.participants) {
           // Fetch full names for all participants
           const updatedParticipants = await Promise.all(
@@ -546,64 +550,67 @@ const TeacherResultsMCQ = () => {
               return participant;
             })
           );
-
+  
           // Sort students by last name
           const sortedStudents = updatedParticipants.sort((a, b) =>
             a.lastName.localeCompare(b.lastName)
           );
-
+  
           setStudents(sortedStudents);
           const assignedStudents = sortedStudents.filter(
             (student) => student.isAssigned
           );
           setAssignedCount(assignedStudents.length);
-
-          const gradesCollection = collection(db, 'grades(MCQ)');
+  
+          const gradesCollection = collection(db, 'grades(mcq)');
           const gradesQuery = query(
             gradesCollection,
             where('assignmentId', '==', assignmentId)
           );
           const gradesSnapshot = await getDocs(gradesQuery);
           const fetchedGrades = {};
-          let totalScore = 0;
+          let totalScorePercentage = 0;
           let validGradesCount = 0;
           let submissionsCount = 0;
-
+  
           gradesSnapshot.forEach((doc) => {
             const gradeData = doc.data();
+            // Calculate percentage score from raw scores
+            const scorePercentage = gradeData.maxRawScore > 0 
+              ? Math.round((gradeData.rawTotalScore / gradeData.maxRawScore) * 100)
+              : 0;
+  
             fetchedGrades[gradeData.studentUid] = {
               submittedAt: gradeData.submittedAt,
-              SquareScore: gradeData.SquareScore,
+              SquareScore: scorePercentage, // Store percentage as SquareScore
+              rawTotalScore: gradeData.rawTotalScore,
+              maxRawScore: gradeData.maxRawScore,
               viewable: gradeData.viewable || false,
             };
-
+  
             if (gradeData.submittedAt) {
               submissionsCount++;
             }
-            if (
-              typeof gradeData.SquareScore === 'number' &&
-              !isNaN(gradeData.SquareScore)
-            ) {
-              totalScore += gradeData.SquareScore;
+            if (gradeData.maxRawScore > 0) {
+              totalScorePercentage += scorePercentage;
               validGradesCount++;
             }
           });
-
+  
           setGrades(fetchedGrades);
-
           setSubmissionCount(submissionsCount);
-
+  
           const calculatedAverage =
             validGradesCount > 0
-              ? (totalScore / validGradesCount).toFixed(0)
+              ? Math.round(totalScorePercentage / validGradesCount)
               : null;
           setAverageGrade(calculatedAverage);
-
+  
           // Update assignment document with new class average
           if (calculatedAverage !== null) {
             const assignmentRef = doc(db, 'assignments(mcq)', assignmentId);
             await updateDoc(assignmentRef, {
-              classAverage: parseFloat(calculatedAverage),
+              classAverage: calculatedAverage
             });
           }
         }
@@ -613,12 +620,14 @@ const TeacherResultsMCQ = () => {
         setLoading(false);
       }
     };
-
+  
     fetchClassAndGrades();
     const classAndGradesInterval = setInterval(fetchClassAndGrades, 10000);
-
+  
     return () => clearInterval(classAndGradesInterval);
   }, [classId, assignmentId]);
+
+  
 
   // Fetch assignment status for each student
   useEffect(() => {
@@ -630,7 +639,7 @@ const TeacherResultsMCQ = () => {
           `${assignmentId}_${student.uid}`
         );
         const progressDoc = await getDoc(progressRef);
-        const gradeRef = doc(db, 'grades(MCQ)', `${assignmentId}_${student.uid}`);
+        const gradeRef = doc(db, 'grades(mcq)', `${assignmentId}_${student.uid}`);
         const gradeDoc = await getDoc(gradeRef);
 
         let status = 'not_started';
@@ -799,7 +808,7 @@ const TeacherResultsMCQ = () => {
       });
 
       // Delete the grade document
-      const gradeRef = doc(db, 'grades(MCQ)', `${assignmentId}_${studentUid}`);
+      const gradeRef = doc(db, 'grades(mcq)', `${assignmentId}_${studentUid}`);
       batch.delete(gradeRef);
 
       // Delete the progress document if it exists
@@ -854,7 +863,7 @@ const TeacherResultsMCQ = () => {
     for (const student of students) {
       const gradeRef = doc(
         db,
-        'grades(MCQ)',
+        'grades(mcq)',
         `${assignmentId}_${student.uid}`
       );
 
@@ -1139,17 +1148,18 @@ const TeacherResultsMCQ = () => {
     >
       <Navbar userType="teacher" />
 
+            
       {showQuestionBank && assignmentDataRef.current && (
-        <QuestionBankModal
-          questions={assignmentData.questions}
-          onClose={() => {
-            setShowQuestionBank(false);
-            setShowOverlay(false);
-          }}
-          setShowQuestionBank={setShowQuestionBank} // Add this line
-          setShowOverlay={setShowOverlay}
-        />
-      )}
+  <QuestionBankMCQ
+    editedQuestions={editedQuestions}
+    setEditedQuestions={setEditedQuestions}
+    assignmentId={assignmentId}
+    onClose={() => {
+      setShowQuestionBank(false);
+      setShowOverlay(false);
+    }}
+  />
+)}
 
       <div
         style={{
@@ -1416,7 +1426,7 @@ const TeacherResultsMCQ = () => {
             <Tooltip text="Class Average">
               <img
                 style={{ width: '150px', marginLeft: '20px', marginTop: '23px' }}
-                src="/score.svg"
+                src="/Score.svg"
                 alt="logo"
               />
               <div

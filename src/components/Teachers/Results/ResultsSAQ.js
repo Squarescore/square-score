@@ -1009,7 +1009,7 @@ const TeacherResults = () => {
                 cursor: 'pointer',
               }}
             >
-              <div style={{marginTop: '-10px', marginLeft: '-9px', fontSize: '60px', fontWeight: 'bold'}}>
+              <div style={{marginTop: '85px', marginLeft: '-9px', fontSize: '60px', fontWeight: 'bold'}}>
                 <SquareX size={40} color="#D800FB" strokeWidth={3} />
               </div>
             </button>
@@ -1070,7 +1070,7 @@ const TeacherResults = () => {
                boxShadow: '1px 1px 5px 1px rgb(0,0,155,.07)', borderRadius: '20px',marginLeft: 'auto', }}>
       <Tooltip text="Class Average">
       
-      <img style={{ width: '150px', marginLeft: '20px' , marginTop: '23px' }} src="/score.svg" alt="logo" />
+      <img style={{ width: '150px', marginLeft: '20px' , marginTop: '23px' }} src="/Score.svg" alt="logo" />
       <div style={{fontSize: '45px', fontWeight: 'bold', width: '88px', position: 'absolute', background: 'transparent', height: '88px', borderRadius:  '10px', top: '50px', left: '50px', textAlign: 'center', lineHeight: '90px'}}> 
       {averageGrade !== null ? averageGrade : '-'}
      
@@ -1116,8 +1116,8 @@ const TeacherResults = () => {
              borderRadius: '10px',
              fontWeight: 'bold',
              cursor: 'pointer',
-             marginTop: '240px',
-             marginLeft: '15px',
+             marginTop: '280px',
+             marginLeft: '10px',
              transition: '.3s',
              display: 'flex',
              flexDirection: 'column',
@@ -1143,18 +1143,14 @@ const TeacherResults = () => {
         title={`Students have marked ${reviewCount} responses for your review.`}
           >
             
-      <Flag size={40} color="#FFAA00" strokeWidth={2} />
+      <Flag size={40} color="#FFAA00" strokeWidth={2.5} />
       
      
       <h1 style={{ fontSize: '20px', marginTop: '-2px', color: '#FFAA00', marginBottom: '-0px',  lineHeight: '1', fontFamily: "'montserrat', sans-serif", }}>{reviewCount}</h1>
        </button>
        </Tooltip>
 
-<div style={{height: '4px', width: '70px', background: '#DEDEDE', borderRadius: '10px', marginLeft: '10px', marginTop: '10px', marginBottom: '10px',
-  position: 'absolute',
-  top: '500px',
-  left: '0px',
-}}></div>
+
      
       </div>
       )}
