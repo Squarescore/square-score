@@ -3,7 +3,8 @@ import { arrayRemove, arrayUnion, doc, getDoc, setDoc, updateDoc, serverTimestam
 import { useParams, useNavigate } from 'react-router-dom';
 import { db, auth } from '../../Universal/firebase';
 import Loader from '../../Universal/Loader';
-import { SquareArrowLeft, SquareArrowRight } from 'lucide-react';
+import { SquareArrowLeft, ArrowRight } from 'lucide-react';
+import TakeAssignmentNav from './TakeAssignmentNav';
 
 function TakeMCQ() {
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -387,68 +388,23 @@ function TakeMCQ() {
         return '100%';
     }
   };
+  const onSaveAndExit = async () => {
+    await saveProgress();
+    navigate(`/studentassignments/${classId}`);
+  };
   return (
     <div style={{ paddingBottom: '80px', marginLeft: '-3px', marginRight: '-3px', display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', width: '100%' }}>
-      <button
-        onClick={submitButton}
-        style={{
-          backgroundColor: '#0E19FF',
-          textShadow: '2px 2px 4px rgba(0, 0, 0, 0.2)',
-          padding: '10px',
-          width: '140px',
-          fontSize: '25px',
-          position: 'fixed',
-          right: '60px',
-          top: '20px',
-          borderColor: 'transparent',
-          cursor: 'pointer',
-          borderRadius: '15px',
-          fontFamily: "'montserrat', sans-serif",
-          color: 'white',
-          fontWeight: 'bold',
-          zIndex: '100',
-          transition: 'transform 0.3s ease'
-        }}
-        onMouseEnter={(e) => e.target.style.transform = 'scale(1.01)'}
-        onMouseLeave={(e) => e.target.style.transform = 'scale(1)'}
-      >
-        Submit
-      </button>
-{showTimerComponents && (
-  <div
-    style={{
-      color: showTimer ? 'grey' : 'transparent',
-      left: '100px',
-      top: '10px',
-      fontSize: '44px',
-      fontWeight: 'bold',
-      width: '120px',
-      zIndex: '100',
-      fontFamily: "'montserrat', sans-serif",
-      position: 'fixed',
-      border: secondsLeft <= 60 ? '4px solid red' : 'none',
-      padding: '5px',
-      borderRadius: '5px',
-    }}
-  >
-    {formatTime(secondsLeft)}
-    <button
-      onClick={toggleTimer}
-      style={{
-        position: 'absolute',
-        top: '0px',
-        left: '-70px',
-        backgroundColor: 'transparent',
-        border: 'none',
-        color: 'black',
-        fontWeight: 'bold',
-        cursor: 'pointer',
-      }}
-    >
-      {showTimer ? <img style={{ width: '60px', opacity: '90%' }} src='/hidecon.png' alt="Hide timer" /> : <img style={{ width: '60px', opacity: '90%' }} src='/eyecon.png' alt="Show timer" />}
-    </button>
-  </div>
-)}
+        <TakeAssignmentNav
+        saveAndExitEnabled={saveAndExit}
+        onSaveAndExit={onSaveAndExit}
+        timer={timeLimit}
+        secondsLeft={secondsLeft}
+        showTimer={showTimer}
+        toggleTimer={toggleTimer}
+        assignmentName={assignmentName}
+        onSubmit={submitButton}
+        lockdownEnabled={lockdown}
+      />
 {loading &&
   <div style={loadingModalStyle}>
     <div style={loadingModalContentStyle}>
@@ -461,24 +417,7 @@ function TakeMCQ() {
     </div>
   </div>
 }
-<header
-  style={{
-    backgroundColor: 'white',
-    position: 'fixed',
-    borderRadius: '10px',
-    color: 'black',
-    height: '90px',
-    display: 'flex',
-    borderBottom: '5px solid lightgrey',
-    marginTop: '0px',
-    marginBottom: '40px',
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: '100%',
-  }}
->
- <h1 style={{fontSize: '60px', fontFamily:' "montserrat", sans-serif'}}>{assignmentName}</h1>
-</header>
+
 {loading || isSubmitting ? (
   <div style={loadingModalStyle}>
     <div style={loadingModalContentStyle}>
@@ -491,37 +430,7 @@ function TakeMCQ() {
     </div>
   </div>
 ) : null}
-{saveAndExit && (
-  <button
-    onClick={async () => {
-      await saveProgress();
-      navigate(`/studentassignments/${classId}`);
-    }}
-    style={{
-      backgroundColor: 'transparent',
-      color: 'grey',
-      padding: '10px',
-      width: '200px',
-      background: 'lightgrey',
-      textAlign: 'center',
-      fontSize: '20px',
-      position: 'fixed',
-      left: '0px',
-      top: '90px',
-      borderColor: 'transparent',
-      cursor: 'pointer',
-      borderBottomRightRadius: '15px',
-      fontFamily: "'montserrat', sans-serif",
-      fontWeight: 'bold',
-      zIndex: '100',
-      transition: 'transform 0.3s ease'
-    }}
-    onMouseEnter={(e) => e.target.style.transform = 'scale(1.01)'}
-    onMouseLeave={(e) => e.target.style.transform = 'scale(1)'}
-  >
-    Save & Exit
-  </button>
-)}
+
  {questions.length > 0 && (
         <div style={{ width: '1000px', marginLeft: 'auto',   borderRadius: '20px',      boxShadow: '1px 1px 5px 1px rgb(0,0,155,.07)' , marginRight: 'auto', marginTop: '250px', position: 'relative' }}>
           <div style={{
@@ -611,7 +520,7 @@ function TakeMCQ() {
         style={currentQuestionIndex < questions.length - 1 ? buttonStyles.active : buttonStyles.default}
         onClick={currentQuestionIndex < questions.length - 1 ? () => setCurrentQuestionIndex(prev => prev + 1) : null}
       >
-        {currentQuestionIndex < questions.length - 1 ? <SquareArrowRight size={60} style={{cursor: currentQuestionIndex < questions.length - 1 ? 'pointer' : 'default', position: 'fixed', right: '20px', top: '400px', color: '#2BB514'}}/> : <SquareArrowRight size={60} style={{cursor: currentQuestionIndex < questions.length - 1 ? 'pointer' : 'default', position: 'fixed', right: '20px', top: '400px', color: 'grey'}}/>}
+        {currentQuestionIndex < questions.length - 1 ? <ArrowRight size={60} style={{cursor: currentQuestionIndex < questions.length - 1 ? 'pointer' : 'default', position: 'fixed', right: '20px', top: '400px', color: '#2BB514'}}/> : <ArrowRight size={60} style={{cursor: currentQuestionIndex < questions.length - 1 ? 'pointer' : 'default', position: 'fixed', right: '20px', top: '400px', color: 'grey'}}/>}
          
       </button>
     </div>

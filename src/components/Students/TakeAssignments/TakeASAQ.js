@@ -3,6 +3,7 @@ import { arrayRemove, arrayUnion, doc, getDoc, setDoc, updateDoc, serverTimestam
 import { useParams, useNavigate } from 'react-router-dom';
 import { db, auth } from '../../Universal/firebase';
 import Loader from '../../Universal/Loader';
+import TakeAssignmentNav from './TakeAssignmentNav';
 
 function TakeASAQ() {
   const { assignmentId } = useParams();
@@ -487,10 +488,8 @@ const [showIncorrectScreen, setShowIncorrectScreen] = useState(false);
     </div>
   );
 
-  const handleSaveAndExit = async () => {
-    // Implement save and exit functionality
-    // This should save the current progress to Firestore
-    // Then navigate back to the student assignments page
+  const onSaveAndExit = async () => {
+    await saveProgress();
     navigate(`/studentassignments/${classId}`);
   };
   const toggleTimer = () => {
@@ -518,92 +517,17 @@ const [showIncorrectScreen, setShowIncorrectScreen] = useState(false);
     }} 
   />
 )}
-    {timeLimit > 0 && (
-      <div
-        style={{
-          color: showTimer ? 'grey' : 'transparent',
-          left: '100px',
-          top: '10px',
-          fontSize: '44px',
-          fontWeight: 'bold',
-          width: '120px',
-          zIndex: '100',
-          fontFamily: "'montserrat', sans-serif",
-          position: 'fixed',
-          border: secondsLeft <= 60 ? '4px solid red' : 'none',
-          padding: '5px',
-          borderRadius: '5px',
-        }}
-      >
-        {formatTime(secondsLeft)}
-        <button
-          onClick={toggleTimer}
-          style={{
-            position: 'absolute',
-            top: '0px',
-            left: '-70px',
-            backgroundColor: 'transparent',
-            border: 'none',
-            color: 'black',
-            fontWeight: 'bold',
-            cursor: 'pointer',
-          }}
-        >
-          {showTimer ? <img style={{ width: '60px', opacity: '90%' }} src="/hidecon.png" /> : <img style={{ width: '60px', opacity: '90%' }} src="/eyecon.png" />}
-        </button>
-      </div>
-    )}
-
-    <header
-      style={{
-        backgroundColor: 'white',
-        position: 'fixed',
-        borderRadius: '10px',
-        color: 'white',
-        zIndex: '99',
-        height: '90px',
-        display: 'flex',
-        background: 'rgb(255,255,255,.9)',
-        backdropFilter: 'blur(4px)',
-        borderBottom: '5px solid lightgrey',
-        marginTop: '-150px',
-        marginBottom: '40px',
-        alignItems: 'center',
-        justifyContent: 'center',
-        width: '100%',
-      }}
-    >
-      <img style={{ width: '390px', marginLeft: '20px', marginTop: '-20px' }} src="/SquareScore.png" alt="logo" />
-    </header>
-
-    {saveAndExit && (
-      <button
-        style={{
-          backgroundColor: 'transparent',
-          color: 'grey',
-          padding: '10px',
-          width: '200px',
-          background: 'lightgrey',
-          textAlign: 'center',
-          fontSize: '20px',
-          position: 'fixed',
-          left: '0px',
-          top: '90px',
-          borderColor: 'transparent',
-          cursor: 'pointer',
-          borderBottomRightRadius: '15px',
-          fontFamily: "'montserrat', sans-serif",
-          fontWeight: 'bold',
-          zIndex: '100',
-          transition: 'transform 0.3s ease',
-        }}
-        onMouseEnter={(e) => (e.target.style.transform = 'scale(1.01)')}
-        onMouseLeave={(e) => (e.target.style.transform = 'scale(1)')}
-        onClick={handleSaveAndExit}
-      >
-        Save & Exit
-      </button>
-    )}
+    <TakeAssignmentNav
+        saveAndExitEnabled={saveAndExit}
+        onSaveAndExit={onSaveAndExit}
+        timer={timeLimit}
+        secondsLeft={secondsLeft}
+        showTimer={showTimer}
+        toggleTimer={toggleTimer}
+        assignmentName={assignmentName}
+        onSubmit={submitButton}
+        lockdownEnabled={lockdown}
+      />
 
     <div
       style={{

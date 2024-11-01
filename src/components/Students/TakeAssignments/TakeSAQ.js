@@ -4,6 +4,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { db, auth } from '../../Universal/firebase';
 import Loader from '../../Universal/Loader';
 import { SquareArrowLeft, SquareArrowRight, Eye, EyeOff } from 'lucide-react';
+import TakeAssignmentNav from './TakeAssignmentNav';
 function TakeTests() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showTimer, setShowTimer] = useState(true);
@@ -292,10 +293,11 @@ const [scaleMax, setScaleMax] = useState(2);
       // Combine grading results with question and student response
       const combinedResults = gradingResults.map((result, index) => ({
         ...result,
-        score: ((result.score / 2) * (scaleMax - scaleMin) + scaleMin), 
+        score: ((result.score / 2) * (scaleMax - scaleMin) + scaleMin),
         question: questions[index].text,
         studentResponse: answers[index].answer,
-        rubric: questions[index].rubric, 
+        rubric: questions[index].rubric,
+        questionId: questions[index].questionId, // Add questionId to the results
         flagged: false
       }));
   
@@ -324,7 +326,10 @@ const [scaleMax, setScaleMax] = useState(2);
         scaleMin,
         scaleMax,
         percentageScore,
-        questions: combinedResults,
+        questions: combinedResults.map(result => ({
+          ...result,
+          questionId: result.questionId // Ensure questionId is included in the final document
+        })),
         viewable: false,
       });
   
@@ -405,7 +410,7 @@ const [scaleMax, setScaleMax] = useState(2);
     if (saveAndExit && !loading && questions.length > 0) {
       saveInterval = setInterval(() => {
         saveProgress();
-      }, 20000); // Save every 5 minutes
+      }, 20000); 
     }
 
     return () => {
@@ -520,97 +525,26 @@ const [scaleMax, setScaleMax] = useState(2);
       right: '100px'
     }
   };
-
+  const onSaveAndExit = async () => {
+    await saveProgress();
+    navigate(`/studentassignments/${classId}`);
+  };
   return (
     <div style={{ paddingBottom: '80px', marginLeft: '-3px', marginRight: '-3px', display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', width: '100%' }}>
-      <button
-        onClick={submitButton}
-        style={{
-          backgroundColor: '#A6B4FF',
-          padding: '5px',
-          width: '140px',
-          fontSize: '20px',
-          position: 'fixed',
-          right: '60px',
-          top: '20px',
-          border: '4px solid #0029FF',
-          cursor: 'pointer',
-          borderRadius: '10px',
-          fontFamily: "'montserrat', sans-serif",
-          color: '#0029FF',
-          fontWeight: 'bold',
-          zIndex: '100',
-          transition: 'transform 0.3s ease'
-        }}
-        onMouseEnter={(e) => e.target.style.transform = 'scale(1.01)'}
-        onMouseLeave={(e) => e.target.style.transform = 'scale(1)'}
-      >
-        Submit
-      </button>
+  <TakeAssignmentNav
+        saveAndExitEnabled={saveAndExit}
+        onSaveAndExit={onSaveAndExit}
+        timer={timeLimit}
+        secondsLeft={secondsLeft}
+        showTimer={showTimer}
+        toggleTimer={toggleTimer}
+        assignmentName={assignmentName}
+        onSubmit={submitButton}
+        lockdownEnabled={lockdown}
+      />
+      
+    
      
-      {showTimerComponents && (
-        <div
-          style={{
-            color: showTimer ? 'grey' : 'transparent',
-            left: '100px',
-            top: '20px',
-            fontSize: '30px',
-            fontWeight: '600',
-            width: '100px',
-            zIndex: '100',
-            fontFamily: "'montserrat', sans-serif",
-            position: 'fixed',
-            border: secondsLeft <= 60 ? '4px solid red' : 'none',
-            padding: '5px',
-            borderRadius: '5px',
-          }}
-        >
-          {formatTime(secondsLeft)}
-          <button
-            onClick={toggleTimer}
-            style={{
-              position: 'absolute',
-              top: '0px',
-              left: '-70px',
-              backgroundColor: 'transparent',
-              border: 'none',
-              color: 'black',
-              fontWeight: 'bold',
-              cursor: 'pointer',
-            }}
-          >
-            {showTimer ? <EyeOff size={40} color="#9e9e9e" />: <Eye size={40} color="#9e9e9e" />}
-          </button>
-        </div>
-      )}
-      {loading &&
-        <div style={loadingModalStyle}>
-          <div style={loadingModalContentStyle}>
-            <p style={{ fontSize: '30px', fontFamily: "'montserrat', sans-serif", fontWeight: 'bold', position: 'absolute', color: 'black', top: '25%', left: '50%', transform: 'translate(-50%, -30%)' }}>
-              Grading in Progress </p>
-            <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-              <div class="lds-ripple"><div></div><div></div></div>
-            </div>
-          </div>
-        </div>
-      }
-      <header
-        style={{
-          backgroundColor: 'white', position: 'fixed',
-          borderRadius: '10px',
-          color: 'black',
-          height: '90px',
-          display: 'flex',
-          borderBottom: ' 2px solid #f4f4f4',
-          marginTop: '0px',
-          marginBottom: '40px',
-          alignItems: 'center',
-          justifyContent: 'center',
-          width: '100%',
-        }}
-      >
-       <img style={{ width: '50px', marginLeft: '-20px', marginTop: '-0px' }} src="/SquareScore.svg" alt="logo" /> <span style={{fontSize: '30px', fontWeight: '600', paddingLeft: '20px', borderLeft: '4px solid #f4f4f4', marginLeft: '15px'}}>SquareScore</span>
-      </header>
       {loading || isSubmitting ? (
   <div style={loadingModalStyle}>
     <div style={loadingModalContentStyle}>
@@ -623,67 +557,55 @@ const [scaleMax, setScaleMax] = useState(2);
     </div>
   </div>
 ) : null}
-      {saveAndExit && (
-        <button
-          onClick={async () => {
-            await saveProgress();
-            navigate(`/studentassignments/${classId}`);
-          }}
-          style={{
-            color: 'grey',
-            padding: '10px',
-            width: '200px',
-            background: '#f4f4f4',
-            border: '4px solid lightgrey',
-            textAlign: 'center',
-            fontSize: '20px',
-            position: 'fixed',
-            left: '0px',
-            top: '90px',
-            borderColor: 'transparent',
-            cursor: 'pointer',
-            borderBottomRightRadius: '15px',
-            fontFamily: "'montserrat', sans-serif",
-            fontWeight: 'bold',
-            zIndex: '100',
-            transition: 'transform 0.3s ease'
-          }}
-          onMouseEnter={(e) => e.target.style.color = '#404040'}
-          onMouseLeave={(e) => e.target.style.color = 'grey'}
-        >
-          Save & Exit
-        </button>
-      )}
-      {questions.length > 0 && (
+     
+     {questions.length > 0 && (
         <div style={{ width: '1000px', marginLeft: 'auto', marginRight: 'auto', marginTop: '150px', position: 'relative' }}>
           <div style={{
-            backgroundColor: 'white',  
+            backgroundColor: 'white',    left: '50%',
+            top: '45%',
+            
+            position: 'fixed',
+            transform: 'translate(-50%, -50%)',
                boxShadow: '1px 1px 5px 1px rgb(0,0,155,.07)' , width: '700px', color: 'black', border: '10px solid white', 
-            textAlign: 'left', fontWeight: 'bold', padding: '40px', borderRadius: '0px 0px 20px 20px', fontSize: '30px', position: 'relative',
-            marginLeft: 'auto', marginRight: 'auto', marginTop: '40px', fontFamily: "'montserrat', sans-serif", userSelect: 'none'
+            textAlign: 'left', fontWeight: 'bold', padding: '40px', borderRadius: ' 20px', fontSize: '30px', 
+           fontFamily: "'montserrat', sans-serif", userSelect: 'none'
           }}>
-           <div style={{ marginTop:'20px', marginLeft: '-10px'}}> {questions[currentQuestionIndex]?.text}
- </div>
-
-
-            <div style={{
-              width: '100%',
-              top: '0px',
-              marginTop: '-30px',
-              left: '50%',
-              transform: 'translateX(-50%)',
-              position: 'absolute',
-              backgroundColor: '#9DADFF',
+             <div style={{
+              width: '720px',
+              marginLeft :'-50px',
+              marginTop: '-50px',
+              backgroundColor: '#C1CBFF',
               borderRadius: '20px 20px 0px 0px',
               color: '#020CFF',
               border: '10px solid #020CFF',
               fontSize: '30px',
-              padding: '5px 0px',
+              padding: '10px 30px',
               textAlign: 'left',
-              whiteSpace: 'nowrap'
             }}>
-             <div style={{marginLeft: '30px'}}>{assignmentName}</div> 
-            </div>
+         {questions[currentQuestionIndex]?.text} 
+         
+         </div>
+          
+         <textarea
+              style={{
+                width: '710px',
+                minHeight: '100px',
+                borderRadius: '15px',
+                border: '0px solid #f4f4f4',
+                marginLeft: '-10px',
+                outline: 'none',
+                textAlign: 'left',
+                fontSize: '20px',
+                fontFamily: "'montserrat', sans-serif",
+                marginTop: '40px'
+              }}
+              type="text"
+              placeholder='Type your response here'
+              value={answers.find(a => a.questionId === questions[currentQuestionIndex]?.questionId)?.answer || ''}
+              onChange={handleAnswerChange}
+            />
+
+          
           </div>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: '50px' }}>
             <button
@@ -695,32 +617,15 @@ const [scaleMax, setScaleMax] = useState(2);
                 width: '80px',
                 height: '80px',
                 position: 'fixed',
-                left: '100px',
-                marginTop: '-40px'
+                left: '50px',
+                top: '50%',
+                transform: 'translate(0%, -50%)'
               }}
             >
-              <div><SquareArrowLeft size={80} color={currentQuestionIndex > 0 ? "#009919" : "#ababab"} /></div>
+              <div><SquareArrowLeft size={60} color={currentQuestionIndex > 0 ? "#009919" : "#ababab"} /></div>
             </button>
             
-            <textarea
-              style={{
-                width: '700px',
-                height: '100px',
-                borderRadius: '15px',
-                border: '5px solid #f4f4f4',
-                marginLeft: 'auto',
-                outline: 'none',
-                marginRight: 'auto',
-                textAlign: 'left',
-                fontSize: '20px',
-                fontFamily: "'montserrat', sans-serif",
-                padding: '30px'
-              }}
-              type="text"
-              placeholder='Type your response here'
-              value={answers.find(a => a.questionId === questions[currentQuestionIndex]?.questionId)?.answer || ''}
-              onChange={handleAnswerChange}
-            />
+          
             
             <button
               onClick={() => currentQuestionIndex < questions.length - 1 && setCurrentQuestionIndex(prev => prev + 1)}
@@ -731,11 +636,12 @@ const [scaleMax, setScaleMax] = useState(2);
                 width: '80px',
                 height: '80px',
                 position: 'fixed',
-                right: '100px',
-                marginTop: '-40px'
+                right: '50px',
+                top: '50%',
+                transform: 'translate(0%, -50%)'
               }}
             >
-              <div>       <SquareArrowRight size={80} color={currentQuestionIndex < questions.length - 1 ? "#009919" : "#ababab"} />
+              <div>       <SquareArrowRight size={60} color={currentQuestionIndex < questions.length - 1 ? "#009919" : "#ababab"} />
               </div>
             </button>
           </div>

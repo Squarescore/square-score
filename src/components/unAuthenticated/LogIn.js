@@ -12,6 +12,7 @@ const Login = () => {
   const [error, setError] = useState(null);
   const navigate = useNavigate();
   const [navbarBg, setNavbarBg] = useState('rgba(255,255,255,0.7)');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleScroll = () => {
     if (window.scrollY > 0) {
@@ -28,7 +29,16 @@ const Login = () => {
     };
   }, []);
 
-  const handleForgotPassword = async () => {
+
+  const handleForgotPassword = async (e) => {
+    e.preventDefault(); // Prevent form submission
+    e.stopPropagation(); // Stop event bubbling
+    
+    if (!email) {
+      setError('Please enter your email address first');
+      return;
+    }
+
     const auth = getAuth();
     try {
       await sendPasswordResetEmail(auth, email);
@@ -40,6 +50,18 @@ const Login = () => {
 
   const handleLogin = async (e) => {
     e.preventDefault();
+    
+    // Prevent double submission
+    if (isSubmitting) return;
+    
+    // Validate inputs
+    if (!email || !password) {
+      setError('Please fill in all fields');
+      return;
+    }
+
+    setIsSubmitting(true);
+    setError(null);
 
     const auth = getAuth();
     try {
@@ -57,7 +79,7 @@ const Login = () => {
       }
 
       if (!userProfile.exists()) {
-        userDocRef = doc(db, 'admins', userUID);  // Check if user is an admin
+        userDocRef = doc(db, 'admins', userUID);
         userProfile = await getDoc(userDocRef);
       }
 
@@ -67,12 +89,14 @@ const Login = () => {
       } else if (userDocRef.path.startsWith('teachers')) {
         navigate('/teacherhome');
       } else if (userDocRef.path.startsWith('admins')) {
-        navigate('/adminhome');  // Redirect to admin home
+        navigate('/adminhome');
       } else {
         setError("User type not recognized.");
       }
     } catch (err) {
       setError(err.message);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -201,92 +225,105 @@ const Login = () => {
           
           </div></div>
 
-          <div style={{  marginBottom: '40px', position: 'relative' }}>
-            <input
-              type="password"
-              value={password}
-              onFocus={() => handleInputFocus('password')}
-              onBlur={(e) => handleInputBlur('password', e.target.value)}
-              onChange={e => {
-                setPassword(e.target.value);
-                e.target.style.borderColor = e.target.value.trim() !== '' ? 'lightgreen' : 'lightgrey';
-              }}
-              style={{
-                width: '97%', 
-                padding: '15px', 
-                marginTop: '30px',
-                fontWeight: 'bold',
-                border: '2px solid lightgrey', 
-                color: 'black',
-                borderRadius: '10px', 
-                outline: 'none', 
-                backdropFilter: 'blur(7px)',
-                fontSize: '20px',
-                backgroundColor: 'rgb(250,250,250,.5)', 
-                fontFamily: "'montserrat', sans-serif",
-              }}
-            />
-     
-     <div style={{ position: 'absolute', top: '0px', left: '-10px', backgroundColor: 'white', padding: '0 10px', borderTopRightRadius: '3px', borderTopLeftRadius: '3px', zIndex: '20', fontFamily: "'montserrat', sans-serif", fontWeight: '600', height: '13px', fontSize: '20px', display: 'flex' }}>
-            
-            <h1 style={{fontFamily: "'montserrat', sans-serif", fontWeight: '600', fontSize: '20px', marginTop: '0px'}}>Password</h1>
-            <button
-          onClick={handleForgotPassword}
-          style={{
-            marginLeft: '-10px', 
-            marginTop: '-5px',
-            zIndex: '1000',
-            backgroundColor: 'transparent',
-            border: 'none',
-            textDecoration: 'none',
-            color: 'blue',
-            borderRadius: '10px',
-            padding: '10px 20px',
-            cursor: 'pointer',
-            fontFamily: "'montserrat', sans-serif",
-          }}
-        >
-         - Forgot Password?
-        </button>
+          <div style={{ marginBottom: '40px', position: 'relative' }}>
+              <input
+                type="password"
+                value={password}
+                onFocus={() => handleInputFocus('password')}
+                onBlur={(e) => handleInputBlur('password', e.target.value)}
+                onChange={e => {
+                  setPassword(e.target.value);
+                  e.target.style.borderColor = e.target.value.trim() !== '' ? 'lightgreen' : 'lightgrey';
+                }}
+                style={{
+                  width: '97%',
+                  padding: '15px',
+                  marginTop: '30px',
+                  fontWeight: 'bold',
+                  border: '2px solid lightgrey',
+                  color: 'black',
+                  borderRadius: '10px',
+                  outline: 'none',
+                  backdropFilter: 'blur(7px)',
+                  fontSize: '20px',
+                  backgroundColor: 'rgb(250,250,250,.5)',
+                  fontFamily: "'montserrat', sans-serif",
+                }}
+              />
+              <div style={{ position: 'absolute', top: '0px', left: '-10px', backgroundColor: 'white', padding: '0 10px', borderTopRightRadius: '3px', borderTopLeftRadius: '3px', zIndex: '20', fontFamily: "'montserrat', sans-serif", fontWeight: '600', height: '13px', fontSize: '20px', display: 'flex' }}>
+                <h1 style={{fontFamily: "'montserrat', sans-serif", fontWeight: '600', fontSize: '20px', marginTop: '0px'}}>Password</h1>
+                <button
+                  type="button" // Prevent form submission
+                  onClick={handleForgotPassword}
+                  style={{
+                    marginLeft: '-10px',
+                    marginTop: '-5px',
+                    zIndex: '1000',
+                    backgroundColor: 'transparent',
+                    border: 'none',
+                    textDecoration: 'none',
+                    color: 'blue',
+                    borderRadius: '10px',
+                    padding: '10px 20px',
+                    cursor: 'pointer',
+                    fontFamily: "'montserrat', sans-serif",
+                  }}
+                >
+                  - Forgot Password?
+                </button>
+              </div>
             </div>
-                </div>
 
-          <div style={{ display: 'flex', width: '430px' }}>
-            <button
-              type="submit"
-              style={{
-                width: '120px',
-                marginLeft: '0px',
-                color: 'black', background: 'white', fontWeight: '600', padding: '8px',
-            zIndex: '1000',
-               border: 'none',
-                height: '40px',
-                borderRadius: '8px',
-                cursor: 'pointer',
-                fontFamily: "'montserrat', sans-serif",
-                transition: '.2s'
-              }}
-              onMouseEnter={(e) => {     e.target.style.background = '#f8f8f8';
-              }}
-              onMouseLeave={(e) => {
-                e.target.style.background = 'white';
-          
-              }}
-            >
-              <h1 style={{ marginTop: '0px', fontSize: '20px', pointerEvents: 'none',color: 'black',fontWeight: '600', }}>Login</h1>
-            </button>
-            <p style={{ fontFamily: "'montserrat', sans-serif", color: 'black', marginLeft: '20px', fontSize: '14px', width: '340px',  marginTop: '5px'}}>
-                  By Logging in you agree to SquareScore's <a href="/TermsofService" style={{ color: 'blue' }}>Terms of Service</a>  and <a href="/PrivacyPolicy" style={{ color: 'blue' }}>Privacy Policy</a>
-                </p>
-          </div>
+            <div style={{ display: 'flex', width: '430px' }}>
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                style={{
+                  width: '120px',
+                  marginLeft: '0px',
+                  color: 'black',
+                  background: isSubmitting ? '#f0f0f0' : 'white',
+                  fontWeight: '600',
+                  padding: '8px',
+                  zIndex: '1000',
+                  border: 'none',
+                  height: '40px',
+                  borderRadius: '8px',
+                  cursor: isSubmitting ? 'not-allowed' : 'pointer',
+                  fontFamily: "'montserrat', sans-serif",
+                  transition: '.2s',
+                  opacity: isSubmitting ? 0.7 : 1,
+                }}
+                onMouseEnter={(e) => {
+                  if (!isSubmitting) {
+                    e.target.style.background = '#f8f8f8';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!isSubmitting) {
+                    e.target.style.background = 'white';
+                  }
+                }}
+              >
+                <h1 style={{ 
+                  marginTop: '0px', 
+                  fontSize: '20px', 
+                  pointerEvents: 'none',
+                  color: 'black',
+                  fontWeight: '600'
+                }}>
+                  {isSubmitting ? 'Logging in...' : 'Login'}
+                </h1>
+              </button>
+              <p style={{ fontFamily: "'montserrat', sans-serif", color: 'black', marginLeft: '20px', fontSize: '14px', width: '340px', marginTop: '5px'}}>
+                By Logging in you agree to SquareScore's <a href="/TermsofService" style={{ color: 'blue' }}>Terms of Service</a> and <a href="/PrivacyPolicy" style={{ color: 'blue' }}>Privacy Policy</a>
+              </p>
+            </div>
           </div>
         </form>
 
-      
-     
         {error && <p style={{ color: 'red', marginTop: '40px' }}>{error}</p>}
       </div>
-      
     </div>
   );
 };

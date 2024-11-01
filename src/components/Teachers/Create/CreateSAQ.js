@@ -14,6 +14,7 @@ import DateSettings, { formatDate } from './DateSettings';
 import SecuritySettings from './SecuritySettings';
 import SelectStudentsDW from './SelectStudentsDW';
 
+import { v4 as uuidv4 } from 'uuid'; // Add this import at the top
 
 import 'react-datepicker/dist/react-datepicker.css';
 import axios from 'axios';
@@ -275,19 +276,21 @@ function CreateAssignment() {
         student: questionStudent,
       },
       createdAt: serverTimestamp(),
-      questions: {},
+      questions: generatedQuestions.reduce((acc, question) => {
+        // Use the questionId as the key instead of sequential numbering
+        acc[question.questionId] = {
+          question: question.question,
+          rubric: question.rubric
+        };
+        return acc;
+      }, {}),
       lockdown,
       saveAndExit,
       assignmentType,
       isAdaptive,
       additionalInstructions,
     };
-    generatedQuestions.forEach((question, index) => {
-      assignmentData.questions[`question${index + 1}`] = {
-        question: question.question,
-        rubric: question.rubric
-      };
-    });
+  
     const collectionName = `assignments(${assignmentType.toLowerCase()})`;
     const assignmentRef = doc(db, collectionName, finalAssignmentId);
     await setDoc(assignmentRef, assignmentData);
@@ -315,7 +318,6 @@ function CreateAssignment() {
       }
     });
   };
-
   
 
   const assignToStudents = async (assignmentId) => {
@@ -379,8 +381,8 @@ const GenerateSAQ = async (sourceText, questionCount, additionalInstructions, cl
     console.log('API response data:', data);
 
     if (Array.isArray(data)) {
-      const questionsWithIds = data.map((question, index) => ({
-        questionId: `${assignmentId}(question${index + 1})`,
+      const questionsWithIds = data.map(question => ({
+        questionId: uuidv4(), // Generate UUID for each question
         ...question
       }));
       console.log('Generated questions:', questionsWithIds);

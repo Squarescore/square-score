@@ -1,6 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import TextareaAutosize from 'react-textarea-autosize';
 import axios from 'axios';
+
+import { v4 as uuidv4 } from 'uuid'; // Add this import at the top
+
 import { SquareX, CornerDownRight, Repeat, SquarePlus, Clipboard, ClipboardMinus, ClipboardList, SquareArrowLeft } from 'lucide-react';
 const TeacherPreview = ({ questionsWithIds, setQuestionsWithIds, sourceText, questionCount, classId, teacherId }) => {
   const containerRef = useRef(null);
@@ -55,7 +58,7 @@ const TeacherPreview = ({ questionsWithIds, setQuestionsWithIds, sourceText, que
 
   const handleAddQuestion = () => {
     const newQuestion = {
-      questionId: `newQuestion${questionsWithIds.length}`,
+      questionId: uuidv4(),
       question: "New question",
       rubric: "New Rubric"
     };

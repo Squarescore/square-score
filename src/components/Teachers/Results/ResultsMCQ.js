@@ -22,14 +22,13 @@ import Exports from './Exports';
 import {
   Settings,
   SquareArrowLeft,
-  SquareArrowRight,
+  ArrowRight,
   SquareCheck,
   SquareMinus,
   SquareX,
   Eye,
   EyeOff,
   CheckSquare,
-  ArrowRight,
 } from 'lucide-react';
 import Tooltip from './ToolTip';
 import QuestionBankAMCQ from './QuestionBankAMCQ';
@@ -1789,7 +1788,7 @@ const TeacherResultsMCQ = () => {
                     );
                   }}
                 >
-                  <SquareArrowRight size={30} color="#09BA00" strokeWidth={2.5} />
+                  <ArrowRight size={30} color="#09BA00" strokeWidth={2.5} />
                 </div>
               )}
           </li>

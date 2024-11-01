@@ -52,10 +52,10 @@ const DateSettings = ({ assignDate, setAssignDate, dueDate, setDueDate }) => {
       </button>
 
       <div className={`dropdown-content ${timeDropdownOpen ? 'open' : ''}`}>
-        <div style={{ marginTop: '0px', display: 'flex', height: '100px' }}>
-          <div style={{ position: 'relative', alignItems: 'center', background: '#f4f4f4', height: '80px', borderRadius:'10px', width: '350px', paddingLeft: '10px', marginLeft: '10px', marginTop: '10px' }}>
-            <h1 style={{ marginLeft: '15px', marginBottom: '-10px', fontSize: '25px', marginTop: '10px', color: '#4B4B4B'}}>Assign on:</h1>
-            <div style={{ marginLeft: '-30px', zIndex: '100' }}>
+        <div style={{ marginTop: '0px', display: 'flex', height: '100px' , marginBottom: '20px'}}>
+          <div style={{ position: 'relative', alignItems: 'center',  height: '60px', borderRadius:'10px', width: '350px', paddingLeft: '10px', marginLeft: '10px', marginTop: '10px' }}>
+            <h1 style={{ marginLeft: '15px', marginBottom: '10px', fontSize: '16px', fontWeight: '600', marginTop: '10px', color: 'black'}}>Assign on:</h1>
+            <div style={{ marginLeft: '5px', zIndex: '100', }}>
               <CustomDateTimePicker
                 selected={assignDate}
                 onChange={(date) => setAssignDate(date)}
@@ -63,9 +63,9 @@ const DateSettings = ({ assignDate, setAssignDate, dueDate, setDueDate }) => {
               />
             </div>
           </div>
-          <div style={{ position: 'relative', alignItems: 'center', background: '#f4f4f4', borderRadius:'10px', height: '80px', marginLeft: 'auto', width: '350px', paddingLeft: '10px', marginTop: '10px', marginRight: '20px' }}>
-            <h1 style={{ marginLeft: '15px', marginBottom: '-10px', fontSize: '25px', marginTop: '10px', color: '#4B4B4B'}}>Due on:</h1>
-            <div style={{ marginLeft: '-30px' }}>
+          <div style={{ position: 'relative', alignItems: 'center',  height: '60px', borderRadius:'10px', width: '350px', paddingLeft: '10px', marginLeft: '10px', marginTop: '10px' }}>
+            <h1 style={{ marginLeft: '15px', marginBottom: '10px', fontSize: '16px', fontWeight: '600', marginTop: '10px', color: 'black'}}>Due on:</h1>
+            <div style={{ marginLeft: '5px', zIndex: '100', }}>
               <CustomDateTimePicker
                 selected={dueDate}
                 onChange={(date) => setDueDate(date)}

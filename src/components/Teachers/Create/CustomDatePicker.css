@@ -9,10 +9,11 @@
   border-radius: 7px;
   font-weight: bold;
   color: rgb(0, 0, 0);
-  border: 0px solid transparent;
+  border: 2px solid#f4f4f4;
+  padding-left: 10px;
   background-color: transparent;
   cursor: pointer;
-  text-align: center;
+  text-align: left;
   font-family: 'montserrat', sans-serif;
 }
 

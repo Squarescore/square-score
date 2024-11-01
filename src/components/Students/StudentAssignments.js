@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import { db, auth } from '../Universal/firebase';
 import { useNavigate, useParams } from 'react-router-dom';
 import Navbar from '../Universal/Navbar';
-import { ArrowRight, CalendarClock, CalendarX2, BookOpen, BookOpenCheck, Eye, EyeOff, SquareMinus, SquareCheck, SquareDashedBottom,  SquareX, SquareArrowRight, Check } from 'lucide-react';
+import { ArrowRight, CalendarClock, CalendarX2, BookOpen, BookOpenCheck, Eye, EyeOff, SquareMinus, SquareCheck, SquareDashedBottom,  SquareX,Check } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
 import Tooltip from '../Teachers/TeacherAssignments/AssignmentsToolTip';
 import { flushSync } from 'react-dom';
@@ -265,7 +265,7 @@ const periodStyle = periodStyles[periodNumber] || { background: '#F4F4F4', color
     navigate(-1);
   };
   
-  const navigateToTest = async (assignmentId, type, assignDate, dueDate, assignmentName, saveAndExit) => {
+  const navigateToTest = async (assignmentId, type, assignDate, dueDate, assignmentName, saveAndExit, lockdown) => {
     const now = new Date();
     const assignDateTime = new Date(assignDate);
     const dueDateTime = new Date(dueDate);
@@ -289,7 +289,7 @@ const periodStyle = periodStyles[periodNumber] || { background: '#F4F4F4', color
       return;
     }
   
-    setConfirmAssignment({ id: assignmentId, type, assignmentName, saveAndExit });
+    setConfirmAssignment({ id: assignmentId, type, assignmentName, saveAndExit, lockdown });
     setShowConfirm(true);
   };
 
@@ -382,12 +382,12 @@ const getAssignmentStyle = (assignment) => {
        
         <div style={{display: 'flex',}}>
       
-        <h1 style={{fontSize: '30px', marginTop: '0px', marginRight: '20px',color: saveAndExit ? 'green' : 'grey'}}>   Save and exit:</h1> 
+        <h1 style={{fontSize: '30px', marginTop: '0px', marginRight: '20px',color: saveAndExit ? 'green' : 'grey', fontWeight: '600'}}>   Save and exit:</h1> 
         {saveAndExit ? <SquareCheck size={40} color="#00a832" /> : <SquareMinus size={40} color="#9c9c9c" />}
         </div>
         <div style={{display: 'flex'}}>
    
-        <h1 style={{fontSize: '30px', marginTop: '0px', marginRight: '65px', color: lockdown ? 'green' : 'grey'}}>   Lockdown:</h1>
+        <h1 style={{fontSize: '30px', marginTop: '0px', marginRight: '65px', color: lockdown ? 'green' : 'grey', fontWeight: '600'}}>   Lockdown:</h1>
         {lockdown ? <SquareCheck size={40} color="#00a832" /> : <SquareMinus size={40} color="#9c9c9c" />}
         </div>
 
@@ -696,16 +696,17 @@ const renderAssignments = (assignments) => {
         >
           {/* Rest of your assignment rendering code stays exactly the same */}
           {isActiveOrCompleted && (
-            <SquareArrowRight 
+            <ArrowRight 
               onClick={() => navigateToTest(
                 assignment.id, 
                 format, 
                 assignment.assignDate, 
                 assignment.dueDate, 
                 assignment.assignmentName,
-                assignment.saveAndExit
+                assignment.saveAndExit,
+                assignment.lockdown 
               )}
-              size={30}
+              size={25}
               strokeWidth={2.4} 
               style={{ position: 'absolute', right: '10px', top: '17px', color: '#2BB514', cursor: 'pointer'}}
             />

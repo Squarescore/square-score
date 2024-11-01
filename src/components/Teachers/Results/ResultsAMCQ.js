@@ -8,7 +8,7 @@ import CustomDateTimePicker from './CustomDateTimePickerResults';
 import 'react-datepicker/dist/react-datepicker.css';
 import Exports from './Exports';
 import QuestionBankAMCQ from './QuestionBankAMCQ';
-import { Settings, ArrowRight, SquareArrowOutUpRight, SquareX, EyeOff, Eye, SquareCheck, SquareMinus, SquareArrowRight } from 'lucide-react';
+import { Settings, ArrowRight, SquareArrowOutUpRight, SquareX, EyeOff, Eye, SquareCheck, SquareMinus, } from 'lucide-react';
 import Tooltip from './ToolTip';
 const TeacherResultsAMCQ = () => {
   // State hooks
@@ -174,16 +174,12 @@ const TeacherResultsAMCQ = () => {
               marginRight: '-28px',
               fontFamily: "'montserrat', sans-serif",
             }}>Assigned:</h3>
-            <CustomDateTimePicker
-              selected={assignDate}
-              onChange={(date) => {
-                setAssignDate(date);
-                if (dueDate) {
-                  updateDates(date, dueDate);
-                }
-              }}
-          
-            />
+          <CustomDateTimePicker
+          selected={assignmentSettings.assignDate}
+          onChange={(date) => updateAssignmentSetting('assignDate', date)}
+          updateAssignmentSetting={updateAssignmentSetting}
+          settingName="assignDate"
+        />
           </div>
           <div style={{ display: 'flex', alignItems: 'center', marginBottom: '10px', borderRadius: '10px', marginLeft: '10px', background: '#F4F4F4' }}>
             <h3 style={{
@@ -194,14 +190,11 @@ const TeacherResultsAMCQ = () => {
               fontFamily: "'montserrat', sans-serif",
             }}>Due:</h3>
             <CustomDateTimePicker
-                selected={dueDate}
-                onChange={(date) => {
-                  setDueDate(date);
-                  if (assignDate) {
-                    updateDates(assignDate, date);
-                  }
-                }}
-            />
+          selected={assignmentSettings.dueDate}
+          onChange={(date) => updateAssignmentSetting('dueDate', date)}
+          updateAssignmentSetting={updateAssignmentSetting}
+          settingName="dueDate"
+        />
           </div>
         </div>
   
@@ -314,12 +307,12 @@ const TeacherResultsAMCQ = () => {
         if (assignmentDoc.exists()) {
           const assignmentData = assignmentDoc.data();
           const name = assignmentData.assignmentName;
-          const dueDate = assignmentData.dueDate;
-          const assignDate = assignmentData.assignDate;
+
           console.log("Assignment found:", assignmentData);
           setAssignmentName(name);
           setAssignDate(assignDate ? new Date(assignDate) : null);
           setDueDate(dueDate ? new Date(dueDate) : null);
+     
         } else {
           console.log("No such document!");
         }
@@ -1159,7 +1152,7 @@ const TeacherResultsAMCQ = () => {
           navigate(`/teacherStudentResultsAMCQ/${assignmentId}/${student.uid}/${classId}`);
         }}
       >
-        <SquareArrowRight size={30} color="#09BA00" strokeWidth={2.5} />
+        <ArrowRight size={30} color="#09BA00" strokeWidth={2.5} />
       </div>
     )}
   </li>

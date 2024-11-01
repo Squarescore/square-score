@@ -14,9 +14,10 @@ import { serverTimestamp } from 'firebase/firestore';
 import CustomDateTimePicker from './CustomDateTimePickerResults';
 import Exports from './Exports';
 import DeleteConfirmationModal from './DeleteConfirmationModal';
-import { Settings, SquareArrowRight, SquareArrowOutUpRight, ArrowRight, SquareDashedMousePointer, SquareX, SquareMinus, SquareCheck, Landmark, Eye, EyeOff, Flag, YoutubeIcon, Trash2 } from 'lucide-react';
+import { Settings, ArrowRight, SquareArrowOutUpRight,  SquareDashedMousePointer, SquareX, SquareMinus, SquareCheck, Landmark, Eye, EyeOff, Flag, YoutubeIcon, Trash2 } from 'lucide-react';
 import 'react-datepicker/dist/react-datepicker.css';
 import TeacherPreview from '../Create/PreviewSAQ';
+import QuestionBankSAQ from './QuesntionBankSAQ';
 const TeacherResults = () => {
   const [students, setStudents] = useState([]);
   const [grades, setGrades] = useState({});
@@ -268,7 +269,14 @@ const TeacherResults = () => {
         scaleMax: data.scale?.max || '2',
         timer: data.timer || '0',
         timerOn: data.timer > 0,
+
+      assignmentName: data.assignmentName || '',
+        questionCount: {
+          student: data.questionCount?.student || '5',
+          bank: data.questionCount?.bank || '10'
+        }
       });
+      setAssignmentName(data.assignmentName || '');
       setTimer(data.timer ? data.timer.toString() : '0');
       setTimerOn(data.timer > 0);
     }
@@ -292,7 +300,12 @@ const TeacherResults = () => {
         max: setting === 'scaleMax' ? value : assignmentSettings.scaleMax,
       };
     }
-
+    if (setting === 'assignmentName') {
+      setAssignmentName(value);
+    }
+    if (setting === 'questionCount') {
+      updateData.questionCount = value;
+    }
     await updateDoc(assignmentRef, updateData);
     setAssignmentSettings(prev => ({ ...prev, [setting]: value }));
     
@@ -308,78 +321,125 @@ const TeacherResults = () => {
       right: 0,
       bottom: 0,
       backgroundColor: 'rgba(255, 255, 255, 0.9)',
+      
       backdropFilter: 'blur(10px)',
       display: 'flex',
       justifyContent: 'center',
       alignItems: 'center',
       zIndex: 101,}}>
     <div style={{
-      width: '790px',
+      width: '460px',
+      height: '500px',
       marginRight: 'auto',
+      boxShadow: '1px 1px 5px 1px rgb(0,0,155,.07)',
       marginLeft: 'auto', position: 'relative',
-      border: '10px solid lightgrey',
-      backgroundColor: '#f4f4f4',
+      border: '10px solid white',
   color:'grey',
-      borderRadius: '20px',
+      borderRadius: '30px',
       marginTop: '-10px'
     }}>
-      <div style={{display: 'flex', marginTop: '10px', marginBottom: '-30px', marginLeft: '20px'}}>
-       <Settings size={40} />
+      <div style={{display: 'flex', margin: '-10px', border: '10px solid lightgrey', borderRadius: '30px 30px 0px 0px', height: '60px',
+      backgroundColor: '#f4f4f4',}}>
+       <Settings size={40} style={{marginTop: '10px', marginLeft: '20px'}} />
   
-<h1 style={{marginTop: '0px', marginLeft: '20px'}}>Settings</h1>
+<h1 style={{marginTop: '10px', marginLeft: '20px',}}>Settings</h1>
 
 <button onClick={() => setShowSettings(!showSettings)} 
- style={{height: '40px', background: 'transparent', border: 'none', cursor: 'pointer',marginLeft: 'auto', marginRight: '10px',color:'grey', marginTop: '0px'}}>  
+ style={{height: '40px', background: 'transparent', border: 'none', cursor: 'pointer',marginLeft: 'auto', marginRight: '10px',color:'grey', marginTop: '10px'}}>  
   <SquareX size={40} strokeWidth={3} style={{}} />
 
 </button>  </div>
        <div style={{
         marginLeft: '0px',
-        borderTop: '10px solid lightgrey',
         background: 'white',
         borderRadius: '0px 0px 10px 10px',
-       
+       height: '350px',
+      overflowY: 'auto',
         padding: '20px',
-        width: '750px',
+        width: '430px',
         marginTop: '20px',
       
       }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', marginBottom: '10px', borderRadius: '10px', marginLeft: '-5px', background: '#F4F4F4' }}>         <h3 style={{
-              fontSize: '18px',
-              color: 'grey', 
-              marginLeft: '20px', 
-              marginRight: '-28px',
-              fontFamily: "'montserrat', sans-serif",
-            }}>Assigned:</h3>
-            <CustomDateTimePicker
-          selected={assignmentSettings.assignDate}
-          onChange={(date) => updateAssignmentSetting('assignDate', date)}
-          updateAssignmentSetting={updateAssignmentSetting}
-          settingName="assignDate"
-        />
-      </div>
-      <div style={{ display: 'flex', alignItems: 'center', marginBottom: '10px', borderRadius: '10px', marginLeft: '10px', background: '#F4F4F4' }}>
-        <h3 style={{
-          fontSize: '18px',
-          color: 'grey', 
-          marginLeft: '20px', 
-          marginRight: '-28px',
-          fontFamily: "'montserrat', sans-serif",
-        }}>Due:</h3>
-        <CustomDateTimePicker
-          selected={assignmentSettings.dueDate}
-          onChange={(date) => updateAssignmentSetting('dueDate', date)}
-          updateAssignmentSetting={updateAssignmentSetting}
-          settingName="dueDate"
-        />
-      </div>
-        </div>
-  
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
-          <div style={{display: 'flex', alignItems: 'center', border: '4px solid #f4f4f4', borderRadius: '10px', width: '400px', height: '70px'}}>
-            <h3 style={{lineHeight: '30px', marginLeft: '20px', marginRight: '20px',     fontFamily: "'montserrat', sans-serif",}}>Timer</h3>
-            <div style={{ display: 'flex', alignItems: 'center' }}>
+
+
+
+
+
+<div style={{  alignItems: 'center', marginBottom: '10px', borderRadius: '10px', marginLeft: '-5px', }}>      
+          
+          <h3 style={{
+           fontSize: '16px',
+           fontWeight: '600',
+           color: 'black', 
+           marginLeft: '0px', 
+           marginBottom: '4px',
+           fontFamily: "'montserrat', sans-serif",
+         }}>Assignment Name:</h3>
+        <input 
+    value={assignmentName}
+    onChange={(e) => updateAssignmentSetting('assignmentName', e.target.value)}
+    style={{
+      height: '30px', 
+      width: '415px',
+      border: '2px solid #f4f4f4',
+      borderRadius: '10px',
+      padding: '5px',
+      fontSize: '16px',
+      fontFamily: "'montserrat', sans-serif",
+    }}
+  />
+   </div>
+
+<div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0px' }}>
+       
+<div style={{  alignItems: 'center', marginBottom: '10px', borderRadius: '10px', marginLeft: '-5px', }}>      
+          
+          <h3 style={{
+           fontSize: '16px',
+           fontWeight: '600',
+           color: 'black', 
+           marginLeft: '0px', 
+           marginBottom: '4px',
+           fontFamily: "'montserrat', sans-serif",
+         }}>Assigned:</h3>
+         <div style={{marginLeft: '-10px' }}>
+         <CustomDateTimePicker
+       selected={assignmentSettings.assignDate}
+       onChange={(date) => updateAssignmentSetting('assignDate', date)}
+       updateAssignmentSetting={updateAssignmentSetting}
+       settingName="assignDate"
+     />
+   </div>
+   </div>
+ 
+   </div>
+
+
+   <div style={{  alignItems: 'center', marginBottom: '10px', borderRadius: '10px', marginLeft: '-5px', }}>      
+          
+          <h3 style={{
+           fontSize: '16px',
+           fontWeight: '600',
+           color: 'black', 
+           marginLeft: '0px', 
+           marginBottom: '4px',
+           fontFamily: "'montserrat', sans-serif",
+         }}> Due:</h3>
+             <div style={{marginLeft: '-10px' }}>
+         <CustomDateTimePicker
+           selected={assignmentSettings.dueDate}
+           onChange={(date) => updateAssignmentSetting('dueDate', date)}
+           updateAssignmentSetting={updateAssignmentSetting}
+           settingName="dueDate"
+         />
+   </div>
+   </div>
+
+
+   <div style={{display: 'flex', alignItems: 'center', borderRadius: '10px', width: '410px', height: '30px', marginLeft: '-5px', position: 'relative', marginTop: '10px'}}>
+            <h3 style={{fontSize: '16px', color: 'black',
+           fontWeight: '600',   fontFamily: "'montserrat', sans-serif",}}>Timer</h3>
+            <div style={{ display: 'flex', alignItems: 'center' , marginLeft: 'auto'}}>
             <input
       type="checkbox"
       className="greenSwitch"
@@ -391,65 +451,115 @@ const TeacherResults = () => {
                   <input
           type="number"  value={timer}
           onChange={handleTimerChange}
-          style={{ width: '50px', marginLeft: '10px', padding: '5px' }}
+          style={{ width: '50px', position:'absolute',left: '100px', }}
         />
                   <span style={{ marginLeft: '5px' ,    fontFamily: "'montserrat', sans-serif",}}>minutes</span>
                 </>
               ) : (
-                <span style={{ marginLeft: '10px', color: 'grey',     fontFamily: "'montserrat', sans-serif", }}>Off</span>
+                <span style={{ marginLeft: '10px', color: 'grey',   position:'absolute',left: '100px',   fontFamily: "'montserrat', sans-serif", }}>Off</span>
               )}
             </div>
           </div>
+
+
+
+               <div style={{display: 'flex', alignItems: 'center',  borderRadius: '10px', width: '410px', height: '30px', marginLeft: '-5px', position: 'relative', marginTop: '20px'}}>
+            <h3 style={{fontSize: '16px', color: 'black',
+           fontWeight: '600',   fontFamily: "'montserrat', sans-serif",}}>Questions Per Student</h3>
+            <div style={{ display: 'flex', alignItems: 'center' , marginLeft: 'auto'}}>
+            <input
+      type="number"
+      value={assignmentSettings.questionCount?.student || '5'}
+      onChange={(e) => updateAssignmentSetting('questionCount', {
+        ...assignmentSettings.questionCount,
+        student: e.target.value
+      })}
+      style={{
+        width: '50px',
+        height: '30px',
+        border: '2px solid #f4f4f4',
+        borderRadius: '10px',
+        textAlign: 'center',
+        fontSize: '16px',
+        fontFamily: "'montserrat', sans-serif",
+      }}
+    />
+            </div>
+          </div> 
   
-          <div style={{ display: 'flex', alignItems: 'center', border: '4px solid #f4f4f4', borderRadius: '10px', width: '300px', height: '70px' }}>
-            <h3 style={{marginLeft: '30px', marginRight: '30px' ,    fontFamily: "'montserrat', sans-serif",}}>Scale</h3>
-            <div style={{display: 'flex', alignItems: 'center'}}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
+        
+  
+          <div style={{ borderRadius: '10px', width: '410px', height: '30px', marginLeft: '-5px',  display: 'flex', marginTop: '20px' }}>
+            <h3 style={{fontSize: '16px', color: 'black', marginTop :'5px',
+           fontWeight: '600',   fontFamily: "'montserrat', sans-serif",}}>Scale</h3>
+            <div style={{display: 'flex', alignItems: 'center', marginLeft: 'auto'}}>
               <input
                 type="number"
                 value={assignmentSettings.scaleMin}
                 onChange={(e) => updateAssignmentSetting('scaleMin', e.target.value)}
-                style={{ height: '30px', width: '30px', border: '4px solid transparent', background: '#F2A3A3', color: '#B51414', textAlign: 'center', lineHeight: '50px', borderRadius: '10px', fontSize: '25px', fontWeight: 'bold', paddingLeft: '15px'}}
+                style={{ height: '20px', width: '30px', border: '4px solid transparent', background: '#F2A3A3', color: '#B51414', textAlign: 'center', lineHeight: '50px', borderRadius: '10px', fontSize: '20px', fontWeight: 'bold', paddingLeft: '15px'}}
               />
               <h1 style={{marginLeft: '20px', marginRight: '20px'}}>-</h1>
               <input
                 type="number"
                 value={assignmentSettings.scaleMax}
                 onChange={(e) => updateAssignmentSetting('scaleMax', e.target.value)}
-                style={{ height: '30px', width: '30px', border: '4px solid lightgreen', background: '#AEF2A3', color: '#2BB514', textAlign: 'center', lineHeight: '50px', borderRadius: '10px', fontSize: '25px', fontWeight: 'bold', paddingLeft: '15px'}}
+                style={{ height: '20px', width: '30px', border: '4px solid lightgreen', background: '#AEF2A3', color: '#2BB514', textAlign: 'center', lineHeight: '50px', borderRadius: '10px', fontSize: '20px', fontWeight: 'bold', paddingLeft: '15px'}}
               />
             </div>
           </div>
         </div>
   
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '10px' }}>
-          <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', border: '4px solid #f4f4f4', borderRadius: '10px', width: '185px', height: '60px', padding: '0 20px'}}>
-            <h3 style={{    fontFamily: "'montserrat', sans-serif",}}>Half Credit</h3>
+
+
+
+
+        <div style={{display: 'flex', alignItems: 'center', borderRadius: '10px', width: '410px', height: '30px', marginLeft: '-5px', position: 'relative', marginTop: '20px'}}>
+            <h3 style={{fontSize: '16px', color: 'black',
+           fontWeight: '600',   fontFamily: "'montserrat', sans-serif",}}>Half Credit</h3>
+            <div style={{ display: 'flex', alignItems: 'center' , marginLeft: 'auto'}}>
             <input
               type="checkbox"
               className="greenSwitch"
               checked={assignmentSettings.halfCredit}
               onChange={(e) => updateAssignmentSetting('halfCredit', e.target.checked)}
             />
-          </div>
-          <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', border: '4px solid #f4f4f4', borderRadius: '10px', width: '185px', height: '60px', padding: '0 20px'}}>
-            <h3 style={{    fontFamily: "'montserrat', sans-serif",}}>Lockdown</h3>
-            <input
-              type="checkbox"
-              className="greenSwitch"
-              checked={assignmentSettings.lockdown}
-              onChange={(e) => updateAssignmentSetting('lockdown', e.target.checked)}
-            />
-          </div>
-          <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', border: '4px solid #f4f4f4', borderRadius: '10px', width: '200px', height: '60px', padding: '0 20px'}}>
-            <h3 style={{    fontFamily: "'montserrat', sans-serif",}}>Save & Exit</h3>
+            </div>
+          </div> 
+
+
+          <div style={{display: 'flex', alignItems: 'center',  borderRadius: '10px', width: '410px', height: '30px', marginLeft: '-5px', position: 'relative', marginTop: '20px'}}>
+            <h3 style={{fontSize: '16px', color: 'black',
+           fontWeight: '600',   fontFamily: "'montserrat', sans-serif",}}>Save And Exit</h3>
+            <div style={{ display: 'flex', alignItems: 'center' , marginLeft: 'auto'}}>
             <input
               type="checkbox"
               className="greenSwitch"
               checked={assignmentSettings.saveAndExit}
               onChange={(e) => updateAssignmentSetting('saveAndExit', e.target.checked)}
             />
-          </div>
-        </div>
+            </div>
+          </div> 
+
+
+          <div style={{display: 'flex', alignItems: 'center',  borderRadius: '10px', width: '410px', height: '30px', marginLeft: '-5px', position: 'relative', marginTop: '20px'}}>
+            <h3 style={{fontSize: '16px', color: 'black',
+           fontWeight: '600',   fontFamily: "'montserrat', sans-serif",}}>Lockdown</h3>
+            <div style={{ display: 'flex', alignItems: 'center' , marginLeft: 'auto'}}>
+            <input
+              type="checkbox"
+              className="greenSwitch"
+              checked={assignmentSettings.lockdown}
+              onChange={(e) => updateAssignmentSetting('lockdown', e.target.checked)}
+            />
+            </div>
+          </div> 
+
+
+
+
+
       
       </div>
   
@@ -1013,13 +1123,15 @@ const TeacherResults = () => {
                 <SquareX size={40} color="#D800FB" strokeWidth={3} />
               </div>
             </button>
-            <TeacherPreview
+            <QuestionBankSAQ
               questionsWithIds={generatedQuestions}
               setQuestionsWithIds={handleUpdateQuestions}
               sourceText={sourceText}
               questionCount={questionBank}
               classId={classId}
               teacherId={teacherId}
+              
+              assignmentId={assignmentId}
               onRegenerateQuestions={handleRegenerateQuestions}
             />
           </div>
@@ -1513,7 +1625,7 @@ const TeacherResults = () => {
             navigate(`/teacherStudentResults/${assignmentId}/${student.uid}/${classId}`);
           }}
         >
-          <SquareArrowRight size={30} color="#020CFF" strokeWidth={2.5} />
+          <ArrowRight size={30} color="#020CFF" strokeWidth={2.5} />
         </div>
       )}
     </li>
