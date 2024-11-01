@@ -211,7 +211,7 @@ function Assignments() {
    
       fontFamily: "'montserrat', sans-serif",
       borderRadius: '8px',
-      border: '4px solid ',
+      border: '2px solid  ',
       marginTop: '20px',
       zIndex: '100',
       textAlign: 'left',
@@ -226,13 +226,13 @@ function Assignments() {
     if (sortBy === option) {
       switch (option) {
         case 'assignments':
-          style = { ...style, backgroundColor: '#B0BDFF', color: '#020CFF', borderColor: '#B0BDFF',   boxShadow: '1px 1px 2px 1px rgb(0,0,155,.07)' , };
+          style = { ...style, backgroundColor: '#B0BDFF', color: '#020CFF', borderColor: '#020CFF',   boxShadow: '1px 1px 2px 1px rgb(0,0,155,.07)' , };
           break;
         case 'folders':
-          style = { ...style, backgroundColor: '#FFECA9', color: '#F0856E', borderColor: '#FFECA9', boxShadow: '1px 1px 2px 1px rgb(0,0,155,.07)' , };
+          style = { ...style, backgroundColor: '#FFECA9', color: '#F0856E', borderColor: '#F0856E', boxShadow: '1px 1px 2px 1px rgb(0,0,155,.07)' , };
           break;
         case 'drafts':
-          style = { ...style, backgroundColor: '#f4f4f4', color: '#A7A7A7', borderColor: '#f4f4f4',  boxShadow: '1px 1px 2px 1px rgb(0,0,155,.07)' , };
+          style = { ...style, backgroundColor: '#f4f4f4', color: '#A7A7A7', borderColor: '#A7A7A7',  boxShadow: '1px 1px 2px 1px rgb(0,0,155,.07)' , };
           break;
         default:
           break;
@@ -1344,27 +1344,28 @@ marginLeft: '-67px',
               borderRadius: '8px',
               cursor: 'pointer',
               transition: '.3s',
+              
+            border : '2px solid white',
               alignItems: 'center',
               justifyContent: 'center'
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.borderRightColor = '#00D309';
+              e.currentTarget.style.border = '2px solid #00D309';
               e.currentTarget.style.color = '#00D309';
               
               e.target.style.boxShadow= '1px 1px 5px 1px rgb(0,0,155,.07)' 
               e.currentTarget.style.backgroundColor = '#C1FFB7';
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.borderRightColor = 'lightgrey';
               e.currentTarget.style.color = 'grey';
-              
+              e.currentTarget.style.border = '2px solid white';
               e.target.style.boxShadow= '' 
               e.currentTarget.style.backgroundColor = 'white';
             }}
           >
               <Tooltip text="Create">
         
-            <SquarePlus size={40}  style={{marginTop: '5px'}}/>
+            <SquarePlus size={40}  style={{marginTop: '2px'}}/>
             </Tooltip>
           </button>
           {[
@@ -1407,11 +1408,11 @@ marginLeft: '-67px',
 
                
                 >
-                  <div style={{ marginTop: '5px'}}> <Tooltip text={tooltip}>
+                  <div style={{ marginTop: '7px'}}> <Tooltip text={tooltip}>
                
                     <Icon 
                       size={40} 
-                      style={{marginLeft: '0px'}}
+                      style={{marginLeft: '2px'}}
                       color={sortBy === option ? getSortButtonStyle(option).color : '#9C9C9C'} 
                       strokeWidth={sortBy === option ? 2 : 1.8} 
                     />

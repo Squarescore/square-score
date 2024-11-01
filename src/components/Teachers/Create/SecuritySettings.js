@@ -5,7 +5,7 @@ const SecuritySettings = ({ saveAndExit, setSaveAndExit, lockdown, setLockdown }
   const [securityDropdownOpen, setSecurityDropdownOpen] = React.useState(false);
 
   return (
-    <div style={{ width: '770px', padding: '10px', marginTop: '20px', border: ' 2px solid #f4f4f4', borderRadius: '10px', marginBottom: '20px' }}>
+    <div style={{ width: '770px', padding: '10px', marginTop: '30px', borderTop: ' 0px solid #f4f4f4', borderRadius: '0px', marginBottom: '-20px', paddingTop: '20px'  }}>
       <button
         onClick={() => setSecurityDropdownOpen(!securityDropdownOpen)}
         style={{

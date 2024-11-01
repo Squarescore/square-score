@@ -611,30 +611,30 @@ const generateQuestions = async () => {
         <div style={{ width: '100%', height: 'auto', marginTop: '-200px', border: '10px solid transparent', borderRadius: '20px', padding: '20px' }}>
           <div style={{ width: '810px', marginLeft: '0px', marginTop: '30px' }}>
           <div style={{ position: 'relative',  }}>
-  {assignmentName && (
+  
     <h1 style={{
-      position: 'absolute',
-      left: '30px',
-      top: '-25px',
+      
       zIndex: '20',
-      width: '80px',
-      textAlign: 'center',
+      textAlign: 'left',
       backgroundColor: 'white',
       padding: '0 5px',
-      fontSize: '20px',
-      color: 'grey',
+      
+      marginLeft: '20px',
+      fontSize: '25px',
+      fontWeight: '600',
+      color: 'black',
     }}>
-      Name
+      Assignment Name
     </h1>
-  )}
+  
   <input
     type="text"
-    placeholder="Name"
     maxLength={25}
     style={{
-      width: '755px',
-      height: '60px',
-      fontSize: '35px',
+      marginLeft: '20px',
+      width: '700px',
+      height: '50px',
+      fontSize: '25px',
       padding: '10px',
       paddingLeft: '25px',
       outline: 'none',
@@ -649,7 +649,7 @@ const generateQuestions = async () => {
   />
   <span style={{
     position: 'absolute',
-    right: '20px',
+    right: '80px',
     bottom: '30px',
     fontSize: '14px',
     color: 'grey',
@@ -659,31 +659,31 @@ const generateQuestions = async () => {
   </span>
 </div>
             <div style={{ width: '810px', display: 'flex' }}>
-              <div style={{ marginBottom: '0px', width: '790px', height: '200px', borderRadius: '10px', border: '2px solid #F4F4F4' }}>
-                <div style={{ width: '730px', marginLeft: '20px', height: '80px', borderBottom: '2px solid #f4f4f4', display: 'flex', position: 'relative', alignItems: 'center', borderRadius: '0px', padding: '10px' }}>
-                  <h1 style={{ fontSize: '30px', color: 'black', width: '300px', paddingLeft: '0px' }}>Timer:</h1>
+              <div style={{ marginBottom: '-70px', width: '790px', height: '200px', borderRadius: '10px', border: '2px solid transparent', marginTop: '-20px' }}>
+                <div style={{ width: '730px', marginLeft: '20px', height: '80px', borderBottom: '2px solid transparent', display: 'flex', position: 'relative', alignItems: 'center', borderRadius: '0px', padding: '10px' }}>
+                  <h1 style={{ fontSize: '25px', color: 'black', width: '300px', paddingLeft: '0px', fontWeight: '600', marginLeft: '-10px' }}>Timer:</h1>
                   {timerOn ? (
                     <div style={{ display: 'flex', alignItems: 'center', position: 'relative', marginLeft: '30px' }}>
                       <input
                         type="number"
                         style={{
-                          marginLeft: '-200px',
+                          marginLeft: '130px',
                           height: '30px',
-                          width: '50px',
+                          width: '60px',
                           
     fontFamily: "'montserrat', sans-serif",
                           textAlign: 'center',
                           fontWeight: '600',
-                          border: '4px solid transparent',
+                          border: '3px solid lightgrey',
                           outline: 'none',
                           borderRadius: '5px',
-                          fontSize: '30px',
+                          fontSize: '25px',
                         }}
                         placeholder="10"
                         value={timer}
                         onChange={(e) => setTimer(e.target.value)}
                       />
-                      <h1 style={{ marginLeft: '-5px', fontSize: '26px',   fontWeight: '600', }}>Minutes</h1>
+                      <h1 style={{ marginLeft: '10px', fontSize: '20px',   fontWeight: '600', }}>Minutes</h1>
                     </div>
                   ) : (
                     <span style={{
@@ -706,22 +706,22 @@ const generateQuestions = async () => {
                     onChange={() => setTimerOn(!timerOn)}
                   />
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', height: '80px', width: '750px', marginLeft: '20px', borderBottom: '0px solid lightgrey', position: 'relative', marginTop: '0px', paddingBottom: '20px' }}>
-                  <label style={{ fontSize: '30px', color: 'black', marginLeft: '10px', marginRight: '38px', marginTop: '13px', fontFamily: "'montserrat', sans-serif", fontWeight: 'bold' }}>Feedback: </label>
-                  <div style={{ display: 'flex', justifyContent: 'space-around', width: '500px', marginLeft: '100px', alignItems: 'center', marginTop: '20px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', height: '80px', width: '750px', marginLeft: '20px', borderBottom: '0px solid lightgrey', position: 'relative', marginTop: '-30px', paddingBottom: '10px' }}>
+                  <label style={{ fontSize: '25px', color: 'black',  marginRight: '38px', marginTop: '13px', fontFamily: "'montserrat', sans-serif", fontWeight: '600', marginLeft: '0px' }}>Feedback: </label>
+                  <div style={{ display: 'flex', justifyContent: 'space-around', width: '350px', marginLeft: 'auto', alignItems: 'center', marginTop: '20px', marginRight: '10px' }}>
                     <div
                       style={{
                         height: '40px',
                         lineHeight: '40px',
                         fontSize: '20px',
-                        width: '160px',
+                        width: '120px',
                         textAlign: 'center',
                         transition: '.3s',
                         borderRadius: '10px',
                         fontWeight: feedback === 'instant' ? '600' : '500',
                         backgroundColor: feedback === 'instant' ? '#AEF2A3' : 'white',
                         color: feedback === 'instant' ? '#2BB514' : 'grey',
-                        border: feedback === 'instant' ? '4px solid #2BB514' : '4px solid transparent',
+                        border: feedback === 'instant' ? '3px solid #2BB514' : '3px solid transparent',
                         cursor: 'pointer'
                       }}
                       onClick={() => setFeedback('instant')}
@@ -734,14 +734,14 @@ const generateQuestions = async () => {
                         lineHeight: '40px',
                         fontSize: '20px',
                         marginLeft: '20px',
-                        width: '230px',
+                        width: '200px',
                         textAlign: 'center',
                         transition: '.3s',
                         borderRadius: '10px',
                         backgroundColor: feedback === 'at_completion' ? '#AEF2A3' : 'white',
                         fontWeight: feedback === 'at_completion' ? '600' : '500',
                         color: feedback === 'at_completion' ? '#2BB514' : 'grey',
-                        border: feedback === 'at_completion' ? '4px solid #2BB514' : '4px solid transparent',
+                        border: feedback === 'at_completion' ? '3px solid #2BB514' : '3px solid transparent',
                         cursor: 'pointer'
                       }}
                       onClick={() => setFeedback('at_completion')}
@@ -824,7 +824,7 @@ const generateQuestions = async () => {
                 <div style={{ marginTop: '10px' }}>
                
 
-                  <div style={{ width: '750px', height: '80px', border: '4px solid transparent', display: 'flex', position: 'relative', alignItems: 'center', borderRadius: '10px', padding: '10px', marginLeft: '-10px' }}>
+                  <div style={{ width: '750px', height: '80px', border: '3px solid transparent', display: 'flex', position: 'relative', alignItems: 'center', borderRadius: '10px', padding: '10px', marginLeft: '-10px' }}>
                   <h1 style={{ fontSize: '25px', color: 'black', width: '400px', paddingLeft: '20px',   fontWeight: '600', }}>Choices Per Question:</h1>
                   <div style={{ marginLeft: 'auto', marginTop: '45px', display: 'flex', position: 'relative', alignItems: 'center' }}>
                     {[2, 3, 4, 5].map((num) => (
@@ -843,7 +843,7 @@ const generateQuestions = async () => {
                           marginLeft: '20px',
                           marginTop: '-45px',
                           backgroundColor: selectedOptions.includes(num) ? optionStyles[num].background : 'white',
-                          border: selectedOptions.includes(num) ? `4px solid ${optionStyles[num].color}` : '4px solid lightgrey',
+                          border: selectedOptions.includes(num) ? `3px solid ${optionStyles[num].color}` : '3px solid lightgrey',
                           borderRadius: '10px',
                           cursor: 'pointer',
                           transition: 'all 0.3s ease',
@@ -932,17 +932,18 @@ const generateQuestions = async () => {
     onClick={handleGenerateQuestions}
     disabled={generating || (sourceText.trim() === '' && generatedQuestions.length === 0)}
     style={{
-      width: '180px',
-      fontWeight: 'bold',
+      width: '190px',
+      fontWeight: '600',
       height: '50px',
-      padding: '10px',
+      
+      fontFamily: "'montserrat', sans-serif",
       fontSize: '24px',
-      backgroundColor: generating ? 'lightgrey' : 
+      backgroundColor: generating ? '#f4f4f4' : 
                       generatedQuestions.length > 0 ? '#A6B4FF' : '#F5B6FF',
-      color: 'white',
+      color: 'grey',
       borderRadius: '10px',
-      border: generating ? '4px solid lightgrey' : 
-              generatedQuestions.length > 0 ? '4px solid #020CFF' : '4px solid #E441FF',
+      border: generating ? '3px solid lightgrey' : 
+              generatedQuestions.length > 0 ? '3px solid #020CFF' : '3px solid #E441FF',
       cursor: generating ? 'default' : 'pointer',
    
     }}
@@ -957,23 +958,27 @@ const generateQuestions = async () => {
   >
     {generating ? 'Generating...' : 
      generatedQuestions.length > 0 ? 
-     <div style={{ display: 'flex', marginTop: '-4px' }}> 
+     <div style={{ display: 'flex', marginTop: '6px', marginLeft: '5px' }}> 
      
-         <Eye size={30} color="#020CFF" strokeWidth={3} />
+         <Eye size={30} color="#020CFF" strokeWidth={2} />
          <h1 style={{
            fontSize: '25px',  
            marginTop: '0px', 
+           fontWeight: '600',
            color: '#020CFF', 
-           marginLeft: '10px',
+           
+           marginLeft: '8px', 
            fontFamily: "'montserrat', sans-serif",
          }}>Preview</h1>
        </div>
-     : <div style={{ display: 'flex', marginTop: '-4px' }}> 
-         <Sparkles size={30} color="#E441FF" strokeWidth={3} />
+     : <div style={{ display: 'flex', marginTop: '6px', marginLeft: '5px' }}> 
+         <Sparkles size={30} color="#E441FF" strokeWidth={2} />
          <h1 style={{
            fontSize: '25px',  
-           marginTop: '0px', 
-           marginLeft: '4px', 
+           marginTop: '-0px', 
+           
+           fontWeight: '600',
+           marginLeft: '8px', 
            color: '#E441FF', 
            fontFamily: "'montserrat', sans-serif",
          }}>Generate</h1>
@@ -995,10 +1000,10 @@ const generateQuestions = async () => {
               <button
                  onClick={saveDraft}
                  style={{
-                  width: '270px',
-                  height: '60px',
+                  width: '250px',
+                  height: '50px',
                   marginTop: '0px',
-                  border: '4px solid lightgrey',
+                  border: '3px solid lightgrey',
                   marginBottom: '40px',
                   backgroundColor: '#f4f4f4',
                   color: 'grey',
@@ -1012,7 +1017,7 @@ const generateQuestions = async () => {
                 onMouseEnter={(e) => e.target.style.borderColor = 'grey'}
                 onMouseLeave={(e) => e.target.style.borderColor = 'lightgrey'}
               >
-               <PencilRuler size={40} style={{marginLeft: '0px', marginTop: '5px', background: 'transparent'}} /> <h1 style={{fontSize: '25px', marginTop: '10px', marginLeft: '15px',background: 'transparent'}}>Save As Draft</h1>
+               <PencilRuler size={30} style={{marginLeft: '5px', marginTop: '7px', background: 'transparent'}} /> <h1 style={{fontSize: '25px', marginTop: '7px', marginLeft: '15px',background: 'transparent', fontWeight: '600'}}>Save As Draft</h1>
               </button>
 
 
@@ -1022,9 +1027,9 @@ const generateQuestions = async () => {
               disabled={!assignmentName || generatedQuestions.length === 0}
 style={{
   width: '480px',
-  height: '60px',
+  height: '50px',
   marginTop: '0px',
-  border: '4px solid ',
+  border: '3px solid ',
   marginBottom: '40px',
    marginLeft: 'auto',
    marginRight :'16px',
