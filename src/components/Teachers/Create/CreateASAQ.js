@@ -15,8 +15,11 @@ import axios from 'axios';
 import DateSettings, { formatDate } from './DateSettings';
 import SecuritySettings from './SecuritySettings';
 import SelectStudentsDW from './SelectStudentsDW';
+import { AssignmentActionButtons, usePublishState } from './AssignmentActionButtons';
 
 import CustomExpandingFormatSelector from './ExpandingFormatSelector';
+import { AssignmentName, FormatSection, PreferencesSection, TimerSection, ToggleSwitch } from './Elements';
+import { Button } from 'react-scroll';
 const dropdownContentStyle = `
   .dropdown-content {
     max-height: 0;
@@ -278,11 +281,21 @@ function SAQA() {
   
   
 
-  const renderForm = () => {
     return (
-      <div style={{ marginTop: '150px', width: '860px', padding: '15px', marginLeft: 'auto', marginRight: 'auto', fontFamily: "'montserrat', sans-serif", background: 'white', borderRadius: '25px', 
-        boxShadow: '1px 1px 10px 1px rgb(0,0,155,.1)'}}>
+      <div style={{    position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,    overflowY: 'auto',
+        display: 'flex',
+        flexDirection: 'column',
+        backgroundColor: '#fcfcfc'}}> 
+        <Navbar userType="teacher" />
            <style>{loaderStyle} {dropdownContentStyle}</style>
+           <div style={{ marginTop: '150px', width: '800px', padding: '15px', marginLeft: 'auto', marginRight: 'auto', fontFamily: "'montserrat', sans-serif", background: 'white', borderRadius: '25px', 
+               boxShadow: '1px 1px 10px 1px rgb(0,0,155,.1)', marginBottom: '40px' }}>
+       
+          
         {showPreview && generatedQuestions.length > 0 && (
           <div style={{
             position: 'fixed',
@@ -325,134 +338,73 @@ function SAQA() {
           </div>
         )}
         
-        <div style={{marginLeft: '30px'}}>
-        <div style={{ marginLeft: '0px',  fontFamily: "'montserrat', sans-serif", color: 'black', fontSize: '60px', display: 'flex',marginTop: '20px', marginBottom: '40px', fontWeight: 'bold' }}>
-        Create
-     
-        <CustomExpandingFormatSelector
-  classId={classId}
-  selectedFormat={selectedFormat}
-  onFormatChange={(newFormat) => {
-    setSelectedFormat(newFormat);
-    // Any additional logic you want to run when the format changes
-  }}
-/>
-          
-        </div>
-        <div style={{ width: '100%', padding: '20px', border: '10px solid transparent', borderRadius: '30px' , marginTop: '-30px', marginLeft: '-30px'}}>
-        <div style={{ position: 'relative' }}>
-  {assignmentName && (
-    <h1 style={{
-      position: 'absolute',
-      left: '30px',
-      top: '-25px',
-      zIndex: '300',
-      width: '80px',
-      textAlign: 'center',
-      backgroundColor: 'white',
-      padding: '0 5px',
-      fontSize: '20px',
-      color: 'grey',
-    }}>
-      Name
-    </h1>
-  )}
-  <input
-    type="text"
-    placeholder="Name"
-    maxLength={25}
-    style={{
-      width: '755px',
-      height: '60px',
-      fontSize: '35px',
-      padding: '10px',
-      paddingLeft: '25px',
-      outline: 'none',
-      border: ' 2px solid #f4f4f4',
-      borderRadius: '10px',
-      fontFamily: "'montserrat', sans-serif",
-      fontWeight: 'bold',
-      marginBottom: '20px'
-    }}
-    value={assignmentName}
-    onChange={(e) => setAssignmentName(e.target.value)}
-  />
-  <span style={{
-    position: 'absolute',
-    right: '50px',
-    bottom: '30px',
-    fontSize: '14px',
-    color: 'grey',
-    fontFamily: "'montserrat', sans-serif",
-  }}>
-    {assignmentName.length}/25
-  </span>
-</div>
-          <div style={{ marginBottom: '20px', width: '790px', height: '200px', borderRadius: '10px',  border: ' 2px solid #f4f4f4' }}>
-            <div style={{ width: '730px', marginLeft: '20px', height: '80px', borderBottom: ' 2px solid #f4f4f4', display: 'flex', position: 'relative', alignItems: 'center', borderRadius: '0px', padding: '10px' }}>
-              <h1 style={{ fontSize: '30px', color: 'black', width: '300px', paddingLeft: '0px' }}>Timer:</h1>
-             
-              {timerOn ? (
-                <div style={{display: 'flex', alignItems: 'center', position: 'relative', marginLeft: '30px'}}>  
-                  <input
-                    type="number"
-                    style={{
-                      marginLeft: '-200px',
-                      height: '30px',
-                      width: '50px',
-                      textAlign: 'center',
-                      fontFamily: "'montserrat', sans-serif",
-                      border: '4px solid transparent',
-                      outline: 'none',
-                      borderRadius: '5px',
-                      fontWeight: '600',
-                      fontSize: '30px',
-                    }}
-                    placeholder="10"
-                    value={timer}
-                    onChange={(e) => setTimer(e.target.value)}
-                  />
-                  <h1 style={{ marginLeft: '-5px',
-                  fontWeight: '600',fontSize:'26px' }} >Minutes</h1>
-                </div>
-              ) : (
-                <span style={{
-                  marginLeft: '-150px',
-                  height: '30px',
-                  width: '50px',
-                  fontWeight: '600',
-                  textAlign: 'center',
-                  marginTop: '0px',
-                  fontSize: '30px',  fontFamily: "'montserrat', sans-serif",
-                  color: 'grey'
-                }}>
-                  Off
-                </span>
-              )}
-              <input
-                style={{marginLeft: 'auto'}}
-                type="checkbox"
-                className="greenSwitch"
-                checked={timerOn}
-                onChange={() => setTimerOn(!timerOn)}
-              />
-            </div>
-
-            <div style={{ width: '730px', marginLeft: '20px', height: '80px', display: 'flex', position: 'relative', alignItems: 'center', borderRadius: '0px', padding: '10px' }}>
-              <h1 style={{ fontSize: '30px', color: 'black', width: '300px', paddingLeft: '0px' }}>Half Credit</h1>
-              <input
-                style={{marginLeft: '370px'}}
-                type="checkbox"
-                className="greenSwitch"
-                checked={halfCredit}
-                onChange={() => setHalfCredit(!halfCredit)}
-              />
-            </div>
+        
            
-          </div>
+        <div style={{ marginLeft: '0px', color: '#2BB514', margin: '-15px', padding: '10px 10px 10px 60px',  border: '10px solid #2BB514', borderRadius: '30px 30px 0px 0px', fontFamily: "'montserrat', sans-serif",  fontSize: '40px', display: 'flex', width: '740px', background: '#AEF2A3', marginBottom: '180px', fontWeight: 'bold' }}>
+        Create Assignment
+     
+  
+    <button style={{background: 'transparent', border: 'none', marginBottom: '-5px', marginLeft: 'auto'}}
+    onClick={handlePrevious}>
+<SquareX size={45} color="#2BB514"/>
+
+    </button>
+    
+   
+        </div>
+
+
+       
+        <div style={{ width: '100%', height: 'auto', marginTop: '-200px', border: '10px solid transparent', borderRadius: '20px', padding: '20px' }}>
+        
+
+        <PreferencesSection>
+      <AssignmentName
+        value={assignmentName}
+        onChange={setAssignmentName}
+      />
+      
+      <FormatSection
+        classId={classId}
+        selectedFormat={selectedFormat}
+        onFormatChange={(newFormat) => {
+          setSelectedFormat(newFormat);
+          // Any additional format change logic
+        }}
+      />
+
+      <TimerSection
+        timerOn={timerOn}
+        timer={timer}
+        onTimerChange={setTimer}
+        onToggle={() => setTimerOn(!timerOn)}
+      />
+      
+    
+      
+      <ToggleSwitch
+        label="Half Credit"
+        value={halfCredit}
+        onChange={setHalfCredit}
+      />
+      
 
 
 
+      
+    </PreferencesSection>
+
+    <div style={{ width: '700px', marginLeft: '25px', marginTop: '30px', marginBottom: '-20px' }}>
+  
+
+
+
+    <DateSettings
+          assignDate={assignDate}
+          setAssignDate={setAssignDate}
+          dueDate={dueDate}
+          setDueDate={setDueDate}
+        />
 
           <SelectStudentsDW
           classId={classId}
@@ -460,13 +412,7 @@ function SAQA() {
           setSelectedStudents={setSelectedStudents}
         />
  
-          <DateSettings
-          assignDate={assignDate}
-          setAssignDate={setAssignDate}
-          dueDate={dueDate}
-          setDueDate={setDueDate}
-        />
-
+        
 
           <SecuritySettings
           saveAndExit={saveAndExit}
@@ -658,9 +604,8 @@ function SAQA() {
     )}
   </div>
 )}
+</div>
 
-
-    </div>
     </div>
 </div>
 
@@ -735,24 +680,11 @@ onMouseLeave={(e) => {
           </div>
         </div>
         </div>
+        </div>
       </div>
     );
   };
 
-  return (
-    <div style={{
-      position: 'absolute',
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      display: 'flex',
-      flexDirection: 'column',
-      backgroundColor: '#fcfcfc'
-    }}> <Navbar userType="teacher" />
-      {renderForm()}
-    </div>
-  );
-}
+
 
 export default SAQA;

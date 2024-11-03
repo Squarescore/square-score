@@ -6,25 +6,29 @@ const SelectStudentsDW = ({ classId, selectedStudents, setSelectedStudents }) =>
   const [studentsDropdownOpen, setStudentsDropdownOpen] = useState(false);
 
   return (
-    <div style={{ width: '770px', padding: '10px', marginTop: '40px', borderTop: ' 0px solid #f4f4f4', borderRadius: '0px', marginBottom: '-20px',  }}>
+    <div style={{ width: '700px',  marginTop: '20px', marginBottom: '0px',  }}>
+      <div style={{display: 'flex',  marginBottom: '-10px'}}> 
+
+      <SquareDashedMousePointer size={20} color="lightgrey" />  
+      <h1 style={{ fontSize: '16px', marginLeft: '5px', marginRight: 'auto', fontFamily: "'montserrat', sans-serif", color: 'lightgrey', fontWeight: '600' , marginTop: '0px' }}>Select Students</h1>
+      </div>
       <button
         onClick={() => setStudentsDropdownOpen(!studentsDropdownOpen)}
         style={{
-          width: '100%',
-          padding: '10px',
-          fontSize: '30px',
+          width: '350px',
+          padding: '0px',
+          fontSize: '25px',
           height: '50px',
           backgroundColor: 'white',
           color: 'black',
-          border: 'none',
+          border: ' 0px solid blue', 
           cursor: 'pointer',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center'
         }}
       >
-        <SquareDashedMousePointer size={40} color="#000000" />  
-        <h1 style={{ fontSize: '30px', marginRight: 'auto', marginLeft: '20px', fontFamily: "'montserrat', sans-serif" }}>Select Students</h1>
+        <h1 style={{ fontSize: '25px',  fontFamily: "'montserrat', sans-serif", fontWeight: '600' , }}> All Students Selected</h1>
     
        {studentsDropdownOpen ? <ChevronUp  style={{color: 'grey'}}/> : <ChevronDown style={{color: 'grey'}}/>}
           

@@ -47,6 +47,7 @@ import AdminUB from './components/Admin/AdminUB';
 import TeacherLogs from './components/Admin/TeacherLogs';
 import SignUpAdmin from './components/unAuthenticated/SignUpAdmin';
 import PageNotFound from './components/Universal/PageNotFound'; // Import the PageNotFound component
+import QuestionResults from './components/Teachers/Results/QuestionResultsSAQ';
 
 function App() {
   const [user, setUser] = useState(null);
@@ -259,6 +260,8 @@ function App() {
         <Route path="/teacherStudentResults/:assignmentId/:studentUid/:classId" element={<TeacherStudentResults currentPage="Grades"/>} />
         <Route path="/teacherStudentResultsMCQ/:assignmentId/:studentUid/:classId" element={<TeacherStudentResultsMCQ currentPage="Grades"/>} />
         <Route path="/teacherStudentResultsAMCQ/:assignmentId/:studentUid/:classId" element={<TeacherStudentResultsAMCQ currentPage="Grades"/>} />
+        
+        <Route path="/questionResults/:assignmentId/:questionId" element={<QuestionResults  />} />
         
         <Route path="/class/:classId/assignment/:assignmentId/TeacherResults" element={<TeacherResults />} />
         <Route path="/class/:classId/assignment/:assignmentId/TeacherResultsASAQ" element={<TeacherResultsASAQ />} />

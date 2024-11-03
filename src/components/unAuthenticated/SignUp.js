@@ -270,7 +270,7 @@ const SignUp = () => {
                
                 fontSize: '20px', 
                 fontWeight: '600',
-                borderWidth: '4px',
+                borderWidth: '3px',
                 borderStyle: 'solid',
                 cursor: 'pointer',
                 fontFamily: "'montserrat', sans-serif",
@@ -293,7 +293,7 @@ const SignUp = () => {
                
                 fontSize: '20px', 
                 fontWeight: '600',
-                borderWidth: '4px',
+                borderWidth: '3px',
                 borderStyle: 'solid',
                 cursor: 'pointer',
                 fontFamily: "'montserrat', sans-serif",

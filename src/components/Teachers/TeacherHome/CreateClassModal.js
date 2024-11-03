@@ -227,7 +227,7 @@ const CreateClassModal = ({ handleCreateClass, setShowCreateClassModal }) => {
        </div>
         <form onSubmit={handleSubmit}>
           {/* Period Selector */}
-          <div style={{ border: '4px solid #f4f4f4', borderRadius: '10px', marginBottom: '20px' }}>
+          <div style={{ border: '2px solid #f4f4f4', borderRadius: '10px', marginBottom: '20px' }}>
             <div 
               onClick={togglePeriodDropdown}
               style={{
@@ -274,7 +274,7 @@ const CreateClassModal = ({ handleCreateClass, setShowCreateClassModal }) => {
                       fontFamily: "'montserrat', sans-serif",
                       fontWeight: 'bold',
                       backgroundColor: 'white',
-                      border: '4px solid #f4f4f4',
+                      border: '2px solid #f4f4f4',
                       color: periodColors[num].color,
                     }}
                   >
@@ -286,7 +286,7 @@ const CreateClassModal = ({ handleCreateClass, setShowCreateClassModal }) => {
           </div>
 
           {/* Class Selector */}
-          <div style={{ border: '4px solid #f4f4f4', borderRadius: '10px', marginBottom: '20px' }}>
+          <div style={{ border: '2px solid #f4f4f4', borderRadius: '10px', marginBottom: '20px' }}>
             <div 
               onClick={toggleClassSelector}
               style={{
@@ -306,6 +306,7 @@ const CreateClassModal = ({ handleCreateClass, setShowCreateClassModal }) => {
                 flex: 1,
                 overflow: 'hidden',
                 textOverflow: 'ellipsis',
+                fontWeight: '600',
                 whiteSpace: 'nowrap',
                 color: classChoice? 'black':'grey' ,
               }}>{classChoice || 'not selected'}</h1>
@@ -330,12 +331,12 @@ const CreateClassModal = ({ handleCreateClass, setShowCreateClassModal }) => {
                         padding: '10px',
                         marginBottom: '20px',
                         paddingLeft: '20px',
-                        borderRadius: '15px',
+                        borderRadius: '10px',
                         fontFamily: "'montserrat', sans-serif",
-                        fontWeight: 'bold',
+                        fontWeight: '600',
                         outline: 'none',
                         background: '#f4f4f4',
-                        fontSize: '30px',
+                        fontSize: '25px',
                         border: '0px solid #ccc',
                       }}
                     />
@@ -348,9 +349,9 @@ const CreateClassModal = ({ handleCreateClass, setShowCreateClassModal }) => {
                         color: '#348900',
                         marginBottom: '20px',
                         paddingLeft: '20px',
-                        borderRadius: '15px',
+                        borderRadius: '10px',
                         fontFamily: "'montserrat', sans-serif",
-                        fontWeight: 'bold',
+                        fontWeight: '600',
                         outline: 'none',
                         background: 'transparent',
                         fontSize: '30px',
@@ -366,18 +367,17 @@ const CreateClassModal = ({ handleCreateClass, setShowCreateClassModal }) => {
                       onClick={toggleCustomMode}
                       style={{
                         width: '25%',
-                        padding: '8px',
                         color: 'grey',
                         cursor: 'pointer',
                         marginBottom: '20px',
-                        paddingLeft: '20px',
-                        borderRadius: '15px',
+                        height: '50px',
+                        borderRadius: '10px',
                         fontFamily: "'montserrat', sans-serif",
-                        fontWeight: 'bold',
+                        fontWeight: '600',
                         outline: 'none',
                         background: '#f4f4f4',
-                        fontSize: '30px',
-                        border: '4px solid lightgrey',
+                        fontSize: '25px',
+                        border: '2px solid lightgrey',
                       }}
                     >
                       Presets
@@ -396,12 +396,12 @@ const CreateClassModal = ({ handleCreateClass, setShowCreateClassModal }) => {
                         padding: '10px',
                         marginBottom: '20px',
                         paddingLeft: '20px',
-                        borderRadius: '15px',
+                        borderRadius: '10px',
                         fontFamily: "'montserrat', sans-serif",
-                        fontWeight: 'bold',
+                        fontWeight: '600',
                         outline: 'none',
                         background: '#f4f4f4',
-                        fontSize: '30px',
+                        fontSize: '25px',
                         border: '0px solid #ccc',
                       }}
                     />
@@ -409,18 +409,17 @@ const CreateClassModal = ({ handleCreateClass, setShowCreateClassModal }) => {
                       onClick={toggleCustomMode}
                       style={{
                         width: '22%',
-                        padding: '8px',
+                        height: '50px',
                         color: '#FCAC18',
                         marginBottom: '20px',
-                        paddingLeft: '20px',
-                        borderRadius: '15px',
+                        borderRadius: '10px',
                         fontFamily: "'montserrat', sans-serif",
-                        fontWeight: 'bold',
+                        fontWeight: '600',
                         outline: 'none',
                         background: '#FFEF9C',
                         cursor: 'pointer',
-                        fontSize: '30px',
-                        border: '4px solid #FCAC18',
+                        fontSize: '25px',
+                        border: '2px solid #FCAC18',
                       }}
                     >
                       Custom
@@ -448,7 +447,7 @@ const CreateClassModal = ({ handleCreateClass, setShowCreateClassModal }) => {
                           borderRadius: '10px',
                           fontFamily: "'montserrat', sans-serif",
                           fontWeight: 'bold',
-                          border: '4px solid #f4f4f4',
+                          border: '2px solid #f4f4f4',
                           height: '60px',
                           paddingLeft: '10px',
                           cursor: 'pointer',
@@ -471,13 +470,13 @@ const CreateClassModal = ({ handleCreateClass, setShowCreateClassModal }) => {
               style={{
                 backgroundColor: isFormValid ? '#AEF2A3' : '#f4f4f4',
                 color: isFormValid ? '#348900' : '#a3a3a3',
-                border: isFormValid ? '4px solid #348900' : '4px solid #a3a3a3',
+                border: isFormValid ? '3px solid #348900' : '3px solid #a3a3a3',
                 fontFamily: "'montserrat', sans-serif",
-                padding: '10px 20px',
+                height: '50px', width: '150px',
                 borderRadius: '10px',
                 cursor: isFormValid ? 'pointer' : 'not-allowed',
                 fontSize: '18px',
-                fontWeight: 'bold'
+                fontWeight: '600'
               }}
             >
               Create Class

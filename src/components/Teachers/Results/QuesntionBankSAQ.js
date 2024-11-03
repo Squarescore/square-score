@@ -1,19 +1,109 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import TextareaAutosize from 'react-textarea-autosize';
 import axios from 'axios';
-import { SquareX, CornerDownRight, Repeat, SquarePlus, ClipboardMinus, ClipboardList, SquareArrowLeft, Pencil, PencilOff, Trash, Trash2 } from 'lucide-react';
-import { collection, getDocs, query, where } from 'firebase/firestore';
+import { SquareX, CornerDownRight, Repeat, SquarePlus, ClipboardMinus, ClipboardList, SquareArrowLeft, Pencil, PencilOff, Trash, Trash2, ArrowRight } from 'lucide-react';
+import { collection, doc, getDocs, query, updateDoc, where } from 'firebase/firestore';
 import { db } from '../../Universal/firebase';
+import { useNavigate, useParams } from 'react-router-dom';
 
 const QuestionBankSAQ = ({ questionsWithIds, setQuestionsWithIds, sourceText, questionCount, classId, teacherId, assignmentId }) => {
   const containerRef = useRef(null);
-  const [showRegenerateDropdown, setShowRegenerateDropdown] = useState(false);
-  const [regenerateInput, setRegenerateInput] = useState('');
-  const [isRegenerating, setIsRegenerating] = useState(false);
   const [questionStats, setQuestionStats] = useState({});
   const [editingQuestions, setEditingQuestions] = useState({});
   const [showRubrics, setShowRubrics] = useState({});
+  const [isLoading, setIsLoading] = useState(true);
+  const navigate = useNavigate();
+  const {  questionId } = useParams();
+  const [students, setStudents] = useState([]);
+  const [assignmentName, setAssignmentName] = useState('');
+  const [questionData, setQuestionData] = useState(null);
+  const [showResponseMap, setShowResponseMap] = useState({});
+  const [showRubric, setShowRubric] = useState(false);
+  const [loading, setLoading] = useState(true);
 
+  const updateQuestionContent = async (newQuestion, newRubric) => {
+    try {
+      // Get all grade documents for this assignment
+      const gradesRef = collection(db, 'grades(saq)');
+      const gradesQuery = query(gradesRef,
+        where('assignmentId', '==', assignmentId)
+      );
+      const gradesSnapshot = await getDocs(gradesQuery);
+
+      // Update each grade document
+      const updatePromises = gradesSnapshot.docs.map(async (gradeDoc) => {
+        const gradeData = gradeDoc.data();
+        const updatedQuestions = gradeData.questions.map(q => {
+          if (q.questionId === questionId) {
+            return {
+              ...q,
+              question: newQuestion,
+              rubric: newRubric
+            };
+          }
+          return q;
+        });
+
+        // Update the document
+        return updateDoc(doc(db, 'grades(saq)', gradeDoc.id), {
+          questions: updatedQuestions
+        });
+      });
+
+      // Wait for all updates to complete
+      await Promise.all(updatePromises);
+
+      // Update local state
+      setQuestionData(prev => ({
+        ...prev,
+        question: newQuestion,
+        rubric: newRubric
+      }));
+
+      // Exit editing mode
+      setEditingQuestions(prev => ({
+        ...prev,
+        [questionId]: false
+      }));
+
+    } catch (error) {
+      console.error("Error updating question content:", error);
+    }
+  };
+
+  // Modify the handleEditQuestionToggle function
+  const handleEditQuestionToggle = (qId) => {
+    setEditingQuestions(prev => ({
+      ...prev,
+      [qId]: !prev[qId]
+    }));
+  
+    // Automatically show rubric when editing is enabled
+    if (!editingQuestions[qId]) {
+      setShowRubric(true);
+    }
+  };
+
+  // Add event handlers for saving edits
+  const handleQuestionBlur = async () => {
+    if (editingQuestions[questionId]) {
+      await updateQuestionContent(questionData.question, questionData.rubric);
+    }
+  };
+
+  const handleRubricBlur = async () => {
+    if (editingQuestions[questionId]) {
+      await updateQuestionContent(questionData.question, questionData.rubric);
+    }
+  };
+
+
+
+
+
+
+
+  
   const handleDeleteQuestion = (indexToDelete) => {
     const questionToDelete = questionsWithIds[indexToDelete];
     const questionIdToDelete = questionToDelete.questionId;
@@ -35,20 +125,7 @@ const QuestionBankSAQ = ({ questionsWithIds, setQuestionsWithIds, sourceText, qu
     });
   };
 
-  const handleEditQuestionToggle = (questionId) => {
-    setEditingQuestions(prev => ({
-      ...prev,
-      [questionId]: !prev[questionId]
-    }));
-    
-    // Automatically show rubric when editing is enabled
-    if (!editingQuestions[questionId]) {
-      setShowRubrics(prev => ({
-        ...prev,
-        [questionId]: true
-      }));
-    }
-  };
+
 
   const toggleRubric = (questionId) => {
     setShowRubrics(prev => ({
@@ -56,167 +133,107 @@ const QuestionBankSAQ = ({ questionsWithIds, setQuestionsWithIds, sourceText, qu
       [questionId]: !prev[questionId]
     }));
   };
+
   const handleEditQuestion = (index, field, value) => {
     const newQuestions = [...questionsWithIds];
     newQuestions[index] = { ...newQuestions[index], [field]: value };
     setQuestionsWithIds(newQuestions);
   };
 
-  const handleAddQuestion = () => {
-    const newQuestion = {
-      questionId: `newQuestion${questionsWithIds.length}`,
-      question: "New question",
-      rubric: "New Rubric"
-    };
-
-    let insertIndex = questionsWithIds.length;
-    if (containerRef.current) {
-      const containerHeight = containerRef.current.clientHeight;
-      const scrollPosition = containerRef.current.scrollTop;
-      const approximateQuestionHeight = 150;
-
-      insertIndex = Math.floor((scrollPosition + containerHeight / 2) / approximateQuestionHeight);
-      insertIndex = Math.min(insertIndex, questionsWithIds.length);
-    }
-
-    const newQuestions = [
-      ...questionsWithIds.slice(0, insertIndex),
-      newQuestion,
-      ...questionsWithIds.slice(insertIndex)
-    ];
-    setQuestionsWithIds(newQuestions);
-
-    // Set the new question to be in editing mode
-    setEditingQuestions(prev => ({
-      ...prev,
-      [newQuestion.questionId]: true
-    }));
-
-    // Optionally, show the rubric by default
-    setShowRubrics(prev => ({
-      ...prev,
-      [newQuestion.questionId]: true
-    }));
-
-    setTimeout(() => {
-      if (containerRef.current) {
-        const newQuestionElement = containerRef.current.children[insertIndex];
-        if (newQuestionElement) {
-          newQuestionElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }
-      }
-    }, 0);
-  };
-
-  useEffect(() => {
-    const calculateQuestionStats = async () => {
-      try {
-        console.log('Starting stats calculation with:', {
-          assignmentId,
-          classId,
-          questionsCount: questionsWithIds.length
-        });
-
-        // Log questions we're looking for
-        console.log('Questions to track:', questionsWithIds.map(q => ({
-          id: q.questionId,
-          question: q.question.substring(0, 30) + '...'
-        })));
-
-        // Query all grades for this specific assignment
-        const gradesRef = collection(db, 'grades(saq)');
-        const gradesQuery = query(gradesRef,
-          where('assignmentId', '==', assignmentId),
-          where('classId', '==', classId)
-        );
-
-        console.log('Querying grades with:', {
-          assignmentId,
-          classId,
-          collectionPath: 'grades(saq)'
-        });
-
-        const gradesSnapshot = await getDocs(gradesQuery);
-        console.log(`Found ${gradesSnapshot.size} grade documents`);
-
-        // Initialize stats tracking
-        const stats = {};
-        questionsWithIds.forEach(question => {
-          stats[question.questionId] = {
+  const calculateQuestionStats = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      console.log('Calculating stats for:', {
+        assignmentId,
+        classId,
+        questionsCount: questionsWithIds.length
+      });
+  
+      const gradesRef = collection(db, 'grades(saq)');
+      const gradesQuery = query(gradesRef,
+        where('assignmentId', '==', assignmentId),
+        where('classId', '==', classId)
+      );
+  
+      const gradesSnapshot = await getDocs(gradesQuery);
+      
+      // Create a map of questions by their question text to handle different ID formats
+      const questionMap = {};
+      questionsWithIds.forEach(question => {
+        // Use the question text as the key since it's consistent
+        const questionKey = question.question.toLowerCase().trim();
+        questionMap[questionKey] = {
+          questionId: question.questionId,
+          stats: {
             totalAttempts: 0,
-            totalScore: 0
-          };
-        });
-
-        console.log('Initialized stats object:', stats);
-
-        // Process each grade document
-        gradesSnapshot.forEach(doc => {
-          const gradeData = doc.data();
-          console.log('Processing grade document:', {
-            id: doc.id,
-            studentUid: gradeData.studentUid,
-            questionCount: gradeData.questions?.length || 0
-          });
-
-          if (gradeData.questions && Array.isArray(gradeData.questions)) {
-            gradeData.questions.forEach(question => {
-              console.log('Processing question from grade:', {
-                questionId: question.questionId,
-                score: question.score,
-                hasStats: !!stats[question.questionId]
-              });
-
-              if (stats[question.questionId]) {
-                stats[question.questionId].totalAttempts++;
-                const score = typeof question.score === 'number' ? question.score : 0;
-                stats[question.questionId].totalScore += score;
-
-                console.log('Updated stats for question:', {
-                  questionId: question.questionId,
-                  newTotalAttempts: stats[question.questionId].totalAttempts,
-                  newTotalScore: stats[question.questionId].totalScore,
-                  lastScore: score
-                });
-              }
-            });
+            totalScore: 0,
+            scores: []
           }
-        });
-
-        console.log('Final stats before percentage calculation:', stats);
-
-        // Calculate percentages and store results
-        const percentages = {};
-        Object.entries(stats).forEach(([questionId, data]) => {
-          if (data.totalAttempts > 0) {
-            const averageScore = data.totalScore / data.totalAttempts;
-            const percentage = Math.round((averageScore / 2) * 100);
-            percentages[questionId] = percentage;
-
-            console.log('Calculated percentage for question:', {
-              questionId,
-              totalAttempts: data.totalAttempts,
-              totalScore: data.totalScore,
-              averageScore,
-              percentage
-            });
-          } else {
-            percentages[questionId] = null;
-            console.log('No attempts for question:', questionId);
+        };
+      });
+  
+      // Process grades
+      gradesSnapshot.forEach(doc => {
+        const gradeData = doc.data();
+        if (!gradeData.questions || !Array.isArray(gradeData.questions)) {
+          console.warn('Invalid grade document structure:', doc.id);
+          return;
+        }
+  
+        gradeData.questions.forEach(gradeQuestion => {
+          // Find matching question by text instead of ID
+          const questionKey = gradeQuestion.question.toLowerCase().trim();
+          const questionData = questionMap[questionKey];
+          
+          if (!questionData) {
+            console.warn('No matching question found for:', questionKey);
+            return;
           }
+  
+          const score = Number(gradeQuestion.score);
+          if (isNaN(score)) {
+            console.warn('Invalid score for question:', questionKey);
+            return;
+          }
+  
+          questionData.stats.totalAttempts++;
+          questionData.stats.totalScore += score;
+          questionData.stats.scores.push(score);
         });
+      });
+  
+      // Calculate percentages
+      const percentages = {};
+      Object.values(questionMap).forEach(({ questionId, stats }) => {
+        if (stats.totalAttempts > 0) {
+          const averageScore = stats.totalScore / stats.totalAttempts;
+          const percentage = Math.round((averageScore / 2) * 100);
+          percentages[questionId] = percentage;
+        } else {
+          percentages[questionId] = null;
+        }
+      });
+  
+      console.log('Calculated percentages:', percentages);
+      setQuestionStats(percentages);
+      setIsLoading(false);
+  
+    } catch (error) {
+      console.error("Error calculating question stats:", error);
+      setIsLoading(false);
+    }
+  }, [assignmentId, classId, questionsWithIds]);
 
-        console.log('Final percentages:', percentages);
-        setQuestionStats(percentages);
-      } catch (error) {
-        console.error("Error calculating question stats:", error);
-      }
-    };
-
+  
+  useEffect(() => {
     if (questionsWithIds.length > 0 && classId && assignmentId) {
       calculateQuestionStats();
     }
-  }, [questionsWithIds, classId, assignmentId]);
+    
+    return () => {
+      setIsLoading(true);
+    };
+  }, [calculateQuestionStats, questionsWithIds, classId, assignmentId]);
 
   // Render the statistics badge
   const renderStatsBadge = (questionId) => {
@@ -229,83 +246,46 @@ const QuestionBankSAQ = ({ questionsWithIds, setQuestionsWithIds, sourceText, qu
     let borderColor = 'lightgrey';
 
     if (percentage >= 80) {
-      backgroundColor = '#E8FFE9';
       textColor = '#2BB514';
-      borderColor = '#2BB514';
     } else if (percentage >= 60) {
-      backgroundColor = '#FFF8E8';
       textColor = '#FFA500';
-      borderColor = '#FFA500';
     } else if (percentage < 60) {
-      backgroundColor = '#FFE8E8';
       textColor = '#FF0000';
-      borderColor = '#FF0000';
     }
     return (
-      <div style={{
+      <button   onClick={() => navigate(`/questionResults/${assignmentId}/${questionId}`)}
+      
+      style={{
         position: 'absolute',
-        right: '120px',
+        right: '-50px',
         top: '50%',
+        height: '30px',
         transform: 'translateY(-50%)',
-        backgroundColor: backgroundColor,
-        padding: '5px 10px',
         borderRadius: '8px',
         fontSize: '16px',
-        fontWeight: 'bold',
+        fontWeight: '600',
+        background: 'white', border: 'none',
+        display: 'flex',
+        lineHeight: '10px',
         color: textColor,
-        border: `2px solid ${borderColor}`,
         minWidth: '40px',
         textAlign: 'center'
       }}>
-        {percentage}%
-      </div>
+        <p style={{marginTop: '8px',  fontFamily: "'montserrat', sans-serif", width: '40px', textAlign: 'left'}}>{percentage}%</p> 
+        <ArrowRight size={20} style={{marginTop: '3px', marginLeft: '0px'}}/>
+      </button>
     );
   };
 
-  const regenerateQuestionsFirebase = async (questions, additionalInstructions) => {
-    setIsRegenerating(true);
-    try {
-      const response = await axios.post('https://us-central1-square-score-ai.cloudfunctions.net/RegenerateSAQ', {
-        sourceText,
-        questionCount,
-        QuestionsPreviouslyGenerated: JSON.stringify(questions),
-        instructions: additionalInstructions,
-        classId,
-        teacherId
-      });
 
-      // Preserve original questionIds
-      const regeneratedQuestions = response.data.questions.map((newQuestion, index) => ({
-        ...newQuestion,
-        questionId: questions[index] ? questions[index].questionId : `newQuestion${index}`
-      }));
 
-      return regeneratedQuestions;
-    } catch (error) {
-      console.error('Error regenerating questions:', error);
-      throw error;
-    } finally {
-      setIsRegenerating(false);
-    }
-  };
+  const sortedQuestions = useMemo(() => {
+    return [...questionsWithIds].sort((a, b) =>
+      a.question.toLowerCase().localeCompare(b.question.toLowerCase())
+    );
+  }, [questionsWithIds]);
 
-  const handleRegenerateSubmit = async () => {
-    try {
-      const regeneratedQuestions = await regenerateQuestionsFirebase(questionsWithIds, regenerateInput);
-      setQuestionsWithIds(regeneratedQuestions);
-      setRegenerateInput('');
-      setShowRegenerateDropdown(false);
-    } catch (error) {
-      console.error('Error regenerating questions:', error);
-      // Optionally, show an error message to the user
-    }
-  };
-
-  const handleNevermind = () => {
-    setShowRegenerateDropdown(false);
-    setRegenerateInput('');
-  };
-
+  
   return (
     <div style={{
       width: '900px',
@@ -332,23 +312,23 @@ const QuestionBankSAQ = ({ questionsWithIds, setQuestionsWithIds, sourceText, qu
         borderTopLeftRadius: '20px',
         marginTop: '-30px'
       }}>
-        <h1 style={{ fontSize: '40px', fontFamily: "'montserrat', sans-serif", color: '#D800FB', marginLeft: '40px', marginTop: '5px', }}>Question Preview</h1>
+        <h1 style={{ fontSize: '40px', fontFamily: "'montserrat', sans-serif", color: '#D800FB', marginLeft: '40px', marginTop: '5px', }}>Question Bank</h1>
       </div>
     
       <div ref={containerRef} style={{ height: '500px', overflowY: 'auto', width: '960px', marginLeft: '-30px', }}>
-        {questionsWithIds.map((question, index) => {
+      {sortedQuestions.map((question, index) => {
           const isEditing = editingQuestions[question.questionId];
           const showRubric = showRubrics[question.questionId];
 
           const textareaStyle = {
-            border: '4px solid white',
+            border: '4px solid blue',
             padding: '15px',
             paddingRight: '8%',
             fontFamily:  isEditing ? "default": "'montserrat', sans-serif",
             fontWeight: '600',
             fontSize: '20px',
             borderRadius: '0px 10px 10px 0px',
-            width: '620px',
+            width: '560px',
             resize: 'none',
             lineHeight: '1.2',
             background: isEditing ? 'white' : 'white', // Light background when editing
@@ -420,6 +400,7 @@ const QuestionBankSAQ = ({ questionsWithIds, setQuestionsWithIds, sourceText, qu
                     {question.question}
                   </div>
                 )}
+    
 
                 {/* Rubric toggle button */}
                 <button
@@ -427,7 +408,6 @@ const QuestionBankSAQ = ({ questionsWithIds, setQuestionsWithIds, sourceText, qu
                   style={{
                     position: 'absolute',
                     right: '60px',
-                    top: '0px',
                     fontSize: '20px',
                     background: 'white',
                     border: '0px solid lightgrey',

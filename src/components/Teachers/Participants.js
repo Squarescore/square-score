@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { auth, db } from '../Universal/firebase';
-import { collection, query, where, getDocs, updateDoc, doc, getDoc } from "firebase/firestore";
+import { collection, query, where, getDocs, updateDoc, doc, getDoc, onSnapshot } from "firebase/firestore";
 import { useParams } from 'react-router-dom';
 import { useNavigate } from 'react-router-dom';
 import { Pencil, SquareX, SquareCheck, Hourglass, PencilOff, PlusSquare, Timer, Mail} from 'lucide-react';
@@ -15,6 +15,195 @@ const Participants = () => {
   const navigateToStudentGrades = (studentUid) => {
     navigate(`/class/${classId}/student/${studentUid}/grades`);
   };
+
+
+
+  useEffect(() => {
+    const fetchInitialData = async () => {
+      try {
+        // Get class document
+        const classDoc = await getDoc(doc(db, 'classes', classId));
+        if (!classDoc.exists()) return;
+
+        const classData = classDoc.data();
+        
+        // Fetch all student data in parallel including time multipliers
+        const studentPromises = [];
+        const processedParticipants = [];
+        
+        if (Array.isArray(classData.participants)) {
+          for (const participant of classData.participants) {
+            studentPromises.push(
+              getDoc(doc(db, 'students', participant.uid)).then(studentDoc => {
+                if (studentDoc.exists()) {
+                  const studentData = studentDoc.data();
+                  // Update time multipliers
+                  setTimeMultipliers(prev => ({
+                    ...prev,
+                    [participant.uid]: studentData.timeMultiplier || 1
+                  }));
+                  // Add to processed participants
+                  processedParticipants.push({
+                    ...participant,
+                    name: `${studentData.firstName.trim()} ${studentData.lastName.trim()}`,
+                    email: studentData.email
+                  });
+                }
+                return null;
+              })
+            );
+          }
+        }
+
+        await Promise.all(studentPromises);
+        
+        setCurrentClass(prev => ({
+          ...classData,
+          participants: processedParticipants
+        }));
+
+      } catch (error) {
+        console.error("Error fetching initial data:", error);
+      }
+    };
+
+    fetchInitialData();
+  }, [classId]);
+
+  // Listen for changes to join requests and student time multipliers
+  useEffect(() => {
+    // Listen for changes to the class document (specifically join requests)
+    const classRef = doc(db, 'classes', classId);
+    const unsubscribeClass = onSnapshot(classRef, async (snapshot) => {
+      if (!snapshot.exists()) return;
+
+      const classData = snapshot.data();
+      
+      // Only process join requests if they exist and have changed
+      if (Array.isArray(classData.joinRequests)) {
+        const joinRequestPromises = classData.joinRequests.map(async (requestUID) => {
+          const studentDoc = await getDoc(doc(db, 'students', requestUID));
+          if (studentDoc.exists()) {
+            const studentData = studentDoc.data();
+            return {
+              uid: requestUID,
+              name: `${studentData.firstName.trim()} ${studentData.lastName.trim()}`,
+              email: studentData.email
+            };
+          }
+          return null;
+        });
+
+        const processedJoinRequests = (await Promise.all(joinRequestPromises)).filter(Boolean);
+        
+        setCurrentClass(prev => ({
+          ...prev,
+          joinRequests: processedJoinRequests
+        }));
+      }
+    });
+
+    // Listen for changes to time multipliers of current participants
+    const unsubscribeTimeMultipliers = currentClass.participants?.map(participant => {
+      return onSnapshot(doc(db, 'students', participant.uid), (snapshot) => {
+        if (snapshot.exists()) {
+          const studentData = snapshot.data();
+          setTimeMultipliers(prev => ({
+            ...prev,
+            [participant.uid]: studentData.timeMultiplier || 1
+          }));
+        }
+      });
+    }) || [];
+
+    // Cleanup
+    return () => {
+      unsubscribeClass();
+      unsubscribeTimeMultipliers.forEach(unsubscribe => unsubscribe());
+    };
+  }, [classId, currentClass.participants]);
+
+  // Optimized handlers
+  const handleTimeMultiplierChange = async (studentUid, multiplier) => {
+    const newMultiplier = parseFloat(multiplier) || 1;
+    
+    try {
+      // Update local state immediately for UI responsiveness
+      setTimeMultipliers(prev => ({ ...prev, [studentUid]: newMultiplier }));
+      
+      // Update Firestore
+      await updateDoc(doc(db, 'students', studentUid), {
+        timeMultiplier: newMultiplier
+      });
+    } catch (error) {
+      console.error("Error updating time multiplier:", error);
+      // Revert on error
+      setTimeMultipliers(prev => ({ ...prev, [studentUid]: prev[studentUid] }));
+    }
+  };
+
+  const handleAdmitStudent = async (student) => {
+    try {
+      const classRef = doc(db, 'classes', classId);
+      const participants = [...(currentClass.participants || []), {
+        uid: student.uid,
+        name: student.name,
+        email: student.email
+      }];
+      const joinRequests = currentClass.joinRequests.filter(req => req.uid !== student.uid);
+      const students = [...(currentClass.students || []), student.uid];
+      
+      participants.sort((a, b) => a.name.split(' ').pop().localeCompare(b.name.split(' ').pop()));
+      
+      await updateDoc(classRef, { 
+        participants, 
+        joinRequests, 
+        students 
+      });
+    } catch (error) {
+      console.error("Error admitting student:", error);
+    }
+  };
+
+  const handleRemoveStudent = async (studentUID) => {
+    try {
+      const classRef = doc(db, 'classes', classId);
+      const updatedParticipants = currentClass.participants.filter(student => student.uid !== studentUID);
+      const updatedStudents = currentClass.students.filter(uid => uid !== studentUID);
+      
+      await updateDoc(classRef, {
+        participants: updatedParticipants,
+        students: updatedStudents
+      });
+
+      // Update local state
+      setCurrentClass(prev => ({
+        ...prev,
+        participants: updatedParticipants,
+        students: updatedStudents
+      }));
+    } catch (error) {
+      console.error("Error removing student:", error);
+    }
+  };
+
+  const handleRejectStudent = async (studentUID) => {
+    try {
+      const classRef = doc(db, 'classes', classId);
+      const updatedJoinRequests = currentClass.joinRequests.filter(req => req.uid !== studentUID);
+      
+      await updateDoc(classRef, {
+        joinRequests: updatedJoinRequests
+      });
+    } catch (error) {
+      console.error("Error rejecting student:", error);
+    }
+  };
+
+
+
+
+
   const removeAccommodations = async (studentUid) => {
     try {
       // Update local state
@@ -45,22 +234,6 @@ const Participants = () => {
     }
   }, [timeMultipliers, isEditing]);
 
-  const handleTimeMultiplierChange = async (studentUid, multiplier) => {
-    const newMultiplier = parseFloat(multiplier) || 1;
-    setTimeMultipliers(prev => ({ ...prev, [studentUid]: newMultiplier }));
-
-    // If not in editing mode, update the database immediately
-    if (!isEditing) {
-      try {
-        const studentRef = doc(db, 'students', studentUid);
-        await updateDoc(studentRef, { timeMultiplier: newMultiplier });
-      } catch (error) {
-        console.error("Error updating time multiplier:", error);
-        // If there's an error, revert the local state change
-        setTimeMultipliers(prev => ({ ...prev, [studentUid]: prev[studentUid] }));
-      }
-    }
-  };
   useEffect(() => {
     const fetchClass = async () => {
       try {
@@ -161,59 +334,6 @@ const Participants = () => {
     setIsEditing(!isEditing);
   };
 
-
-  const handleRemoveStudent = async (studentUID) => {
-    const classRef = doc(db, 'classes', classId);
-    
-    // Remove the student from the participants array
-    const updatedParticipants = currentClass.participants.filter(student => student.uid !== studentUID);
-    
-    // Remove the student's UID from the students array
-    const updatedStudents = currentClass.students.filter(uid => uid !== studentUID);
-    
-    // Update the Firestore document
-    await updateDoc(classRef, { 
-      participants: updatedParticipants,
-      students: updatedStudents
-    });
-    
-    // Update the local state
-    setCurrentClass(prevState => ({
-      ...prevState,
-      participants: updatedParticipants,
-      students: updatedStudents
-    }));
-  };
-  const handleAdmitStudent = async (student) => {
-    const classRef = doc(db, 'classes', classId);
-    const participants = [...(currentClass.participants || []), {
-      uid: student.uid,
-      name: student.name,
-      email: student.email
-    }];
-    const joinRequests = currentClass.joinRequests.filter(req => req.uid !== student.uid);
-    const students = [...(currentClass.students || []), student.uid];  // Add the student's UID to the students array
-    participants.sort((a, b) => a.name.split(' ').pop().localeCompare(b.name.split(' ').pop())); // Sort by last name
-    await updateDoc(classRef, { participants, joinRequests, students });  // Update the Firestore document
-    setCurrentClass({ ...currentClass, participants, joinRequests, students }); // Update local state
-  };
-  const handleRejectStudent = async (studentUID) => {
-    const classRef = doc(db, 'classes', classId);
-    
-    // Remove the student from the joinRequests array
-    const updatedJoinRequests = currentClass.joinRequests.filter(req => req.uid !== studentUID);
-    
-    // Update the Firestore document
-    await updateDoc(classRef, { 
-      joinRequests: updatedJoinRequests
-    });
-    
-    // Update the local state
-    setCurrentClass(prevState => ({
-      ...prevState,
-      joinRequests: updatedJoinRequests
-    }));
-  };
   const handleBack = () => {
     navigate(-1);
   }; 
@@ -406,9 +526,11 @@ const Participants = () => {
           textDecoration: 'none',
           color: 'blue',
           marginLeft: '20px',
-          height: '35px',
+          height: '40px',
          marginTop: '22px',
-          backgroundColor: '#f4f4f4',
+          backgroundColor: 'white',
+          
+          boxShadow: '1px 1px 5px 1px rgb(0,0,155,.07)' ,
           fontFamily: "'montserrat', sans-serif",
           border: 'none', 
           padding: '0px',
@@ -419,7 +541,7 @@ const Participants = () => {
           cursor: 'pointer' 
         }}
       >
-        {isEditing ? <div style={{marginTop:'5px', marginLeft:'0px'}}><PencilOff size={25} color="lightgrey" strokeWidth={2} /></div> : <div style={{marginTop:'5px',  marginLeft:'0px'}}><Pencil size={25} color="grey" strokeWidth={2} /></div>}
+        {isEditing ? <div style={{marginTop:'3px', marginLeft:'0px'}}><PencilOff size={25} color="lightgrey" strokeWidth={2} /></div> : <div style={{marginTop:'3px',  marginLeft:'0px'}}><Pencil size={25} color="grey" strokeWidth={2} /></div>}
       </button>
 </div>   
 <div style={{ display: 'flex', maxWidth: '800px', margin: 'auto',  marginTop: '10px' }}>

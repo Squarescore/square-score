@@ -12,30 +12,31 @@ const FormatOption = ({ format, onClick, isVisible, isSelected }) => {
     <div
       style={{
         padding: '5px 10px',
-        width: isSelected ? '160px' : '80px',
+        width: isSelected ? '100px' : '60px',
         overflow: 'hidden',
         whiteSpace: 'nowrap',
-        fontSize: isSelected ? '40px' : '25px',
-        textAlign: isSelected ? 'left' : 'center',
+        fontSize: isSelected ? '20px' : '20px',
+        textAlign: isSelected ? 'right' : 'center',
         cursor: 'pointer',
         display: 'flex',
         alignItems: 'center',
         opacity: isSelected ? '100%' : isHovered ? '100%' : '80%',
-        justifyContent: 'center',
+        justifyContent: isSelected ? 'flex-end' : 'center',
         color: format.color,
         backgroundColor: !isSelected && isHovered ? '#f4f4f4' : 'transparent',
         borderRadius: '5px',
-        margin: '0px 10px 0px 0px',
+        margin: '0px 0px 0px 10px',
         transition: 'all 0.3s ease',
       }}
       onClick={() => onClick(format.value)}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
+      
       {format.label}
       {format.hasAsterisk && (
         <span style={{
-          marginLeft: '2px',
+          marginLEft: '2px',
           color: '#FCCA18',
           fontWeight: 'bold'
         }}>*</span>
@@ -125,8 +126,10 @@ const CustomExpandingFormatSelector = ({ classId, selectedFormat, onFormatChange
       display: 'flex',
       userSelect: 'none',
       alignItems: 'center',
+      fontWeight: '600',
       position: 'relative',
       zIndex: 11,
+      justifyContent: 'flex-end'
     }}>
       <div
         style={{
@@ -134,39 +137,24 @@ const CustomExpandingFormatSelector = ({ classId, selectedFormat, onFormatChange
           backgroundColor: 'transparent',
           borderRadius: '10px',
           cursor: 'pointer',
+          
+      padding: '5px',
           display: 'flex',
           alignItems: 'center',
+          justifyContent: 'flex-end',
           transition: 'width 0.3s ease',
-          width: isExpanded ? `${allFormats.length * 143}px` : '210px',
+          width: isExpanded ? `${allFormats.length * 90}px` : '100px',
           overflow: 'hidden',
         }}
         onClick={() => setIsExpanded(!isExpanded)}
       >
-        <div style={{ display: 'flex', alignItems: 'center', position: 'relative' }}>
-          <FormatOption
-            format={selectedFormatObject}
-            onClick={() => {}}
-            isVisible={true}
-            isSelected={true}
-          />
-          <Repeat
-            style={{
-              color: 'grey',
-              marginLeft: '-10px',
-              transition: 'transform 0.3s ease',
-              transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
-            }}
-            strokeWidth={2.5}
-            size={30}
-          />
-        </div>
         <div style={{
           display: 'flex',
           position: 'absolute',
-          left: '230px',
-          width: isExpanded ? '400px' : '0px',
+          left: '0px',
+          width: isExpanded ? '300px' : '0px',
           opacity: isExpanded ? '100%' : '0%',
-          transition: 'transform 0.3s ease',
+          transition: 'transform 0.6s ease',
         }}>
           {allFormats.filter(format => format.value !== selectedFormat).map((format) => (
              <FormatOption
@@ -180,6 +168,24 @@ const CustomExpandingFormatSelector = ({ classId, selectedFormat, onFormatChange
              isSelected={false}
            />
           ))}
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', position: 'relative' }}>
+          <Repeat
+            style={{
+              color: 'grey',
+              marginRight: '-60px',
+              transition: 'transform 0.3s ease',
+              transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
+            }}
+            strokeWidth={2.5}
+            size={15}
+          />
+          <FormatOption
+            format={selectedFormatObject}
+            onClick={() => {}}
+            isVisible={true}
+            isSelected={true}
+          />
         </div>
       </div>
     </div>

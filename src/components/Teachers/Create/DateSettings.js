@@ -26,36 +26,34 @@ export const formatDate = (date) => {
 };
 
 const DateSettings = ({ assignDate, setAssignDate, dueDate, setDueDate }) => {
-  const [timeDropdownOpen, setTimeDropdownOpen] = useState(false);
-
+ 
   return (
-    <div style={{ width: '770px', padding: '10px', marginTop: '30px', borderTop: ' 0px solid #f4f4f4', borderRadius: '0px', marginBottom: '-30px', paddingTop: '0px'  }}>
-      <button
-        onClick={() => setTimeDropdownOpen(!timeDropdownOpen)}
+    <div style={{ width: '700px', marginTop: '-50px', }}>
+      <div
+      
         style={{
           width: '100%',
-          padding: '10px',
+          padding: '0px',
           fontSize: '30px',
           backgroundColor: 'white',
           color: 'black',
           border: 'none',
-          cursor: 'pointer',
           height: '50px',
+          marginBottom: '-30px',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center'
         }}
       >
-        <CalendarCog size={40} color="#000000" />
-        <h1 style={{ fontSize: '30px', marginLeft: '20px', marginRight: 'auto', fontFamily: "'montserrat', sans-serif" }}> Dates</h1>
-        {timeDropdownOpen ? <ChevronUp  style={{color: 'grey'}}/> : <ChevronDown style={{color: 'grey'}}/>}
-      </button>
+        <CalendarCog size={20} color="lightgrey" />
+        <h1 style={{ fontSize: '16px', marginLeft: '5px', marginRight: 'auto', fontFamily: "'montserrat', sans-serif", color: 'lightgrey', fontWeight: '600' }}> Dates</h1>
+      </div>
 
-      <div className={`dropdown-content ${timeDropdownOpen ? 'open' : ''}`}>
-        <div style={{ marginTop: '0px', height: '150px' , marginBottom: '20px'}}>
-          <div style={{ position: 'relative', alignItems: 'center',  height: '60px', borderRadius:'10px', width: '750px', paddingLeft: '10px', marginLeft: '0px', marginTop: '10px', display: 'flex' }}>
-            <h1 style={{ marginLeft: '10px', marginBottom: '10px', fontSize: '25px', fontWeight: '600', marginTop: '10px', color: 'black'}}>Assign on:</h1>
-            <div style={{ marginLeft: 'auto', zIndex: '100', }}>
+      <div>
+        <div style={{ marginTop: '-10px', height: '150px' , marginBottom: '-30px'}}>
+          <div style={{ position: 'relative', alignItems: 'center',  height: '60px', borderRadius:'10px', width: '690px',  marginTop: '10px', display: 'flex' }}>
+            <h1 style={{ marginLeft: '0px', marginBottom: '10px', fontSize: '25px', fontWeight: '600', marginTop: '10px', color: 'black'}}>Assign on:</h1>
+            <div style={{ marginLeft: 'auto', zIndex: '2', }}>
               <CustomDateTimePicker
                 selected={assignDate}
                 onChange={(date) => setAssignDate(date)}
@@ -63,9 +61,9 @@ const DateSettings = ({ assignDate, setAssignDate, dueDate, setDueDate }) => {
               />
             </div>
           </div>
-          <div style={{ position: 'relative', alignItems: 'center',  height: '60px', borderRadius:'10px', width: '740px', paddingLeft: '10px', marginLeft: '10px', marginTop: '10px', display: 'flex'  }}>
+          <div style={{ position: 'relative', alignItems: 'center',  height: '60px', borderRadius:'10px', width: '690px',  marginTop: '-5px', display: 'flex'  }}>
             <h1 style={{ marginLeft: '0px', marginBottom: '10px', fontSize: '25px', fontWeight: '600', marginTop: '10px', color: 'black'}}>Due on:</h1>
-            <div style={{ marginLeft: 'auto', zIndex: '100', }}>
+            <div style={{ marginLeft: 'auto', zIndex: '2',  }}>
               <CustomDateTimePicker
                 selected={dueDate}
                 onChange={(date) => setDueDate(date)}

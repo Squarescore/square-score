@@ -6,11 +6,12 @@ import axios from 'axios';
 import { doc, getDoc, setDoc, writeBatch, arrayUnion, serverTimestamp, arrayRemove, updateDoc} from 'firebase/firestore';
 
 import { db, auth } from '../../Universal/firebase'; // Ensure the path is correct
+import { AssignmentActionButtons, usePublishState } from './AssignmentActionButtons';
 
 
 import 'react-datepicker/dist/react-datepicker.css';
 import { v4 as uuidv4 } from 'uuid';
-import {Sparkles,Landmark, Eye, User, Repeat, PencilRuler, ChevronUp, ChevronDown, SendHorizonal   } from 'lucide-react';
+import {Sparkles,Landmark, Eye, User, Repeat, PencilRuler, ChevronUp, ChevronDown, SendHorizonal, CircleHelp, FileText, Settings, SquareX   } from 'lucide-react';
 
 import Navbar from '../../Universal/Navbar';
 import DateSettings, { formatDate } from './DateSettings';
@@ -18,6 +19,8 @@ import SecuritySettings from './SecuritySettings';
 import SelectStudentsDW from './SelectStudentsDW';
 import PreviewMCQ from './previewMCQ';
 import CustomExpandingFormatSelector from './ExpandingFormatSelector';
+import { AssignmentName, ChoicesPerQuestion, FormatSection, PreferencesSection, QuestionCountSection, TimerSection, ToggleSwitch } from './Elements';
+import SourcePreviewToggle from './SourcePreviewToggle';
 
 const dropdownContentStyle = `
   .dropdown-content {
@@ -57,7 +60,6 @@ const MCQ = () => {
   const [teacherId, setTeacherId] = useState(null);
   const [assignmentName, setAssignmentName] = useState('');
   const [timer, setTimer] = useState('10');
-  const [contentDropdownOpen, setContentDropdownOpen] = useState(false);
   const [timerOn, setTimerOn] = useState(false);
   const [feedback, setFeedback] = useState(false);
   const [retype, setRetype] = useState(false);
@@ -111,7 +113,10 @@ const [progressText, setProgressText] = useState('');
   const handlePrevious = () => {
     navigate(-1);
   };
-
+  const { isPublishDisabled, publishDisabledConditions } = usePublishState(
+    assignmentName, 
+    generatedQuestions
+  );
   const isReadyToPublish = () => {
     return (
       assignmentName !== '' &&
@@ -485,29 +490,23 @@ const [progressText, setProgressText] = useState('');
       bottom: 0,    overflowY: 'auto',
       display: 'flex',
       flexDirection: 'column',
-      backgroundColor: '#fcfcfc'}}>
-      <Navbar userType="teacher" />
+      backgroundColor: '#fcfcfc'}}>  <Navbar userType="teacher" />
       <style>{dropdownContentStyle}{loaderStyle}</style>
-      <div style={{ marginTop: '150px', width: '860px', padding: '15px', marginLeft: 'auto', marginRight: 'auto', fontFamily: "'montserrat', sans-serif", background: 'white', borderRadius: '25px',  marginBottom: '40px',
-              boxShadow: '1px 1px 10px 1px rgb(0,0,155,.1)' }}>
+      <div style={{ marginTop: '150px', width: '800px', padding: '15px', marginLeft: 'auto', marginRight: 'auto', fontFamily: "'montserrat', sans-serif", background: 'white', borderRadius: '25px', 
+               boxShadow: '1px 1px 10px 1px rgb(0,0,155,.1)', marginBottom: '40px' }}>
        
               
-    
         
-        <div style={{ marginLeft: '30px',  fontFamily: "'montserrat', sans-serif", color: 'black', fontSize: '60px', display: 'flex',marginTop: '20px', marginBottom: '180px', fontWeight: 'bold' }}>
-        Create
+       <div style={{ marginLeft: '0px', color: '#2BB514', margin: '-15px', padding: '10px 10px 10px 60px',  border: '10px solid #2BB514', borderRadius: '30px 30px 0px 0px', fontFamily: "'montserrat', sans-serif",  fontSize: '40px', display: 'flex', width: '740px', background: '#AEF2A3', marginBottom: '180px', fontWeight: 'bold' }}>
+        Create Assignment
      
   
-        <CustomExpandingFormatSelector
-  classId={classId}
-  selectedFormat={selectedFormat}
-  onFormatChange={(newFormat) => {
-    setSelectedFormat(newFormat);
-    // Any additional logic you want to run when the format changes
-  }}
-/>  
-        </div>
+    <button style={{background: 'transparent', border: 'none', marginBottom: '-5px', marginLeft: 'auto'}}
+    onClick={handlePrevious}>
+<SquareX size={45} color="#2BB514"/>
 
+    </button>
+    </div>
 
 
 
@@ -516,149 +515,64 @@ const [progressText, setProgressText] = useState('');
 
 
         
-        <div style={{ width: '100%', height: 'auto', marginTop: '-200px', border: '10px solid transparent', borderRadius: '30px', padding: '20px' }}>
-          <div style={{ width: '800px', marginLeft: '0px',  marginTop: '30px' }}>
-          <div style={{ position: 'relative' ,}}>
-  {assignmentName && (
-    <h1 style={{
-      position: 'absolute',
-      left: '30px',
-      top: '-25px',
-      zIndex: '20',
-      width: '80px',
-      textAlign: 'center',
-      backgroundColor: 'white',
-      padding: '0 5px',
-      fontSize: '20px',
-      color: 'grey',
-    }}>
-      Name
-    </h1>
-  )}
-  <input
-    type="text"
-    placeholder="Name"
-    maxLength={25}
-    style={{
-      width: '755px',
-      height: '60px',
-      fontSize: '35px',
-      padding: '10px',
-      paddingLeft: '25px',
-      outline: 'none',
-      border: ' 2px solid #f4f4f4',
-      borderRadius: '10px',
-      fontFamily: "'montserrat', sans-serif",
-      fontWeight: 'bold',
-      marginBottom: '20px'
-    }}
-    value={assignmentName}
-    onChange={(e) => setAssignmentName(e.target.value)}
-  />
-  <span style={{
-    position: 'absolute',
-    right: '20px',
-    bottom: '30px',
-    fontSize: '14px',
-    color: 'grey',
-    fontFamily: "'montserrat', sans-serif",
-  }}>
-    {assignmentName.length}/25
-  </span>
-</div>
-            <div style={{ width: '810px', display: 'flex' }}>
-              <div style={{ marginBottom: '0px', width: '790px', height: '200px', borderRadius: '10px',  border: ' 2px solid #f4f4f4',}}>
-                <div style={{ width: '730px', marginLeft: '20px', height: '80px', borderBottom: ' 2px solid #f4f4f4', display: 'flex', position: 'relative', alignItems: 'center', borderRadius: '0px', padding: '10px' }}>
-                  <h1 style={{ fontSize: '30px', color: 'black', width: '300px', paddingLeft: '0px' ,
-      fontFamily: "'montserrat', sans-serif",}}>Timer:</h1>
-                  {timerOn ? (
-                    <div style={{ display: 'flex', alignItems: 'center', position: 'relative', marginLeft: '30px' }}>
-                      <input
-                        type="number"
-                        style={{
-                          marginLeft: '-200px',
-                          height: '30px',
-                          width: '50px',
-                          fontWeight: '600',
-                          textAlign: 'center',
-                          border: '4px solid transparent',
-                          outline: 'none',
-                          borderRadius: '5px',
-                          fontFamily: "'montserrat', sans-serif",
-                          fontSize: '30px',
-                        }}
-                        placeholder="10"
-                        value={timer}
-                        onChange={(e) => setTimer(e.target.value)}
-                      />
-                      <h1 style={{ marginLeft: '-5px', fontSize: '26px', 
-                  fontWeight: '600', }}>Minutes</h1>
-                    </div>
-                  ) : (
-                    <span style={{
-                      marginLeft: '-150px',
-                      height: '30px',
-                      width: '50px',
-                      textAlign: 'center',
-                      marginTop: '0px',
-                      fontSize: '30px',
-                      color: 'grey',
-                  fontWeight: '600',
-                    }}>
-                      Off
-                    </span>
-                  )}
-                  <input
-                    style={{ marginLeft: 'auto' }}
-                    type="checkbox"
-                    className="greenSwitch"
-                    checked={timerOn}
-                    onChange={() => setTimerOn(!timerOn)}
-                  />
-                </div>
+      
+        <div style={{ width: '100%', height: 'auto', marginTop: '-200px', border: '10px solid transparent', borderRadius: '20px', padding: '20px' }}>
 
 
+   <PreferencesSection>
+      <AssignmentName 
+        value={assignmentName}
+        onChange={setAssignmentName}
+      />
+      
+      <FormatSection
+        classId={classId}
+        selectedFormat={selectedFormat}
+        onFormatChange={(newFormat) => {
+          setSelectedFormat(newFormat);
+          // Any additional format change logic
+        }}
+      />
 
-                
-                <div style={{ display: 'flex', alignItems: 'center', height: '80px', width: '750px', marginLeft: '20px',  position: 'relative', marginTop: '0px', paddingBottom: '20px' }}>
-          <label style={{ fontSize: '30px', color: 'black', marginLeft: '10px', marginRight: '38px', fontFamily: "'montserrat', sans-serif", fontWeight: 'bold', marginTop: '20px' }}>Feedback: </label>
-          <div style={{ marginLeft: 'auto', marginRight: '10px', marginTop: '20px' }}>
-            <input
-              type="checkbox"
-              className="greenSwitch"
-              checked={feedback}
-              onChange={() => setFeedback(!feedback)}
-            />
-          </div>
-       
-<div style={{width: '4px', background: '#f4f4f4', height: '50px', marginTop: '20px'}}></div>
-        <div style={{ display: 'flex', alignItems: 'center', height: '80px', width: '350px', marginLeft: '20px', position: 'relative', paddingBottom: '20px',  marginTop: '20px'  }}>
-          <label style={{ fontSize: '30px', color: 'black', marginLeft: '10px', marginRight: '38px', fontFamily: "'montserrat', sans-serif", fontWeight: 'bold' ,  marginTop: '20px' }}>Retype: </label>
-          <div style={{ marginLeft: 'auto', marginRight: '10px',  marginTop: '20px'  }}>
-            <input
-              type="checkbox"
-              className="greenSwitch"
-              checked={retype}
-              onChange={() => setRetype(!retype)}
-            />
-          </div>
-        </div>
-        </div>
+      <TimerSection
+        timerOn={timerOn}
+        timer={timer}
+        onTimerChange={setTimer}
+        onToggle={() => setTimerOn(!timerOn)}
+      />
+      
+    
+      
+      <ToggleSwitch
+        label="Feedback"
+        value={feedback}
+        onChange={setFeedback}
+      />
+      <ToggleSwitch
+        label="Retype"
+        value={retype}
+        onChange={setRetype}
+      />
+    </PreferencesSection>
 
-              </div>
-            </div>
+
+          <div style={{ width: '700px', marginLeft: '25px', marginTop: '30px', marginBottom: '-20px' }}>
+         
+
+
+          <DateSettings
+          assignDate={assignDate}
+          setAssignDate={setAssignDate}
+          dueDate={dueDate}
+          setDueDate={setDueDate}
+        />
            
             <SelectStudentsDW
           classId={classId}
           selectedStudents={selectedStudents}
           setSelectedStudents={setSelectedStudents}
         />
-            <DateSettings
-          assignDate={assignDate}
-          setAssignDate={setAssignDate}
-          dueDate={dueDate}
-          setDueDate={setDueDate}
-        />
+          
 
 
           <SecuritySettings
@@ -680,9 +594,13 @@ const [progressText, setProgressText] = useState('');
               </div>
             )}
 
-            <div style={{ width: '770px', padding: '10px', marginTop: '20px', border: ' 2px solid #f4f4f4', borderRadius: '10px', marginBottom: '20px', zIndex: '-10' }}>
-              <button
-                onClick={() => setContentDropdownOpen(!contentDropdownOpen)}
+
+
+
+
+
+<div style={{ width: '700px', padding: '0px', marginTop: '20px',  borderRadius: '10px', marginBottom: '20px', zIndex: '-10' }}>
+              <div
                 style={{
                   width: '100%',
                   padding: '10px',
@@ -690,298 +608,77 @@ const [progressText, setProgressText] = useState('');
                   backgroundColor: 'white',
                   color: 'black',
                   border: 'none',
-                  height: '50px',
+                  height: '30px',
+                  marginTop: '10px',
                   cursor: 'pointer',
                   display: 'flex',
                   justifyContent: 'space-between',
                   alignItems: 'center'
                 }}
               >
-                
-              <Sparkles size={40} color="#000000" />    
-                <h1 style={{ fontSize: '30px', marginLeft: '20px', marginRight: 'auto' , fontFamily: "'montserrat', sans-serif", }}>Generate Questions</h1>
-                {contentDropdownOpen ? <ChevronUp style={{color: 'grey'}}/> : <ChevronDown style={{color: 'grey'}}/>}
+                <CircleHelp size={20} color="lightgrey" />
+                <h1 style={{ fontSize: '16px', marginLeft: '10px', marginRight: 'auto', fontFamily: "'montserrat', sans-serif", color: 'lightgrey', fontWeight: '600' }}>Generate Questions</h1>
             
-              </button>
+              </div>
 
-              <div className={`dropdown-content ${contentDropdownOpen ? 'open' : ''}`}>
-                <div style={{ marginTop: '0px' }}>
+
+              <div >
+                <div style={{ marginTop: '-20px' }}>
                   {/* Questions Section */}
                
 
-                  <div style={{display: 'flex', alignItems: 'center', position: 'relative'}}>
-      <h2 style={{ fontSize: '25px', color: '#808080', marginBottom: '10px' , marginLeft: '20px', zIndex: '-1'}}>Questions:</h2>
-    
-      <div style={{display: 'flex', marginLeft: 'auto'}}>
-      <div style={{display: 'flex', }}>
-
-        <div style={{marginTop: '25px', marginRight: '10px'}}> 
-        <Landmark size={40} color="#000000" /></div>
-      <input
-        type="number"
-        placeholder="10"
-        value={questionBank}
-        onChange={(e) => setQuestionBank(e.target.value)}
-        style={{ width: '50px', fontWeight:'bold',marginBottom: '0px', textAlign: 'center' ,fontFamily: "'montserrat', sans-serif", marginTop: '25px', marginLeft: 'auto', marginRight: '20px',padding: '0px', paddingLeft: '15px', height: '35px', fontSize: '30px',  border: ' 2px solid #f4f4f4', borderRadius: '10px' }}
+        
+          
+                
+      <QuestionCountSection
+        bankCount={questionBank}
+        studentCount={questionStudent}
+        onBankChange={setQuestionBank}
+        onStudentChange={setQuestionStudent}
       />
-      </div>
-      </div>
 
-      <div style={{display: 'flex', marginLeft: '30px'}}>
-        <div style={{marginTop: '25px', marginRight: '10px'}}> 
-        <User size={40} color="#000000" /></div>
-      <input
-        type="number"
-        placeholder="5"
-        value={questionStudent}
-        onChange={(e) => setQuestionStudent(e.target.value)}
-        style={{ width: '50px', fontWeight:'bold',marginBottom: '10px',fontFamily: "'montserrat', sans-serif",marginTop: '25px', textAlign: 'center' , marginLeft: 'auto', marginRight: '20px',padding: '0px', paddingLeft: '15px',fontSize: '30px', height: '35px', border: ' 2px solid #f4f4f4', borderRadius: '10px' }}
-        />
-        </div>
+                <ChoicesPerQuestion
+        selectedOptions={selectedOptions}
+        onChange={setSelectedOptions}
+      />
 
-     
+                <div style={{ width: '700px', marginLeft: '10px', }}>
+                <SourcePreviewToggle
+      sourceText={sourceText}
+      onSourceChange={setSourceText}
+      additionalInstructions={additionalInstructions}
+      onAdditionalInstructionsChange={setAdditionalInstructions}
+      onPreviewClick={handleGenerateQuestions}
+      onGenerateClick={handleGenerateQuestions}
+      generating={generating}
+      generatedQuestions={generatedQuestions}
+      progress={progress}
+      progressText={progressText}
+    />
+  
+  
+  
 
-        </div>
-      
-
-
-
-        <div style={{ width: '730px', background: '#f4f4f4', height: '3px', marginLeft: '20px', marginTop: '20px' }}></div>
-                  
-                  <div style={{ width: '750px', height: '80px', border: '4px solid transparent', display: 'flex', position: 'relative', alignItems: 'center', borderRadius: '10px', padding: '10px', marginLeft: '-15px' }}>
-                  <h1 style={{ fontSize: '25px', color: 'black', width: '400px', paddingLeft: '20px', 
-                  fontWeight: '600', }}>Choices Per Question:</h1>
-                  <div style={{ marginLeft: 'auto', marginTop: '45px', display: 'flex', position: 'relative', alignItems: 'center' }}>
-                    {[2, 3, 4, 5].map((num) => (
-                      <button
-                        key={num}
-                        onClick={() => {
-                          if (selectedOptions.includes(num)) {
-                            setSelectedOptions(selectedOptions.filter(n => n !== num));
-                          } else {
-                            setSelectedOptions([...selectedOptions, num]);
-                          }
-                        }}
-                        style={{
-                          width: '60px',
-                          height: '40px',
-                          marginLeft: '20px',
-                          marginTop: '-45px',
-                          backgroundColor: selectedOptions.includes(num) ? optionStyles[num].background : 'white',
-                          border: selectedOptions.includes(num) ? `4px solid ${optionStyles[num].color}` : ' 2px solid #f4f4f4',
-                          borderRadius: '10px',
-                          cursor: 'pointer',
-                          transition: 'all 0.3s ease',
-                        }}
-                      >
-                        <h1 style={{
-                          fontSize: '24px',fontFamily: "'montserrat', sans-serif",
-                          color: selectedOptions.includes(num) ? optionStyles[num].color : 'black',
-                          margin: 0,
-                        }}>{num}</h1>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-               
-
-                  <div style={{ width: '740px', marginLeft: '20px', }}>
-               
-                   
-                      <textarea
-                        placeholder="Paste source here. No source? No problem - just type in your topic."
-                        value={sourceText}
-                        onChange={(e) => setSourceText(e.target.value)}
-                        style={{
-                          width: '688px',
-                          height: '100px',
-                          marginTop: '30px',
-                          fontSize: '16px',
-                          background: '#f4f4f4',
-                          padding: '20px 20px',
-                          border: 'none',
-                          outline: 'none',
-                          borderRadius: '10px',
-                          resize: 'vertical'
-                        }}
-                      />
-                    
-               
-                    {/* Additional Instructions Section */}
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '-15px' }}>
-                      <h1 style={{ marginTop: '20px', color: 'grey', display: 'flex', fontSize: '25px', alignItems: 'center',
-                  fontWeight: '600', }}>
-                        Additional instructions
-                        <p style={{ fontSize: '20px', marginTop: '20px', marginLeft: '10px', color: 'lightgrey' }}>- optional</p>
-                      </h1>
-                      <button
-                        onClick={toggleAdditionalInstructions}
-                        style={{
-                          marginRight: 'auto',
-                          backgroundColor: 'transparent',
-                          border: 'none',
-                          marginTop: '0px',
-                          fontSize: '30px',
-                          marginLeft: '20px',
-                          color: 'grey',
-                          fontWeight: 'bold',
-                          cursor: 'pointer'
-                        }}
-                      >
-                        {showAdditionalInstructions ? '-' : '+'}
-                      </button>
-                    </div>
-                    {showAdditionalInstructions && (
-                      <input
-                        style={{
-                          width: '96%',
-                          height: '20px',
-                          padding: '2%',
-                          fontWeight: 'bold',
-                          fontSize: '14px',
-                          marginTop: '-20px',
-                          fontFamily: "'montserrat', sans-serif",
-                          borderRadius: '10px',
-                          border: ' 2px solid #f4f4f4',
-                          outline: 'none'
-                        }}
-                        type='text'
-                        placeholder="ex. only use chapter one"
-                        value={additionalInstructions}
-                        onChange={(e) => setAdditionalInstructions(e.target.value)}
-                      />
-                    )}
-                    {/* Generate Questions Button */}
-                    {sourceText.trim() !== '' && Number(questionBank) >= Number(questionStudent) && (
-                      <div style={{ display: 'flex', alignItems: 'center', marginTop: '0px', marginBottom: '20px' }}>
-                        <button
-                          onClick={handleGenerateQuestions}
-                          disabled={generating}
-                          style={{
-                            width: '180px',
-                            fontWeight: 'bold',
-                            height: '50px',
-                            marginTop: '-20px',
-                            padding: '10px',
-                            fontSize: '24px',
-                            backgroundColor: generating ? 'lightgrey' : 
-                                            generatedQuestions.length > 0 ? '#A6B4FF' : '#F5B6FF',
-                            color: 'white',
-                            borderRadius: '10px',
-                            border: generating ? '4px solid lightgrey' : 
-                                    generatedQuestions.length > 0 ? '4px solid #020CFF' : '4px solid #E441FF',
-                            cursor: generating ? 'default' : 'pointer',
-                           
-                            transition: 'box-shadow 0.3s ease',
-                          }}
-                         
-                        >
-                          {generating ? 'Generating...' : 
-                           generatedQuestions.length > 0 ? 
-                           <div style={{ display: 'flex', marginTop: '-4px' }}> 
-                           
-                               <Eye size={30} color="#020CFF" strokeWidth={3} />
-                               <h1 style={{
-                                 fontSize: '25px',  
-                                 marginTop: '0px', 
-                                 color: '#020CFF', 
-                                 marginLeft: '10px',
-                                 fontFamily: "'montserrat', sans-serif",
-                               }}>Preview</h1>
-                             </div>
-                           : <div style={{ display: 'flex', marginTop: '-4px' }}> 
-                               <Sparkles size={30} color="#E441FF" strokeWidth={3} />
-                               <h1 style={{
-                                 fontSize: '25px',  
-                                 marginTop: '0px', 
-                                 marginLeft: '4px', 
-                                 color: '#E441FF', 
-                                 fontFamily: "'montserrat', sans-serif",
-                               }}>Generate</h1>
-                             </div>}
-                        </button>
-                        {generating && (
-                          <div className="loader" style={{ marginLeft: '20px' }}></div>
-                        )}
-                      </div>
-                    )}
                   </div>
                 </div>
                 
               </div>
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'space-between', width: '796px', height: '50px' }}>
-           
-
-
-           <button
-              onClick={saveDraft}
             
-             style={{
-               width: '270px',
-               height: '60px',
-               marginTop: '0px',
-               border: '4px solid lightgrey',
-               marginBottom: '40px',
-               backgroundColor: '#f4f4f4',
-               color: 'grey',
-               borderRadius: '10px',
-               fontSize: '20px',fontFamily: "'montserrat', sans-serif",  
-               fontWeight: 'bold',
-               display: 'flex',
-               cursor: 'pointer',
-               transition: 'border-color 0.3s ease',
-             }}
-             onMouseEnter={(e) => e.target.style.borderColor = 'grey'}
-             onMouseLeave={(e) => e.target.style.borderColor = 'lightgrey'}
-           >
-            <PencilRuler size={40} style={{marginLeft: '0px', marginTop: '5px', background: 'transparent'}} /> <h1 style={{fontSize: '25px', marginTop: '10px', marginLeft: '15px',background: 'transparent'}}>Save As Draft</h1>
-           </button>
-           
-         
-           <button
-             onClick={saveAssignment}
-             disabled={!assignmentName || generatedQuestions.length === 0}
-style={{
- width: '480px',
- height: '60px',
- marginTop: '0px',
- border: '4px solid ',
- marginBottom: '40px',
- 
- opacity: (!assignmentName || generatedQuestions.length === 0) ? '0%' : '100%',
- backgroundColor: (!assignmentName || generatedQuestions.length === 0) ? '#f4f4f4' : '#A6FFAF',
- color: (!assignmentName || generatedQuestions.length === 0) ? 'lightgrey' : '#00D409',
- 
- borderColor: (!assignmentName || generatedQuestions.length === 0) ? 'lightgrey' : '#00D409',
- borderRadius: '10px',
- fontSize: '20px',
- fontFamily: "'montserrat', sans-serif",  
- fontWeight: 'bold',
- cursor: (!assignmentName || generatedQuestions.length === 0) ? 'default' : 'pointer',
- display: 'flex',
- transition: 'background-color 0.3s ease',
-}}
-onMouseEnter={(e) => {
- if (assignmentName && generatedQuestions.length > 0) {
-   e.target.style.borderColor = '#2BB514';
- }
-}}
-onMouseLeave={(e) => {
- if (assignmentName && generatedQuestions.length > 0) {
-   e.target.style.borderColor = '#00D409';
- }
-}}
-           >
-             <h1 style={{fontSize: '25px', marginTop: '10px', marginLeft: '15px',background: 'transparent'}}>Publish</h1>
-             <SendHorizonal size={40} style={{marginLeft: 'auto', marginTop: '5px', background: 'transparent'}} /> 
-           </button>
-           </div>
          </div>
        </div>
      </div>
+
+
+
+     <AssignmentActionButtons
+        onSaveDraft={saveDraft}
+        onPublish={saveAssignment}
+        isPublishDisabled={isPublishDisabled}
+        publishDisabledConditions={publishDisabledConditions}
+      />
+
      </div>
   
   );

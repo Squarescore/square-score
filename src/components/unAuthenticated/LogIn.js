@@ -161,12 +161,13 @@ const Login = () => {
         padding: '0px 0', alignItems: 'center', height: '70px', color: 'grey', zIndex: '1000',
         backgroundColor: navbarBg,
         transition: 'background-color 0.3s ease',
+        boxShadow: '1px 1px 5px 1px rgb(0,0,155,.07)',
         backdropFilter: 'blur(7px)',
       }}>
        <div style={{ marginLeft: 'auto', marginRight: 'auto', display: 'flex'}}>
            
 
-           <h1 style={{color: 'black', fontWeight: "600"}}>SquareScore</h1>
+           <h1 style={{color: 'black', fontWeight: "600", fontSize: '25px'}}>SquareScore</h1>
            
    
          </div>
@@ -281,12 +282,12 @@ const Login = () => {
                 style={{
                   width: '120px',
                   marginLeft: '0px',
-                  color: 'black',
-                  background: isSubmitting ? '#f0f0f0' : 'white',
+                  color: 'grey',
+                  background: isSubmitting ? '#f0f0f0' : '#f4f4f4',
                   fontWeight: '600',
                   padding: '8px',
+                  border: '3px solid lightgrey',
                   zIndex: '1000',
-                  border: 'none',
                   height: '40px',
                   borderRadius: '8px',
                   cursor: isSubmitting ? 'not-allowed' : 'pointer',
@@ -306,10 +307,11 @@ const Login = () => {
                 }}
               >
                 <h1 style={{ 
-                  marginTop: '0px', 
-                  fontSize: '20px', 
+                  marginTop: isSubmitting ? '5px' : '-5px',
+                  fontSize: isSubmitting ? '12px' : '20px',
+              
                   pointerEvents: 'none',
-                  color: 'black',
+                  color: 'grey',
                   fontWeight: '600'
                 }}>
                   {isSubmitting ? 'Logging in...' : 'Login'}

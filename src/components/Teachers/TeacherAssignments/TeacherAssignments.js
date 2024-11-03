@@ -211,7 +211,7 @@ function Assignments() {
    
       fontFamily: "'montserrat', sans-serif",
       borderRadius: '8px',
-      border: '2px solid  ',
+      border: '3px solid  ',
       marginTop: '20px',
       zIndex: '100',
       textAlign: 'left',
@@ -226,13 +226,13 @@ function Assignments() {
     if (sortBy === option) {
       switch (option) {
         case 'assignments':
-          style = { ...style, backgroundColor: '#B0BDFF', color: '#020CFF', borderColor: '#020CFF',   boxShadow: '1px 1px 2px 1px rgb(0,0,155,.07)' , };
+          style = { ...style, backgroundColor: '#B0BDFF', color: '#020CFF', borderColor: '#020CFF',   boxShadow: '1px 1px 5px 1px rgb(0,0,155,.07)' , };
           break;
         case 'folders':
-          style = { ...style, backgroundColor: '#FFECA9', color: '#F0856E', borderColor: '#F0856E', boxShadow: '1px 1px 2px 1px rgb(0,0,155,.07)' , };
+          style = { ...style, backgroundColor: '#FFECA9', color: '#F0856E', borderColor: '#F0856E', boxShadow: '1px 1px 5px 1px rgb(0,0,155,.07)' , };
           break;
         case 'drafts':
-          style = { ...style, backgroundColor: '#f4f4f4', color: '#A7A7A7', borderColor: '#A7A7A7',  boxShadow: '1px 1px 2px 1px rgb(0,0,155,.07)' , };
+          style = { ...style, backgroundColor: '#f4f4f4', color: '#A7A7A7', borderColor: '#A7A7A7',  boxShadow: '1px 1px 5px 1px rgb(0,0,155,.07)' , };
           break;
         default:
           break;
@@ -1339,18 +1339,17 @@ marginLeft: '-67px',
               fontFamily: "'montserrat', sans-serif",
               display: 'flex',marginLeft: 'auto', marginRight: 'auto',
               backgroundColor: 'white',
-              border: 'none',
               textAlign: 'left',
               borderRadius: '8px',
               cursor: 'pointer',
               transition: '.3s',
               
-            border : '2px solid white',
+            border : '3px solid white',
               alignItems: 'center',
               justifyContent: 'center'
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.border = '2px solid #00D309';
+              e.currentTarget.style.border = '3px solid #00D309';
               e.currentTarget.style.color = '#00D309';
               
               e.target.style.boxShadow= '1px 1px 5px 1px rgb(0,0,155,.07)' 
@@ -1358,7 +1357,7 @@ marginLeft: '-67px',
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.color = 'grey';
-              e.currentTarget.style.border = '2px solid white';
+              e.currentTarget.style.border = '3px solid white';
               e.target.style.boxShadow= '' 
               e.currentTarget.style.backgroundColor = 'white';
             }}
