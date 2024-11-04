@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { doc, getDoc, setDoc, writeBatch, arrayUnion, serverTimestamp, arrayRemove, updateDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, writeBatch, arrayUnion, serverTimestamp, arrayRemove, updateDoc, deleteDoc } from 'firebase/firestore';
 import Navbar from '../../Universal/Navbar';
 import SelectStudents from './SelectStudents';
 import CustomDateTimePicker from './CustomDateTimePicker';
@@ -15,7 +15,8 @@ import SecuritySettings from './SecuritySettings';
 import DateSettings from './DateSettings';
 import { AssignmentName, ChoicesPerQuestion, FormatSection, PreferencesSection, TimerSection, ToggleSwitch } from './Elements';
 import { AssignmentActionButtons, usePublishState } from './AssignmentActionButtons';
-
+import { safeClassUpdate } from '../../teacherDataHelpers';
+import { v4 as uuidv4 } from 'uuid';
 const dropdownContentStyle = `
   .dropdown-content {
     max-height: 0;
@@ -348,6 +349,7 @@ const MCQA = () => {
   const [progress, setProgress] = useState(0);
 const [progressText, setProgressText] = useState('');
   const navigate = useNavigate();
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     // Set due date to 48 hours after assign date whenever assign date changes
@@ -359,7 +361,32 @@ const [progressText, setProgressText] = useState('');
       setAdditionalInstructions('');
     }
   };
-
+  const LoaderScreen = () => (
+    <div style={{
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: 'rgba(255, 255, 255, 0.9)',
+      backdropFilter: 'blur(5px)',
+      display: 'flex',
+      flexDirection: 'column',
+      justifyContent: 'center',
+      alignItems: 'center',
+      zIndex: 9999
+    }}>
+      <div className="loader" style={{ marginBottom: '20px' }}></div>
+      <div style={{
+        fontFamily: "'montserrat', sans-serif",
+        fontSize: '20px',
+        color: '#020CFF',
+        fontWeight: '600'
+      }}>
+        Saving...
+      </div>
+    </div>
+  );
   const handlePrevious = () => {
     navigate(-1);
   };
@@ -647,6 +674,10 @@ const generateQuestions = async () => {
   };
 
   const saveDraft = async () => {
+    
+    if (isSaving) return; // Prevent multiple clicks
+    setIsSaving(true);
+   
     const draftData = {
       classId,
       assignmentName,
@@ -674,7 +705,15 @@ const generateQuestions = async () => {
     
     try {
       await setDoc(draftRef, draftData);
-  
+
+
+
+      await safeClassUpdate('addDraftToClass', { 
+        classId, 
+        assignmentId,
+        assignmentName
+      });
+
       // Update the class document with the new draft ID
       const classRef = doc(db, 'classes', classId);
       await updateDoc(classRef, {
@@ -689,8 +728,13 @@ const generateQuestions = async () => {
     } catch (error) {
       console.error("Error saving draft:", error);
       alert(`Error saving draft: ${error.message}. Please try again.`);
+    } finally {
+      setIsSaving(false);
     }
   };
+
+
+
   const convertToDateTime = (date) => {
     return formatDate(new Date(date));
   };
@@ -720,13 +764,15 @@ const generateQuestions = async () => {
   };
 
   const saveAssignment = async () => {
+    if (isSaving) return; // Prevent multiple clicks
+    setIsSaving(true);
     // Remove 'DRAFT' prefix from assignmentId if it exists
     const finalAssignmentId = assignmentId.startsWith('DRAFT') ? assignmentId.slice(5) : assignmentId;
-  
+
     const formatQuestion = (question) => {
       const choiceKeys = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
       const formattedQuestion = {
-        questionId: question.questionId || `question_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        questionId: question.questionId ||  uuidv4(),
         question: question.question || question.question || '',
         difficulty: question.difficulty || 'medium',
         correct: question.correct || '',
@@ -746,6 +792,8 @@ const generateQuestions = async () => {
   
     const assignmentData = {
       classId,
+      
+      format: 'AMCQ',
       assignmentName,
       timer: timerOn ? Number(timer) : 0,
       assignDate: formatDate(assignDate),
@@ -760,34 +808,35 @@ const generateQuestions = async () => {
     };
   
     try {
-      console.log("Attempting to save assignment with data:", assignmentData);
-      
-      const assignmentRef = doc(db, 'assignments(Amcq)', finalAssignmentId);
-      await setDoc(assignmentRef, assignmentData, { merge: true });
-      
-      console.log("Assignment saved successfully. Assigning to students...");
-      
-      await assignToStudents(finalAssignmentId);
-      
-      console.log("Assignment assigned to students successfully.");
-  
-      // Delete the draft document if it exists
+ 
+      const assignmentRef = doc(db, 'assignments', finalAssignmentId);
+      await setDoc(assignmentRef, assignmentData);
+
+      // Add assignment to class via Cloud Function
+      await safeClassUpdate('addAssignmentToClass', { 
+        classId, 
+        assignmentId: finalAssignmentId, 
+        assignmentName
+      });
+
+      // If publishing from a draft, remove the draft
       if (draftId) {
         const draftRef = doc(db, 'drafts', draftId);
-        await setDoc(draftRef, {});
-  
-        // Update the class document
-        const classRef = doc(db, 'classes', classId);
-        await updateDoc(classRef, {
-          [`assignments(Amcq)`]: arrayRemove(assignmentId) // Remove the draft ID (with DRAFT prefix)
-        });
-        await updateDoc(classRef, {
-          [`assignments(Amcq)`]: arrayUnion(finalAssignmentId) // Add the final assignment ID
+        await deleteDoc(draftRef);
+
+        // Move draft to assignment via Cloud Function
+        await safeClassUpdate('moveDraftToAssignment', { 
+          classId, 
+          draftId, 
+          assignmentId: finalAssignmentId, 
+          assignmentName, 
         });
       }
-  
-      const format = finalAssignmentId.split('+').pop(); // Get the format from the assignment ID
-  
+
+      // Assign to students
+      await assignToStudents(finalAssignmentId);
+
+      // Navigate with success message
       navigate(`/class/${classId}`, {
         state: {
           successMessage: `Success: ${assignmentName} published`,
@@ -796,14 +845,15 @@ const generateQuestions = async () => {
         }
       });
     } catch (error) {
-      console.error("Error saving assignment:", error);
-      console.error("Error details:", error.message);
-      if (error.code) {
-        console.error("Error code:", error.code);
-      }
-      alert(`Error publishing assignment: ${error.message}. Please try again.`);
+      console.error("Error saving draft:", error);
+      alert(`Error saving draft: ${error.message}. Please try again.`);
+    } finally {
+      setIsSaving(false);
     }
   };
+
+
+
   const isFormValid = () => {
     return assignmentName !== '' && assignDate !== '' && dueDate !== '';
   };
@@ -831,7 +881,7 @@ const generateQuestions = async () => {
       <div style={{ marginTop: '150px', width: '800px', padding: '15px', marginLeft: 'auto', marginRight: 'auto', fontFamily: "'montserrat', sans-serif", background: 'white', borderRadius: '25px', 
                boxShadow: '1px 1px 10px 1px rgb(0,0,155,.1)', marginBottom: '40px' }}>
        
-              
+                 {isSaving && <LoaderScreen />}
         
         
          

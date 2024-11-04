@@ -6,7 +6,7 @@ import FooterAuth from './FooterAuth';
 import './BackgroundDivs.css'; // Import the CSS file
 import { ArrowRight, ArrowRightFromLine, Bot, ChevronLeft, ChevronRight, MoveLeft, MoveRight } from 'lucide-react';
 const Auth = () => {
-  const [navbarBg, setNavbarBg] = useState('rgba(255,255,255,0.9)');
+  const [navbarBg, setNavbarBg] = useState('rgba(255,255,255,0.95)');
 
   const [selectedFormat, setSelectedFormat] = useState('SAQ*');
   const [currentSlide, setCurrentSlide] = useState(0);
@@ -127,68 +127,62 @@ const Auth = () => {
       <div  style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
         <div style={{ 
           position: 'fixed', top: 0, width: '100%', display: 'flex',boxShadow: '1px 1px 5px 1px rgb(0,0,155,.1)',
-          padding: '0px 0', alignItems: 'center', height: '70px', color: 'grey', zIndex: 1000,
+          padding: '0px 0', alignItems: 'center', height: '60px', color: 'grey', zIndex: 1000,
           backgroundColor: navbarBg, transition: 'background-color 0.3s ease',
           backdropFilter: 'blur(7px)',
         }}>
           <div style={{ marginLeft: 'auto', marginRight: 'auto', display: 'flex'}}>
             <div style={{ width: '1280px', display: 'flex', backgroundColor: 'transparent', padding: '0px 0', alignItems: 'center', height: '70px', color: 'grey', marginRight: 'auto', marginLeft: 'auto' }}>
-              <div style={{ width: '250px', display: 'flex', position: 'fixed', left: '-40px' }}>
-                <Link
-                 to="/privacyPolicy"
-                  smooth={true}
-                  duration={500}
-                  style={{
-                    height: '20px', marginTop: '0px', lineHeight: '20px',
-                    background: 'transparent', borderRadius: '10px',
-                    fontWeight: 'bold',
-                   textDecoration: 'none', color: 'black',
-                    width: '200px', marginLeft: '90px', padding: '10px 20px 10px 20px',
-                    textAlign: 'center', transition: '.1s', fontFamily: "'montserrat', sans-serif",
-                    fontSize: '16px', cursor: 'pointer'
-                  }}
-                  onMouseEnter={(e) => { e.target.style.opacity = '65%'; }}
-                  onMouseLeave={(e) => { e.target.style.opacity = '100%'; }}
-                >
-                  Privacy Policy
-                 
-                </Link>
-              </div>
-              <div style={{display: 'flex',  position: 'absolute',
-      left: '50%',
+              
+            <div style={{display: 'flex',  position: 'absolute',
+      left: '30px',
       top: '50%',
-      transform: 'translate(-50%, -50%)'}}>
-              <img style={{width: '30px',  }} src="/SquareScore.svg" alt="logo" />
-              <h1 style={{fontWeight: '600', color: 'black', paddingLeft: '10px', borderLeft: '4px solid #f4f4f4', marginLeft: '10px', fontSize: '25px'}}>SquareScore</h1>
+      transform: 'translateY( -50%)'}}>
+              <img style={{width: '25px',  }} src="/SquareScore.svg" alt="logo" />
+              <h1 style={{fontWeight: '600', color: 'black', paddingLeft: '10px', borderLeft: '4px solid #f4f4f4', marginLeft: '10px', fontSize: '20px'}}>SquareScore</h1>
               </div>
             </div>
-            <div style={{ width: '380px', display: 'flex', position: 'fixed', right: '-20px' }}>
-              <Link to="/signup" style={{
-                height: '10px', marginTop: '15px', width: '160px', lineHeight: '10px', borderRadius: '8px',
-                fontWeight: '600',  background: 'transparent', color: 'black',
-                textDecoration: 'none',  marginLeft: '30px',
-                padding: '15px', textAlign: 'center', transition: '.2s',
+            <div style={{ width: '380px', display: 'flex', position: 'fixed', right: '20px' }}>
+            <Link to="/signup" style={{
+                height: '30px', marginTop: '20px', lineHeight: '30px', borderRadius: '8px',
+                fontWeight: '600', background: 'transparent',  color: 'black',
+
+                textDecoration: 'none', width: '160px', marginLeft: 'auto',
+               textAlign: 'center', transition: '.2s',
                 fontFamily: "'montserrat', sans-serif", fontSize: '16px'
               }}
               onMouseEnter={(e) => {     e.target.style.background = '#f4f4f4';
+                e.target.style.border = '3px solid lightgrey';
+                
+                e.target.style.color = 'grey';
               }}
               onMouseLeave={(e) => {
                 e.target.style.background = 'transparent';
+                
+                e.target.style.color = 'black';
+                e.target.style.border = '3px solid transparent';
           
               }}>Create Account</Link>
+            
               <Link to="/login" style={{
-                height: '10px', marginTop: '15px', lineHeight: '10px', borderRadius: '8px',
-                fontWeight: '600', background: 'transparent',  color: 'black',
-                textDecoration: 'none', width: '60px', marginLeft: '10px',
-                padding: '15px', textAlign: 'center', transition: '.2s',
-                fontFamily: "'montserrat', sans-serif", fontSize: '16px'
-              }}
-              onMouseEnter={(e) => {     e.target.style.background = '#f4f4f4';
-              }}
-              onMouseLeave={(e) => {
-                e.target.style.background = 'transparent';
-          
-              }}>Login</Link>
+               height: '30px', marginTop: '20px', lineHeight: '30px', borderRadius: '8px',
+               fontWeight: '600', background: 'transparent',  color: 'black',
+
+               textDecoration: 'none', width: '100px', marginLeft: '10px',
+              textAlign: 'center', transition: '.2s',
+               fontFamily: "'montserrat', sans-serif", fontSize: '16px'
+             }}
+             onMouseEnter={(e) => {     e.target.style.background = '#f4f4f4';
+               e.target.style.border = '3px solid lightgrey';
+               
+               e.target.style.color = 'grey';
+             }}
+             onMouseLeave={(e) => {
+               e.target.style.background = 'transparent';
+               
+               e.target.style.color = 'black';
+               e.target.style.border = '3px solid transparent';}}
+               >Login</Link>
             </div>
           </div>
         </div>

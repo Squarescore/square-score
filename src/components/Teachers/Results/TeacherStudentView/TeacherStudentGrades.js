@@ -16,18 +16,18 @@ function TeacherStudentGrades() {
   useEffect(() => {
     const fetchCompletedAssignments = async () => {
       const saqGradesQuery = query(
-        collection(db, 'grades(saq)'),
+        collection(db, 'grades'),
         where('studentUid', '==', studentUid),
         where('classId', '==', classId)
       );
 
       const amcqGradesQuery = query(
-        collection(db, 'grades(AMCQ)'),
+        collection(db, 'grades'),
         where('studentUid', '==', studentUid),
         where('classId', '==', classId)
       );
       const mcqGradesQuery = query(
-        collection(db, 'grades(mcq)'),
+        collection(db, 'grades'),
         where('studentUid', '==', studentUid),
         where('classId', '==', classId)
       );

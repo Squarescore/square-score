@@ -112,7 +112,7 @@ const [incorrectCount, setIncorrectCount] = useState(0);
   useEffect(() => {
     const fetchResults = async () => {
       try {
-        const gradeDocRef = doc(db, 'grades(saq)', `${assignmentId}_${studentUid}`);
+        const gradeDocRef = doc(db, 'grades', `${assignmentId}_${studentUid}`);
         const gradeDoc = await getDoc(gradeDocRef);
   
         if (gradeDoc.exists()) {
@@ -168,7 +168,7 @@ const [incorrectCount, setIncorrectCount] = useState(0);
     const updatedQuestions = [...results.questions];
     updatedQuestions[index].flagged = updatedFlagged;
     const updatedData = { ...results, questions: updatedQuestions };
-    const resultsRef = doc(db, 'grades(saq)', `${assignmentId}_${studentUid}`);
+    const resultsRef = doc(db, 'grades', `${assignmentId}_${studentUid}`);
     await updateDoc(resultsRef, updatedData);
   
     setResults(updatedData);

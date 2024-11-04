@@ -3,7 +3,17 @@ const { Anthropic } = require('@anthropic-ai/sdk');
 const { OpenAI } = require('openai');
 const cors = require('cors')({origin: true});
 const admin = require('firebase-admin');
-admin.initializeApp();
+
+// Initialize admin if not already initialized
+if (!admin.apps.length) {
+  admin.initializeApp();
+}
+
+const db = admin.firestore();
+
+
+// admin.initializeApp(); took this out, function were working before extracted
+
 exports.GenerateSAQ = functions.https.onRequest((req, res) => {
   return cors(req, res, async () => {
     if (req.method !== "POST") {
@@ -2208,3 +2218,270 @@ Student Response: Saturn and Uranus
             lastFlaggedUpdate: admin.firestore.FieldValue.serverTimestamp()
         });
     });
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    exports.updateTeacherClassData = functions.https.onCall(async (data, context) => {
+      if (!context.auth) {
+        throw new functions.https.HttpsError('unauthenticated', 'Must be logged in');
+      }
+    
+      const { teacherId, classId, className, classChoice } = data;
+    
+      try {
+        const teacherRef = db.collection('teachers').doc(teacherId);
+        const teacherDoc = await teacherRef.get();
+        const currentData = teacherDoc.data() || {};
+        const classes = currentData.classes || [];
+        
+        // Update or add basic class info in teacher document
+        const classIndex = classes.findIndex(c => c.classId === classId);
+        if (classIndex === -1) {
+          classes.push({
+            classId,
+            className,
+            classChoice
+          });
+        } else {
+          classes[classIndex] = {
+            ...classes[classIndex],
+            className,
+            classChoice
+          };
+        }
+    
+        // Update teacher document
+        await teacherRef.update({ classes });
+    
+        // Also update the class document
+        const classRef = db.collection('classes').doc(classId);
+        await classRef.update({
+          className,
+          classChoice,
+          updatedAt: admin.firestore.FieldValue.serverTimestamp()
+        });
+    
+        return { success: true };
+      } catch (error) {
+        throw new functions.https.HttpsError('internal', error.message);
+      }
+    });
+    
+    // When creating a new class
+    exports.createClass = functions.https.onCall(async (data, context) => {
+      if (!context.auth) {
+        throw new functions.https.HttpsError('unauthenticated', 'Must be logged in');
+      }
+    
+      const { teacherUID, classId, className, classChoice,classCode } = data;
+    
+      try {
+        const batch = db.batch();
+    
+        // Create class document
+        const classRef = db.collection('classes').doc(classId);
+        batch.set(classRef, {
+          className,
+          classChoice,
+          classCode,
+          teacherUID,
+          assignments: [],
+          drafts: [],
+          participants: [],
+          createdAt: admin.firestore.FieldValue.serverTimestamp()
+        });
+    
+        // Update teacher document
+        const teacherRef = db.collection('teachers').doc(teacherUID);
+        batch.update(teacherRef, {
+          classes: admin.firestore.FieldValue.arrayUnion({
+            classId,
+            className,
+            classChoice
+          })
+        });
+    
+        await batch.commit();
+        return { success: true };
+      } catch (error) {
+        throw new functions.https.HttpsError('internal', error.message);
+      }
+    });
+    
+    // When deleting a class
+    exports.onClassDeleted = functions.firestore
+      .document('classes/{classId}')
+      .onDelete(async (snap, context) => {
+        const classId = context.params.classId;
+        const classData = snap.data();
+        const teacherId = classData.teacherId;
+    
+        try {
+          const teacherRef = db.collection('teachers').doc(teacherId);
+          await teacherRef.update({
+            classes: admin.firestore.FieldValue.arrayRemove({
+              classId,
+              className: classData.className,
+              classChoice: classData.classChoice
+            })
+          });
+        } catch (error) {
+          console.error('Error cleaning up teacher data:', error);
+        }
+      });
+
+      exports.addAssignmentToClass = functions.https.onCall(async (data, context) => {
+        console.log('addAssignmentToClass function invoked');
+      
+        if (!context.auth) {
+          console.error('Unauthenticated access attempt');
+          throw new functions.https.HttpsError('unauthenticated', 'Must be logged in');
+        }
+      
+        const { classId, assignmentId, assignmentName,  } = data;
+        console.log('Received data:', data);
+      
+        // Validate input data
+        if (!classId || !assignmentId || !assignmentName ) {
+          console.error('Missing required fields');
+          throw new functions.https.HttpsError('invalid-argument', 'Missing required fields');
+        }
+      
+        try {
+          const classRef = db.collection('classes').doc(classId);
+          const classDoc = await classRef.get();
+      
+          if (!classDoc.exists) {
+            console.error(`Class ID ${classId} does not exist`);
+            throw new functions.https.HttpsError('not-found', 'Class not found');
+          }
+      
+          await classRef.update({
+            assignments: admin.firestore.FieldValue.arrayUnion({
+              id: assignmentId,
+              name: assignmentName
+            })
+          });
+      
+          console.log(`Assignment ${assignmentId} added to class ${classId}`);
+          return { success: true };
+        } catch (error) {
+          console.error('Error in addAssignmentToClass:', error);
+          throw new functions.https.HttpsError('internal', error.message || 'Unknown error');
+        }
+      });
+      
+
+      exports.addDraftToClass = functions.https.onCall(async (data, context) => {
+        console.log('addDraftToClass function invoked');
+      
+        if (!context.auth) {
+          console.error('Unauthenticated access attempt');
+          throw new functions.https.HttpsError('unauthenticated', 'Must be logged in');
+        }
+      
+        const { classId, assignmentId, assignmentName,  } = data;
+        console.log('Received data:', data);
+      
+        // Validate input data
+        if (!classId || !assignmentId || !assignmentName ) {
+          console.error('Missing required fields');
+          throw new functions.https.HttpsError('invalid-argument', 'Missing required fields');
+        }
+      
+        try {
+          const classRef = db.collection('classes').doc(classId);
+          const classDoc = await classRef.get();
+      
+          if (!classDoc.exists) {
+            console.error(`Class ID ${classId} does not exist`);
+            throw new functions.https.HttpsError('not-found', 'Class not found');
+          }
+      
+          await classRef.update({
+            drafts: admin.firestore.FieldValue.arrayUnion({
+              id: assignmentId,
+              name: assignmentName
+            })
+          });
+      
+          console.log(`Assignment ${assignmentId} added to class ${classId}`);
+          return { success: true };
+        } catch (error) {
+          console.error('Error in addAssignmentToClass:', error);
+          throw new functions.https.HttpsError('internal', error.message || 'Unknown error');
+        }
+      });
+
+    
+// Update class participants
+exports.updateClassParticipants = functions.https.onCall(async (data, context) => {
+  if (!context.auth) {
+    throw new functions.https.HttpsError('unauthenticated', 'Must be logged in');
+  }
+
+  const { classId, participants } = data;
+
+  try {
+    const classRef = db.collection('classes').doc(classId);
+    await classRef.update({
+      participants,
+      updatedAt: admin.firestore.FieldValue.serverTimestamp()
+    });
+    return { success: true };
+  } catch (error) {
+    throw new functions.https.HttpsError('internal', error.message);
+  }
+});
+
+// Move draft to assignment
+exports.moveDraftToAssignment = functions.https.onCall(async (data, context) => {
+  if (!context.auth) {
+    throw new functions.https.HttpsError('unauthenticated', 'Must be logged in');
+  }
+
+  const { classId, draftId, assignmentId, assignmentName } = data;
+
+  try {
+    const classRef = db.collection('classes').doc(classId);
+    const batch = db.batch();
+
+    // Remove draft
+    batch.update(classRef, {
+      drafts: admin.firestore.FieldValue.arrayRemove({
+        id: draftId,
+        name: assignmentName
+      })
+    });
+
+    // Add assignment
+    batch.update(classRef, {
+      assignments: admin.firestore.FieldValue.arrayUnion({
+        id: assignmentId,
+        name: assignmentName
+      })
+    });
+
+    await batch.commit();
+    return { success: true };
+  } catch (error) {
+    throw new functions.https.HttpsError('internal', error.message);
+  }
+});

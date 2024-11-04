@@ -118,7 +118,7 @@ function TeacherStudentResults() {
     useEffect(() => {
         const fetchResults = async () => {
             try {
-                const gradeDocRef = doc(db, 'grades(saq)', `${assignmentId}_${studentUid}`);
+                const gradeDocRef = doc(db, 'grades', `${assignmentId}_${studentUid}`);
                 const gradeDoc = await getDoc(gradeDocRef);
     
                 if (gradeDoc.exists()) {
@@ -182,7 +182,7 @@ function TeacherStudentResults() {
                         feedback: newGrades[index].feedback
                     }));
 
-                    const gradeDocRef = doc(db, 'grades(saq)', `${assignmentId}_${studentUid}`);
+                    const gradeDocRef = doc(db, 'grades', `${assignmentId}_${studentUid}`);
                     await updateDoc(gradeDocRef, {
                         questions: updatedQuestions,
                         rawTotalScore: newTotalScore,
@@ -235,7 +235,7 @@ function TeacherStudentResults() {
         const newPercentageScore = (newTotalScore / (results.scaleMax * results.questions.length)) * 100;
     
         try {
-            await updateDoc(doc(db, 'grades(saq)', `${assignmentId}_${studentUid}`), {
+            await updateDoc(doc(db, 'grades', `${assignmentId}_${studentUid}`), {
                 questions: updatedQuestions,
                 rawTotalScore: newTotalScore,
                 percentageScore: newPercentageScore

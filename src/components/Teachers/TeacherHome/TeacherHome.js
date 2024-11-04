@@ -14,6 +14,8 @@ import CreateClassModal from './CreateClassModal';// Make sure this file exists 
 import AnimationGreen from '../../Universal/AnimationGreen';
 import AnimationAll from '../../Universal/AnimationAll';
 import Loader from '../../Universal/Loader';
+import { safeClassUpdate} from '../../teacherDataHelpers';
+import { v4 as uuidv4 } from 'uuid';
 const TeacherHome = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -29,36 +31,42 @@ const TeacherHome = () => {
 
 
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
-
-
-  const handleCreateClass = async (e, period, classChoice) => {
-    e.preventDefault();
-    const classCode = Math.random().toString(36).substr(2, 6).toUpperCase();
-    const teacherUID = auth.currentUser.uid;
-    const className = `Period ${period}`;
-    const periodStyle = periodStyles[period];
+const handleCreateClass = async (e, period, classChoice) => {
+  e.preventDefault();
   
+  try {
+    const className = `Period ${period}`;
+    const classId = uuidv4(); // Generate unique classId
+    const classCode = Math.random().toString(36).substr(2, 6).toUpperCase(); // Generate unique classCode
+    const teacherUID = auth.currentUser.uid;
+    const periodStyle = periodStyles[period];
+
     const classData = {
+      teacherUID: teacherUID,
+      classId, // Unique UUID
+      classCode, // Separate code
       className,
       classChoice,
-      classCode,
-      teacherUID,
-      students: [],
       background: periodStyle.background,
-      color: periodStyle.color
+      color: periodStyle.color,
+      period
     };
-  
-    try {
-      const classDocRef = await addDoc(collection(db, 'classes'), classData);
-      
-      setSuccessMessage(`${classData.classChoice}, ${className}, was successfully added to your roster`);
-      setNewClassId(classDocRef.id);
+
+    // Call the 'createClass' Cloud Function
+    const result = await safeClassUpdate('createClass', classData);
+    
+    if (result.data && result.data.success) {
+      setSuccessMessage(`${classChoice}, ${className}, was successfully added to your roster`);
+      setNewClassId(classId); // Use classId, not classCode
       setShowCreateClassModal(false);
-    } catch (err) {
-      console.error('Error creating class:', err);
-      alert('Error creating class. Please try again.');
+    } else {
+      throw new Error('Class creation failed');
     }
-  };
+  } catch (err) {
+    console.error('Error creating class:', err);
+    alert(`Error creating class: ${err.message}. Please try again.`);
+  }
+};
 
   useEffect(() => {
     const fetchTeacherData = async () => {

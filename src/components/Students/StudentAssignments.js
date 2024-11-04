@@ -174,16 +174,8 @@ const periodStyle = periodStyles[periodNumber] || { background: '#F4F4F4', color
           );
 
           const assignmentPromises = [...classAssignments, ...inProgressAssignments].map(async (assignmentId) => {
-            let assignmentDocRef;
-            if (assignmentId.endsWith('AMCQ')) {
-              assignmentDocRef = doc(db, 'assignments(Amcq)', assignmentId);
-            } else if (assignmentId.endsWith('ASAQ')) {
-              assignmentDocRef = doc(db, 'assignments(Asaq)', assignmentId);
-            } else if (assignmentId.endsWith('MCQ')) {
-              assignmentDocRef = doc(db, 'assignments(mcq)', assignmentId);
-            } else {
-              assignmentDocRef = doc(db, 'assignments(saq)', assignmentId);
-            } 
+            let assignmentDocRef = doc(db, 'assignments', assignmentId);
+           
             const assignmentDoc = await getDoc(assignmentDocRef);
             if (assignmentDoc.exists()) {
               return { 
@@ -224,48 +216,82 @@ const periodStyle = periodStyles[periodNumber] || { background: '#F4F4F4', color
     if (now < assignDateTime) return '#FFE3A6';
     if (now > dueDateTime) return '#FFD4D4';
     return '#EEEEEE'; // Light green for active assignments
-  }; useEffect(() => {
-    const fetchCompletedAssignments = async () => {
-      const saqGradesQuery = query(
-        collection(db, 'grades(saq)'),
-        where('studentUid', '==', studentUid),
-        where('classId', '==', classId)
-      );
-  
-      const amcqGradesQuery = query(
-        collection(db, 'grades(AMCQ)'),
-        where('studentUid', '==', studentUid),
-        where('classId', '==', classId)
-      );
+  };
 
-      const mcqGradesQuery = query(
-        collection(db, 'grades(mcq)'),
-        where('studentUid', '==', studentUid),
-        where('classId', '==', classId)
-      );
-      
-      const [saqSnapshot, amcqSnapshot, mcqSnapshot] = await Promise.all([
-        getDocs(saqGradesQuery),
-        getDocs(amcqGradesQuery),
-        getDocs(mcqGradesQuery)
-      ]);
+
+  useEffect(() => {
+    const fetchCompletedAssignments = async () => {
+      try {
+        // Query the unified 'grades' collection where 'studentUid' and 'classId' match
+        const gradesQuery = query(
+          collection(db, 'grades'),
+          where('studentUid', '==', studentUid),
+          where('classId', '==', classId)
+        );
   
-      const saqGrades = saqSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), type: 'SAQ' }));
-      const amcqGrades = amcqSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), type: 'AMCQ' }));
-      const mcqGrades = mcqSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), type: 'MCQ' }));
+        const gradesSnapshot = await getDocs(gradesQuery);
   
-      const allGrades = [...saqGrades, ...amcqGrades, ...mcqGrades].sort((a, b) => b.submittedAt.toDate() - a.submittedAt.toDate());
-      setCompletedAssignments(allGrades);
+        // Map through the grades and parse the type from the document ID
+        const grades = gradesSnapshot.docs.map(doc => {
+          const id = doc.id;
+          const data = doc.data();
+  
+          // Parse the 'format' from the document ID
+          const format = parseFormatFromId(id);
+  
+          return { 
+            id: doc.id, 
+            ...data, 
+            type: format,
+            submittedAt: data.submittedAt // Ensure this exists or handle accordingly
+          };
+        });
+  
+        // Sort grades by 'submittedAt' descending
+        const sortedGrades = grades.sort((a, b) => {
+          if (a.submittedAt && b.submittedAt) {
+            return b.submittedAt.toDate() - a.submittedAt.toDate();
+          }
+          return 0;
+        });
+  
+        setCompletedAssignments(sortedGrades);
+      } catch (error) {
+        console.error("Error fetching grades:", error);
+      }
     };
   
     fetchCompletedAssignments();
   }, [classId, studentUid]);
   
+  // Helper function to parse the format from the document ID
+const parseFormatFromId = (id) => {
+  // Example ID: "math101+1633072800000+AMCQ_student123"
+  // Split the ID by '+' to isolate the format_studentId part
+  const parts = id.split('+');
+
+  if (parts.length < 3) return 'UNKNOWN'; // Ensure the ID has enough parts
+
+  const formatStudentId = parts[2]; // "AMCQ_student123"
+
+  // Split by '_' to separate format and studentId
+  const formatParts = formatStudentId.split('_');
+
+  if (formatParts.length < 1) return 'UNKNOWN';
+
+  const format = formatParts[0]; // "AMCQ"
+
+  // Validate the format
+  const validFormats = ['SAQ', 'AMCQ', 'MCQ'];
+  return validFormats.includes(format) ? format : 'UNKNOWN';
+};
+
+  
   const handleBack = () => {
     navigate(-1);
   };
   
-  const navigateToTest = async (assignmentId, type, assignDate, dueDate, assignmentName, saveAndExit, lockdown) => {
+  const navigateToTest = async (assignmentId, format, assignDate, dueDate, assignmentName, saveAndExit, lockdown) => {
     const now = new Date();
     const assignDateTime = new Date(assignDate);
     const dueDateTime = new Date(dueDate);
@@ -281,7 +307,7 @@ const periodStyle = periodStyles[periodNumber] || { background: '#F4F4F4', color
     }
   
     // Check if the assignment is paused
-    const progressRef = doc(db, 'assignments(progress:saq)', `${assignmentId}_${studentUid}`);
+    const progressRef = doc(db, 'assignments(progress)', `${assignmentId}_${studentUid}`);
     const progressDoc = await getDoc(progressRef);
     
     if (progressDoc.exists() && progressDoc.data().status === 'Paused') {
@@ -289,7 +315,7 @@ const periodStyle = periodStyles[periodNumber] || { background: '#F4F4F4', color
       return;
     }
   
-    setConfirmAssignment({ id: assignmentId, type, assignmentName, saveAndExit, lockdown });
+    setConfirmAssignment({ id: assignmentId, format, assignmentName, saveAndExit, lockdown });
     setShowConfirm(true);
   };
 
@@ -468,7 +494,7 @@ const getAssignmentStyle = (assignment) => {
           display: 'flex',
           gap: '20px',
         }}>
-          {pair.map((grade) => {
+           {pair.map((grade) => {
             const isAMCQ = grade.type === 'AMCQ';
             const isSAQ = grade.type === 'SAQ';
             const isMCQ = grade.type === 'MCQ';
@@ -790,17 +816,21 @@ const renderAssignments = (assignments) => {
       flexDirection: 'column',
       position: 'relative' }}>
       <Navbar userType="student" />
-      {showConfirm && (
+  
+ {showConfirm && (
   <RetroConfirm 
     onConfirm={() => {
       setShowConfirm(false);
-      if (confirmAssignment.type === 'AMCQ') {
+      // Get the format from the assignment ID
+      const format = confirmAssignment.id.split('+')[2];
+      
+      if (format === 'AMCQ') {
         navigate(`/TakeAmcq/${confirmAssignment.id}`);
-      } else if (confirmAssignment.type === 'ASAQ') {
+      } else if (format === 'ASAQ') {
         navigate(`/TakeAsaq/${confirmAssignment.id}`);
-      } else if (confirmAssignment.type === 'MCQ') {
+      } else if (format === 'MCQ') {
         navigate(`/TakeMcq/${confirmAssignment.id}`);
-      } else {
+      } else if (format === 'SAQ') {
         navigate(`/taketests/${confirmAssignment.id}`);
       }
     }}
@@ -810,7 +840,6 @@ const renderAssignments = (assignments) => {
     lockdown={confirmAssignment ? confirmAssignment.lockdown : false}
   />
 )}
-
 <div
       style={{
         position: 'fixed',

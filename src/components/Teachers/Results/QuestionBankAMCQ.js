@@ -138,7 +138,7 @@ const QuestionBankAMCQ = ({ editedQuestions, setEditedQuestions, assignmentId, o
   // Save changes to questions
   const saveChanges = async () => {
     try {
-      const assignmentRef = doc(db, 'assignments(AMCQ)', assignmentId);
+      const assignmentRef = doc(db, 'assignments', assignmentId);
       await updateDoc(assignmentRef, { questions: editedQuestions });
       console.log('Changes saved successfully');
     } catch (error) {

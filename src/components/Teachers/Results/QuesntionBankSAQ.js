@@ -24,7 +24,7 @@ const QuestionBankSAQ = ({ questionsWithIds, setQuestionsWithIds, sourceText, qu
   const updateQuestionContent = async (newQuestion, newRubric) => {
     try {
       // Get all grade documents for this assignment
-      const gradesRef = collection(db, 'grades(saq)');
+      const gradesRef = collection(db, 'grades');
       const gradesQuery = query(gradesRef,
         where('assignmentId', '==', assignmentId)
       );
@@ -45,7 +45,7 @@ const QuestionBankSAQ = ({ questionsWithIds, setQuestionsWithIds, sourceText, qu
         });
 
         // Update the document
-        return updateDoc(doc(db, 'grades(saq)', gradeDoc.id), {
+        return updateDoc(doc(db, 'grades', gradeDoc.id), {
           questions: updatedQuestions
         });
       });
@@ -149,7 +149,7 @@ const QuestionBankSAQ = ({ questionsWithIds, setQuestionsWithIds, sourceText, qu
         questionsCount: questionsWithIds.length
       });
   
-      const gradesRef = collection(db, 'grades(saq)');
+      const gradesRef = collection(db, 'grades');
       const gradesQuery = query(gradesRef,
         where('assignmentId', '==', assignmentId),
         where('classId', '==', classId)

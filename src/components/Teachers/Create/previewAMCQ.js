@@ -130,7 +130,7 @@ const PreviewAMCQ = ({ questions, onBack, onNext, assignmentId }) => {
 
   const saveChanges = async () => {
     try {
-      const assignmentRef = doc(db, 'assignments(Amcq)', assignmentId);
+      const assignmentRef = doc(db, 'assignments', assignmentId);
       await updateDoc(assignmentRef, { questions: editedQuestions });
       console.log('Changes saved successfully');
     } catch (error) {

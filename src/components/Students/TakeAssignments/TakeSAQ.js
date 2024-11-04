@@ -50,7 +50,7 @@ const [scaleMax, setScaleMax] = useState(2);
       setLoading(true);
       try {
         console.log('Fetching assignment:', assignmentId);
-        const assignmentRef = doc(db, 'assignments(saq)', assignmentId);
+        const assignmentRef = doc(db, 'assignments', assignmentId);
         const assignmentDoc = await getDoc(assignmentRef);
 
         if (assignmentDoc.exists()) {
@@ -66,7 +66,7 @@ const [scaleMax, setScaleMax] = useState(2);
           const scaleMax = assignmentData.scale?.max ? Number(assignmentData.scale.max) : 2;
   
           // Check if there's saved data for the student
-          const progressRef = doc(db, 'assignments(progress:saq)', `${assignmentId}_${studentUid}`);
+          const progressRef = doc(db, 'assignments(progress)', `${assignmentId}_${studentUid}`);
           const savedDataDoc = await getDoc(progressRef);
 
           if (savedDataDoc.exists()) {
@@ -120,7 +120,7 @@ const [scaleMax, setScaleMax] = useState(2);
   
   const initializeAssignment = async () => {
     try {
-      const progressRef = doc(db, 'assignments(progress:saq)', `${assignmentId}_${studentUid}`);
+      const progressRef = doc(db, 'assignments(progress)', `${assignmentId}_${studentUid}`);
       const progressDoc = await getDoc(progressRef);
   
       if (!progressDoc.exists()) {
@@ -195,7 +195,7 @@ const [scaleMax, setScaleMax] = useState(2);
 
   const saveProgress = async (status = 'in_progress') => {
     try {
-      const progressRef = doc(db, 'assignments(progress:saq)', `${assignmentId}_${studentUid}`);
+      const progressRef = doc(db, 'assignments(progress)', `${assignmentId}_${studentUid}`);
       await setDoc(progressRef, {
         assignmentId,
         studentUid,
@@ -310,7 +310,7 @@ const [scaleMax, setScaleMax] = useState(2);
       const percentageScore = ((rawTotalScore / (maxRawScore*(scaleMax - scaleMin)))  * 100) ;
   
       // Create the grade document
-      const gradeDocRef = doc(db, `grades(saq)`, `${assignmentId}_${studentUid}`);
+      const gradeDocRef = doc(db, `grades`, `${assignmentId}_${studentUid}`);
       await setDoc(gradeDocRef, {
         assignmentId,
         studentUid,
@@ -342,7 +342,7 @@ const [scaleMax, setScaleMax] = useState(2);
       });
   
       // Remove the progress document if it exists
-      const progressRef = doc(db, 'assignments(progress:saq)', `${assignmentId}_${studentUid}`);
+      const progressRef = doc(db, 'assignments(progress)', `${assignmentId}_${studentUid}`);
       await deleteDoc(progressRef);
   
       navigate(`/studentassignments/${classId}`);

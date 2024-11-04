@@ -114,6 +114,7 @@ function Assignments() {
       console.error("Error fetching folders:", error);
     }
   };
+  
   const addAssignmentToFolder = async (assignment) => {
     try {
       const folderRef = doc(db, 'folders', selectedFolder.id);
@@ -356,7 +357,8 @@ function Assignments() {
     }
 
     const newAssignmentId = uuidv4();
-    let assignmentId = `${classId}+${newAssignmentId}+${selectedFormat}`;
+    const timestamp = Date.now();
+    let assignmentId = `${classId}+${timestamp}+${selectedFormat}`;
     let navigationPath = '';
 
     switch (selectedFormat) {
@@ -497,54 +499,60 @@ function Assignments() {
     );
   };
 
+  const formatDate = (timestamp) => {
+    if (!timestamp) return '';
+    const date = new Date(parseInt(timestamp));
+    const day = date.getDate().toString().padStart(2, '0');
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const year = date.getFullYear();
+    return `${day}/${month}/${year}`;
+  };
+
   const fetchAssignments = async () => {
     try {
-      const assignmentsCollections = [
-        'assignments(saq)',
-        'assignments(Asaq)',
-        'assignments(mcq)',
-        'assignments(Amcq)'
-      ];
+      const classDocRef = doc(db, 'classes', classId);
+      const classDoc = await getDoc(classDocRef);
   
-      const fetchPromises = assignmentsCollections.map(collectionName =>
-        getDocs(collection(db, collectionName))
-      );
+      if (classDoc.exists()) {
+        const data = classDoc.data();
+        const assignmentsData = data.assignments || [];
   
-      const snapshots = await Promise.all(fetchPromises);
+        const assignments = assignmentsData.map(assignment => {
+          const id = assignment.id;
+          const name = assignment.name;
   
-      let allAssignments = [];
-      snapshots.forEach((snapshot) => {
-        const filteredDocs = snapshot.docs.filter(doc => doc.id.startsWith(`${classId}+`));
-        const assignments = filteredDocs
-          .map(doc => {
-            const data = doc.data();
-            const [, , type] = doc.id.split('+');
-            return {
-              id: doc.id,
-              ...data,
-              type: type.replace('*', ''),
-              name: data.assignmentName || data.name,
-              date: data.createdAt || data.createdDate || new Date(0) // Use createdAt or createdDate, fallback to epoch
-            };
-          })
-          .filter(assignment => assignment.name);
+          // Extract timestamp from assignmentId (format: classId+timestamp+format)
+          const timestamp = id.split('+')[1]; // Get the timestamp part
   
-        allAssignments = allAssignments.concat(assignments);
-      });
+          // Get the format from the last part of the ID
+          const format = id.split('+')[2];
   
-      const sortedAssignments = allAssignments.sort((a, b) => {
-        const dateA = a.date instanceof Date ? a.date : a.date.toDate();
-        const dateB = b.date instanceof Date ? b.date : b.date.toDate();
-        return dateB - dateA; // Sort in descending order (newest first)
-      });
+          return {
+            id,
+            name,
+            type: format,
+            timestamp: timestamp, // Store the original timestamp
+            date: new Date(parseInt(timestamp)), // Convert to Date object for sorting
+            viewable: data.viewableAssignments?.includes(id) || false
+          };
+        });
   
-      setAssignments(sortedAssignments);
-      setAllAssignments(sortedAssignments);
-      setFilteredAssignments(sortedAssignments);
-      setHasContent(sortedAssignments.length > 0);
+        const sortedAssignments = assignments.sort((a, b) => b.date - a.date);
+  
+        setAssignments(sortedAssignments);
+        setAllAssignments(sortedAssignments);
+        setFilteredAssignments(sortedAssignments);
+        setHasContent(sortedAssignments.length > 0);
+      }
     } catch (error) {
       console.error("Error fetching assignments:", error);
     }
+  };
+
+  const formatTimeDisplay = (timestamp) => {
+    if (!timestamp) return '';
+    const date = new Date(parseInt(timestamp));
+    return date.toLocaleString();
   };
 
 
@@ -552,7 +560,6 @@ function Assignments() {
       // Extract the format from the end of the item.id
       const parts = item.id.split('+');
       const format = parts[parts.length - 1];  // Get the last part after splitting
-      const type = item.doc?.data()?.type || 'default';
       if (sortBy === 'drafts') {
         switch (format) {
           case 'SAQ':
@@ -589,24 +596,43 @@ function Assignments() {
         }
       }
     };
+    const fetchDrafts = async () => {
+      try {
+        const classDocRef = doc(db, 'classes', classId);
+        const classDoc = await getDoc(classDocRef);
     
-  const fetchDrafts = async () => {
-    try {
-      const draftsRef = collection(db, 'drafts');
-      const q = query(draftsRef, where('classId', '==', classId));
-      const querySnapshot = await getDocs(q);
-      const fetchedDrafts = querySnapshot.docs.map(doc => ({
-        id: doc.id,
-        name: doc.data().assignmentName || 'Untitled Draft',
-       
-        ...doc.data()
-      }));
-      
-      setDrafts(fetchedDrafts);
-    } catch (error) {
-      console.error("Error fetching drafts:", error);
-    }
-  };
+        if (classDoc.exists()) {
+          const data = classDoc.data();
+          const draftsData = data.drafts || [];
+    
+          const drafts = draftsData.map(draft => {
+            const id = draft.id;
+            const name = draft.name;
+    
+            const parts = id.split('+');
+            const timestamp = parseInt(parts[1]);
+            const format = parts[2];
+    
+            // Convert timestamp to date
+            const date = new Date(timestamp);
+    
+            return {
+              id,
+              name,
+              type: format,
+              date
+            };
+          });
+    
+          const sortedDrafts = drafts.sort((a, b) => b.date - a.date);
+    
+          setDrafts(sortedDrafts);
+        }
+      } catch (error) {
+        console.error("Error fetching drafts:", error);
+      }
+    };
+    
 
   useEffect(() => {
     const fetchClassData = async () => {
@@ -653,32 +679,16 @@ function Assignments() {
 
     handleFilter();
   }, [searchTerm, assignments, selectedFolder, selectedFormat, sortBy, folders, drafts]);
-  const handleCreateFirstAssignment = () => {
-    // Implement the logic to create the first assignment
-   
-    navigate(`/class/${classId}/teacherassignmenthome`)
-    // For example:
-    // navigate(`/class/${classId}/create-assignment`);
-  };
-  const create = () => {
-    // Implement the logic to create the first assignment
-   
-    navigate(`/class/${classId}/teacherassignmenthome`)
-    // For example:
-    // navigate(`/class/${classId}/create-assignment`);
-  };
-  const formatDate = (createdDate) => {
-    if (createdDate && typeof createdDate.toDate === 'function') {
-      const date = createdDate.toDate();
-      return `${date.getMonth() + 1}/${date.getDate()}`;
-    }
-    return '';
-  };
+ 
+
+
+
+ 
+ 
 
  
   
-  const getFormatDisplay = (item) => {
-    const type = getAssignmentType(item);
+  const getFormatDisplay = (type) => {
     switch(type) {
       case 'ASAQ':
       case 'SAQ':
@@ -844,7 +854,7 @@ marginLeft: '-67px',
                     </div>
                     <span style={{position: 'absolute', right: '50px', bottom: '10px', fontSize: '12px', fontWeight: 'bold', color: 'grey'}}>
 
-                    {assignment.createdAt.toDate().toLocaleString()}
+                    {formatDate(assignment.timestamp)}
 
                     </span>
                     <h1 style={{
@@ -1878,7 +1888,7 @@ marginLeft: '-67px',
                   color: 'lightgrey',
                 }}
               >
-                {item.createdAt && item.createdAt.toDate().toLocaleString()}
+                 {formatDate(item.id.split('+')[1])}
               </span>
             </li>
             ))

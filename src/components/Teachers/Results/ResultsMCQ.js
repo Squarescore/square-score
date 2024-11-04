@@ -116,7 +116,7 @@ const TeacherResultsMCQ = () => {
 
   useEffect(() => {
     const fetchAssignmentSettings = async () => {
-      const assignmentRef = doc(db, 'assignments(mcq)', assignmentId);
+      const assignmentRef = doc(db, 'assignments', assignmentId);
       const assignmentDoc = await getDoc(assignmentRef);
       if (assignmentDoc.exists()) {
         const data = assignmentDoc.data();
@@ -138,7 +138,7 @@ const TeacherResultsMCQ = () => {
   }, [assignmentId]);
 
   const updateAssignmentSetting = async (setting, value) => {
-    const assignmentRef = doc(db, 'assignments(mcq)', assignmentId);
+    const assignmentRef = doc(db, 'assignments', assignmentId);
     const updateData = { [setting]: value };
 
     await updateDoc(assignmentRef, updateData);
@@ -462,7 +462,7 @@ const TeacherResultsMCQ = () => {
   // Fetch assignment data
   const fetchAssignmentData = async () => {
     try {
-      const assignmentRef = doc(db, 'assignments(mcq)', assignmentId);
+      const assignmentRef = doc(db, 'assignments', assignmentId);
       const assignmentDoc = await getDoc(assignmentRef);
       if (assignmentDoc.exists()) {
         const data = assignmentDoc.data();
@@ -493,7 +493,7 @@ const TeacherResultsMCQ = () => {
       try {
         console.log('Fetching assignment with ID:', assignmentId);
 
-        const assignmentRef = doc(db, 'assignments(mcq)', assignmentId);
+        const assignmentRef = doc(db, 'assignments', assignmentId);
         const assignmentDoc = await getDoc(assignmentRef);
 
         if (assignmentDoc.exists()) {
@@ -607,7 +607,7 @@ const TeacherResultsMCQ = () => {
   
           // Update assignment document with new class average
           if (calculatedAverage !== null) {
-            const assignmentRef = doc(db, 'assignments(mcq)', assignmentId);
+            const assignmentRef = doc(db, 'assignments', assignmentId);
             await updateDoc(assignmentRef, {
               classAverage: calculatedAverage
             });
@@ -634,11 +634,11 @@ const TeacherResultsMCQ = () => {
       const statusPromises = students.map(async (student) => {
         const progressRef = doc(
           db,
-          'assignments(progress:MCQ)',
+          'assignments(progress)',
           `${assignmentId}_${student.uid}`
         );
         const progressDoc = await getDoc(progressRef);
-        const gradeRef = doc(db, 'grades(mcq)', `${assignmentId}_${student.uid}`);
+        const gradeRef = doc(db, 'grades', `${assignmentId}_${student.uid}`);
         const gradeDoc = await getDoc(gradeRef);
 
         let status = 'not_started';
@@ -698,7 +698,7 @@ const TeacherResultsMCQ = () => {
 
   const updateDates = async (newAssignDate, newDueDate) => {
     try {
-      const assignmentRef = doc(db, 'assignments(mcq)', assignmentId);
+      const assignmentRef = doc(db, 'assignments', assignmentId);
       await updateDoc(assignmentRef, {
         assignDate: newAssignDate.toISOString(),
         dueDate: newDueDate.toISOString(),
@@ -807,13 +807,13 @@ const TeacherResultsMCQ = () => {
       });
 
       // Delete the grade document
-      const gradeRef = doc(db, 'grades(mcq)', `${assignmentId}_${studentUid}`);
+      const gradeRef = doc(db, 'grades', `${assignmentId}_${studentUid}`);
       batch.delete(gradeRef);
 
       // Delete the progress document if it exists
       const progressRef = doc(
         db,
-        'assignments(progress:MCQ)',
+        'assignments(progress)',
         `${assignmentId}_${studentUid}`
       );
       const progressDoc = await getDoc(progressRef);
@@ -849,52 +849,59 @@ const TeacherResultsMCQ = () => {
       setResetStatus((prev) => ({ ...prev, [studentUid]: 'failed' }));
     }
   };
-
   const toggleAllViewable = async () => {
     const newViewableStatus = !allViewable;
     setAllViewable(newViewableStatus);
-
+  
     const batch = writeBatch(db);
-
-    const assignmentRef = doc(db, 'assignments(mcq)', assignmentId);
+  
+    // Update assignment document
+    const assignmentRef = doc(db, 'assignments', assignmentId);
     batch.update(assignmentRef, { viewable: newViewableStatus });
-
+  
+    // Update class document's viewableAssignments array
+    const classRef = doc(db, 'classes', classId);
+    if (newViewableStatus) {
+      // Add assignmentId to viewableAssignments if making viewable
+      batch.update(classRef, {
+        viewableAssignments: arrayUnion(assignmentId)
+      });
+    } else {
+      // Remove assignmentId from viewableAssignments if making non-viewable
+      batch.update(classRef, {
+        viewableAssignments: arrayRemove(assignmentId)
+      });
+    }
+  
+    // Update individual grade documents
     for (const student of students) {
-      const gradeRef = doc(
-        db,
-        'grades(mcq)',
-        `${assignmentId}_${student.uid}`
-      );
-
+      const gradeRef = doc(db, 'grades', `${assignmentId}_${student.uid}`);
       const gradeDoc = await getDoc(gradeRef);
-
+  
       if (gradeDoc.exists()) {
-        const gradeData = gradeDoc.data();
-
-        const updatedData = {
-          viewable: newViewableStatus,
-        };
-
-        batch.update(gradeRef, updatedData);
-
-        setGrades((prevGrades) => ({
+        batch.update(gradeRef, {
+          viewable: newViewableStatus
+        });
+  
+        setGrades(prevGrades => ({
           ...prevGrades,
           [student.uid]: {
             ...prevGrades[student.uid],
-            viewable: newViewableStatus,
-          },
+            viewable: newViewableStatus
+          }
         }));
       }
     }
-
+  
     try {
       await batch.commit();
-      console.log('Successfully updated viewable status for existing documents');
+      console.log('Successfully updated viewable status for all documents');
     } catch (error) {
       console.error('Error updating viewable status:', error);
+      // Revert the local state if the batch update fails
+      setAllViewable(!newViewableStatus);
     }
   };
-
   const togglePauseAssignment = async (studentUid) => {
     if (assignmentStatuses[studentUid] !== 'Paused') return;
 
@@ -904,7 +911,7 @@ const TeacherResultsMCQ = () => {
       const studentRef = doc(db, 'students', studentUid);
       const progressRef = doc(
         db,
-        'assignments(progress:MCQ)',
+        'assignments(progress)',
         `${assignmentId}_${studentUid}`
       );
       const progressDoc = await getDoc(progressRef);

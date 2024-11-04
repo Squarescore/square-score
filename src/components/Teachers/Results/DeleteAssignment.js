@@ -16,18 +16,18 @@ const deleteAssignment = async (assignmentId, classId) => {
 
   try {
     // 1. Delete the assignment document
-    const assignmentRef = doc(db, 'assignments(saq)', assignmentId);
+    const assignmentRef = doc(db, 'assignments', assignmentId);
     batch.delete(assignmentRef);
 
     // 2. Delete all grade documents for this assignment
-    const gradesQuery = query(collection(db, 'grades(saq)'), where('assignmentId', '==', assignmentId));
+    const gradesQuery = query(collection(db, 'grades'), where('assignmentId', '==', assignmentId));
     const gradesSnapshot = await getDocs(gradesQuery);
     gradesSnapshot.forEach((gradeDoc) => {
       batch.delete(gradeDoc.ref);
     });
 
     // 3. Delete all progress documents for this assignment
-    const progressQuery = query(collection(db, 'assignments(progress:saq)'), where('assignmentId', '==', assignmentId));
+    const progressQuery = query(collection(db, 'assignments(progress)'), where('assignmentId', '==', assignmentId));
     const progressSnapshot = await getDocs(progressQuery);
     progressSnapshot.forEach((progressDoc) => {
       batch.delete(progressDoc.ref);

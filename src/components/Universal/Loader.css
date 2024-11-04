@@ -1,54 +1,59 @@
-.lds-ripple {
-  /* change color here */
-  color: #020CFF
-}
-.lds-ripple,
-.lds-ripple div {
-  box-sizing: border-box;
-}
-.lds-ripple {
-  display: inline-block;
+.loader {
+  display: block;
   position: relative;
-  width: 180px;
-  height:180px;
+  height: 20px;
+  width: 140px;
+  background-image: linear-gradient(#f4f4f4 20px, transparent 0), 
+                    linear-gradient(#f4f4f4 20px, transparent 0), 
+                    linear-gradient(#f4f4f4 20px, transparent 0), 
+                    linear-gradient(#f4f4f4 20px, transparent 0);
+  background-repeat: no-repeat;
+  background-size: 20px auto;
+  background-position: 0 0, 40px 0, 80px 0, 120px 0;
+  animation: pgfill 2.5s steps(1) infinite;
 }
-.lds-ripple div {
-  position: absolute;
-  border: 8px solid currentColor;
-  opacity: 1;
-  border-radius: 15%;
-  animation: lds-ripple 1.5s cubic-bezier(0, 0.2, 0.8, 1) infinite;
-}
-.lds-ripple div:nth-child(2) {
-  animation-delay: -0.5s;
-}
-@keyframes lds-ripple {
+
+@keyframes pgfill {
   0% {
-    top: 36px;
-    left: 36px;
-    width: 8px;
-    height: 8px;
-    opacity: 0;
+      background-image: linear-gradient(#f4f4f4 20px, transparent 0),
+                       linear-gradient(#f4f4f4 20px, transparent 0),
+                       linear-gradient(#f4f4f4 20px, transparent 0),
+                       linear-gradient(#FCCA18 20px, rgba(252, 202, 24, 0.3)),
+                       linear-gradient(#00CD09 20px, rgba(0, 205, 9, 0.1));
   }
-  4.9% {
-    top: 36px;
-    left: 36px;
-    width: 8px;
-    height: 8px;
-    opacity: 0;
+  20% {
+      background-image: linear-gradient(#020CFF 20px, rgba(2, 12, 255, 1)),
+                       linear-gradient(#f4f4f4 20px, transparent 0),
+                       linear-gradient(#f4f4f4 20px, transparent 0),
+                       linear-gradient(#f4f4f4 20px, transparent 0),
+                       linear-gradient(#FCCA18 20px, rgba(252, 202, 24, 0.1));
   }
-  5% {
-    top: 86px;
-    left: 86px;
-    width: 8px;
-    height: 8px;
-    opacity: 1;
+  40% {
+      background-image: linear-gradient(#f4f4f4 20px, transparent 0),
+                       linear-gradient(#E441FF 20px, rgba(228, 65, 255, 0.3)),
+                       linear-gradient(#f4f4f4 20px, transparent 0),
+                       linear-gradient(#f4f4f4 20px, transparent 0),
+                       linear-gradient(#020CFF 20px, rgba(2, 12, 255, 0.1));
+  }
+  60% {
+      background-image: linear-gradient(#f4f4f4 20px, transparent 0),
+                       linear-gradient(#f4f4f4 20px, transparent 0),
+                       linear-gradient(#00CD09 20px, rgba(0, 205, 9, 0.3)),
+                       linear-gradient(#f4f4f4 20px, transparent 0),
+                       linear-gradient(#E441FF 20px, rgba(228, 65, 255, 0.1));
+  }
+  80% {
+      background-image: linear-gradient(#f4f4f4 20px, transparent 0),
+                       linear-gradient(#f4f4f4 20px, transparent 0),
+                       linear-gradient(#f4f4f4 20px, transparent 0),
+                       linear-gradient(#FCCA18 20px, rgba(252, 202, 24, 0.3)),
+                       linear-gradient(#00CD09 20px, rgba(0, 205, 9, 0.1));
   }
   100% {
-    top: 0;
-    left: 0;
-    width: 180px;
-    height: 180px;
-    opacity: 0;
+      background-image: linear-gradient(#f4f4f4 20px, transparent 0),
+                       linear-gradient(#f4f4f4 20px, transparent 0),
+                       linear-gradient(#f4f4f4 20px, transparent 0),
+                       linear-gradient(#f4f4f4 20px, transparent 0),
+                       linear-gradient(#FCCA18 20px, rgba(252, 202, 24, 0.3));
   }
 }

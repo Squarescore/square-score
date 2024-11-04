@@ -47,7 +47,7 @@ const TeacherResultsASAQ = () => {
   });
   useEffect(() => {
     const fetchAssignmentSettings = async () => {
-      const assignmentRef = doc(db, 'assignments(Asaq)', assignmentId);
+      const assignmentRef = doc(db, 'assignments', assignmentId);
       const assignmentDoc = await getDoc(assignmentRef);
       if (assignmentDoc.exists()) {
         const data = assignmentDoc.data();
@@ -181,7 +181,7 @@ const TeacherResultsASAQ = () => {
     </div>
   );
   const updateAssignmentSetting = async (setting, value) => {
-    const assignmentRef = doc(db, 'assignments(Asaq)', assignmentId);
+    const assignmentRef = doc(db, 'assignments', assignmentId);
     const updateData = { [setting]: value };
     
    
@@ -204,7 +204,7 @@ const TeacherResultsASAQ = () => {
     const batch = writeBatch(db);
   
     for (const student of students) {
-      const gradeRef = doc(db, 'grades(Asaq)', `${assignmentId}_${student.uid}`);
+      const gradeRef = doc(db, 'grades', `${assignmentId}_${student.uid}`);
       
       // First, check if the document exists
       const gradeDoc = await getDoc(gradeRef);
@@ -250,7 +250,7 @@ const TeacherResultsASAQ = () => {
   };
   const updateDates = async (newAssignDate, newDueDate) => {
     try {
-      const assignmentRef = doc(db, 'assignments(Asaq)', assignmentId);
+      const assignmentRef = doc(db, 'assignments', assignmentId);
       await updateDoc(assignmentRef, {
         assignDate: newAssignDate.toISOString(),
         dueDate: newDueDate.toISOString()
@@ -267,7 +267,7 @@ const TeacherResultsASAQ = () => {
   
     try {
       const studentRef = doc(db, 'students', studentUid);
-      const progressRef = doc(db, 'assignments(progress:Asaq)', `${assignmentId}_${studentUid}`);
+      const progressRef = doc(db, 'assignments(progress)', `${assignmentId}_${studentUid}`);
       const progressDoc = await getDoc(progressRef);
   
       if (progressDoc.exists()) {
@@ -292,7 +292,7 @@ const TeacherResultsASAQ = () => {
   useEffect(() => {
     const fetchAssignmentName = async () => {
       try {
-        const assignmentRef = doc(db, 'assignments(Asaq)', assignmentId);
+        const assignmentRef = doc(db, 'assignments', assignmentId);
         const assignmentDoc = await getDoc(assignmentRef);
         if (assignmentDoc.exists()) {
           const data = assignmentDoc.data();
@@ -344,7 +344,7 @@ const TeacherResultsASAQ = () => {
           
           setStudents(sortedStudents);
       
-          const gradesCollection = collection(db, 'grades(Asaq)');
+          const gradesCollection = collection(db, 'grades');
           const gradesQuery = query(gradesCollection, where('assignmentId', '==', assignmentId));
           const gradesSnapshot = await getDocs(gradesQuery);
           const fetchedGrades = {};
@@ -374,7 +374,7 @@ const TeacherResultsASAQ = () => {
           setGrades(fetchedGrades);
       
           const classAverage = totalGradesCount > 0 ? (totalScore / totalGradesCount).toFixed(2) : 'N/A';
-          const assignmentRef = doc(db, 'assignments(Asaq)', assignmentId);
+          const assignmentRef = doc(db, 'assignments', assignmentId);
           await updateDoc(assignmentRef, { classAverage: parseFloat(classAverage) });
         }
       } catch (error) {
@@ -440,7 +440,7 @@ const TeacherResultsASAQ = () => {
  useEffect(() => {
     const fetchAssignmentData = async () => {
       try {
-        const assignmentRef = doc(db, 'assignments(Asaq)', assignmentId);
+        const assignmentRef = doc(db, 'assignments', assignmentId);
         const assignmentDoc = await getDoc(assignmentRef);
         if (assignmentDoc.exists()) {
           const data = assignmentDoc.data();
@@ -697,7 +697,7 @@ const navigateToStudentGrades = (studentUid) => {
 
   useEffect(() => {
     const fetchReviewCount = async () => {
-      const gradesCollection = collection(db, 'grades(Asaq)');
+      const gradesCollection = collection(db, 'grades');
       let count = 0;
     
       for (let i = 0; i < students.length; i += chunkSize) {
@@ -736,9 +736,9 @@ const navigateToStudentGrades = (studentUid) => {
   useEffect(() => {
     const fetchAssignmentStatus = async () => {
       const statusPromises = students.map(async (student) => {
-        const progressRef = doc(db, 'assignments(progress:Asaq)', `${assignmentId}_${student.uid}`);
+        const progressRef = doc(db, 'assignments(progress)', `${assignmentId}_${student.uid}`);
         const progressDoc = await getDoc(progressRef);
-        const gradeRef = doc(db, 'grades(Asaq)', `${assignmentId}_${student.uid}`);
+        const gradeRef = doc(db, 'grades', `${assignmentId}_${student.uid}`);
         const gradeDoc = await getDoc(gradeRef);
   
         let status = 'not_started';

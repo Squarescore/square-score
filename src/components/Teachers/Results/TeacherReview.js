@@ -27,7 +27,7 @@ const TeacherReview = () => {
     let timeoutId;
     if (currentReview?.questions[currentIndex]?.feedback) {
       timeoutId = setTimeout(async () => {
-        const reviewRef = doc(db, 'grades(saq)', `${assignmentId}_${currentReview.studentUid}`);
+        const reviewRef = doc(db, 'grades', `${assignmentId}_${currentReview.studentUid}`);
         await updateDoc(reviewRef, {
           questions: currentReview.questions
         });
@@ -36,7 +36,7 @@ const TeacherReview = () => {
     return () => clearTimeout(timeoutId);
   }, [currentReview?.questions[currentIndex]?.feedback]);
   const fetchReviewsNeedingAttention = async () => {
-    const gradesCollection = collection(db, 'grades(saq)');
+    const gradesCollection = collection(db, 'grades');
     const gradesQuery = query(gradesCollection, where('assignmentId', '==', assignmentId));
     const querySnapshot = await getDocs(gradesQuery);
     let reviews = [];
@@ -62,7 +62,7 @@ const TeacherReview = () => {
 
   useEffect(() => {
     const fetchAssignmentName = async () => {
-      const assignmentRef = doc(db, 'assignments(saq)', assignmentId);
+      const assignmentRef = doc(db, 'assignments', assignmentId);
       const assignmentDoc = await getDoc(assignmentRef);
       if (assignmentDoc.exists()) {
         setAssignmentName(assignmentDoc.data().assignmentName);
@@ -87,7 +87,7 @@ const TeacherReview = () => {
 
   useEffect(() => {
     const fetchReviewCount = async () => {
-      const gradesCollection = collection(db, 'grades(saq)');
+      const gradesCollection = collection(db, 'grades');
       let count = 0;
 
       for (let i = 0; i < students.length; i += chunkSize) {
@@ -130,7 +130,7 @@ const TeacherReview = () => {
       updatedReview.maxScore = maxScore;
       updatedReview.percentageScore = (totalScore / maxScore) * 100;
 
-      const reviewRef = doc(db, 'grades(saq)', `${assignmentId}_${currentReview.studentUid}`);
+      const reviewRef = doc(db, 'grades', `${assignmentId}_${currentReview.studentUid}`);
       await updateDoc(reviewRef, updatedReview);
 
       const nextStudentIndex = students.findIndex(student => student.uid === currentReview.studentUid) + 1;

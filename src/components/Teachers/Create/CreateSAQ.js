@@ -25,6 +25,7 @@ import { auth } from '../../Universal/firebase';
 import CustomExpandingFormatSelector from './ExpandingFormatSelector';
 import AnimationAll from '../../Universal/AnimationAll';
 import { AssignmentName, FormatSection, PreferencesSection, QuestionCountSection, TimerSection, ToggleSwitch } from './Elements';
+import { safeClassUpdate, safeTeacherDataUpdate } from '../../teacherDataHelpers';
 
 const dropdownContentStyle = `
   .dropdown-content {
@@ -41,21 +42,6 @@ const dropdownContentStyle = `
     max-height: 1000px;
     opacity: 1;
     visibility: visible;
-  }
-`;
-const loaderStyle = `
-  .loader {
-    height: 4px;
-    width: 130px;
-    --c: no-repeat linear-gradient(#020CFF 0 0);
-    background: var(--c), var(--c), #627BFF;
-    background-size: 60% 100%;
-    animation: l16 3s infinite;
-  }
-  @keyframes l16 {
-    0%   {background-position: -150% 0, -150% 0}
-    66%  {background-position: 250% 0, -150% 0}
-    100% {background-position: 250% 0, 250% 0}
   }
 `;
 
@@ -285,9 +271,35 @@ function CreateAssignment() {
   const [selectedFormat, setSelectedFormat] = useState('SAQ');
   const [showFormatDropdown, setShowFormatDropdown] = useState(false);
 
+  const [isSaving, setIsSaving] = useState(false);
 
-
-
+  const LoaderScreen = () => (
+    <div style={{
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: 'rgba(255, 255, 255, 0.9)',
+      backdropFilter: 'blur(5px)',
+      display: 'flex',
+      flexDirection: 'column',
+      justifyContent: 'center',
+      alignItems: 'center',
+      zIndex: 9999
+    }}>
+      <div className="loader" style={{ marginBottom: '20px' }}></div>
+      <div style={{
+        fontFamily: "'montserrat', sans-serif",
+        fontSize: '20px',
+        color: 'lightgrey',
+        fontWeight: '600'
+      }}>
+        Saving...
+      </div>
+    </div>
+  );
+  
 
 
   useEffect(() => {
@@ -401,111 +413,156 @@ function CreateAssignment() {
     }
   }, [location]);
 
-  const saveDraft = async () => {
-    const draftData = {
-      classId,
-      assignmentName,
-      timer: timerOn ? timer : '0',
-      timerOn,
-      halfCredit,
-      scale: {
-        min: scaleMin,
-        max: scaleMax,
-      },
-      assignDate: formatDate(assignDate),
-      dueDate: formatDate(dueDate),
-      selectedStudents: Array.from(selectedStudents),
-      saveAndExit,
-      lockdown,
-      questionBank,
-      questionStudent,
-      createdAt: serverTimestamp(),
-      assignmentType,
-      isAdaptive,
-      sourceText,
-      questions: generatedQuestions.reduce((acc, question) => {
-        acc[question.questionId] = {
-          question: question.question,
-          rubric: question.rubric
-        };
-        return acc;
-      }, {}),
-    };
-  
-    const draftRef = doc(db, 'drafts', assignmentId);
-    await setDoc(draftRef, draftData);
-  
-    // Update the class document with the new draft ID
-    const classRef = doc(db, 'classes', classId);
-    await updateDoc(classRef, {
-      [`assignment(${assignmentType.toLowerCase()})`]: arrayUnion(assignmentId)
-    });
-  
-    navigate(`/class/${classId}/Assignments`, {
-      state: { showDrafts: true, newDraftId: assignmentId }
-    });
-  };
+
+
   const saveAssignment = async () => {
-    const finalAssignmentId = assignmentId.startsWith('DRAFT') ? assignmentId.slice(5) : assignmentId;
-  
-    const assignmentData = {
-      classId,
-      assignmentName,
-      timer: timerOn ? Number(timer) : 0,
-      halfCredit,
-      assignDate: formatDate(assignDate),
-      dueDate: formatDate(dueDate),
-      scale: {
-        min: scaleMin,
-        max: scaleMax,
-      },
-      selectedStudents: Array.from(selectedStudents),
-      questionCount: {
-        bank: questionBank,
-        student: questionStudent,
-      },
-      createdAt: serverTimestamp(),
-      questions: generatedQuestions.reduce((acc, question) => {
-        // Use the questionId as the key instead of sequential numbering
-        acc[question.questionId] = {
-          question: question.question,
-          rubric: question.rubric
-        };
-        return acc;
-      }, {}),
-      lockdown,
-      saveAndExit,
-      assignmentType,
-      isAdaptive,
-      additionalInstructions,
-    };
-  
-    const collectionName = `assignments(${assignmentType.toLowerCase()})`;
-    const assignmentRef = doc(db, collectionName, finalAssignmentId);
-    await setDoc(assignmentRef, assignmentData);
-  
-    // Update the class document
-    const classRef = doc(db, 'classes', classId);
-    await updateDoc(classRef, {
-      [`assignment(${assignmentType.toLowerCase()})`]: arrayUnion(finalAssignmentId)
-    });
-  
-    // Remove the draft if it exists
-    if (draftId) {
-      const draftRef = doc(db, 'drafts', draftId);
-      await deleteDoc(draftRef);
-    }
-  
-    // Assign to students
-    await assignToStudents(finalAssignmentId);
-  
-    navigate(`/class/${classId}`, {
-      state: {
-        successMessage: `Success: ${assignmentName} published`,
-        assignmentId: finalAssignmentId,
-        format: 'SAQ'
+
+
+    if (isSaving) return; // Prevent multiple clicks
+    setIsSaving(true);
+
+    try {
+
+
+      const finalAssignmentId = assignmentId.startsWith('DRAFT') ? assignmentId.slice(5) : assignmentId;
+
+      const assignmentData = {
+        classId,
+        format: 'SAQ',
+        assignmentName,
+        timer: timerOn ? Number(timer) : 0,
+        halfCredit,
+        assignDate: formatDate(assignDate),
+        dueDate: formatDate(dueDate),
+        scale: {
+          min: scaleMin,
+          max: scaleMax,
+        },
+        selectedStudents: Array.from(selectedStudents),
+        questionCount: {
+          bank: questionBank,
+          student: questionStudent,
+        },
+        createdAt: serverTimestamp(),
+        questions: generatedQuestions.reduce((acc, question) => {
+          acc[question.questionId] = {
+            question: question.question,
+            rubric: question.rubric
+          };
+          return acc;
+        }, {}),
+        lockdown,
+        saveAndExit,
+        isAdaptive,
+        additionalInstructions,
+      };
+
+      // Save to assignments collection
+      const assignmentRef = doc(db, 'assignments', finalAssignmentId);
+      await setDoc(assignmentRef, assignmentData);
+
+      // Add assignment to class via Cloud Function
+      await safeClassUpdate('addAssignmentToClass', { 
+        classId, 
+        assignmentId: finalAssignmentId, 
+        assignmentName
+      });
+
+      // If publishing from a draft, remove the draft
+      if (draftId) {
+        const draftRef = doc(db, 'drafts', draftId);
+        await deleteDoc(draftRef);
+
+        // Move draft to assignment via Cloud Function
+        await safeClassUpdate('moveDraftToAssignment', { 
+          classId, 
+          draftId, 
+          assignmentId: finalAssignmentId, 
+          assignmentName, 
+        });
       }
-    });
+
+      // Assign to students
+      await assignToStudents(finalAssignmentId);
+
+      // Navigate with success message
+      navigate(`/class/${classId}`, {
+        state: {
+          successMessage: `Success: ${assignmentName} published`,
+          assignmentId: finalAssignmentId,
+          format: 'SAQ'
+        }
+      });
+    } catch (error) {
+      console.error("Error saving draft:", error);
+      alert(`Error saving draft: ${error.message}. Please try again.`);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+  const saveDraft = async () => {
+    if (isSaving) return; // Prevent multiple clicks
+    setIsSaving(true);
+    try {
+      // Remove 'DRAFT' prefix if it exists
+      const finalDraftId = assignmentId.startsWith('DRAFT') ? assignmentId.slice(5) : assignmentId;
+  
+      const draftData = {
+        classId,
+        assignmentName,
+        timer: timerOn ? Number(timer) : 0,
+        timerOn,
+        halfCredit,
+        assignDate: formatDate(assignDate),
+        dueDate: formatDate(dueDate),
+        scale: {
+          min: scaleMin,
+          max: scaleMax,
+        },
+        selectedStudents: Array.from(selectedStudents),
+        saveAndExit,
+        lockdown,
+        questionBank,
+        questionStudent,
+        createdAt: serverTimestamp(),
+        isAdaptive,
+        sourceText,
+        additionalInstructions,
+        questions: generatedQuestions.reduce((acc, question) => {
+          acc[question.questionId] = {
+            question: question.question,
+            rubric: question.rubric
+          };
+          return acc;
+        }, {}),
+        format: 'SAQ' // Add format field
+      };
+  
+      // Save draft to drafts collection
+      const draftRef = doc(db, 'drafts', finalDraftId);
+      await setDoc(draftRef, draftData);
+  
+      // Add draft to class via Cloud Function
+      await safeClassUpdate('addDraftToClass', { 
+        classId, 
+        assignmentId: finalDraftId, // Use draftId instead of assignmentId
+        assignmentName 
+      });
+  
+      // Navigate back to Assignments with indication to show drafts
+      navigate(`/class/${classId}/Assignments`, {
+        state: { 
+          showDrafts: true, 
+          newDraftId: finalDraftId 
+        }
+      });
+  
+    } catch (error) {
+      console.error("Error saving assignment:", error);
+      alert(`Error publishing assignment: ${error.message}. Please try again.`);
+    } finally {
+      setIsSaving(false);
+    }
   };
   
 
@@ -619,11 +676,11 @@ const GenerateSAQ = async (sourceText, questionCount, additionalInstructions, cl
         display: 'flex',
         flexDirection: 'column',
         backgroundColor: '#fcfcfc'}}>  <Navbar userType="teacher" />
-        <style>{dropdownContentStyle}{loaderStyle}</style>
+        <style>{dropdownContentStyle}</style>
         <div style={{ marginTop: '150px', width: '800px', padding: '15px', marginLeft: 'auto', marginRight: 'auto', fontFamily: "'montserrat', sans-serif", background: 'white', borderRadius: '25px', 
                boxShadow: '1px 1px 10px 1px rgb(0,0,155,.1)', marginBottom: '40px' }}>
        
-              
+       {isSaving && <LoaderScreen />}
 
 
         {showPreview && generatedQuestions.length > 0 && (

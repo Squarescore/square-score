@@ -92,7 +92,7 @@ const [showIncorrectScreen, setShowIncorrectScreen] = useState(false);
   const fetchAssignment = async () => {
     setLoading(true);
     try {
-      const assignmentRef = doc(db, 'assignments(Asaq)', assignmentId);
+      const assignmentRef = doc(db, 'assignments', assignmentId);
       const assignmentDoc = await getDoc(assignmentRef);
   
       if (assignmentDoc.exists()) {
@@ -134,7 +134,7 @@ const [showIncorrectScreen, setShowIncorrectScreen] = useState(false);
   }, [assignmentId]);
 
   const fetchSavedProgress = async (assignmentData) => {
-    const progressRef = doc(db, 'assignments(progress:Asaq)', `${assignmentId}_${studentUid}`);
+    const progressRef = doc(db, 'assignments(progress)', `${assignmentId}_${studentUid}`);
     const progressDoc = await getDoc(progressRef);
     if (progressDoc.exists()) {
       const data = progressDoc.data();
@@ -314,7 +314,7 @@ const [showIncorrectScreen, setShowIncorrectScreen] = useState(false);
   };
 
   const saveProgress = async () => {
-    const progressRef = doc(db, 'assignments(progress:Asaq)', `${assignmentId}_${studentUid}`);
+    const progressRef = doc(db, 'assignments(progress)', `${assignmentId}_${studentUid}`);
     const progressData = {
       score: score || 0,  // Use 0 if score is undefined
       streak: streak || 0,  // Use 0 if streak is undefined
@@ -341,7 +341,7 @@ const [showIncorrectScreen, setShowIncorrectScreen] = useState(false);
   const handleSubmit = async () => {
     
     try {
-      const gradeDocRef = doc(db, 'grades(Asaq)', `${assignmentId}_${studentUid}`);
+      const gradeDocRef = doc(db, 'grades', `${assignmentId}_${studentUid}`);
       await setDoc(gradeDocRef, {
         assignmentId,
         studentUid,
@@ -366,7 +366,7 @@ const [showIncorrectScreen, setShowIncorrectScreen] = useState(false);
         assignmentsTaken: arrayUnion(assignmentId)
       });
 
-      const progressRef = doc(db, 'assignments(progress:Asaq)', `${assignmentId}_${studentUid}`);
+      const progressRef = doc(db, 'assignments(progress', `${assignmentId}_${studentUid}`);
       await deleteDoc(progressRef);
 
       navigate(`/studentassignments/${classId}`);

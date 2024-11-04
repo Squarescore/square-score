@@ -72,7 +72,7 @@ function TakeMCQ() {
       setLoading(true);
       try {
         console.log('Fetching assignment:', assignmentId);
-        const assignmentRef = doc(db, 'assignments(mcq)', assignmentId);
+        const assignmentRef = doc(db, 'assignments', assignmentId);
         const assignmentDoc = await getDoc(assignmentRef);
   
         if (assignmentDoc.exists()) {
@@ -86,7 +86,7 @@ function TakeMCQ() {
           setLockdown(assignmentData.lockdown || false);
         
           // Check if there's saved data for the student
-          const progressRef = doc(db, 'assignments(progress:mcq)', `${assignmentId}_${studentUid}`);
+          const progressRef = doc(db, 'assignments(progress)', `${assignmentId}_${studentUid}`);
           const savedDataDoc = await getDoc(progressRef);
         
           if (savedDataDoc.exists()) {
@@ -126,7 +126,7 @@ function TakeMCQ() {
         });
   
         // Create initial progress document
-        const progressRef = doc(db, 'assignments(progress:mcq)', `${assignmentId}_${studentUid}`);
+        const progressRef = doc(db, 'assignments(progress)', `${assignmentId}_${studentUid}`);
         await setDoc(progressRef, {
           assignmentId,
           studentUid,
@@ -187,7 +187,7 @@ function TakeMCQ() {
   
   const saveProgress = async (status = 'in_progress') => {
     try {
-      const progressRef = doc(db, 'assignments(progress:mcq)', `${assignmentId}_${studentUid}`);
+      const progressRef = doc(db, 'assignments(progress)', `${assignmentId}_${studentUid}`);
       await setDoc(progressRef, {
         assignmentId,
         studentUid,
@@ -267,7 +267,7 @@ function TakeMCQ() {
      
   
       // Create the grade document
-      const gradeDocRef = doc(db, `grades(mcq)`, `${assignmentId}_${studentUid}`);
+      const gradeDocRef = doc(db, `grades`, `${assignmentId}_${studentUid}`);
       await setDoc(gradeDocRef, {
         assignmentId,
         studentUid,
@@ -292,7 +292,7 @@ function TakeMCQ() {
       });
   
       // Remove the progress document if it exists
-      const progressRef = doc(db, 'assignments(progress:mcq)', `${assignmentId}_${studentUid}`);
+      const progressRef = doc(db, 'assignments(progress)', `${assignmentId}_${studentUid}`);
       await deleteDoc(progressRef);
   
       navigate(`/studentassignments/${classId}`);

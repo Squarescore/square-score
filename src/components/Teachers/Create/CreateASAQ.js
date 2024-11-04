@@ -20,6 +20,7 @@ import { AssignmentActionButtons, usePublishState } from './AssignmentActionButt
 import CustomExpandingFormatSelector from './ExpandingFormatSelector';
 import { AssignmentName, FormatSection, PreferencesSection, TimerSection, ToggleSwitch } from './Elements';
 import { Button } from 'react-scroll';
+import { safeClassUpdate } from '../../teacherDataHelpers';
 const dropdownContentStyle = `
   .dropdown-content {
     max-height: 0;
@@ -77,7 +78,8 @@ function SAQA() {
   const [questionBank, setQuestionBank] = useState('40');
   const [timerOn, setTimerOn] = useState(false);
   const location = useLocation();
-  
+  const [isSaving, setIsSaving] = useState(false);
+
   const [isAdaptive, setIsAdaptive] = useState(true);
   const [additionalInstructions, setAdditionalInstructions] = useState(['']);
   const [selectedStudents, setSelectedStudents] = useState(new Set());
@@ -225,11 +227,18 @@ function SAQA() {
       setIsAdaptive(isAdaptive);
     }
   }, [location.state]);
+
+
+  
   const saveAssignment = async () => {
+    if (isSaving) return; // Prevent multiple clicks
+    setIsSaving(true);
     const finalAssignmentId = assignmentId.startsWith('DRAFT') ? assignmentId.slice(5) : assignmentId;
   
     const assignmentData = {
       classId,
+      
+      format: 'ASAQ',
       assignmentName,
       timer: timerOn ? timer : 0,
       halfCredit,
@@ -253,30 +262,39 @@ function SAQA() {
         rubric: question.rubric
       };
     });
-      const collectionName = `assignments(Asaq)`;
-      const assignmentRef = doc(db, collectionName, finalAssignmentId);
-      await setDoc(assignmentRef, assignmentData);
-    
-      // Update the class document
-      const classRef = doc(db, 'classes', classId);
-      await updateDoc(classRef, {
-        [`assignment(${assignmentType.toLowerCase()})`]: arrayUnion(finalAssignmentId)
-      });
-    
-      // Remove the draft if it exists
- 
-    
-      // Assign to students
-      await assignToStudents(finalAssignmentId);
-    
-      navigate(`/class/${classId}`, {
-        state: {
-          successMessage: `Success: ${assignmentName} published`,
-          assignmentId: finalAssignmentId,
-          format: 'ASAQ'
-        }
-      });
-    };
+    try {
+    const assignmentRef = doc(db, 'assignments', finalAssignmentId);
+    await setDoc(assignmentRef, assignmentData);
+
+    // Add assignment to class via Cloud Function
+    await safeClassUpdate('addAssignmentToClass', { 
+      classId, 
+      assignmentId: finalAssignmentId, 
+      assignmentName
+    });
+
+    // If publishing from a draft, remove the draft - logic not made yet
+   
+
+    // Assign to students
+    await assignToStudents(finalAssignmentId);
+
+    // Navigate with success message
+    navigate(`/class/${classId}`, {
+      state: {
+        successMessage: `Success: ${assignmentName} published`,
+        assignmentId: finalAssignmentId,
+        format: 'SAQ'
+      }
+    });
+  } catch (error) {
+    console.error("Error saving draft:", error);
+    alert(`Error saving draft: ${error.message}. Please try again.`);
+  } finally {
+    setIsSaving(false);
+  }
+};
+
   
   
   

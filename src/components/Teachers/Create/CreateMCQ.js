@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 
 import axios from 'axios';
 
-import { doc, getDoc, setDoc, writeBatch, arrayUnion, serverTimestamp, arrayRemove, updateDoc} from 'firebase/firestore';
+import { doc, getDoc, setDoc, writeBatch, arrayUnion, serverTimestamp, arrayRemove, updateDoc, deleteDoc} from 'firebase/firestore';
 
 import { db, auth } from '../../Universal/firebase'; // Ensure the path is correct
 import { AssignmentActionButtons, usePublishState } from './AssignmentActionButtons';
@@ -21,6 +21,8 @@ import PreviewMCQ from './previewMCQ';
 import CustomExpandingFormatSelector from './ExpandingFormatSelector';
 import { AssignmentName, ChoicesPerQuestion, FormatSection, PreferencesSection, QuestionCountSection, TimerSection, ToggleSwitch } from './Elements';
 import SourcePreviewToggle from './SourcePreviewToggle';
+import { safeClassUpdate } from '../../teacherDataHelpers';
+import Loader from '../../Universal/Loader';
 
 const dropdownContentStyle = `
   .dropdown-content {
@@ -40,21 +42,7 @@ const dropdownContentStyle = `
   }
 `;
 
-const loaderStyle = `
-  .loader {
-    height: 4px;
-    width: 130px;
-    --c: no-repeat linear-gradient(#020CFF 0 0);
-    background: var(--c), var(--c), #627BFF;
-    background-size: 60% 100%;
-    animation: l16 3s infinite;
-  }
-  @keyframes l16 {
-    0%   {background-position: -150% 0, -150% 0}
-    66%  {background-position: 250% 0, -150% 0}
-    100% {background-position: 250% 0, 250% 0}
-  }
-`;
+
 
 const MCQ = () => {
   const [teacherId, setTeacherId] = useState(null);
@@ -99,8 +87,37 @@ const [progressText, setProgressText] = useState('');
   const [showFormatDropdown, setShowFormatDropdown] = useState(false);
 
 
+// Add to state declarations
+const [isSaving, setIsSaving] = useState(false)
+  const LoaderScreen = () => (
+    <div style={{
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: 'rgba(255, 255, 255, 0.9)',
+      backdropFilter: 'blur(5px)',
+      display: 'flex',
+      flexDirection: 'column',
+      justifyContent: 'center',
+      alignItems: 'center',
+      zIndex: 99
+    }}>
+      <Loader/>
+      <div style={{
+        fontFamily: "'montserrat', sans-serif",
+        fontSize: '16px',
+        marginTop: '20px',
+        color: 'lightgrey ',
 
-
+        fontWeight: '600'
+      }}>
+        Saving...
+      </div>
+    </div>
+  );
+  
 
  
   const toggleAdditionalInstructions = () => {
@@ -204,7 +221,7 @@ const [progressText, setProgressText] = useState('');
           
           if (Array.isArray(questions)) {
             const questionsWithIds = questions.map((question, index) => ({
-              questionId: `${assignmentId}(question${index + 1})`,
+              questionId: uuidv4(),
               ...question
             }));
             console.log('Generated questions:', questionsWithIds);
@@ -276,6 +293,11 @@ const [progressText, setProgressText] = useState('');
     }
   }, [classId, assignmentId]);
   const saveDraft = async () => {
+
+
+    if (isSaving) return; // Prevent multiple clicks
+    setIsSaving(true);
+
     const draftData = {
       classId,
       assignmentName,
@@ -314,10 +336,15 @@ const [progressText, setProgressText] = useState('');
     } catch (error) {
       console.error("Error saving draft:", error);
       alert(`Error saving draft: ${error.message}. Please try again.`);
+    } finally {
+      setIsSaving(false);
     }
   };
 
   const saveAssignment = async () => {
+    if (isSaving) return; // Prevent multiple clicks
+    setIsSaving(true);
+
     const finalAssignmentId = assignmentId.startsWith('DRAFT') ? assignmentId.slice(5) : assignmentId;
   
     const formatQuestion = (question) => {
@@ -342,8 +369,8 @@ const [progressText, setProgressText] = useState('');
     };
   
     const assignmentData = {
-      assignmentId: finalAssignmentId,
       classId,
+      format: 'MCQ',
       assignmentName,
       timer: timerOn ? Number(timer) : 0,
       timerOn,
@@ -362,30 +389,35 @@ const [progressText, setProgressText] = useState('');
     };
   
     try {
-      console.log("Attempting to save assignment with data:", assignmentData);
-      
-      const assignmentRef = doc(db, 'assignments(mcq)', finalAssignmentId);
+     
+      const assignmentRef = doc(db, 'assignments', finalAssignmentId);
       await setDoc(assignmentRef, assignmentData);
-      
-      console.log("Assignment saved successfully. Assigning to students...");
-      
-      await assignToStudents(finalAssignmentId);
-      
-      console.log("Assignment assigned to students successfully.");
-  
+
+      // Add assignment to class via Cloud Function
+      await safeClassUpdate('addAssignmentToClass', { 
+        classId, 
+        assignmentId: finalAssignmentId, 
+        assignmentName
+      });
+
+      // If publishing from a draft, remove the draft
       if (draftId) {
         const draftRef = doc(db, 'drafts', draftId);
-        await setDoc(draftRef, {});
-  
-        const classRef = doc(db, 'classes', classId);
-        await updateDoc(classRef, {
-          [`assignment(mcq)`]: arrayRemove(assignmentId)
-        });
-        await updateDoc(classRef, {
-          [`assignment(mcq)`]: arrayUnion(finalAssignmentId)
+        await deleteDoc(draftRef);
+
+        // Move draft to assignment via Cloud Function
+        await safeClassUpdate('moveDraftToAssignment', { 
+          classId, 
+          draftId, 
+          assignmentId: finalAssignmentId, 
+          assignmentName, 
         });
       }
-  
+
+      // Assign to students
+      await assignToStudents(finalAssignmentId);
+
+      // Navigate with success message
       navigate(`/class/${classId}`, {
         state: {
           successMessage: `Success: ${assignmentName} published`,
@@ -394,14 +426,12 @@ const [progressText, setProgressText] = useState('');
         }
       });
     } catch (error) {
-      console.error("Error saving assignment:", error);
-      console.error("Error details:", error.message);
-      if (error.code) {
-        console.error("Error code:", error.code);
-      }
-      alert(`Error publishing assignment: ${error.message}. Please try again.`);
-    }
-  };
+    console.error("Error saving draft:", error);
+    alert(`Error saving draft: ${error.message}. Please try again.`);
+  } finally {
+    setIsSaving(false);
+  }
+};
 
 
 
@@ -491,7 +521,9 @@ const [progressText, setProgressText] = useState('');
       display: 'flex',
       flexDirection: 'column',
       backgroundColor: '#fcfcfc'}}>  <Navbar userType="teacher" />
-      <style>{dropdownContentStyle}{loaderStyle}</style>
+      <style>{dropdownContentStyle}</style>
+      {isSaving && <LoaderScreen />}
+
       <div style={{ marginTop: '150px', width: '800px', padding: '15px', marginLeft: 'auto', marginRight: 'auto', fontFamily: "'montserrat', sans-serif", background: 'white', borderRadius: '25px', 
                boxShadow: '1px 1px 10px 1px rgb(0,0,155,.1)', marginBottom: '40px' }}>
        

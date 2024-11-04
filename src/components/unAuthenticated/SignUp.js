@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { getAuth, createUserWithEmailAndPassword } from "firebase/auth";
 import { db, auth } from "../Universal/firebase"; // Adjust the path to your firebase configuration
-import { useNavigate } from 'react-router-dom'; // Import the navigate hook
+import { Link, useNavigate } from 'react-router-dom'; // Import the navigate hook
 import './BackgroundDivs.css'; // Import the CSS file
 import { doc, setDoc, serverTimestamp, getDoc, updateDoc } from "firebase/firestore"; 
 import { ArrowLeft, SquareCheck, SquareX } from 'lucide-react';
@@ -216,22 +216,48 @@ const SignUp = () => {
   return (
     <div style={{ position: 'relative', height: '100vh', display: 'flex', flexDirection: 'column', backgroundColor: '#fcfcfc',backdropFilter: 'blur(7px)'}}>
   
-
-<div style={{ 
-
-          position: 'fixed', top: 0, width: '100%', display: 'flex',
-          padding: '0px 0', alignItems: 'center', height: '70px', color: 'grey', zIndex: 1000,
+  <div style={{ 
+          position: 'fixed', top: 0, width: '100%', display: 'flex',boxShadow: '1px 1px 5px 1px rgb(0,0,155,.1)',
+          padding: '0px 0', alignItems: 'center', height: '60px', color: 'grey', zIndex: 1000,
           backgroundColor: navbarBg, transition: 'background-color 0.3s ease',
           backdropFilter: 'blur(7px)',
         }}>
           <div style={{ marginLeft: 'auto', marginRight: 'auto', display: 'flex'}}>
+            <div style={{ width: '1280px', display: 'flex', backgroundColor: 'transparent', padding: '0px 0', alignItems: 'center', height: '70px', color: 'grey', marginRight: 'auto', marginLeft: 'auto' }}>
+              
+            <div style={{display: 'flex',  position: 'absolute',
+      left: '30px',
+      top: '50%',
+      transform: 'translateY( -50%)'}}>
+              <img style={{width: '25px',  }} src="/SquareScore.svg" alt="logo" />
+              <h1 style={{fontWeight: '600', color: 'black', paddingLeft: '10px', borderLeft: '4px solid #f4f4f4', marginLeft: '10px', fontSize: '20px'}}>SquareScore</h1>
+              </div>
+            </div>
+            <div style={{ width: '300px', display: 'flex', position: 'fixed', right: '20px' }}>
            
+              <Link to="/login" style={{
+                height: '30px', marginTop: '15px', lineHeight: '30px', borderRadius: '8px',
+                fontWeight: '600', background: 'transparent',  color: 'black',
 
-        <h1 style={{color: 'black', fontWeight: "600"}}>SquareScore</h1>
-        
-
-      </div>
-      </div>
+                textDecoration: 'none', width: '100px', marginLeft: 'auto',
+               textAlign: 'center', transition: '.2s',
+                fontFamily: "'montserrat', sans-serif", fontSize: '16px'
+              }}
+              onMouseEnter={(e) => {     e.target.style.background = '#f4f4f4';
+                e.target.style.border = '3px solid lightgrey';
+                
+                e.target.style.color = 'grey';
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.background = 'transparent';
+                
+                e.target.style.color = 'black';
+                e.target.style.border = '3px solid transparent';
+          
+              }}>Login</Link>
+            </div>
+          </div>
+        </div>
 
       <div  style={{width: '1000px', marginLeft: 'auto', height: '620px', marginTop: '120px', marginRight: 'auto',  backgroundColor: 'white',padding: '20px', boxShadow: '1px 1px 5px 1px rgb(0,0,155,.07)', borderRadius: '30px', }}>
         

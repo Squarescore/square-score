@@ -23,7 +23,7 @@ function StudentResultsAMCQ() {
     useEffect(() => {
         const fetchResults = async () => {
             try {
-                const gradeDocRef = doc(db, 'grades(AMCQ)', `${assignmentId}_${studentUid}`);
+                const gradeDocRef = doc(db, 'grades', `${assignmentId}_${studentUid}`);
                 const gradeDoc = await getDoc(gradeDocRef);
 
                 if (gradeDoc.exists()) {

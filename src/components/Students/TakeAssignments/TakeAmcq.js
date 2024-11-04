@@ -99,7 +99,7 @@ const TakeAmcq = () => {
 
   useEffect(() => {
     const fetchAssignment = async () => {
-      const assignmentDoc = await getDoc(doc(db, 'assignments(Amcq)', assignmentId));
+      const assignmentDoc = await getDoc(doc(db, 'assignments', assignmentId));
       if (assignmentDoc.exists()) {
         const data = assignmentDoc.data();
         setSaveAndExit(data.saveAndExit);
@@ -124,7 +124,7 @@ const TakeAmcq = () => {
   const fetchSavedProgress = async (assignmentData) => {
     if (!assignmentData) return;
 
-    const progressRef = doc(db, 'assignments(progress:AMCQ)', `${assignmentId}_${auth.currentUser.uid}`);
+    const progressRef = doc(db, 'assignments(progress)', `${assignmentId}_${auth.currentUser.uid}`);
     const progressDoc = await getDoc(progressRef);
     if (progressDoc.exists()) {
       const data = progressDoc.data();
@@ -147,7 +147,7 @@ const TakeAmcq = () => {
   };
 
   const handleSaveAndExit = async () => {
-    const progressRef = doc(db, 'assignments(progress:AMCQ)', `${assignmentId}_${auth.currentUser.uid}`);
+    const progressRef = doc(db, 'assignments(progress)', `${assignmentId}_${auth.currentUser.uid}`);
     await setDoc(progressRef, {
       studentUid: auth.currentUser.uid,
       assignmentId: assignmentId,
@@ -353,7 +353,7 @@ const TakeAmcq = () => {
   // Grades
   const endTest = async () => {
     const studentRef = doc(db, 'students', auth.currentUser.uid);
-    const gradeRef = doc(db, 'grades(AMCQ)', `${assignmentId}_${auth.currentUser.uid}`);
+    const gradeRef = doc(db, 'grades', `${assignmentId}_${auth.currentUser.uid}`);
   
     await setDoc(gradeRef, {
       studentUid: auth.currentUser.uid,
@@ -372,20 +372,14 @@ const TakeAmcq = () => {
     });
   
     await updateDoc(studentRef, {
-      [`assignments.${assignmentId}`]: {
-        SquareScore,
-        completedQuestions,
-        correctQuestions,
-        incorrectQuestions,
-        cycledThroughAll,
-      },
+     
       assignmentsToTake: arrayRemove(assignmentId),
       assignmentsInProgress: arrayRemove(assignmentId),
       assignmentsTaken: arrayUnion(assignmentId),
     });
     
     // Remove the progress document if it exists
-    const progressRef = doc(db, 'assignments(progress:AMCQ)', `${assignmentId}_${auth.currentUser.uid}`);
+    const progressRef = doc(db, 'assignments(progress)', `${assignmentId}_${auth.currentUser.uid}`);
     await deleteDoc(progressRef);
   
     navigate(`/studentassignments/${classId}`);

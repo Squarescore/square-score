@@ -33,14 +33,14 @@ const Exports = ({ assignmentId }) => {
   useEffect(() => {
     const determineAssignmentFormat = () => {
       const formatMap = {
-        SAQ: 'assignments(saq)',
-        AMCQ: 'assignments(Amcq)',
-        MCQ: 'assignments(mcq)',
-        ASAQ: 'assignments(Asaq)'
+        SAQ: 'assignments',
+        AMCQ: 'assignments',
+        MCQ: 'assignments',
+        ASAQ: 'assignments'
       };
 
       const format = assignmentId.split('+').pop();
-      const collectionName = formatMap[format] || 'assignments(saq)'; // Default to SAQ if format is not recognized
+      const collectionName = formatMap[format] || 'assignments'; // Default to SAQ if format is not recognized
       setAssignmentFormat(collectionName);
     };
 

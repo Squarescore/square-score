@@ -24,7 +24,7 @@ const QuestionResults = () => {
 
   const handleFeedbackChange = async (studentId, newFeedback) => {
     try {
-      const gradeRef = doc(db, 'grades(saq)', studentId);
+      const gradeRef = doc(db, 'grades', studentId);
       const gradeDoc = await getDoc(gradeRef);
       const gradeData = gradeDoc.data();
   
@@ -79,7 +79,7 @@ const QuestionResults = () => {
       setLoading(true);
       
       // Get all grade documents for this assignment
-      const gradesRef = collection(db, 'grades(saq)');
+      const gradesRef = collection(db, 'grades');
       const gradesQuery = query(gradesRef,
         where('assignmentId', '==', assignmentId)
       );
@@ -100,7 +100,7 @@ const QuestionResults = () => {
         });
 
         // Update the document
-        return updateDoc(doc(db, 'grades(saq)', gradeDoc.id), {
+        return updateDoc(doc(db, 'grades', gradeDoc.id), {
           questions: updatedQuestions
         });
       });
@@ -156,7 +156,7 @@ const QuestionResults = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const gradesRef = collection(db, 'grades(saq)');
+        const gradesRef = collection(db, 'grades');
         const gradesQuery = query(gradesRef,
           where('assignmentId', '==', assignmentId)
         );
@@ -236,7 +236,7 @@ const QuestionResults = () => {
   // Function to update a student's grade
   const updateGrade = async (studentId, newScore) => {
     try {
-      const gradeRef = doc(db, 'grades(saq)', studentId);
+      const gradeRef = doc(db, 'grades', studentId);
       const gradeDoc = await getDoc(gradeRef);
       const gradeData = gradeDoc.data();
   
@@ -286,7 +286,7 @@ const QuestionResults = () => {
   const toggleFlag = async (studentId) => {
     try {
       const student = students.find(s => s.id === studentId);
-      const gradeRef = doc(db, 'grades(saq)', studentId);
+      const gradeRef = doc(db, 'grades', studentId);
       const gradeDoc = await getDoc(gradeRef);
       const gradeData = gradeDoc.data();
   
