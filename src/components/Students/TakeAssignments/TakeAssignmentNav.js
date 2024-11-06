@@ -99,17 +99,25 @@ const TakeAssignmentNav = ({
       <button
         onClick={onSubmit}
         style={{
-          backgroundColor: '#F6F6F6',
-          border: '0px solid #E01FFF',
-          padding: '5px 20px',
+          margin: '-5px',
+          border: '3px solid #ddd',
+                borderRadius: '8px',
+                backgroundColor: 'white',
+          padding: '10px 30px',
           color: 'grey',
           fontSize: '16px',
-          fontWeight: 'bold',
-          borderRadius: '5px',
+          fontWeight: '600',
           
     fontFamily: "'montserrat', sans-serif",
           cursor: 'pointer',
         }}
+
+        onMouseEnter={(e) => {
+          e.currentTarget.style.background = '#FBFBFB';
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.background = 'white';
+        }}                      
       >
         Submit
       </button>

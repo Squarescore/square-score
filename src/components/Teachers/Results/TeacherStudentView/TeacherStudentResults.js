@@ -5,7 +5,8 @@ import { db } from '../../../Universal/firebase';
 import Navbar from '../../../Universal/Navbar';
 import Tooltip from './ToolTip';
 import axios from 'axios';
-import { SquareCheck, SquareX, SquareSlash, Square, User, MessageSquareMore, Plus, Minus, YoutubeIcon, ChevronRight, ChevronLeft, ChevronUp, ChevronDown } from 'lucide-react';
+import { SquareCheck, SquareX, SquareSlash, Square, User, MessageSquareMore, Plus, Minus, YoutubeIcon, ChevronRight, ChevronLeft, ChevronUp, ChevronDown, Flag } from 'lucide-react';
+import ResponsiveText from './ResponsiveText';
 
 function TeacherStudentResults() {
     const { assignmentId, studentUid } = useParams();
@@ -24,6 +25,9 @@ function TeacherStudentResults() {
     const [useSlider, setUseSlider] = useState(false);
     const [debouncedFeedback, setDebouncedFeedback] = useState({});
     const debouncedUpdateRef = useRef(null);
+    const [classId, setClassId] = useState(null);
+
+
     const scrollToQuestion = (index) => {
         setActiveQuestionIndex(index);
         questionRefs.current[index]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -73,6 +77,30 @@ function TeacherStudentResults() {
         window.addEventListener('resize', checkContentHeight);
         return () => window.removeEventListener('resize', checkContentHeight);
       }, [results]);
+
+      // Add this function inside the TeacherStudentResults component
+
+const toggleFlag = async (index) => {
+    if (!results) return;
+
+    const updatedQuestions = [...results.questions];
+    updatedQuestions[index].flagged = !updatedQuestions[index].flagged;
+
+    try {
+        await updateDoc(doc(db, 'grades', `${assignmentId}_${studentUid}`), {
+            questions: updatedQuestions
+        });
+
+        setResults({
+            ...results,
+            questions: updatedQuestions
+        });
+    } catch (error) {
+        console.error('Error toggling flag:', error);
+    }
+};
+
+
       useEffect(() => {
         const updateHeight = () => {
           if (contentRef.current) {
@@ -126,6 +154,7 @@ function TeacherStudentResults() {
                     setResults(data);
                     setAssignmentName(data.assignmentName);
                     
+                    setClassId(data.classId);
                     const correct = data.questions.filter(q => q.score === data.scaleMax).length;
                     const partial = data.questions.filter(q => q.score > data.scaleMin && q.score < data.scaleMax).length;
                     const incorrect = data.questions.filter(q => q.score === data.scaleMin).length;
@@ -298,7 +327,7 @@ function TeacherStudentResults() {
                boxShadow: '1px 1px 5px 1px rgb(0,0,155,.07)', 
       borderRadius: '10px',
       transition: 'all 0.3s',
-      zIndex: 1000,
+      zIndex: 10,
       display: 'flex',
       flexDirection: 'column'
     }}>
@@ -349,7 +378,7 @@ function TeacherStudentResults() {
             </div>
 
 
-            <div style={{  fontFamily: "'montserrat', sans-serif", backgroundColor: '', width: '870px', zIndex: '100', alignItems: 'center', marginLeft: 'auto', marginRight: 'auto', marginTop: '150px'}}>
+            <div style={{  fontFamily: "'montserrat', sans-serif", backgroundColor: '', width: '870px', zIndex: '20', alignItems: 'center', marginLeft: 'auto', marginRight: 'auto', marginTop: '150px'}}>
            
            
            
@@ -363,9 +392,27 @@ function TeacherStudentResults() {
             <div style={{display: 'flex',
                boxShadow: '1px 1px 5px 1px rgb(0,0,155,.07)' , paddingRight: '0px', width: '655px ', borderRadius: '15px', marginBottom: '20px', height: '190px', marginLeft: '-10px',background: 'white' }}>
        <div style={{marginLeft: '30px', marginBottom: '40px'}}>
-       <h1 style={{ fontSize: '40px', color: 'black', marginBottom: '0px',  marginLeft: '-5px',fontFamily: "'montserrat', sans-serif", textAlign: 'left',  }}>{studentName}</h1>
+       <h1 style={{ fontSize: '40px', color: 'black', marginBottom: '0px', cursor: 'pointer' , marginLeft: '-5px',fontFamily: "'montserrat', sans-serif", textAlign: 'left',  }}
+              onClick={() => navigate(`/class/${classId}/student/${studentUid}/grades`)}
+              onMouseEnter={(e) => { e.target.style.textDecoration = 'underline'; }}
+              onMouseLeave={(e) => { e.target.style.textDecoration = 'none'; }}
+          
+                      
+       
+       
+       >{studentName}</h1>
      
-       <h1 style={{ fontSize: '30px', fontFamily: "'montserrat', sans-serif", textAlign: 'left', color: 'grey', fontWeight: '600', marginTop: '10px'   }}> {assignmentName}
+       <h1
+       
+       onClick={() => navigate(`/class/${classId}/assignment/${assignmentId}/TeacherResults`)}
+                             
+       style={{ fontSize: '30px', fontFamily: "'montserrat', sans-serif", textAlign: 'left', color: 'grey', fontWeight: '600', marginTop: '10px', cursor: 'pointer'   }}
+       
+       
+       onMouseEnter={(e) => { e.target.style.textDecoration = 'underline'; }}
+       onMouseLeave={(e) => { e.target.style.textDecoration = 'none'; }}
+    > 
+        {assignmentName}
       </h1>
        <h1 style={{ fontSize: '20px', fontFamily: "'montserrat', sans-serif", textAlign: 'left',  color: 'grey', fontWeight: '500', marginTop: '-10px' }}> Submitted: {new Date(results.submittedAt.toDate()).toLocaleString()} </h1>
             
@@ -443,8 +490,7 @@ function TeacherStudentResults() {
        
                 
               
-                <ul style={{ listStyle: 'none', padding: '0', marginTop: '30px', background: 'white',
-               boxShadow: '1px 1px 5px 1px rgb(0,0,155,.07)',  width: '870px',marginLeft: 'auto', marginRight: 'auto', borderRadius: '20px' }}>
+                <ul style={{ listStyle: 'none', padding: '0', marginTop: '0px',  width: '880px',marginLeft: 'auto', marginRight: 'auto', borderRadius: '20px' }}>
                     {results.questions && results.questions.map((question, index) => {
                         const studentResponseLength = (question.studentResponse || "").length;
                         const isShortResponse = studentResponseLength < 50;
@@ -454,51 +500,162 @@ function TeacherStudentResults() {
                         return (
                             <li key={index} 
                                 ref={el => questionRefs.current[index] = el} 
-                                style={{ position: 'relative', fontFamily: "'montserrat', sans-serif", marginBottom: '20px', width: '840px', borderBottom: ' 2px solid #f4f4f4', marginLeft: 'auto', marginRight: 'auto',  paddingBottom:'50px', marginTop: '30px' }}>
+                                style={{ position: 'relative', fontFamily: "'montserrat', sans-serif", marginBottom: '20px', background: 'white',
+                                    boxShadow: '1px 1px 5px 1px rgb(0,0,155,.07)',  width: '840px', marginRight: 'auto', borderRadius: '20px' , borderBottom: ' 2px solid #f4f4f4',  marginTop: '30px', padding: '20px',  paddingBottom:'35px', marginLeft: '-5px' }}>
                              <div style={{ display: 'flex', fontFamily: "'montserrat', sans-serif", alignItems: 'center' }}>
-                                <div style={{position: 'relative', width: '40px', marginTop: '0px'}}>
-                                    {question.score === 2 ? (
-                                        <SquareCheck size={60} color="#00d12a" />
-                                    ) : question.score === 1 ? (
-                                        <SquareSlash size={60} color="#FFD13B" />
-                                    ) : (
-                                        <SquareX size={60} color="#FF0000" />
-                                    )}
+                             <div style={{ position: 'relative', width: '40px', marginTop: '0px' }}>
+            {question.score === results.scaleMax ? (
+                <SquareCheck size={40} color="#00d12a" />
+            ) : question.score === results.scaleMin ? (
+                <SquareX size={40} color="#FF0000" />
+            ) : (
+                <SquareSlash size={40} color="#FFD13B" />
+            )}
+        </div>
+        
+        {/* Question Text */}
+        <button
+    onClick={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        navigate(`/questionResults/${assignmentId}/${question.questionId}`);
+    }}
+    style={{ 
+        width: '700px', 
+        backgroundColor: 'white', 
+        fontWeight: 'bold', 
+        lineHeight: '1.4', 
+        fontSize: '20px', 
+        textAlign: 'left', 
+        border: 'none', 
+        position: 'relative', 
+        display: 'flex', 
+        flexDirection: 'column', 
+        marginLeft: '10px', 
+        marginTop: '0px',
+        cursor: 'pointer',
+        padding: '0',
+        fontFamily: 'inherit'
+    }}
+>
+    <ResponsiveText
+        text={question.question}
+        maxFontSize={20} 
+        minFontSize={14} 
+    />
+</button>
+        
+        {/* Score Buttons and Flag Button */}
+        <div style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            marginLeft: 'auto',
+            gap: '0px' 
+        }}>
+            {/* Score 2 Button */}
+            <button
+                onClick={() => updateGradeAndFeedback(index, 2, question.feedback)}
+                style={{
+                    border: 'none',
+                    background: 'none',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                }}
+                title="Assign Score: 2"
+                aria-label="Assign Score 2"
+            >
+                <SquareCheck 
+                    size={24} 
+                    style={{
+                        padding: '4px',
+                        borderRadius: '5px',
+                        border: '2px solid',
+                        backgroundColor: question.score === 2 ? '#dcfce7' : 'transparent',
+                        color: question.score === 2 ? '#16a34a' : '#9ca3af',
+                        borderColor: question.score === 2 ? '#16a34a' : 'transparent',
+                        transition: 'background-color 0.3s, color 0.3s, border-color 0.3s'
+                    }}
+                />
+            </button>
 
-                                    <Plus
-                                        onClick={() => question.score < 2 && updateGradeAndFeedback(index, question.score + 1, question.feedback)}
-                                        size={20} 
-                                        color={question.score === 2 ? "lightgrey" : "#00d12a"}
-                                        strokeWidth={5}
-                                        style={{
-                                            position: 'absolute',
-                                            top: '25px',
-                                            cursor: question.score === 2 ? 'not-allowed' : 'pointer',
-                                            right: '-23px',
-                                            background: 'white',
-                                            height: '15px'
-                                        }}
-                                    />
-                                    
-                                    <Minus 
-                                        onClick={() => question.score > 0 && updateGradeAndFeedback(index, question.score - 1, question.feedback)} 
-                                        size={10} 
-                                        color={question.score === 0 ? "lightgrey" : "#FF0000"}
-                                        strokeWidth={10}
-                                        style={{
-                                            position: 'absolute',
-                                            top: '25px',
-                                            cursor: question.score === 0 ? 'not-allowed' : 'pointer',
-                                            left: '2px',
-                                            background: 'white',
-                                            height: '15px'
-                                        }}
-                                    />
-                                </div>
-                                    <div style={{ width: '700px', backgroundColor: 'white', fontWeight: 'bold', lineHeight: '1.4', fontSize: '20px', textAlign: 'left', border: '0px solid lightgrey', position: 'relative', display: 'flex', flexDirection: 'column', marginLeft: '40px', marginTop: '0px'}}>
-                                        {question.question}
-                                    </div>
-                                    
+            {/* Score 1 Button */}
+            <button
+                onClick={() => updateGradeAndFeedback(index, 1, question.feedback)}
+                style={{
+                    border: 'none',
+                    background: 'none',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                }}
+                title="Assign Score: 1"
+                aria-label="Assign Score 1"
+            >
+                <SquareSlash 
+                    size={24}
+                    style={{
+                        padding: '4px',
+                        borderRadius: '5px',
+                        border: '2px solid',
+                        backgroundColor: question.score === 1 ? '#FFF7DB' : 'transparent',
+                        color: question.score === 1 ? '#FFD13B' : '#9ca3af',
+                        borderColor: question.score === 1 ? '#FFD13B' : 'transparent',
+                        transition: 'background-color 0.3s, color 0.3s, border-color 0.3s'
+                    }}
+                />
+            </button>
+
+            {/* Score 0 Button */}
+            <button
+                onClick={() => updateGradeAndFeedback(index, 0, question.feedback)}
+                style={{
+                    border: 'none',
+                    background: 'none',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                }}
+                title="Assign Score: 0"
+                aria-label="Assign Score 0"
+            >
+                <SquareX 
+                    size={24} 
+                    style={{
+                        padding: '4px',
+                        borderRadius: '5px',
+                        border: '2px solid',
+                        backgroundColor: question.score === 0 ? '#fee2e2' : 'transparent',
+                        color: question.score === 0 ? '#dc2626' : '#9ca3af',
+                        borderColor: question.score === 0 ? '#dc2626' : 'transparent',
+                        transition: 'background-color 0.3s, color 0.3s, border-color 0.3s'
+                    }}
+                />
+            </button>
+
+            {/* Flag Button */}
+            <button
+                onClick={() => toggleFlag(index)}
+                style={{
+                    padding: '4px',
+                    marginLeft: '20px',
+                    cursor: 'pointer',
+                    borderRadius: '5px',
+                    border: '2px solid',
+                    background: question.flagged ? '#DEE3FF' : 'white',
+                    color: question.flagged ? '#020CFF' : '#9ca3af',
+                    borderColor: question.flagged ? '#020CFF' : 'transparent',
+                    transition: 'background-color 0.3s, color 0.3s, border-color 0.3s'
+                }}
+                title="Flag this question"
+                aria-label={question.flagged ? "Unflag this question" : "Flag this question"}
+            >
+                <Flag size={20} />
+            </button>
+        </div>
                                 </div>
                                 <div style={{display: 'flex', marginTop: '20px'}}>
                                     <div style={{
@@ -539,7 +696,7 @@ function TeacherStudentResults() {
                                         }}>
                                             <p style={{
                                                 fontSize: '16px',
-                                                fontWeight: 'bold',
+                                                fontWeight: '600',
                                                 textAlign: 'left',
                                                 margin: 0,
                                                 width: '88%',

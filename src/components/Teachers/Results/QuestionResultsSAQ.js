@@ -17,7 +17,8 @@ const QuestionResults = () => {
   const [classId, setClassId] = useState(null);
   const [editingQuestions, setEditingQuestions] = useState({});
   const [feedbackDebounceTimers, setFeedbackDebounceTimers] = useState({});
-
+  const [className, setClassName] = useState('');
+  const [classChoice, setClassChoice] = useState('');
   const [expandAll, setExpandAll] = useState(false);
   const navigate = useNavigate();
   
@@ -169,14 +170,27 @@ const QuestionResults = () => {
         let rawMaxScore = 0;
 
         const studentsData = [];
-
+        if (gradesSnapshot.docs.length > 0) {
+          const firstDoc = gradesSnapshot.docs[0].data();
+          if (firstDoc.classId) {
+            setClassId(firstDoc.classId);
+            
+            // Fetch class details
+            const classDocRef = doc(db, 'classes', firstDoc.classId);
+            const classDoc = await getDoc(classDocRef);
+            if (classDoc.exists()) {
+              const classData = classDoc.data();
+              // Note: These are intentionally "swapped" to match the pattern in TeacherClassHome
+              setClassName(classData.classChoice); // Set the class subject/name
+              setClassChoice(classData.className); // Set the period/number
+            }
+          }
+        }
         gradesSnapshot.forEach(doc => {
           const gradeData = doc.data();
           setAssignmentName(gradeData.assignmentName);
           
-          if (!classId && gradeData.classId) {
-            setClassId(gradeData.classId);
-          }
+        
 
           // Assuming rawMaxScore is the maximum possible score, e.g., 2 * number of questions
           if (!rawMaxScore && gradeData.rawMaxScore) {
@@ -412,8 +426,10 @@ const QuestionResults = () => {
       style={{
         fontSize: '1.5rem',
         fontWeight: 'bold',
-        width: '650px',
-        marginTop: '0px',
+        width: '650px', 
+        maxRows: 8,
+        position: 'absolute', 
+        top: '60px',
         marginBottom: '0px',
         borderRadius: '5px',
         padding: '10px',
@@ -428,7 +444,7 @@ const QuestionResults = () => {
       fontSize: '1.5rem',
       fontWeight: 'bold',
       width: '650px',
-      marginTop: '0px',
+      marginTop: '20px',
       marginBottom: '0px',
       fontFamily: "'montserrat', sans-serif"
     }}>
@@ -438,7 +454,7 @@ const QuestionResults = () => {
 
 
 
-              <div style={{ marginLeft: 'auto', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <div style={{ marginLeft: 'auto', display: 'flex', flexDirection: 'column', gap: '10px', height: '60px', marginTop: '20px' }}>
                 {/* Rubric Toggle Button */}
                 <button
   onClick={toggleRubricVisibility}
@@ -513,7 +529,7 @@ const QuestionResults = () => {
           }}>
             <div style={{
               margin: '-10px 10px -10px -10px',
-              width: '60px',
+              width: '100px',
               height: '90px',
               borderRadius: '15px 0px 0px 15px',
               border: '4px solid lightgrey',
@@ -534,7 +550,7 @@ const QuestionResults = () => {
               {/* Rubric Content */}
               {showRubric && editingQuestions[questionId] ? (
     <TextareaAutosize
-      style={{width: '90%', fontSize: '16px'}}
+      style={{width: '140%', fontSize: '16px'}}
       value={questionData?.rubric}
       onChange={(e) => setQuestionData(prev => ({ ...prev, rubric: e.target.value }))}
       onBlur={handleRubricBlur}
@@ -550,7 +566,7 @@ const QuestionResults = () => {
 
         {/* Responses Header with Expand All Button */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
-          <div style={{fontWeight: '600', fontSize: '25px', marginBottom: '-20px', marginLeft: '15px'}}>
+          <div style={{fontWeight: '600', fontSize: '25px', marginBottom: '-15px', marginLeft: '15px'}}>
             {questionData?.totalResponses} Responses
           </div>
           <button onClick={handleExpandAll} style={{
@@ -563,6 +579,7 @@ const QuestionResults = () => {
             borderRadius: '5px',
             cursor: 'pointer',
             display: 'flex',
+            fontWeight: '600',
             alignItems: 'center',
             gap: '4px',
             fontFamily: "'montserrat', sans-serif",
@@ -611,10 +628,10 @@ const QuestionResults = () => {
                 gap: '16px'
               }}>
                 {/* Score Icon */}
-                <div style={{ width: '24px', height: '24px', marginLeft: '10px' }}>
-                  {student.score === 2 && <SquareCheck color="#22c55e" />}
-                  {student.score === 1 && <SquareSlash color="#FFD13B" />}
-                  {student.score === 0 && <SquareX color="#ef4444" />}
+                <div style={{ width: '24px', height: '24px', marginLeft: '10px', marginTop: '-5px' }}>
+                  {student.score === 2 && <SquareCheck color="#22c55e" size={30} />}
+                  {student.score === 1 && <SquareSlash color="#FFD13B" size={30}  />}
+                  {student.score === 0 && <SquareX color="#ef4444"  size={30}  />}
                 </div>
                 <h3 
                          onClick={() => handleStudentClick(student.studentUid)}

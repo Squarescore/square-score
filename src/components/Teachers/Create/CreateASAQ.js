@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { doc, setDoc,updateDoc, writeBatch, arrayUnion, serverTimestamp } from 'firebase/firestore';
+import { doc, setDoc,updateDoc, writeBatch, arrayUnion, serverTimestamp, getDoc, arrayRemove } from 'firebase/firestore';
 
 import { CalendarCog, SquareDashedMousePointer, Sparkles, GlobeLock, PencilRuler, Eye, SendHorizonal, SquareX, ChevronUp, ChevronDown,  } from 'lucide-react';
 import { db } from '../../Universal/firebase';  // Ensure the path is correct
@@ -16,7 +16,7 @@ import DateSettings, { formatDate } from './DateSettings';
 import SecuritySettings from './SecuritySettings';
 import SelectStudentsDW from './SelectStudentsDW';
 import { AssignmentActionButtons, usePublishState } from './AssignmentActionButtons';
-
+import { v4 as uuidv4 } from 'uuid';
 import CustomExpandingFormatSelector from './ExpandingFormatSelector';
 import { AssignmentName, FormatSection, PreferencesSection, TimerSection, ToggleSwitch } from './Elements';
 import { Button } from 'react-scroll';
@@ -80,6 +80,7 @@ function SAQA() {
   const location = useLocation();
   const [isSaving, setIsSaving] = useState(false);
 
+  const [draftId, setDraftId] = useState(null);
   const [isAdaptive, setIsAdaptive] = useState(true);
   const [additionalInstructions, setAdditionalInstructions] = useState(['']);
   const [selectedStudents, setSelectedStudents] = useState(new Set());
@@ -104,9 +105,6 @@ function SAQA() {
   };
   useEffect(() => {
     const fetchTeacherId = async () => {
-     
-  
-      // Get the current user's UID (teacher ID)
       const user = auth.currentUser;
       if (user) {
         setTeacherId(user.uid);
@@ -115,7 +113,14 @@ function SAQA() {
       }
     };
     fetchTeacherId();
-  }, [classId]);
+  
+    // Add draft loading logic
+    if (assignmentId && assignmentId.startsWith('DRAFT')) {
+      const draftIdWithoutPrefix = assignmentId.slice(5); // Remove 'DRAFT' prefix
+      setDraftId(draftIdWithoutPrefix);
+      loadDraft(draftIdWithoutPrefix); // Load the draft data
+    }
+  }, [classId, assignmentId]);
 
  
 
@@ -188,7 +193,7 @@ function SAQA() {
           
           if (Array.isArray(questions)) {
             const questionsWithIds = questions.map((question, index) => ({
-              questionId: `${assignmentId}(question${index + 1})`,
+              questionId: uuidv4(),
               ...question
             }));
             console.log('Generated questions:', questionsWithIds);
@@ -229,71 +234,200 @@ function SAQA() {
   }, [location.state]);
 
 
-  
   const saveAssignment = async () => {
-    if (isSaving) return; // Prevent multiple clicks
+    if (isSaving) return;
     setIsSaving(true);
-    const finalAssignmentId = assignmentId.startsWith('DRAFT') ? assignmentId.slice(5) : assignmentId;
   
-    const assignmentData = {
-      classId,
-      
-      format: 'ASAQ',
-      assignmentName,
-      timer: timerOn ? timer : 0,
-      halfCredit,
-      assignmentType,
-      assignDate: convertToDateTime(assignDate),
-      dueDate: convertToDateTime(dueDate),
-     
-      selectedStudents: Array.from(selectedStudents),
-      questionCount: {
-        bank: questionBank,
-        
-      },
-      createdAt: serverTimestamp(),
-      questions: {},
-      lockdown,
-      saveAndExit
-    };
-    generatedQuestions.forEach((question, index) => {
-      assignmentData.questions[`question${index + 1}`] = {
-        question: question.question,
-        rubric: question.rubric
-      };
-    });
     try {
-    const assignmentRef = doc(db, 'assignments', finalAssignmentId);
-    await setDoc(assignmentRef, assignmentData);
-
-    // Add assignment to class via Cloud Function
-    await safeClassUpdate('addAssignmentToClass', { 
-      classId, 
-      assignmentId: finalAssignmentId, 
-      assignmentName
-    });
-
-    // If publishing from a draft, remove the draft - logic not made yet
-   
-
-    // Assign to students
-    await assignToStudents(finalAssignmentId);
-
-    // Navigate with success message
-    navigate(`/class/${classId}`, {
-      state: {
-        successMessage: `Success: ${assignmentName} published`,
-        assignmentId: finalAssignmentId,
-        format: 'SAQ'
+      const finalAssignmentId = assignmentId.startsWith('DRAFT') ? assignmentId.slice(5) : assignmentId;
+      const batch = writeBatch(db);
+  
+      // Format the questions
+      const formattedQuestions = {};
+      generatedQuestions.forEach((question, index) => {
+        formattedQuestions[`question${index + 1}`] = {
+          question: question.question,
+          rubric: question.rubric,
+          difficulty: question.difficulty
+        };
+      });
+  
+      // Create assignment document
+      const assignmentRef = doc(db, 'assignments', finalAssignmentId);
+      batch.set(assignmentRef, {
+        classId,
+        format: 'ASAQ',
+        assignmentName,
+        timer: timerOn ? Number(timer) : 0,
+        halfCredit,
+        assignmentType,
+        assignDate: convertToDateTime(assignDate),
+        dueDate: convertToDateTime(dueDate),
+        selectedStudents: Array.from(selectedStudents),
+        questionCount: {
+          bank: questionBank,
+        },
+        createdAt: serverTimestamp(),
+        questions: formattedQuestions,
+        lockdown,
+        saveAndExit,
+        isAdaptive
+      });
+  
+      // Update class document - add to assignments array
+      const classRef = doc(db, 'classes', classId);
+      batch.update(classRef, {
+        assignments: arrayUnion({
+          id: finalAssignmentId,
+          name: assignmentName
+        })
+      });
+  
+      // If publishing from draft, handle cleanup
+      if (draftId) {
+        // Remove from drafts array
+        batch.update(classRef, {
+          drafts: arrayRemove({
+            id: draftId,
+            name: assignmentName
+          })
+        });
+        
+        // Delete draft document
+        const draftRef = doc(db, 'drafts', draftId);
+        batch.delete(draftRef);
       }
-    });
-  } catch (error) {
-    console.error("Error saving draft:", error);
-    alert(`Error saving draft: ${error.message}. Please try again.`);
-  } finally {
-    setIsSaving(false);
-  }
-};
+  
+      // Assign to students
+      const selectedStudentIds = Array.from(selectedStudents);
+      selectedStudentIds.forEach(studentUid => {
+        const studentRef = doc(db, 'students', studentUid);
+        batch.update(studentRef, {
+          assignmentsToTake: arrayUnion(finalAssignmentId)
+        });
+      });
+  
+      // Commit all operations atomically
+      await batch.commit();
+  
+      navigate(`/class/${classId}`, {
+        state: {
+          successMessage: `Success: ${assignmentName} published`,
+          assignmentId: finalAssignmentId,
+          format: 'ASAQ'
+        }
+      });
+    } catch (error) {
+      console.error("Error saving assignment:", error);
+      alert(`Error publishing assignment: ${error.message}. Please try again.`);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+  
+  const saveDraft = async () => {
+    if (isSaving) return;
+    setIsSaving(true);
+  
+    try {
+      // Generate a new draft ID if none exists
+      const finalDraftId = draftId || `${classId}+${Date.now()}+ASAQ`;
+      const batch = writeBatch(db);
+  
+      // Save draft document
+      const draftRef = doc(db, 'drafts', finalDraftId);
+      batch.set(draftRef, {
+        classId,
+        format: 'ASAQ',
+        assignmentName,
+        timer: timerOn ? Number(timer) : 0,
+        halfCredit,
+        assignmentType,
+        assignDate: convertToDateTime(assignDate),
+        dueDate: convertToDateTime(dueDate),
+        selectedStudents: Array.from(selectedStudents),
+        questionCount: {
+          bank: questionBank,
+        },
+        createdAt: serverTimestamp(),
+        questions: generatedQuestions.reduce((acc, question, index) => {
+          acc[`question${index + 1}`] = {
+            question: question.question,
+            rubric: question.rubric
+          };
+          return acc;
+        }, {}),
+        lockdown,
+        saveAndExit,
+        isAdaptive,
+        sourceText,
+        additionalInstructions
+      });
+  
+      // Update class document - add to drafts array
+      const classRef = doc(db, 'classes', classId);
+      batch.update(classRef, {
+        drafts: arrayUnion({
+          id: finalDraftId,
+          name: assignmentName
+        })
+      });
+  
+      // Commit all operations atomically
+      await batch.commit();
+  
+      navigate(`/class/${classId}/Assignments`, {
+        state: { 
+          showDrafts: true, 
+          newDraftId: finalDraftId 
+        }
+      });
+    } catch (error) {
+      console.error("Error saving draft:", error);
+      alert(`Error saving draft: ${error.message}. Please try again.`);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+  
+  // Load draft helper function
+  const loadDraft = async (draftId) => {
+    const draftRef = doc(db, 'drafts', draftId);
+    const draftDoc = await getDoc(draftRef);
+    
+    if (draftDoc.exists) {
+      const data = draftDoc.data();
+      setAssignmentName(data.assignmentName || '');
+      setTimer(data.timer?.toString() || '60');
+      setTimerOn(data.timerOn || false);
+      setHalfCredit(data.halfCredit || false);
+      
+      // Handle dates
+      if (data.assignDate) {
+        setAssignDate(new Date(data.assignDate));
+      }
+      if (data.dueDate) {
+        setDueDate(new Date(data.dueDate));
+      }
+      
+      setSelectedStudents(new Set(data.selectedStudents || []));
+      setQuestionBank(data.questionBank?.toString() || '40');
+      setSaveAndExit(data.saveAndExit !== undefined ? data.saveAndExit : true);
+      setLockdown(data.lockdown || false);
+      setIsAdaptive(data.isAdaptive || true);
+      setSourceText(data.sourceText || '');
+      setAdditionalInstructions(data.additionalInstructions || '');
+      
+      if (data.questions) {
+        const questionsArray = Object.entries(data.questions).map(([id, questionData]) => ({
+          questionId: id,
+          ...questionData
+        }));
+        setGeneratedQuestions(questionsArray);
+        setQuestionsGenerated(true);
+      }
+    }
+  };
 
   
   
@@ -637,7 +771,7 @@ function SAQA() {
          
           <button
               
-             
+              onClick={saveDraft}
               style={{
                 width: '270px',
                 height: '60px',

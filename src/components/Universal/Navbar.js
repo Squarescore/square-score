@@ -7,7 +7,7 @@ import { ArrowLeft, SquarePlus, Users, BookOpenText, SquareX, Home, Repeat, Chev
 import TeacherAssignmentHome from "../Teachers/TeacherAssignments/TeacherAssignmentHome";
 import { motion, AnimatePresence } from 'framer-motion';
 import { v4 as uuidv4 } from 'uuid';
-
+import { Timestamp } from "firebase/firestore";
 const Navbar = ({ userType, currentPage, firstName, lastName }) => {
   const { classId } = useParams();
   const navigate = useNavigate();
@@ -83,43 +83,6 @@ const Navbar = ({ userType, currentPage, firstName, lastName }) => {
   // Function to handle format selection
 // Inside the Navbar component
 
-// Update the handleFormatSelect function
-const handleFormatSelect = async (format) => {
-    setSelectedFormat(format);
-    const newAssignmentId = uuidv4();
-    const fullNewAssignmentId = `${classId}+${newAssignmentId}+${format}`;
-    let navigationPath = '';
-  
-    switch (format) {
-      case 'SAQ':
-        navigationPath = `/class/${classId}/createassignment/${fullNewAssignmentId}`;
-        break;
-      case 'ASAQ':
-        navigationPath = `/class/${classId}/SAQA/${fullNewAssignmentId}`;
-        break;
-      case 'MCQ':
-        navigationPath = `/class/${classId}/MCQ/${fullNewAssignmentId}`;
-        break;
-      case 'AMCQ':
-        navigationPath = `/class/${classId}/MCQA/${fullNewAssignmentId}`;
-        break;
-      default:
-        console.error('Invalid format selected');
-        return;
-    }
-  
-    navigate(navigationPath, {
-      state: {
-        assignmentType: format,
-        isAdaptive: format === 'ASAQ' || format === 'AMCQ',
-        assignmentId: fullNewAssignmentId,
-        classId
-      }
-    });
-  
-    // Close the create dropdown after selection
-    setShowCreateDropdown(false);
-  };
   
   // Update the TeacherAssignmentHome component usage
  
@@ -446,21 +409,7 @@ const handleFormatSelect = async (format) => {
       </AnimatePresence>
 
       {/* Overlay for create dropdown if needed */}
-      {showCreateDropdown && (
-        <div
-          onClick={toggleCreateDropdown}
-          style={{
-            position: 'fixed',
-            top: '70px',
-            left: '0px',
-            width: '100%',
-            height: '100%',
-            background: 'rgba(255,255,255,.9)',
-            backdropFilter: 'blur(20px)',
-            zIndex: '101',
-          }}
-        />
-      )}
+   
 
       {/* Navbar */}
       <div
@@ -696,87 +645,10 @@ const handleFormatSelect = async (format) => {
                     {linkText === 'Assignments' && <BookOpenText size={25} strokeWidth={getCurrentPage() === 'Assignments' ? 2.5 : 2} color={getCurrentPage() === 'Assignments' ? linkColors['Assignments'] : '#696969'} />}
                     {linkText === 'Students' && <Users size={25} strokeWidth={getCurrentPage() === 'Students' ? 2.5 : 2} color={getCurrentPage() === 'Students' ? linkColors['Students'] : '#696969'} />}
                     {linkText === 'Create' && <SquarePlus size={25} strokeWidth={(getCurrentPage() === 'Create' || showCreateDropdown) ? 2.5 : 2} color={(getCurrentPage() === 'Create' || showCreateDropdown) ? linkColors['Create'] : '#696969'} />}
+              
                   </div>
                 </Link>
-                  {linkText === 'Create' && showCreateDropdown && (
-                    <div
-                      style={{
-                        position: 'fixed',
-                        top: '200px',
-                        left: 0,
-                        right: 0,
-                        bottom: 0,
-                        backgroundColor: 'rgba(255, 255, 255, 0.9)',
-                        zIndex: -1, // Ensure it's above other elements
-                        display: 'flex',
-                        backdropFilter: 'blur(5px)',
-                        flexDirection: 'column',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        padding: '20px',
-                      }}
-                      onClick={toggleCreateDropdown} // Close on clicking outside
-                    >
-                      <div
-                        onClick={(e) => e.stopPropagation()} // Prevent closing when clicking inside
-                        style={{
-                          position: 'relative',
-                          width: '450px',
-                          background: 'white',
-                          padding: '10px',
-                          borderRadius: '20px',
-                          height: '240px',
-                          marginTop: '50%',
-                          border: '10px solid white',
-                          
-               boxShadow: '1px 1px 5px 1px rgb(0,0,155,.07)' ,
-                        }}
-                      >
-                        <button
-                          onClick={toggleCreateModal}
-                          style={{
-                            position: 'absolute',
-                            top: '-15px',
-                            right: '20px',
-                            width: '30px',
-                            height: '30px',
-                            background: 'transparent',
-                            fontSize: '24px',
-                            border: 'none',
-                            cursor: 'pointer',
-                          }}
-                        >
-                          <div style={{ marginTop: '-5px', marginLeft: '-8px' }}>
-                            <SquareX size={40} color="#a3a3a3" strokeWidth={3} />
-                          </div>
-                        </button>
-                        <h2
-                          style={{
-                            fontSize: '30px',
-                            padding: '10px 10px 10px 30px',
-                            marginBottom: '20px',
-                            fontFamily: "'montserrat', sans-serif",
-                            textAlign: 'left',
-                            color: 'grey',
-                            border: '10px solid lightgray',
-                            borderRadius: '20px 20px 0px 0px',
-                            marginLeft: '-20px',
-                            marginRight: '-20px',
-                            marginTop: '-50px',
-                            background: '#f4f4f4',
-                          }}
-                        >
-                          Select Format
-                        </h2>
-                        <TeacherAssignmentHome
-    onFormatSelect={(format) => {
-      handleFormatSelect(format);
-      toggleCreateModal();
-    }}
-  />
-                      </div>
-                    </div>
-                  )}
+               
                 </div>
               ))}
             </div>
@@ -804,7 +676,15 @@ const handleFormatSelect = async (format) => {
         
         </div>
       </div>
+      <AnimatePresence>
+        {showCreateDropdown && (
+          <TeacherAssignmentHome onClose={() => setShowCreateDropdown(false)} />
+        )}
+      </AnimatePresence>
       </div>
+       
+      
+      
     );
 };
 

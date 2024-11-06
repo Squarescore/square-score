@@ -141,25 +141,52 @@ const Participants = () => {
       setTimeMultipliers(prev => ({ ...prev, [studentUid]: prev[studentUid] }));
     }
   };
-
   const handleAdmitStudent = async (student) => {
     try {
       const classRef = doc(db, 'classes', classId);
-      const participants = [...(currentClass.participants || []), {
+      const classDoc = await getDoc(classRef);
+      
+      if (!classDoc.exists()) {
+        console.error("Class document does not exist");
+        return;
+      }
+  
+      const currentData = classDoc.data();
+      
+      // Add student to participants
+      const updatedParticipants = [...(currentData.participants || []), {
         uid: student.uid,
         name: student.name,
         email: student.email
       }];
-      const joinRequests = currentClass.joinRequests.filter(req => req.uid !== student.uid);
-      const students = [...(currentClass.students || []), student.uid];
-      
-      participants.sort((a, b) => a.name.split(' ').pop().localeCompare(b.name.split(' ').pop()));
-      
-      await updateDoc(classRef, { 
-        participants, 
-        joinRequests, 
-        students 
+  
+      // Update students array
+      const updatedStudents = [...(currentData.students || []), student.uid];
+  
+      // Update joinRequests - just keep the UIDs that aren't the admitted student
+      const updatedJoinRequests = (currentData.joinRequests || [])
+        .filter(uid => uid !== student.uid);
+  
+      // Sort participants by last name
+      updatedParticipants.sort((a, b) => 
+        a.name.split(' ').pop().localeCompare(b.name.split(' ').pop())
+      );
+  
+      // Update the document - notice we're not mapping joinRequests
+      await updateDoc(classRef, {
+        participants: updatedParticipants,
+        joinRequests: updatedJoinRequests, // Just the filtered array of UIDs
+        students: updatedStudents
       });
+  
+      // Update local state
+      setCurrentClass(prev => ({
+        ...prev,
+        participants: updatedParticipants,
+        joinRequests: prev.joinRequests.filter(req => req.uid !== student.uid), // Keep the full objects in state
+        students: updatedStudents
+      }));
+  
     } catch (error) {
       console.error("Error admitting student:", error);
     }
@@ -424,30 +451,13 @@ const Participants = () => {
   <Navbar userType="teacher" />
   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '1% auto', width: '750px', marginTop: '0px', }}>
     <div style={{width: '700px', marginTop: '70px', }}>
-      {(currentClass.joinRequests || []).map(student => (
-
-        <div key={student.uid} style={{ width: '700px', display: 'flex', border: '6px solid #f4f4f4', borderTop: 'none', marginLeft: '-30px',
-       
-        borderBottomRightRadius: '15px',borderBottomLeftRadius: '15px', padding: '10px', marginBottom: '10px', height: '70px' }}>
-           <span style={{backgroundColor: 'transparent', borderColor: 'transparent',fontFamily: "'montserrat', sans-serif", fontSize: '30px', marginTop: '20px', marginLeft: '50px', marginRight: '30px', color: 'grey'}}>Admit</span>
-          <span style={{backgroundColor: 'transparent', borderColor: 'transparent',fontFamily: "'montserrat', sans-serif",  fontSize: '30px', marginTop: '20px',marginRight: '20px'}}>{student.name.split(' ')[1]},</span>
-          <span style={{backgroundColor: 'transparent', borderColor: 'transparent',fontFamily: "'montserrat', sans-serif", fontSize: '30px', marginTop: '20px',marginRight: '20px',  fontWeight: 'bold'}}>{student.name.split(' ')[0]}</span>
-          <span style={{backgroundColor: 'transparent', borderColor: 'transparent',fontFamily: "'montserrat', sans-serif", fontSize: '30px',marginTop: '20px',marginLeft: '10px', color: 'grey'}}>?</span>
-          
-          <div style={{marginLeft: 'auto', marginRight: '30px', marginTop: '20px'}}>
-            <button style={{backgroundColor: 'transparent', borderColor: 'transparent',fontFamily: "'montserrat', sans-serif", cursor: 'pointer'}} onClick={() => handleAdmitStudent(student)}>                  
-            <SquareCheck size={40} color="#00b303" strokeWidth={2} /></button>
-            <button style={{backgroundColor: 'transparent', borderColor: 'transparent',fontFamily: "'montserrat', sans-serif", cursor: 'pointer', marginLeft: '20px'}} onClick={() => handleRejectStudent(student.uid)}>  \
-            <SquareX size={40} color="#e60000" strokeWidth={2} /></button>
-        </div>
-        </div>
-      ))}
+    
     </div>
   </div>
   
  
 
-  <div style={{width: '830px', display: 'flex', marginLeft: 'auto', marginRight: 'auto', marginTop: '60px', height: '170px', paddingTop: '10px', marginBottom: '60px', }}>
+  <div style={{width: '830px', display: 'flex', marginLeft: 'auto', marginRight: 'auto', height: '170px', paddingTop: '10px', marginBottom: '60px',  marginTop: '100px'}}>
  
  
  
@@ -515,8 +525,116 @@ const Participants = () => {
    
 </div>
 
+{currentClass.joinRequests?.length > 0 && (
+  <div style={{width: '800px', marginLeft: 'auto', marginRight: 'auto', marginBottom: '40px', marginTop: '-40px'}}>
+    <h1 style={{fontWeight: '600', marginBottom: '10px', fontSize: '25px'}}>Join Requests</h1>
+
+{(currentClass.joinRequests || []).map(student => (
+
+  <div key={student.uid} style={{ 
+    width: '800px', 
+    display: 'flex', 
+    marginLeft: '-15px',
+    background: 'white',
+    boxShadow: '1px 1px 5px 1px rgb(0,0,155,.07)', 
+    borderRadius: '15px',
+    padding: '10px', 
+    marginBottom: '10px', 
+    height: '40px',
+    alignItems: 'center' // Added this to vertically center
+  }}>
+    <span style={{
+      backgroundColor: 'transparent', 
+      borderColor: 'transparent',
+      fontFamily: "'montserrat', sans-serif", 
+      fontSize: '20px', 
+      marginLeft: '50px', 
+      marginRight: '30px', 
+      color: 'grey'
+    }}>Admit</span>
+     <span style={{
+      backgroundColor: 'transparent', 
+      borderColor: 'transparent',
+      fontFamily: "'montserrat', sans-serif", 
+      fontSize: '16px',
+      marginRight: '20px',  
+      color: 'grey',
+      fontWeight: '600'
+    }}>{student.email}</span>
+    <span style={{
+      backgroundColor: 'transparent', 
+      borderColor: 'transparent',
+      fontFamily: "'montserrat', sans-serif",  
+      fontSize: '20px',
+      marginRight: '10px'
+    }}> {student.name.split(' ')[1]},</span>
+    
+    <span style={{
+      backgroundColor: 'transparent', 
+      borderColor: 'transparent',
+      fontFamily: "'montserrat', sans-serif", 
+      fontSize: '20px',
+      marginRight: '20px',  
+      fontWeight: '600'
+    }}>{student.name.split(' ')[0]}</span>
+    
+   
+    
+    <span style={{
+      backgroundColor: 'transparent', 
+      borderColor: 'transparent',
+      fontFamily: "'montserrat', sans-serif", 
+      fontSize: '20px',
+      marginLeft: '10px', 
+      color: 'grey'
+    }}>?</span>
+    
+    <div style={{
+      marginLeft: 'auto', 
+      marginRight: '0px',
+      display: 'flex',
+      alignItems: 'center'
+    }}>
+      <button style={{
+        backgroundColor: 'transparent', 
+        borderColor: 'transparent',
+        fontFamily: "'montserrat', sans-serif", 
+        cursor: 'pointer',
+        padding: '5px',
+        display: 'flex',
+        alignItems: 'center'
+      }} onClick={() => handleAdmitStudent(student)}>                  
+        <SquareCheck size={30} color="#00b303" strokeWidth={2} />
+      </button>
+      
+      <button style={{
+        backgroundColor: 'transparent', 
+        borderColor: 'transparent',
+        fontFamily: "'montserrat', sans-serif", 
+        cursor: 'pointer', 
+        marginLeft: '20px',
+        padding: '5px',
+        display: 'flex',
+        alignItems: 'center'
+      }} onClick={() => handleRejectStudent(student.uid)}>
+        <SquareX size={30} color="#e60000" strokeWidth={2} />
+      </button>
+    </div>
+  </div>
+
+))}
+
+</div>
+)}
+
+
+
+
+
+
+
 <div style={{width: '800px',marginLeft: 'auto', marginRight: 'auto', display: 'flex', marginTop: '-30px', marginBottom: '-10px'}}>
-<h1 style={{fontWeight: '600', fontSize: '30px'}}>{currentClass.participants ? currentClass.participants.length : 0} Students 
+<h1 style={{fontWeight: '600', fontSize: '25px'}}>{currentClass.participants ? currentClass.participants.length : 0} Students 
 </h1>
 
 <button 
@@ -527,7 +645,7 @@ const Participants = () => {
           color: 'blue',
           marginLeft: '20px',
           height: '40px',
-         marginTop: '22px',
+         marginTop: '12px',
           backgroundColor: 'white',
           
           boxShadow: '1px 1px 5px 1px rgb(0,0,155,.07)' ,
@@ -544,7 +662,7 @@ const Participants = () => {
         {isEditing ? <div style={{marginTop:'3px', marginLeft:'0px'}}><PencilOff size={25} color="lightgrey" strokeWidth={2} /></div> : <div style={{marginTop:'3px',  marginLeft:'0px'}}><Pencil size={25} color="grey" strokeWidth={2} /></div>}
       </button>
 </div>   
-<div style={{ display: 'flex', maxWidth: '800px', margin: 'auto',  marginTop: '10px' }}>
+<div style={{ display: 'flex', maxWidth: '800px', margin: 'auto',  marginTop: '10px', marginBottom: '100px', }}>
 
 
 <div style={{ width: '320px', padding: '20px',  background: 'white', 

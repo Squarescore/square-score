@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { doc, collection, updateDoc, where, query, getDocs, writeBatch } from 'firebase/firestore';
 import { db } from '../../Universal/firebase';
-import { arrayUnion, arrayRemove, deleteDoc, getDoc } from 'firebase/firestore';
+import { arrayUnion, arrayRemove, deleteDoc, getDoc, onSnapshot, documentId  } from 'firebase/firestore';
 import Navbar from '../../Universal/Navbar';
 import { useRef } from 'react';
 import { auth } from '../../Universal/firebase';
@@ -13,11 +13,13 @@ import axios from 'axios';
 import { serverTimestamp } from 'firebase/firestore';
 import CustomDateTimePicker from './CustomDateTimePickerResults';
 import Exports from './Exports';
+
 import DeleteConfirmationModal from './DeleteConfirmationModal';
 import { Settings, ArrowRight, SquareArrowOutUpRight,  SquareDashedMousePointer, SquareX, SquareMinus, SquareCheck, Landmark, Eye, EyeOff, Flag, YoutubeIcon, Trash2 } from 'lucide-react';
 import 'react-datepicker/dist/react-datepicker.css';
 import TeacherPreview from '../Create/PreviewSAQ';
 import QuestionBankSAQ from './QuesntionBankSAQ';
+import StudentResultsList from './StudentResultList';
 const TeacherResults = () => {
   const [students, setStudents] = useState([]);
   const [grades, setGrades] = useState({});
@@ -680,102 +682,6 @@ const TeacherResults = () => {
   }, [assignmentId]);
 
  
-  useEffect(() => {
-    const fetchClassAndGrades = async () => {
-      setLoading(true);
-      try {
-        const classDocRef = doc(db, 'classes', classId);
-        const classDoc = await getDoc(classDocRef);
-        const classData = classDoc.data();
-      
-        if (classData && classData.participants) {
-          // Fetch full names for all participants
-          const updatedParticipants = await Promise.all(classData.participants.map(async (participant) => {
-            const studentDocRef = doc(db, 'students', participant.uid);
-            const studentDoc = await getDoc(studentDocRef);
-            if (studentDoc.exists()) {
-              const studentData = studentDoc.data();
-              const firstName = studentData.firstName.trim();
-              const lastName = studentData.lastName.trim();
-              return {
-                ...participant,
-                firstName,
-                lastName,
-                name: `${firstName} ${lastName}`,
-                isAssigned: studentData.assignmentsToTake?.includes(assignmentId) ||
-                            studentData.assignmentsInProgress?.includes(assignmentId) ||
-                            studentData.assignmentsTaken?.includes(assignmentId)
-              };
-            }
-            return participant;
-          }));
-          
-          // Sort students by last name
-          const sortedStudents = updatedParticipants.sort((a, b) => 
-            a.lastName.localeCompare(b.lastName)
-          );
-          
-          setStudents(sortedStudents);
-          
-          const assignedStudents = sortedStudents.filter(student => student.isAssigned);
-          setAssignedCount(assignedStudents.length);
-
-          const gradesCollection = collection(db, 'grades');
-          const gradesQuery = query(gradesCollection, where('assignmentId', '==', assignmentId));
-          const gradesSnapshot = await getDocs(gradesQuery);
-          const fetchedGrades = {};
-          let totalScore = 0;
-          let validGradesCount = 0;
-          let submissionsCount = 0;
-
-          gradesSnapshot.forEach((doc) => {
-            const gradeData = doc.data();
-            fetchedGrades[gradeData.studentUid] = {
-              totalScore: gradeData.totalScore,
-              maxScore: gradeData.maxScore,
-              submittedAt: gradeData.submittedAt,
-              percentageScore: gradeData.percentageScore,
-              viewable: gradeData.viewable || false,
-              questions: gradeData.questions ? gradeData.questions.map(q => ({
-                ...q,
-                flagged: q.flagged || false,
-              })) : [],
-            };
-
-            if (gradeData.submittedAt) {
-              submissionsCount++;
-            }
-
-            if (typeof gradeData.percentageScore === 'number' && !isNaN(gradeData.percentageScore)) {
-              totalScore += gradeData.percentageScore;
-              validGradesCount++;
-            }
-          });
-
-          setGrades(fetchedGrades);
-          setSubmissionCount(submissionsCount);
-
-          const calculatedAverage = validGradesCount > 0 ? (totalScore / validGradesCount).toFixed(0) : null;
-          setAverageGrade(calculatedAverage);
-
-          // Update assignment document with new class average
-          if (calculatedAverage !== null) {
-            const assignmentRef = doc(db, 'assignments', assignmentId);
-            await updateDoc(assignmentRef, { classAverage: parseFloat(calculatedAverage) });
-          }
-        }
-      } catch (error) {
-        console.error("Error fetching class and grades:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchClassAndGrades();
-    const classAndGradesInterval = setInterval(fetchClassAndGrades, 10000);
-
-    return () => clearInterval(classAndGradesInterval);
-  }, [classId, assignmentId]);
   const handleReset = async (studentUid) => {
     if (window.confirm("Are you sure you want to reset this student's assignment? This action cannot be undone.")) {
       try {
@@ -935,109 +841,186 @@ const TeacherResults = () => {
 
 
 
+useEffect(() => {
+  let unsubscribeClass;
+  let unsubscribeGrades;
+  let unsubscribeAssignment;
+  let studentDataCache = {}; // Cache student data
+  let lastFetch = 0;
+  const FETCH_COOLDOWN = 5000; // 5 seconds cooldown between fetches
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  useEffect(() => {
-    const fetchReviewCount = async () => {
-      const gradesCollection = collection(db, 'grades');
-      let count = 0;
-    
-      for (let i = 0; i < students.length; i += chunkSize) {
-        const studentChunk = students.slice(i, i + chunkSize).map(student => student.uid);
-        const gradesQuery = await getDocs(query(gradesCollection, where('studentUid', 'in', studentChunk), where('assignmentId', '==', assignmentId)));
-    
-        gradesQuery.forEach((doc) => {
-          const gradeData = doc.data();
-          count += (gradeData.questions || []).filter(question => question.flagged).length;
-        });
-      }
-    
-      setReviewCount(prevCount => {
-        console.log("New Review count:", count);
-        return count;
+  const setupRealtimeListeners = async () => {
+    setLoading(true);
+    try {
+      // 1. Single listener for assignment data
+      unsubscribeAssignment = onSnapshot(doc(db, 'assignments', assignmentId), (doc) => {
+        if (doc.exists()) {
+          const data = doc.data();
+          setAssignmentData(data);
+          setAssignmentName(data.assignmentName);
+          setAssignDate(data.assignDate ? new Date(data.assignDate) : null);
+          setDueDate(data.dueDate ? new Date(data.dueDate) : null);
+          setAllViewable(data.viewable || false);
+          if (data.questions) {
+            setQuestions(Object.entries(data.questions).map(([id, questionData]) => ({
+              questionId: id,
+              ...questionData
+            })));
+          }
+        }
       });
-    };
 
-   
+      // 2. Combined listener for class and student data with throttling
+      unsubscribeClass = onSnapshot(doc(db, 'classes', classId), async (classDoc) => {
+        if (!classDoc.exists()) return;
 
-    if (students.length > 0) {
-      fetchReviewCount();
-      const reviewCountInterval = setInterval(() => {
-        fetchReviewCount();
-      }, 10000); // Poll every 10 seconds
+        const classData = classDoc.data();
+        if (!classData.participants?.length) return;
 
-      return () => {
-        clearInterval(reviewCountInterval);
-      };
+        const now = Date.now();
+        if (now - lastFetch < FETCH_COOLDOWN) return; // Throttle fetches
+        lastFetch = now;
+
+        // Only fetch data for new or updated students
+        const studentsToFetch = classData.participants.filter(
+          p => !studentDataCache[p.uid] || studentDataCache[p.uid].lastUpdate < now - 60000
+        );
+
+        if (studentsToFetch.length > 0) {
+          // Batch student docs into chunks of 10 (Firestore limit)
+          const chunkSize = 10;
+          for (let i = 0; i < studentsToFetch.length; i += chunkSize) {
+            const chunk = studentsToFetch.slice(i, i + chunkSize);
+            const studentDocs = await getDocs(query(
+              collection(db, 'students'),
+              where(documentId(), 'in', chunk.map(s => s.uid))
+            ));
+
+            studentDocs.forEach(doc => {
+              const data = doc.data();
+              studentDataCache[doc.id] = {
+                data,
+                lastUpdate: now
+              };
+            });
+          }
+        }
+
+        // Process all students using cache
+        const updatedParticipants = classData.participants
+          .map(participant => {
+            const studentData = studentDataCache[participant.uid]?.data;
+            if (studentData) {
+              return {
+                ...participant,
+                firstName: studentData.firstName.trim(),
+                lastName: studentData.lastName.trim(),
+                name: `${studentData.firstName.trim()} ${studentData.lastName.trim()}`,
+                isAssigned: studentData.assignmentsToTake?.includes(assignmentId) ||
+                          studentData.assignmentsInProgress?.includes(assignmentId) ||
+                          studentData.assignmentsTaken?.includes(assignmentId)
+              };
+            }
+            return participant;
+          })
+          .sort((a, b) => a.lastName.localeCompare(b.lastName));
+
+        setStudents(updatedParticipants);
+        setAssignedCount(updatedParticipants.filter(s => s.isAssigned).length);
+      });
+
+      // 3. Single listener for all grades
+      unsubscribeGrades = onSnapshot(
+        query(collection(db, 'grades'), where('assignmentId', '==', assignmentId)),
+        (snapshot) => {
+          const gradesData = snapshot.docs.reduce((acc, doc) => {
+            const gradeData = doc.data();
+            acc.grades[gradeData.studentUid] = {
+              totalScore: gradeData.totalScore,
+              maxScore: gradeData.maxScore,
+              submittedAt: gradeData.submittedAt,
+              percentageScore: gradeData.percentageScore,
+              viewable: gradeData.viewable || false,
+              questions: gradeData.questions?.map(q => ({
+                ...q,
+                flagged: q.flagged || false,
+              })) || [],
+            };
+            
+            if (gradeData.submittedAt) acc.submissionsCount++;
+            if (typeof gradeData.percentageScore === 'number' && !isNaN(gradeData.percentageScore)) {
+              acc.totalScore += gradeData.percentageScore;
+              acc.validGradesCount++;
+            }
+            acc.reviewCount += (gradeData.questions || []).filter(q => q.flagged).length;
+            
+            return acc;
+          }, { grades: {}, totalScore: 0, validGradesCount: 0, submissionsCount: 0, reviewCount: 0 });
+
+          setGrades(gradesData.grades);
+          setSubmissionCount(gradesData.submissionsCount);
+          setReviewCount(gradesData.reviewCount);
+
+          if (gradesData.validGradesCount > 0) {
+            const calculatedAverage = (gradesData.totalScore / gradesData.validGradesCount).toFixed(0);
+            setAverageGrade(calculatedAverage);
+            updateDoc(doc(db, 'assignments', assignmentId), {
+              classAverage: parseFloat(calculatedAverage)
+            });
+          }
+        }
+      );
+
+    } catch (error) {
+      console.error("Error setting up listeners:", error);
+    } finally {
+      setLoading(false);
     }
-  }, [students]);
+  };
+
+  setupRealtimeListeners();
+
+  return () => {
+    if (unsubscribeClass) unsubscribeClass();
+    if (unsubscribeGrades) unsubscribeGrades();
+    if (unsubscribeAssignment) unsubscribeAssignment();
+    studentDataCache = {};
+  };
+}, [classId, assignmentId]);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
   const handleBack = () => {
     navigate(-1);
   };
-  useEffect(() => {
-    const fetchAssignmentStatus = async () => {
-      const statusPromises = students.map(async (student) => {
-        const progressRef = doc(db, 'assignments(progress)', `${assignmentId}_${student.uid}`);
-        const progressDoc = await getDoc(progressRef);
-        const gradeRef = doc(db, 'grades', `${assignmentId}_${student.uid}`);
-        const gradeDoc = await getDoc(gradeRef);
-        const studentRef = doc(db, 'students', student.uid);
-        const studentDoc = await getDoc(studentRef);
   
-        let status = 'not_assigned';
-        if (gradeDoc.exists()) {
-          status = 'completed';
-        } else if (progressDoc.exists()) {
-          status = progressDoc.data().status === 'paused' ? 'Paused' : 'In Progress';
-        } else if (studentDoc.exists() && studentDoc.data().assignmentsToTake?.includes(assignmentId)) {
-          status = 'not_started';
-        }
-  
-        return { [student.uid]: status };
-      });
-  
-      const statuses = await Promise.all(statusPromises);
-      const combinedStatuses = Object.assign({}, ...statuses);
-      setAssignmentStatuses(combinedStatuses);
-    };
-  
-    fetchAssignmentStatus();
-  }, [students, assignmentId]);
   const goToReview = () => {
     navigate(`/teacherReview/${classId}/${assignmentId}`);
   };
@@ -1081,7 +1064,9 @@ const TeacherResults = () => {
         return null;
     }
   };
-
+  const navigateToStudentResults = (studentUid) => {
+    navigate(`/teacherStudentResults/${assignmentId}/${studentUid}/${classId}`);
+  };
   
   return (
     <div style={{  display: 'flex', flexDirection: 'column',  backgroundColor: '#fcfcfc', position: 'absolute', left: 0, right: 0, bottom: 0, top: 0}}>
@@ -1165,7 +1150,7 @@ const TeacherResults = () => {
 
         
     <h1 style={{  fontSize: '25px', 
-      color: 'grey', 
+      color: 'white', 
       width: '260px', // Use full width of parent
       fontFamily: "'montserrat', sans-serif",
       wordWrap: 'break-word', // Allow long words to break and wrap
@@ -1174,7 +1159,7 @@ const TeacherResults = () => {
       lineHeight: '1.2', // Adjust line height for better readability
       margin: 0,
       position: 'absolute', bottom: '20px', left: '40px', // Remove default margins
-      padding: '10px 0' }}>{submissionCount}/{assignedCount} Submissions </h1>
+      padding: '10px 0' }}> classname  here </h1>
 <h1 style={{position: 'absolute', fontSize: '25px', right: '50px',  bottom: '25px',color: 'blue', }}>SAQ</h1>
       </div>
       
@@ -1449,188 +1434,45 @@ const TeacherResults = () => {
     onDeleteSuccess={handleDeleteSuccess}
   />
 )}
-      <ul style={{background: 'white', width: '860px', marginLeft: 'auto', marginRight: 'auto', backgroundColor: 'white',     
-               boxShadow: '1px 1px 5px 1px rgb(0,0,155,.07)',  borderRadius: '20px', paddingTop: '20px'}}>
 
 
 
-  {students.map((student) => (
-    <li key={student.uid} style={{ 
-      width: '800px', 
-      height: '40px', 
-      alignItems: 'center', 
-      display: 'flex', 
-      justifyContent: 'space-between', 
-
-      marginLeft: '10px', 
-      borderBottom: '2px solid #f4f4f4', 
-      backgroundColor: 'white', 
-      padding: '0px',
-      paddingBottom: '20px', 
+<div style={{width: '850px', marginLeft: 'auto', marginRight: 'auto', marginTop: '20px',
+      height: '40px', marginBottom: '0px'
       
-      paddingTop: '20px', 
-      position: 'relative',
-      zIndex: '0', 
-    }}>
-      <div style={{ marginLeft: '0px', width: '460px', display: 'flex', marginTop: '5px' }}>
-        <div 
-          style={{ 
-            display: 'flex', 
-            marginBottom: '10px', 
-            cursor: 'pointer',
-            transition: 'color 0.3s',
-            width: '280px',
-            marginTop: '5px'
-          }}
-          onClick={() => navigateToStudentGrades(student.uid)}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.color = 'blue';
-            e.currentTarget.style.textDecoration = 'underline';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.color = 'inherit';
-            e.currentTarget.style.textDecoration = 'none';
-          }}
-        >
-          <h3 style={{ fontWeight: 'normal', color: 'inherit', fontFamily: "'montserrat', sans-serif", fontSize: '20px' }}>{student.lastName},</h3>
-          <h3 style={{ fontWeight: '600', color: 'inherit', fontFamily: "'montserrat', sans-serif", fontSize: '20px', marginLeft: '10px' }}>{student.firstName}</h3>
-        </div>
-      </div>
-  
-      {assignmentStatuses[student.uid] !== 'not_assigned' && (
-        <>
-          <div style={{ fontWeight: 'bold', textAlign: 'center', color: 'black', fontFamily: "'montserrat', sans-serif", marginTop: '0px', width: '100px', marginRight: '20px', marginLeft: '-40px' }}>
-            {grades[student.uid] ? (
-              <div style={{ display: 'flex', alignItems: 'center', marginTop: '-2px', width: '130px',  }}>
-                <p style={{ fontWeight: 'bold', width: '23px', fontSize: '22px', backgroundColor: '#566DFF', height: '23px', border: '4px solid #003BD4', lineHeight: '23px', color: 'white', borderRadius: '7px', fontFamily: "'montserrat', sans-serif" }}>
-                  {calculateLetterGrade(grades[student.uid].percentageScore)}
-                </p>
-                <p style={{ fontSize: '25px', color: 'grey', marginLeft: '20px' }}>
-                  {`${Math.round(grades[student.uid].percentageScore)}%`}
-                </p>
-              </div>
-            ) : (
-              <div style={{ display: 'flex', alignItems: 'center', marginTop: '-2px',width: '130px',  }}>
-                <p style={{ fontWeight: 'bold', width: '23px', fontSize: '22px', backgroundColor: '#C0C0C0', height: '23px', border: '4px solid #A8A8A8', lineHeight: '23px', color: 'white', borderRadius: '7px', fontFamily: "'montserrat', sans-serif" }}>
-                  Z
-                </p>
-                <p style={{ fontSize: '25px', color: 'lightgrey', marginLeft: '20px' }}>
-                  00%
-                </p>
-              </div>
-            )}
-          </div>
-          <div style={{ color: 'lightgrey', width: '360px',  display: 'flex', alignItems: 'center', marginLeft: '20px', marginTop: '5px' }}>
-            <div style={{ display: 'flex', alignItems: 'center' }}>
-              <div style={{marginRight: '10px ', marginLeft: '10px'}}>  
-                {getStatusIcon(grades[student.uid] && grades[student.uid].submittedAt ? 'completed' : assignmentStatuses[student.uid])}
-              </div>
-              <h1 style={{ 
-                fontSize: grades[student.uid] && grades[student.uid].submittedAt ? '17px' : '20px', 
-                fontFamily: "'montserrat', sans-serif", 
-                fontWeight: '600',
-                fontStyle: grades[student.uid] && grades[student.uid].submittedAt ? 'italic' : 'normal',
-                color: grades[student.uid] && grades[student.uid].submittedAt ? '#808080' : getStatusColor(assignmentStatuses[student.uid]),
-                textTransform: assignmentStatuses[student.uid] === 'completed' ? 'uppercase' : 'capitalize',
-                cursor: assignmentStatuses[student.uid] === 'Paused' ? 'pointer' : 'default',
-                marginRight: '10px',
-                marginTop: '10px'
-              }}
-              onMouseEnter={() => assignmentStatuses[student.uid] === 'Paused' && setHoveredStatus(student.uid)}
-              onMouseLeave={() => setHoveredStatus(null)}
-              onClick={() => assignmentStatuses[student.uid] === 'Paused' && togglePauseAssignment(student.uid)}
-              >
-                {grades[student.uid] && grades[student.uid].submittedAt ? 
-                  ` ${new Date(grades[student.uid].submittedAt.toDate()).toLocaleString(undefined, {
-                    year: 'numeric',
-                    month: 'numeric',
-                    day: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit',
-                    hour12: true
-                  })}` : 
-                  (hoveredStatus === student.uid && assignmentStatuses[student.uid] === 'Paused' 
-                    ? 'Unpause' 
-                    : assignmentStatuses[student.uid])
-                }
-              </h1>
-            </div>
-          </div>
-        </>
-      )}
-  
-      {assignmentStatuses[student.uid] === 'not_assigned' ? (
+      }}>
        
-       <div>
-        <h1 style={{fontSize: '16px', position: 'absolute', width: '340px' , color: 'lightgrey', left: '320px', top: '20px', fontWeight: '600' }}>Not Assigned</h1>
-       <button
-          style={{ 
-            backgroundColor: 'transparent', 
-            color: '#2BB514', 
-            marginLeft: 'auto', 
-            cursor: 'pointer', 
-            borderColor: 'transparent', 
-            fontFamily: "'montserrat', sans-serif", 
-            fontWeight: 'bold', 
-            fontSize: '16px', 
-            marginTop: '-0px',
-            marginRight: '10px' 
-          }} 
-          onClick={() => handleAssign(student.uid)}
-        >
-          Assign
-        </button>
-        </div>
-      ) : (
-        <button
-          style={{ 
-            backgroundColor: 'transparent', 
-            color: resetStatus[student.uid] === 'success' ? 'lightgreen' : 'red', 
-            marginLeft: 'auto', 
-            marginRight: '60px',
-            cursor: 'pointer', 
-            textAlign: 'left', 
-            borderColor: 'transparent', 
-            fontFamily: "'montserrat', sans-serif", 
-            fontWeight: 'bold', 
-            fontSize: '16px', 
-            marginTop: '-0px',
-          }} 
-          onClick={() => handleReset(student.uid)}
-        >
-          {resetStatus[student.uid] === 'success' ? 'Success' : 'Reset'}
-        </button>
-      )}
-  
-      {assignmentStatuses[student.uid] === 'completed' && (
-        <div
-          style={{
-            position: 'absolute',
-            right: '-20px',
-            height: '38px',
-            width: '50px',
-            padding: '11px',
-            zIndex: '2',
-            backgroundColor: 'transparent',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            border: '4px solid transparent',
-            borderBottomRightRadius: '10px',
-            borderTopRightRadius: '10px',
-            cursor: 'pointer',
-          }}
-          onClick={(e) => {
-            e.stopPropagation();
-            navigate(`/teacherStudentResults/${assignmentId}/${student.uid}/${classId}`);
-          }}
-        >
-          <ArrowRight size={30} color="#020CFF" strokeWidth={2.5} />
-        </div>
-      )}
-    </li>
-  ))}
-      </ul>
+<h1 style={{  fontSize: '25px', 
+      color: 'black',
+
+      fontWeight: '600', 
+      width: '260px', // Use full width of parent
+      fontFamily: "'montserrat', sans-serif",
+      wordWrap: 'break-word', // Allow long words to break and wrap
+      overflowWrap: 'break-word', // Ensure long words don't overflow
+      hyphens: 'auto', // Adjust line height for better readability
+     
+   }}>{submissionCount}/{assignedCount} Submissions </h1>
+
+</div>
+<StudentResultsList
+        students={students}
+        grades={grades}
+        assignmentStatuses={assignmentStatuses}
+        navigateToStudentGrades={navigateToStudentGrades}
+        navigateToStudentResults={navigateToStudentResults}
+        getStatusIcon={getStatusIcon}
+        getStatusColor={getStatusColor}
+        calculateLetterGrade={calculateLetterGrade}
+        hoveredStatus={hoveredStatus}
+        setHoveredStatus={setHoveredStatus}
+        togglePauseAssignment={togglePauseAssignment}
+        handleReset={handleReset}
+        resetStatus={resetStatus}
+        handleAssign={handleAssign}
+        gradeField="percentageScore" // Specify the grade field for TeacherResults
+        navigateToResultsPath="/teacherStudentResults/" // Specify the navigation path
+      />
       
       {showOverlay && (
         <div style={{

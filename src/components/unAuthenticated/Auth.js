@@ -4,11 +4,17 @@ import { Link as ScrollLink } from 'react-scroll';
 import FeatureTicker from './FeatureTicker';
 import FooterAuth from './FooterAuth';
 import './BackgroundDivs.css'; // Import the CSS file
-import { ArrowRight, ArrowRightFromLine, Bot, ChevronLeft, ChevronRight, MoveLeft, MoveRight } from 'lucide-react';
+import emailjs from 'emailjs-com'; // Import EmailJS
+
+import { ArrowRight, ArrowRightFromLine, Bot, ChevronLeft, ChevronRight, MoveLeft, MoveRight, ChevronDown, SquareX, SendHorizonal } from 'lucide-react';
 const Auth = () => {
   const [navbarBg, setNavbarBg] = useState('rgba(255,255,255,0.95)');
 
   const [selectedFormat, setSelectedFormat] = useState('SAQ*');
+  const [isModalOpen, setIsModalOpen] = useState(false); // Modal state
+  const [feedback, setFeedback] = useState({ from_name: '', reply_to: '', message: '' }); // Feedback form state
+  const [isSending, setIsSending] = useState(false); // Sending state
+  const [sendStatus, setSendStatus] = useState(null); 
   const [currentSlide, setCurrentSlide] = useState(0);
 
   const formats = [
@@ -66,13 +72,55 @@ const Auth = () => {
     return text;
   };
 
+  const openModal = () => {
+    setIsModalOpen(true);
+  };
 
+  // Handler to close the modal
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setFeedback({ from_name: '', reply_to: '', message: '' });
+    setSendStatus(null);
+  };
+
+  // Handler for form input changes
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFeedback((prev) => ({ ...prev, [name]: value }));
+  };
+
+  // Handler for form submission
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    setIsSending(true);
+
+    // Replace these with your actual EmailJS credentials
+    const service_id = 'service_t17hzxi';
+    const template_id = 'template_nnojgxd';
+    const user_id = 'GvU568KbWouvXYWUh';
+
+    emailjs.send(service_id, template_id, feedback, user_id)
+      .then((response) => {
+        console.log('SUCCESS!', response.status, response.text);
+        setSendStatus('success');
+        setIsSending(false);
+        // Optionally, you can close the modal after sending
+        // setTimeout(() => {
+        //   closeModal();
+        // }, 2000);
+      })
+      .catch((err) => {
+        console.error('FAILED...', err);
+        setSendStatus('error');
+        setIsSending(false);
+      });
+  };
 
 
   useEffect(() => {
     const handleScroll = () => {
       if (window.scrollY > 0) {
-        setNavbarBg('rgba(250, 250, 250, 0.7)');
+        setNavbarBg('rgba(255, 255, 255, 0.7)');
       } else {
         setNavbarBg('rgba(255, 255, 255, 0.7)');
       }
@@ -141,48 +189,143 @@ const Auth = () => {
               <img style={{width: '25px',  }} src="/SquareScore.svg" alt="logo" />
               <h1 style={{fontWeight: '600', color: 'black', paddingLeft: '10px', borderLeft: '4px solid #f4f4f4', marginLeft: '10px', fontSize: '20px'}}>SquareScore</h1>
               </div>
-            </div>
-            <div style={{ width: '380px', display: 'flex', position: 'fixed', right: '20px' }}>
-            <Link to="/signup" style={{
-                height: '30px', marginTop: '20px', lineHeight: '30px', borderRadius: '8px',
-                fontWeight: '600', background: 'transparent',  color: 'black',
 
-                textDecoration: 'none', width: '160px', marginLeft: 'auto',
+              
+           
+
+            </div>
+
+
+      {/* Feedback Modal */}
+
+
+            <div style={{ width: '700px', display: 'flex', position: 'fixed', right: '20px' }}>
+
+
+            <button
+        onClick={openModal}
+        style={{
+          padding: '10px 20px',
+          background: 'none',
+
+          fontSize: '12px',
+          height: '30px',
+          color: 'lightgrey',
+          border: 'none',
+          marginTop: '20px',
+          borderRadius: '5px',
+          fontWeight: '600',
+          fontFamily: "'Montserrat', sans-serif",
+          cursor: 'pointer',
+          zIndex: 1001, // Ensure it stays above other elements
+        }}
+      >
+        Send Feedback 
+      </button>
+      <button
+        style={{
+          padding: '10px 20px',
+          background: 'none',
+          
+    fontSize: '12px',
+          height: '30px',
+          color: 'lightgrey',
+          marginTop: '20px',
+          border: 'none',
+          borderRadius: '5px',
+          fontWeight: '600',
+          fontFamily: "'Montserrat', sans-serif",
+          cursor: 'pointer',
+          zIndex: 1001, // Ensure it stays above other elements
+        }}
+      >
+        Tutorials
+      </button>
+      <Link 
+  to="/privacypolicy"
+  style={{
+    padding: '10px 20px',
+    background: 'none',
+    marginTop: '20px',
+    marginLeft: '30px',
+    height: '30px',
+    color: 'lightgrey',
+    fontSize: '12px',
+    border: 'none',
+    marginLeft: '30px',
+    borderRadius: '5px',
+    fontWeight: '600',
+    fontFamily: "'Montserrat', sans-serif",
+    cursor: 'pointer',
+    zIndex: 1001,
+    textDecoration: 'none', // Added to remove default link underlining
+    display: 'inline-block', // Added to maintain button-like appearance
+  }}
+>
+  Privacy Policy
+</Link>
+     
+
+
+<Link to="/login" style={{
+         height: '30px', marginTop: '20px', lineHeight: '30px', borderRadius: '5px',
+         fontWeight: '600', 
+         backgroundColor: 'white',
+           color: 'grey',
+
+         textDecoration: 'none', 
+         width: '100px', 
+         marginLeft: 'auto',
+        textAlign: 'center', transition: '.2s',
+         fontFamily: "'montserrat', sans-serif", 
+         fontSize: '16px',
+
+
+         transition: 'background 0.3s, box-shadow 0.3s',
+      
+       }}
+      
+       onMouseEnter={(e) => {
+         e.currentTarget.style.background = '#FBFBFB';
+       }}
+       onMouseLeave={(e) => {
+         e.currentTarget.style.background = 'white';
+       }}
+       
+               >Login</Link>
+
+
+            <Link to="/signup" style={{
+                height: '30px', marginTop: '20px', lineHeight: '30px', borderRadius: '5px',
+                fontWeight: '600', 
+                backgroundColor: 'white',
+                  color: 'grey',
+
+                  border: '1px solid #ddd',
+                textDecoration: 'none', 
+                width: '160px', 
+                marginLeft: 'auto',
                textAlign: 'center', transition: '.2s',
-                fontFamily: "'montserrat', sans-serif", fontSize: '16px'
+                fontFamily: "'montserrat', sans-serif", 
+                fontSize: '16px',
+
+
+                transition: 'background 0.3s, box-shadow 0.3s',
+             
               }}
-              onMouseEnter={(e) => {     e.target.style.background = '#f4f4f4';
-                e.target.style.border = '3px solid lightgrey';
-                
-                e.target.style.color = 'grey';
+             
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = '#FBFBFB';
               }}
               onMouseLeave={(e) => {
-                e.target.style.background = 'transparent';
-                
-                e.target.style.color = 'black';
-                e.target.style.border = '3px solid transparent';
-          
-              }}>Create Account</Link>
+                e.currentTarget.style.background = 'white';
+              }}
+              
+              
+              
+              >Create Account</Link>
             
-              <Link to="/login" style={{
-               height: '30px', marginTop: '20px', lineHeight: '30px', borderRadius: '8px',
-               fontWeight: '600', background: 'transparent',  color: 'black',
-
-               textDecoration: 'none', width: '100px', marginLeft: '10px',
-              textAlign: 'center', transition: '.2s',
-               fontFamily: "'montserrat', sans-serif", fontSize: '16px'
-             }}
-             onMouseEnter={(e) => {     e.target.style.background = '#f4f4f4';
-               e.target.style.border = '3px solid lightgrey';
-               
-               e.target.style.color = 'grey';
-             }}
-             onMouseLeave={(e) => {
-               e.target.style.background = 'transparent';
-               
-               e.target.style.color = 'black';
-               e.target.style.border = '3px solid transparent';}}
-               >Login</Link>
+             
             </div>
           </div>
         </div>
@@ -213,7 +356,7 @@ const Auth = () => {
            
           </h1>
           <img src='/Mac.png' style={{ width: '450px', marginTop: '-20px', position: 'absolute', right: '150px', top: '-30px'}} />
-          <a href="https://www.youtube.com/watch?v=vAT3O0b3eDA" 
+          <a href="https://www.youtube.com/watch?v=2vN0NrMrjtY" 
             target="_blank" 
             rel="noopener noreferrer"  style={{
 
@@ -270,6 +413,168 @@ const Auth = () => {
 
 
      
+        {isModalOpen && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: '100%',
+          backgroundColor: 'rgba(255,255,255,0.9)',
+          backdropFilter: 'blur(5px) ', 
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 12,
+        }}>
+          <div style={{
+            background: 'white',
+            padding: '30px',
+            boxShadow: '1px 1px 10px 1px rgb(0,0,155,.1)',
+            borderRadius: '20px',
+            width: '400px',
+            position: 'relative',
+          }}>
+            <h2 style={{ marginBottom: '60px', width: '420px', margin: '-30px', height:'60px', fontSize: '30px', fontWeight: '700', lineHeight: '60px',  borderRadius: '20px 20px 0px 0px', background: '#f4f4f4', marginBottom: '40px', border: '10px solid lightgrey', color: 'grey', paddingLeft: '20px',  }}>Feedback</h2>
+            <form onSubmit={handleSubmit}>
+              <div style={{ marginBottom: '15px', marginTop: '50px' }}>
+                <label htmlFor="from_name" style={{ display: 'block', marginBottom: '5px', fontWeight: '600' }}>Your Name:</label>
+                <input
+                  type="text"
+                  id="from_name"
+                  name="from_name"
+                  value={feedback.from_name}
+                  onChange={handleChange}
+                  required
+                  placeholder="Enter your name"
+                  style={{
+                    width: '100%',
+                    padding: '8px',
+
+                    
+                    fontFamily: "'montserrat', sans-serif" ,
+                    boxSizing: 'border-box',
+                    borderRadius: '5px',
+                    border: '1px solid #ccc',
+                  }}
+                />
+              </div>
+              <div style={{ marginBottom: '15px' }}>
+                <label htmlFor="reply_to" style={{ display: 'block', marginBottom: '5px', fontWeight: '600' }}>Your Email:</label>
+                <input
+                  type="email"
+                  id="reply_to"
+                  name="reply_to"
+                  value={feedback.reply_to}
+                  onChange={handleChange}
+                  required
+                  placeholder="Enter your email"
+                  style={{
+                    width: '100%',
+                    
+                    fontFamily: "'montserrat', sans-serif" ,
+                    padding: '8px',
+                    boxSizing: 'border-box',
+                    borderRadius: '5px',
+                    border: '1px solid #ccc',
+                  }}
+                />
+              </div>
+              <div style={{ marginBottom: '15px' }}>
+                <label htmlFor="message" style={{ display: 'block', marginBottom: '5px', fontWeight: '600' }}>Message:</label>
+                <textarea
+                  id="message"
+                  name="message"
+                  value={feedback.message}
+                  onChange={handleChange}
+                  required
+                  rows="4"
+                  placeholder="Enter your feedback"
+                  style={{
+                    width: '100%',
+                    padding: '8px',
+                    
+                    fontFamily: "'montserrat', sans-serif" ,
+                    boxSizing: 'border-box',
+                    borderRadius: '5px',
+                    border: '1px solid #ccc',
+                  }}
+                ></textarea>
+              </div>
+              <button
+                type="submit"
+                disabled={isSending}
+                style={{
+                  padding: '6px 20px',
+                  border: '1px solid #ddd',
+                  borderRadius: '8px',
+                  backgroundColor: 'white',
+                  color: 'grey',
+                  width: '140px',
+                  fontSize: '18px',
+                  cursor: 'pointer',
+                  fontFamily: "'Montserrat', sans-serif",
+                  fontWeight: '600',
+                  position: 'relative',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'flex-start',
+                  transition: 'background 0.3s, box-shadow 0.3s',
+             
+                }}
+
+
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = '#FBFBFB';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'white';
+                }}
+
+              >
+                {isSending ? 'Sending...' : 'Send'} <SendHorizonal size={20} style={{marginLeft: 'auto', color: "grey"}}/>
+              </button>
+              <button
+                type="button"
+                onClick={closeModal}
+                style={{
+                  padding: '10px 20px',
+                  backgroundColor: 'transparent',
+                  color: 'black',
+                  position: 'absolute', 
+                  right: '5px',
+                  top: '15px',
+                  color: 'grey' ,
+                  border: 'none',
+                  borderRadius: '5px',
+                  cursor: 'pointer',
+                  marginLeft: '10px',
+                }}
+              >
+                <SquareX size={35} style={{}}/>
+              </button>
+            </form>
+            {sendStatus === 'success' && (
+              <p style={{ color: 'green', marginTop: '15px' }}>Feedback sent successfully!</p>
+            )}
+            {sendStatus === 'error' && (
+              <p style={{ color: 'red', marginTop: '15px' }}>Failed to send feedback. Please try again.</p>
+            )}
+          </div>
+        </div>
+      )}
+
+
+
+
+
+
+
+
+
+
+
+
 
         <div style={{ width: '1000px', marginTop: '100px' }}>
       <h1 style={{

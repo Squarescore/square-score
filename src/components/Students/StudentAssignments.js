@@ -818,27 +818,32 @@ const renderAssignments = (assignments) => {
       <Navbar userType="student" />
   
  {showConfirm && (
-  <RetroConfirm 
-    onConfirm={() => {
-      setShowConfirm(false);
-      // Get the format from the assignment ID
-      const format = confirmAssignment.id.split('+')[2];
-      
-      if (format === 'AMCQ') {
-        navigate(`/TakeAmcq/${confirmAssignment.id}`);
-      } else if (format === 'ASAQ') {
-        navigate(`/TakeAsaq/${confirmAssignment.id}`);
-      } else if (format === 'MCQ') {
-        navigate(`/TakeMcq/${confirmAssignment.id}`);
-      } else if (format === 'SAQ') {
-        navigate(`/taketests/${confirmAssignment.id}`);
-      }
-    }}
-    onCancel={() => setShowConfirm(false)}
-    assignmentName={confirmAssignment ? confirmAssignment.assignmentName : ''}
-    saveAndExit={confirmAssignment ? confirmAssignment.saveAndExit : false}
-    lockdown={confirmAssignment ? confirmAssignment.lockdown : false}
-  />
+ <RetroConfirm 
+ onConfirm={() => {
+   setShowConfirm(false);
+   // Get the format from the assignment ID
+   const format = confirmAssignment.id.split('+')[2];
+   
+   let path = '';
+   if (format === 'AMCQ') {
+     path = `/TakeAmcq/${confirmAssignment.id}`;
+   } else if (format === 'ASAQ') {
+     path = `/TakeAsaq/${confirmAssignment.id}`;
+   } else if (format === 'MCQ') {
+     path = `/TakeMcq/${confirmAssignment.id}`;
+   } else if (format === 'SAQ') {
+     path = `/taketests/${confirmAssignment.id}`;
+   }
+
+   // Navigate with state
+   navigate(path, { state: { allowAccess: true }, replace: true });
+ }}
+ onCancel={() => setShowConfirm(false)}
+ assignmentName={confirmAssignment ? confirmAssignment.assignmentName : ''}
+ saveAndExit={confirmAssignment ? confirmAssignment.saveAndExit : false}
+ lockdown={confirmAssignment ? confirmAssignment.lockdown : false}
+/>
+
 )}
 <div
       style={{

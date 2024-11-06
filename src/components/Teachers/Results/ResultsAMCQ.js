@@ -10,6 +10,7 @@ import Exports from './Exports';
 import QuestionBankAMCQ from './QuestionBankAMCQ';
 import { Settings, ArrowRight, SquareArrowOutUpRight, SquareX, EyeOff, Eye, SquareCheck, SquareMinus, } from 'lucide-react';
 import Tooltip from './ToolTip';
+import StudentResultsList from './StudentResultList';
 const TeacherResultsAMCQ = () => {
   // State hooks
   const [allViewable, setAllViewable] = useState(false);
@@ -711,6 +712,9 @@ const TeacherResultsAMCQ = () => {
 
 
 
+  const navigateToStudentResults = (studentUid) => {
+    navigate(`/teacherStudentResultsAMCQ/${assignmentId}/${studentUid}/${classId}`);
+  };
 
 
 
@@ -989,187 +993,26 @@ const TeacherResultsAMCQ = () => {
 
 
 
-     
-      
-     
-      
-
-<ul style={{background: 'white', width: '860px', marginLeft: 'auto', marginRight: 'auto', backgroundColor: 'white',     
-               boxShadow: '1px 1px 5px 1px rgb(0,0,155,.07)',  borderRadius: '20px', paddingTop: '20px'}}>
-
-      {students.map((student) => (
-  <li key={student.uid} style={{ 
-    width: '800px', 
-    height: '40px', 
-    alignItems: 'center', 
-    display: 'flex', 
-    justifyContent: 'space-between', 
-
-    marginLeft: '10px', 
-    borderBottom: '2px solid #f4f4f4', 
-    backgroundColor: 'white', 
-    padding: '0px',
-    paddingBottom: '20px', 
+<StudentResultsList
+        students={students}
+        grades={grades}
+        assignmentStatuses={assignmentStatuses}
+        navigateToStudentGrades={navigateToStudentGrades}
+        navigateToStudentResults={navigateToStudentResults}
+        getStatusIcon={getStatusIcon}
+        getStatusColor={getStatusColor}
+        calculateLetterGrade={calculateLetterGrade}
+        hoveredStatus={hoveredStatus}
+        setHoveredStatus={setHoveredStatus}
+        togglePauseAssignment={togglePauseAssignment}
+        handleReset={handleReset}
+        resetStatus={resetStatus}
+        handleAssign={handleAssign}
+        gradeField="SquareScore" // Specify the grade field for AMCQ
+        navigateToResultsPath="/teacherStudentResultsAMCQ/" // Specify the navigation path
+      />
     
-    paddingTop: '20px', 
-    position: 'relative',
-    zIndex: '0', 
-  }}>
-    <div style={{ marginLeft: '0px', width: '460px', display: 'flex', marginTop: '5px' }}>
-      <div 
-        style={{ 
-          display: 'flex', 
-          marginBottom: '10px', 
-          cursor: 'pointer',
-          transition: 'color 0.3s',
-          width: '280px',
-          marginTop: '5px'
-        }}
-        onClick={() => navigateToStudentGrades(student.uid)}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.color = 'blue';
-          e.currentTarget.style.textDecoration = 'underline';
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.color = 'inherit';
-          e.currentTarget.style.textDecoration = 'none';
-        }}
-      >
-        <h3 style={{ fontWeight: 'normal', color: 'inherit', fontFamily: "'montserrat', sans-serif", fontSize: '20px' }}>{student.lastName},</h3>
-        <h3 style={{ fontWeight: '600', color: 'inherit', fontFamily: "'montserrat', sans-serif", fontSize: '20px', marginLeft: '10px' }}>{student.firstName}</h3>
-      </div>
-    </div>
-
-    {student.isAssigned ? (
-      <>
-        <div style={{ fontWeight: 'bold', textAlign: 'center', color: 'black', fontFamily: "'montserrat', sans-serif", marginTop: '0px', width: '100px', marginRight: '20px', marginLeft: '-140px' }}>
-          {grades[student.uid] ? (
-            <div style={{ display: 'flex', alignItems: 'center', marginTop: '-2px', width: '130px',  }}>
-              <p style={{ fontWeight: 'bold', width: '23px', fontSize: '22px', backgroundColor: '#566DFF', height: '23px', border: '4px solid #003BD4', lineHeight: '23px', color: 'white', borderRadius: '7px', fontFamily: "'montserrat', sans-serif" }}>
-                {calculateLetterGrade(grades[student.uid].SquareScore)}
-              </p>
-              <p style={{ fontSize: '25px', color: 'grey', marginLeft: '20px' }}>
-                {`${Math.round(grades[student.uid].SquareScore)}%`}
-              </p>
-            </div>
-          ) : (
-            <div style={{ display: 'flex', alignItems: 'center', marginTop: '-2px',width: '130px',  }}>
-              <p style={{ fontWeight: 'bold', width: '23px', fontSize: '22px', backgroundColor: '#C0C0C0', height: '23px', border: '4px solid #A8A8A8', lineHeight: '23px', color: 'white', borderRadius: '7px', fontFamily: "'montserrat', sans-serif" }}>
-                Z
-              </p>
-              <p style={{ fontSize: '25px', color: 'lightgrey', marginLeft: '20px' }}>
-                00%
-              </p>
-            </div>
-          )}
-        </div>
-        <div style={{ color: 'lightgrey', width: '360px',  display: 'flex', alignItems: 'center', marginLeft: '0px', marginTop: '5px' }}>
-          <div style={{ display: 'flex', alignItems: 'center' }}>
-            <div style={{marginRight: '10px ', marginLeft: '10px'}}>  
-              {getStatusIcon(grades[student.uid] && grades[student.uid].submittedAt ? 'completed' : assignmentStatuses[student.uid])}
-            </div>
-            <h1 style={{ 
-              fontSize: grades[student.uid] && grades[student.uid].submittedAt ? '17px' : '20px', 
-              fontFamily: "'montserrat', sans-serif", 
-              fontWeight: '600',
-              fontStyle: grades[student.uid] && grades[student.uid].submittedAt ? 'italic' : 'normal',
-              color: grades[student.uid] && grades[student.uid].submittedAt ? '#808080' : getStatusColor(assignmentStatuses[student.uid]),
-              textTransform: assignmentStatuses[student.uid] === 'completed' ? 'uppercase' : 'capitalize',
-              cursor: assignmentStatuses[student.uid] === 'Paused' ? 'pointer' : 'default',
-              marginRight: '10px',
-              marginTop: '10px'
-            }}
-            onMouseEnter={() => assignmentStatuses[student.uid] === 'Paused' && setHoveredStatus(student.uid)}
-            onMouseLeave={() => setHoveredStatus(null)}
-            onClick={() => assignmentStatuses[student.uid] === 'Paused' && togglePauseAssignment(student.uid)}
-            >
-              {grades[student.uid] && grades[student.uid].submittedAt ? 
-                ` ${new Date(grades[student.uid].submittedAt.toDate()).toLocaleString(undefined, {
-                  year: 'numeric',
-                  month: 'numeric',
-                  day: 'numeric',
-                  hour: '2-digit',
-                  minute: '2-digit',
-                  hour12: true
-                })}` : 
-                (hoveredStatus === student.uid && assignmentStatuses[student.uid] === 'Paused' 
-                  ? 'Unpause' 
-                  : assignmentStatuses[student.uid])
-              }
-            </h1>
-          </div>
-        </div>
-        <button
-          style={{ 
-            backgroundColor: 'transparent', 
-            color: resetStatus[student.uid] === 'success' ? 'lightgreen' : 'red', 
-           
-            cursor: 'pointer', 
-            textAlign: 'left', 
-            borderColor: 'transparent', 
-            fontFamily: "'montserrat', sans-serif", 
-            fontWeight: 'bold', 
-            fontSize: '16px', 
-            marginTop: '-0px',
-            marginLeft: '0px',
-            marginRight: '0px' 
-          }} 
-          onClick={() => handleReset(student.uid)}
-        >
-          {resetStatus[student.uid] === 'success' ? 'Success' : 'Reset'}
-        </button>
-      </>
-    ) : (
-      <div style={{ display: 'flex', alignItems: 'center', marginLeft: 'auto' }}>
-        <h1 style={{fontSize: '16px', color: 'lightgrey', marginRight: '200px', width: '120px' }}>Not Assigned</h1>
-        <button
-          style={{ 
-            backgroundColor: 'transparent', 
-            color: '#2BB514', 
-            cursor: 'pointer', 
-            borderColor: 'transparent', 
-            fontFamily: "'montserrat', sans-serif", 
-            fontWeight: 'bold', 
-            fontSize: '16px', 
-            marginRight: '0px' 
-          }} 
-          onClick={() => handleAssign(student.uid)}
-        >
-          Assign
-        </button>
-      </div>
-    )}
-
-    {student.isAssigned && assignmentStatuses[student.uid] === 'completed' && (
-      <div
-        style={{
-          position: 'absolute',
-          right: '80px',
-          top: '8px',
-          height: '38px',
-          width: '50px',
-          padding: '11px',
-          zIndex: '2',
-          backgroundColor: 'transparent',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          border: '4px solid transparent',
-          borderBottomRightRadius: '10px',
-          borderTopRightRadius: '10px',
-          cursor: 'pointer',
-        }}
-        onClick={(e) => {
-          e.stopPropagation();
-          navigate(`/teacherStudentResultsAMCQ/${assignmentId}/${student.uid}/${classId}`);
-        }}
-      >
-        <ArrowRight size={30} color="#09BA00" strokeWidth={2.5} />
-      </div>
-    )}
-  </li>
-))}
-      </ul>
+      
 
      
       {showOverlay && (

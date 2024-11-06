@@ -268,6 +268,8 @@ const QuestionBankSAQ = ({ questionsWithIds, setQuestionsWithIds, sourceText, qu
         display: 'flex',
         lineHeight: '10px',
         color: textColor,
+        
+        cursor: 'pointer', 
         minWidth: '40px',
         textAlign: 'center'
       }}>
@@ -321,7 +323,6 @@ const QuestionBankSAQ = ({ questionsWithIds, setQuestionsWithIds, sourceText, qu
           const showRubric = showRubrics[question.questionId];
 
           const textareaStyle = {
-            border: '4px solid blue',
             padding: '15px',
             paddingRight: '8%',
             fontFamily:  isEditing ? "default": "'montserrat', sans-serif",
@@ -351,8 +352,10 @@ const QuestionBankSAQ = ({ questionsWithIds, setQuestionsWithIds, sourceText, qu
           return (
             <div key={index} style={{
               padding: '0px',
-              marginTop: '15px',
-              marginBottom: '15px',
+              
+
+              marginTop: '10px',
+              marginBottom: '0px',
               borderBottom: '2px solid #f4f4f4',
               width: '870px',
               marginLeft: '50px',
@@ -407,7 +410,10 @@ const QuestionBankSAQ = ({ questionsWithIds, setQuestionsWithIds, sourceText, qu
                   onClick={() => toggleRubric(question.questionId)}
                   style={{
                     position: 'absolute',
-                    right: '60px',
+                    transform: 'translatey(-50%)',
+                    top: '50%',
+                    cursor: 'pointer', 
+                    right: '80px',
                     fontSize: '20px',
                     background: 'white',
                     border: '0px solid lightgrey',
@@ -429,7 +435,8 @@ const QuestionBankSAQ = ({ questionsWithIds, setQuestionsWithIds, sourceText, qu
                   style={{
                     position: 'absolute',
                     right: '40px',
-                    top: '0px',
+                    transform: 'translatey(-50%)',
+                    top: '50%',
                     fontSize: '20px',
                     zIndex: '10',
                     height: '25px',

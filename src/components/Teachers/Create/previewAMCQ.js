@@ -14,7 +14,8 @@ import {
 import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '../../Universal/firebase';
 
-const PreviewAMCQ = ({ questions, onBack, onNext, assignmentId }) => {
+const PreviewAMCQ = ({ questions, onBack, onSave, assignmentId, showCloseButton = false }) => {
+
   const [hoveredChoice, setHoveredChoice] = useState(null);
   const [editingQuestionIndex, setEditingQuestionIndex] = useState(null);
   const [editedQuestions, setEditedQuestions] = useState(questions);
@@ -145,10 +146,21 @@ const PreviewAMCQ = ({ questions, onBack, onNext, assignmentId }) => {
   }, [editingQuestionIndex]);
 
   return (
+
+     <div style={{    position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        zIndex: 10,
+        bottom: 0,    overflowY: 'auto',
+        display: 'flex',
+        flexDirection: 'column',
+        backgroundColor: '#fcfcfc'}}> 
     <div
       style={{
-        marginTop: '100px',
+        marginTop: '150px',
         width: '1000px',
+      height: '600px',
         boxShadow: '1px 1px 10px 1px rgb(0,0,155,.1)',
         borderRadius: '30px',
         marginLeft: 'auto',
@@ -210,6 +222,7 @@ const PreviewAMCQ = ({ questions, onBack, onNext, assignmentId }) => {
             fontSize: '20px',
             fontWeight: '600',
             marginLeft: '30px',
+            color:'lightgrey',
             marginTop: '17px',
           }}
         >
@@ -259,7 +272,7 @@ const PreviewAMCQ = ({ questions, onBack, onNext, assignmentId }) => {
           Hard
         </h1>
       </div>
-
+<div style={{height: '490px', overflowY: 'auto',}}>
       {editedQuestions.map((question, questionIndex) => (
         <div
           key={questionIndex}
@@ -582,8 +595,12 @@ const PreviewAMCQ = ({ questions, onBack, onNext, assignmentId }) => {
                    <div style={{height: '4px', background: '#f4f4f4', width: '920px', marginBottom: '-20px', marginTop: '50px'}}></div>
             </div>
           )}
+      
         </div>
       ))}
+    </div>
+    </div>
+    
     </div>
   );
 };

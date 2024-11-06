@@ -48,6 +48,8 @@ import TeacherLogs from './components/Admin/TeacherLogs';
 import SignUpAdmin from './components/unAuthenticated/SignUpAdmin';
 import PageNotFound from './components/Universal/PageNotFound'; // Import the PageNotFound component
 import QuestionResults from './components/Teachers/Results/QuestionResultsSAQ';
+import ProtectedRoute from './components/ProtectedRoute';
+import { useFirestoreMonitoring } from './components/Universal/useFirestoreMonitoring';
 
 function App() {
   const [user, setUser] = useState(null);
@@ -55,6 +57,23 @@ function App() {
   const [hasAccess, setHasAccess] = useState(null);
   const [loading, setLoading] = useState(true);
   const [authLoading, setAuthLoading] = useState(true); // For authentication state loading
+
+
+
+  const firestoreStats = useFirestoreMonitoring();
+
+  // Optional: Display stats in development
+  useEffect(() => {
+    if (process.env.NODE_ENV === 'development') {
+      console.table({
+        'Total Reads': firestoreStats.reads,
+        'Total Writes': firestoreStats.writes,
+        'Active Subscriptions': firestoreStats.subscriptions
+      });
+    }
+  }, [firestoreStats]);
+
+
 
   const handleSignOut = () => {
     const auth = getAuth();
@@ -287,11 +306,38 @@ function App() {
             <Route path="/studenthome" element={<StudentHome />} />
             <Route path="/testPage" element={<TestPage />} />
         <Route path="/studentassignments/:classId" element={<StudentAssignments />} />
-        <Route path="/taketests/:assignmentId" element={<TakeTest />} />
-        
-        <Route path="/takeMCQ/:assignmentId" element={<TakeMCQ/>} />
-        <Route path="/takeASAQ/:assignmentId" element={<TakeASAQ/>} />
-        <Route path="/takeAmcq/:assignmentId" element={<TakeAmcq/>} />
+        <Route
+                    path="/takeMCQ/:assignmentId"
+                    element={
+                      <ProtectedRoute>
+                        <TakeMCQ />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/takeASAQ/:assignmentId"
+                    element={
+                      <ProtectedRoute>
+                        <TakeASAQ />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/takeAmcq/:assignmentId"
+                    element={
+                      <ProtectedRoute>
+                        <TakeAmcq />
+                      </ProtectedRoute>
+                    }
+                    />
+ <Route
+                    path="/taketests/:assignmentId"
+                    element={
+                      <ProtectedRoute>
+                        <TakeTest  />
+                      </ProtectedRoute>
+                    }
+                  />
        <Route path="/studentresults/:assignmentId/:studentUid/:classId" element={<StudentResults/>} />
         <Route path="/studentresultsAMCQ/:assignmentId/:studentUid/:classId" element={<StudentResultsAMCQ/>} />
         

@@ -1,18 +1,9 @@
 import { initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
-import { getFirestore } from "firebase/firestore";
-import { getStorage } from "firebase/storage"; // Import the storage module
-// TODO: Add SDKs for Firebase products that you want to use
-// https://firebase.google.com/docs/web/setup#available-libraries
+import { getFirestore, setLogLevel } from "firebase/firestore";
+import { getStorage } from "firebase/storage";
+import { getPerformance } from "firebase/performance";
 
-// Your web app's Firebase configuration
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
-// Import the functions you need from the SDKs you need
-// TODO: Add SDKs for Firebase products that you want to use
-// https://firebase.google.com/docs/web/setup#available-libraries
-
-// Your web app's Firebase configuration
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const firebaseConfig = {
   apiKey: "AIzaSyA2lOefmdM38PgaCxczRpW1QCSbocW52cU",
   authDomain: "square-score-ai.firebaseapp.com",
@@ -23,10 +14,33 @@ const firebaseConfig = {
   appId: "1:73489610245:web:be332826c1ed09b91f0e6c",
   measurementId: "G-CWS62P260H"
 };
+
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
-const storage = getStorage(app); // Initialize the storage service
+const storage = getStorage(app);
+const performance = getPerformance(app);
+
+// Enable Firestore debug logging in development
+if (process.env.NODE_ENV === 'development') {
+  setLogLevel('debug');
+}
+
+// Create a monitoring wrapper for logging (optional)
+const monitorFirestoreOperations = (operation, path, data = null) => {
+  const start = performance.now();
+  console.log(`[Firestore ${operation}] ${path}`, data ? data : '');
+  return {
+    complete: () => {
+      console.log(`[Firestore ${operation} Complete] ${path} - ${performance.now() - start}ms`);
+    }
+  };
+};
+
+// Add monitoring to window object for debugging (optional)
+if (typeof window !== 'undefined') {
+  window.monitorFirestore = monitorFirestoreOperations;
+}
 
 export { db, auth, storage };

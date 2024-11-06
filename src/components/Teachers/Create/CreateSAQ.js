@@ -413,157 +413,169 @@ function CreateAssignment() {
     }
   }, [location]);
 
+  const { isPublishDisabled, publishDisabledConditions } = usePublishState(
+    assignmentName, 
+    generatedQuestions
+  );
+// In CreateAssignment.js
+const saveAssignment = async () => {
+  if (isSaving) return;
+  setIsSaving(true);
 
+  try {
+    const finalAssignmentId = assignmentId.startsWith('DRAFT') ? assignmentId.slice(5) : assignmentId;
+    const batch = writeBatch(db);
 
-  const saveAssignment = async () => {
+    // Save assignment document
+    const assignmentRef = doc(db, 'assignments', finalAssignmentId);
+    batch.set(assignmentRef, {
+      classId,
+      format: 'SAQ',
+      assignmentName,
+      timer: timerOn ? Number(timer) : 0,
+      halfCredit,
+      assignDate: formatDate(assignDate),
+      dueDate: formatDate(dueDate),
+      scale: {
+        min: scaleMin,
+        max: scaleMax,
+      },
+      selectedStudents: Array.from(selectedStudents),
+      questionCount: {
+        bank: questionBank,
+        student: questionStudent,
+      },
+      createdAt: serverTimestamp(),
+      questions: generatedQuestions.reduce((acc, question) => {
+        acc[question.questionId] = {
+          question: question.question,
+          rubric: question.rubric
+        };
+        return acc;
+      }, {}),
+      lockdown,
+      saveAndExit,
+      isAdaptive,
+      additionalInstructions,
+    });
 
+    // Update class document directly - add to assignments array
+    const classRef = doc(db, 'classes', classId);
+    batch.update(classRef, {
+      assignments: arrayUnion({
+        id: finalAssignmentId,
+        name: assignmentName
+      })
+    });
 
-    if (isSaving) return; // Prevent multiple clicks
-    setIsSaving(true);
-
-    try {
-
-
-      const finalAssignmentId = assignmentId.startsWith('DRAFT') ? assignmentId.slice(5) : assignmentId;
-
-      const assignmentData = {
-        classId,
-        format: 'SAQ',
-        assignmentName,
-        timer: timerOn ? Number(timer) : 0,
-        halfCredit,
-        assignDate: formatDate(assignDate),
-        dueDate: formatDate(dueDate),
-        scale: {
-          min: scaleMin,
-          max: scaleMax,
-        },
-        selectedStudents: Array.from(selectedStudents),
-        questionCount: {
-          bank: questionBank,
-          student: questionStudent,
-        },
-        createdAt: serverTimestamp(),
-        questions: generatedQuestions.reduce((acc, question) => {
-          acc[question.questionId] = {
-            question: question.question,
-            rubric: question.rubric
-          };
-          return acc;
-        }, {}),
-        lockdown,
-        saveAndExit,
-        isAdaptive,
-        additionalInstructions,
-      };
-
-      // Save to assignments collection
-      const assignmentRef = doc(db, 'assignments', finalAssignmentId);
-      await setDoc(assignmentRef, assignmentData);
-
-      // Add assignment to class via Cloud Function
-      await safeClassUpdate('addAssignmentToClass', { 
-        classId, 
-        assignmentId: finalAssignmentId, 
-        assignmentName
+    // If publishing from a draft, handle draft cleanup
+    if (draftId) {
+      // Remove from drafts array
+      batch.update(classRef, {
+        drafts: arrayRemove({
+          id: draftId,
+          name: assignmentName
+        })
       });
+      
+      // Delete draft document
+      const draftRef = doc(db, 'drafts', draftId);
+      batch.delete(draftRef);
+    }
 
-      // If publishing from a draft, remove the draft
-      if (draftId) {
-        const draftRef = doc(db, 'drafts', draftId);
-        await deleteDoc(draftRef);
+    // Assign to selected students
+    const selectedStudentIds = Array.from(selectedStudents);
+    selectedStudentIds.forEach(studentUid => {
+      const studentRef = doc(db, 'students', studentUid);
+      batch.update(studentRef, {
+        assignmentsToTake: arrayUnion(finalAssignmentId)
+      });
+    });
 
-        // Move draft to assignment via Cloud Function
-        await safeClassUpdate('moveDraftToAssignment', { 
-          classId, 
-          draftId, 
-          assignmentId: finalAssignmentId, 
-          assignmentName, 
-        });
+    // Commit all operations in a single batch
+    await batch.commit();
+
+    navigate(`/class/${classId}`, {
+      state: {
+        successMessage: `Success: ${assignmentName} published`,
+        assignmentId: finalAssignmentId,
+        format: 'SAQ'
       }
+    });
+  } catch (error) {
+    console.error("Error saving assignment:", error);
+    alert(`Error publishing assignment: ${error.message}. Please try again.`);
+  } finally {
+    setIsSaving(false);
+  }
+};
 
-      // Assign to students
-      await assignToStudents(finalAssignmentId);
+const saveDraft = async () => {
+  if (isSaving) return;
+  setIsSaving(true);
+  
+  try {
+    const finalDraftId = assignmentId.startsWith('DRAFT') ? assignmentId.slice(5) : assignmentId;
+    const batch = writeBatch(db);
 
-      // Navigate with success message
-      navigate(`/class/${classId}`, {
-        state: {
-          successMessage: `Success: ${assignmentName} published`,
-          assignmentId: finalAssignmentId,
-          format: 'SAQ'
-        }
-      });
-    } catch (error) {
-      console.error("Error saving draft:", error);
-      alert(`Error saving draft: ${error.message}. Please try again.`);
-    } finally {
-      setIsSaving(false);
-    }
-  };
-  const saveDraft = async () => {
-    if (isSaving) return; // Prevent multiple clicks
-    setIsSaving(true);
-    try {
-      // Remove 'DRAFT' prefix if it exists
-      const finalDraftId = assignmentId.startsWith('DRAFT') ? assignmentId.slice(5) : assignmentId;
-  
-      const draftData = {
-        classId,
-        assignmentName,
-        timer: timerOn ? Number(timer) : 0,
-        timerOn,
-        halfCredit,
-        assignDate: formatDate(assignDate),
-        dueDate: formatDate(dueDate),
-        scale: {
-          min: scaleMin,
-          max: scaleMax,
-        },
-        selectedStudents: Array.from(selectedStudents),
-        saveAndExit,
-        lockdown,
-        questionBank,
-        questionStudent,
-        createdAt: serverTimestamp(),
-        isAdaptive,
-        sourceText,
-        additionalInstructions,
-        questions: generatedQuestions.reduce((acc, question) => {
-          acc[question.questionId] = {
-            question: question.question,
-            rubric: question.rubric
-          };
-          return acc;
-        }, {}),
-        format: 'SAQ' // Add format field
-      };
-  
-      // Save draft to drafts collection
-      const draftRef = doc(db, 'drafts', finalDraftId);
-      await setDoc(draftRef, draftData);
-  
-      // Add draft to class via Cloud Function
-      await safeClassUpdate('addDraftToClass', { 
-        classId, 
-        assignmentId: finalDraftId, // Use draftId instead of assignmentId
-        assignmentName 
-      });
-  
-      // Navigate back to Assignments with indication to show drafts
-      navigate(`/class/${classId}/Assignments`, {
-        state: { 
-          showDrafts: true, 
-          newDraftId: finalDraftId 
-        }
-      });
-  
-    } catch (error) {
-      console.error("Error saving assignment:", error);
-      alert(`Error publishing assignment: ${error.message}. Please try again.`);
-    } finally {
-      setIsSaving(false);
-    }
-  };
+    // Save draft document
+    const draftRef = doc(db, 'drafts', finalDraftId);
+    batch.set(draftRef, {
+      classId,
+      assignmentName,
+      timer: timerOn ? Number(timer) : 0,
+      timerOn,
+      halfCredit,
+      assignDate: formatDate(assignDate),
+      dueDate: formatDate(dueDate),
+      scale: {
+        min: scaleMin,
+        max: scaleMax,
+      },
+      selectedStudents: Array.from(selectedStudents),
+      saveAndExit,
+      lockdown,
+      questionBank,
+      questionStudent,
+      createdAt: serverTimestamp(),
+      isAdaptive,
+      sourceText,
+      additionalInstructions,
+      questions: generatedQuestions.reduce((acc, question) => {
+        acc[question.questionId] = {
+          question: question.question,
+          rubric: question.rubric
+        };
+        return acc;
+      }, {}),
+      format: 'SAQ'
+    });
+
+    // Update class document - add to drafts array
+    const classRef = doc(db, 'classes', classId);
+    batch.update(classRef, {
+      drafts: arrayUnion({
+        id: finalDraftId,
+        name: assignmentName
+      })
+    });
+
+    // Commit all operations in a single batch
+    await batch.commit();
+
+    navigate(`/class/${classId}/Assignments`, {
+      state: { 
+        showDrafts: true, 
+        newDraftId: finalDraftId 
+      }
+    });
+  } catch (error) {
+    console.error("Error saving draft:", error);
+    alert(`Error saving draft: ${error.message}. Please try again.`);
+  } finally {
+    setIsSaving(false);
+  }
+};
   
 
   const assignToStudents = async (assignmentId) => {
@@ -947,64 +959,13 @@ const GenerateSAQ = async (sourceText, questionCount, additionalInstructions, cl
       </div>
 
 
-      <div style={{display: 'flex',   width: '830px',marginLeft: 'auto', marginRight: 'auto', marginTop: '-10px', marginBottom:'100px'}}>
-              <button
-                 onClick={saveDraft}
-                 style={{
-                  width: '270px',
-                  marginTop: '0px',
-                  height: '60px',
-                  border: '3px solid white',
-                  marginBottom: '40px',
-                  backgroundColor: 'white',
-                  padding: ' 5px 5px',
-                  boxShadow: '1px 1px 5px 1px rgb(0,0,155,.1)',
-                  color: 'grey',
-                  borderRadius: '10px',
-                  fontSize: '20px',fontFamily: "'montserrat', sans-serif",  
-                  fontWeight: '600',
-                  display: 'flex',
-                  cursor: 'pointer',
-                  transition: 'border-color 0.3s ease',
-                }}
-              
-              >
-               <PencilRuler size={30} style={{marginLeft: '5px', marginTop: '7px', background: 'transparent'}} /> <h1 style={{fontSize: '25px', marginTop: '7px', marginLeft: '15px',background: 'transparent', fontWeight: '600'}}>Save As Draft</h1>
-              </button>
+      <AssignmentActionButtons
+        onSaveDraft={saveDraft}
+        onPublish={saveAssignment}
+        isPublishDisabled={isPublishDisabled}
+        publishDisabledConditions={publishDisabledConditions}
+      />
 
-
-
-              <button
-              onClick={saveAssignment}
-              disabled={!assignmentName || generatedQuestions.length === 0}
-style={{
-  width: '480px',
-  height: '60px',
-  marginTop: '0px',
-  border: '3px solid ',
-  marginBottom: '40px',
-  backgroundColor: 'white',
-  padding: ' 5px 5px',
-  boxShadow: '1px 1px 5px 1px rgb(0,0,155,.1)',
-  borderRadius: '10px',
-   marginLeft: '30px',
-  opacity: (!assignmentName || generatedQuestions.length === 0) ? '0%' : '100%',
-  color: (!assignmentName || generatedQuestions.length === 0) ? 'lightgrey' : '#00D409',
-  borderColor: 'white',
-  fontSize: '20px',
-  fontFamily: "'montserrat', sans-serif",  
-  fontWeight: 'bold',
-  cursor: (!assignmentName || generatedQuestions.length === 0) ? 'default' : 'pointer',
-  display: 'flex',
-  transition: 'background-color 0.3s ease',
-}}
-
-            >
-              <h1 style={{fontSize: '25px', marginTop: '10px', marginLeft: '15px',background: 'transparent'}}>Publish</h1>
-              <SendHorizonal size={40} style={{marginLeft: 'auto', marginTop: '5px', background: 'transparent'}} /> 
-            </button>
-         
-          </div>
 
 
       </div>

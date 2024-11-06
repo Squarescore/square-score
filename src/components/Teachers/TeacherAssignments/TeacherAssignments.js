@@ -350,46 +350,6 @@ function Assignments() {
     setShowCreateSection(prev => !prev);
   };
 
-  const handleFormatSelect = (selectedFormat) => {
-    if (!classId || !selectedFormat) {
-      console.error('ClassId is empty or no format selected');
-      return;
-    }
-
-    const newAssignmentId = uuidv4();
-    const timestamp = Date.now();
-    let assignmentId = `${classId}+${timestamp}+${selectedFormat}`;
-    let navigationPath = '';
-
-    switch (selectedFormat) {
-      case 'SAQ':
-        navigationPath = `/class/${classId}/createassignment/${assignmentId}`;
-        break;
-      case 'ASAQ':
-        navigationPath = `/class/${classId}/SAQA/${assignmentId}`;
-        break;
-      case 'MCQ':
-        navigationPath = `/class/${classId}/MCQ/${assignmentId}`;
-        break;
-      case 'AMCQ':
-        navigationPath = `/class/${classId}/MCQA/${assignmentId}`;
-        break;
-      default:
-        console.error('Invalid format selected');
-        return;
-    }
-
-    // Instead of creating the document here, we'll pass the necessary information
-    // to the creation page through the navigation state
-    navigate(navigationPath, {
-      state: {
-        assignmentType: selectedFormat,
-        isAdaptive: selectedFormat === 'ASAQ' || selectedFormat === 'AMCQ',
-        assignmentId,
-        classId
-      }
-    });
-  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -491,10 +451,9 @@ function Assignments() {
         <h2 style={{ fontSize: '30px',  padding: '10px 10px 10px 30px',marginBottom: '20px', fontFamily: "'montserrat', sans-serif", textAlign: 'left', color:'grey',  border: '10px solid lightgray',borderRadius:'20px 20px 0px 0px', marginLeft: '-20px', marginRight: '-20px', marginTop: '-50px'
           , background: '#f4f4f4'
         }}>Select Format</h2>
-        <TeacherAssignmentHome onFormatSelect={(format) => {
-          handleFormatSelect(format);
-          toggleCreateModal();
-        }} />
+     {setShowCreateModal && (
+          <TeacherAssignmentHome onClose={() => setShowCreateModal(false)} />
+        )}
       </div></div>
     );
   };
@@ -505,7 +464,7 @@ function Assignments() {
     const day = date.getDate().toString().padStart(2, '0');
     const month = (date.getMonth() + 1).toString().padStart(2, '0');
     const year = date.getFullYear();
-    return `${day}/${month}/${year}`;
+    return `${month}/${day}/${year}`;
   };
 
   const fetchAssignments = async () => {
@@ -1910,9 +1869,10 @@ marginLeft: '-67px',
         height: 'calc(100vh - 60px)', // Adjust based on your Navbar height
       }}>
          
-          <h1 style={{ color: 'black', fontSize: '60px', fontFamily: "'montserrat', sans-serif", marginRight: 'auto', marginTop: '100px', }}>Create Your First Assignment</h1>
+          <h1 style={{ color: 'black', 
+        zIndex: 200, fontSize: '40px', fontFamily: "'montserrat', sans-serif", marginLeft: 'auto', marginRight: 'auto', marginTop: '150px', }}>Create Your First Assignment</h1>
           
-   <h1 style={{width: '940px', textAlign: 'Left', color: 'GREY', marginTop: '-30px'}}>Later you can access assignments, grades, and drafts here. Start by creating your first assignment.</h1>
+   <h1 style={{width: '550px', textAlign: 'Left', color: 'GREY', marginTop: '400px', fontWeight: '600',  fontSize: '20px',  zIndex: 200,}}>Later you can access assignments, grades, and drafts here. Start by creating your first assignment.</h1>
         <div
          
           style={{
@@ -1933,11 +1893,8 @@ marginLeft: '-67px',
           }}
        
         >
-         <h1 style={{      fontFamily: "'montserrat', sans-serif", 
-            fontSize: '30px', padding: '20px', position: 'absolute', 
-            top: '-65px', color: 'grey', left: '40px',
-            backgroundColor: 'white',}}>Format</h1>
-        <TeacherAssignmentHome onFormatSelect={handleFormatSelect} />
+     
+        <TeacherAssignmentHome onClose={() => setShowCreateModal(false)} />
         </div>
       </div>
     )}

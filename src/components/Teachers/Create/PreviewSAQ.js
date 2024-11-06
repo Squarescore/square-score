@@ -112,7 +112,6 @@ const TeacherPreview = ({ questionsWithIds, setQuestionsWithIds, sourceText, que
       height: '550px',
       marginTop: '80px',
       border: '10px solid white',
-      
                boxShadow: '1px 1px 5px 1px rgb(0,0,155,.07)' ,
       background: 'RGB(255,255,255,)',
       backdropFilter: 'blur(5px)',
@@ -146,7 +145,6 @@ const TeacherPreview = ({ questionsWithIds, setQuestionsWithIds, sourceText, que
           marginLeft: '-30px',
           marginTop: '0px',
           border: '10px solid white',
-          
                boxShadow: '1px 1px 5px 1px rgb(0,0,155,.07)' ,
           borderTop: '0px solid white',
           borderRadius: '0px 0px 20px 20px',

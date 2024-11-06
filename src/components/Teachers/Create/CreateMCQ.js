@@ -292,132 +292,98 @@ const [isSaving, setIsSaving] = useState(false)
       loadDraft(assignmentId.slice(5));
     }
   }, [classId, assignmentId]);
-  const saveDraft = async () => {
 
 
-    if (isSaving) return; // Prevent multiple clicks
-    setIsSaving(true);
 
-    const draftData = {
-      classId,
-      assignmentName,
-      timer: timerOn ? Number(timer) : 0,
-      timerOn,
-      feedback,
-      retype,
-     assignDate: formatDate(assignDate),
-    dueDate: formatDate(dueDate),
-      selectedStudents: Array.from(selectedStudents),
-      questionBank: Number(questionBank),
-      questionStudent: Number(questionStudent),
-      saveAndExit,
-      lockdown,
-      createdAt: serverTimestamp(),
-      questions: generatedQuestions,
-      additionalInstructions
-    };
-  
-    const newDraftId = draftId || `${classId}+${Date.now()}+MCQ`;
-    const draftRef = doc(db, 'drafts', newDraftId);
-    
-    try {
-      await setDoc(draftRef, draftData);
-  
-      const classRef = doc(db, 'classes', classId);
-      await updateDoc(classRef, {
-        [`assignment(mcq)`]: arrayUnion(newDraftId)
-      });
-  
-      setDraftId(newDraftId);
-      
-      navigate(`/class/${classId}/Assignments`, {
-        state: { showDrafts: true, newDraftId: newDraftId }
-      });
-    } catch (error) {
-      console.error("Error saving draft:", error);
-      alert(`Error saving draft: ${error.message}. Please try again.`);
-    } finally {
-      setIsSaving(false);
-    }
-  };
 
   const saveAssignment = async () => {
-    if (isSaving) return; // Prevent multiple clicks
+    if (isSaving) return;
     setIsSaving(true);
-
-    const finalAssignmentId = assignmentId.startsWith('DRAFT') ? assignmentId.slice(5) : assignmentId;
-  
-    const formatQuestion = (question) => {
-      const choiceKeys = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
-      const formattedQuestion = {
-        questionId: question.questionId || `question_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-        question: question.question || '',
-        difficulty: question.difficulty || 'medium',
-        correct: question.correct || '',
-        choices: question.choices || choiceKeys.filter(key => question[key]).length
-      };
-  
-      // Add individual choice texts and explanations
-      choiceKeys.forEach(key => {
-        if (question[key]) {
-          formattedQuestion[key] = question[key];
-          formattedQuestion[`explanation_${key}`] = question[`explanation_${key}`] || '';
-        }
-      });
-  
-      return formattedQuestion;
-    };
-  
-    const assignmentData = {
-      classId,
-      format: 'MCQ',
-      assignmentName,
-      timer: timerOn ? Number(timer) : 0,
-      timerOn,
-      feedback,
-      retype,
-      assignDate: formatDate(assignDate),
-      dueDate: formatDate(dueDate),
-      selectedStudents: Array.from(selectedStudents),
-      questionBank: Number(questionBank),
-      questionStudent: Number(questionStudent),
-      saveAndExit,
-      lockdown,
-      createdAt: serverTimestamp(),
-      questions: generatedQuestions.map(formatQuestion),
-      additionalInstructions
-    };
   
     try {
-     
-      const assignmentRef = doc(db, 'assignments', finalAssignmentId);
-      await setDoc(assignmentRef, assignmentData);
-
-      // Add assignment to class via Cloud Function
-      await safeClassUpdate('addAssignmentToClass', { 
-        classId, 
-        assignmentId: finalAssignmentId, 
-        assignmentName
-      });
-
-      // If publishing from a draft, remove the draft
-      if (draftId) {
-        const draftRef = doc(db, 'drafts', draftId);
-        await deleteDoc(draftRef);
-
-        // Move draft to assignment via Cloud Function
-        await safeClassUpdate('moveDraftToAssignment', { 
-          classId, 
-          draftId, 
-          assignmentId: finalAssignmentId, 
-          assignmentName, 
+      const finalAssignmentId = assignmentId.startsWith('DRAFT') ? assignmentId.slice(5) : assignmentId;
+      const batch = writeBatch(db);
+  
+      // Format questions with proper structure
+      const formattedQuestions = generatedQuestions.map(question => {
+        const choiceKeys = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
+        const formattedQuestion = {
+          questionId: question.questionId || `question_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+          question: question.question || '',
+          difficulty: question.difficulty || 'medium',
+          correct: question.correct || '',
+          choices: question.choices || choiceKeys.filter(key => question[key]).length
+        };
+  
+        // Add individual choice texts and explanations
+        choiceKeys.forEach(key => {
+          if (question[key]) {
+            formattedQuestion[key] = question[key];
+            formattedQuestion[`explanation_${key}`] = question[`explanation_${key}`] || '';
+          }
         });
+  
+        return formattedQuestion;
+      });
+  
+      // Create assignment document
+      const assignmentRef = doc(db, 'assignments', finalAssignmentId);
+      batch.set(assignmentRef, {
+        classId,
+        format: 'MCQ',
+        assignmentName,
+        timer: timerOn ? Number(timer) : 0,
+        timerOn,
+        feedback,
+        retype,
+        assignDate: formatDate(assignDate),
+        dueDate: formatDate(dueDate),
+        selectedStudents: Array.from(selectedStudents),
+        questionBank: Number(questionBank),
+        questionStudent: Number(questionStudent),
+        saveAndExit,
+        lockdown,
+        createdAt: serverTimestamp(),
+        questions: formattedQuestions,
+        additionalInstructions
+      });
+  
+      // Update class document - add to assignments array
+      const classRef = doc(db, 'classes', classId);
+      batch.update(classRef, {
+        assignments: arrayUnion({
+          id: finalAssignmentId,
+          name: assignmentName
+        })
+      });
+  
+      // If publishing from draft, handle cleanup
+      if (draftId) {
+        // Remove from drafts array
+        batch.update(classRef, {
+          drafts: arrayRemove({
+            id: draftId,
+            name: assignmentName
+          })
+        });
+        
+        // Delete draft document
+        const draftRef = doc(db, 'drafts', draftId);
+        batch.delete(draftRef);
       }
-
+  
       // Assign to students
-      await assignToStudents(finalAssignmentId);
-
-      // Navigate with success message
+      const selectedStudentIds = Array.from(selectedStudents);
+      selectedStudentIds.forEach(studentUid => {
+        const studentRef = doc(db, 'students', studentUid);
+        batch.update(studentRef, {
+          assignmentsToTake: arrayUnion(finalAssignmentId)
+        });
+      });
+  
+      // Commit all operations atomically
+      await batch.commit();
+  
       navigate(`/class/${classId}`, {
         state: {
           successMessage: `Success: ${assignmentName} published`,
@@ -426,12 +392,68 @@ const [isSaving, setIsSaving] = useState(false)
         }
       });
     } catch (error) {
-    console.error("Error saving draft:", error);
-    alert(`Error saving draft: ${error.message}. Please try again.`);
-  } finally {
-    setIsSaving(false);
-  }
-};
+      console.error("Error saving assignment:", error);
+      alert(`Error publishing assignment: ${error.message}. Please try again.`);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+  
+  const saveDraft = async () => {
+    if (isSaving) return;
+    setIsSaving(true);
+  
+    try {
+      const finalDraftId = assignmentId.startsWith('DRAFT') ? assignmentId.slice(5) : assignmentId;
+      const batch = writeBatch(db);
+  
+      // Save draft document
+      const draftRef = doc(db, 'drafts', finalDraftId);
+      batch.set(draftRef, {
+        classId,
+        format: 'MCQ',
+        assignmentName,
+        timer: timerOn ? Number(timer) : 0,
+        timerOn,
+        feedback,
+        retype,
+        assignDate: formatDate(assignDate),
+        dueDate: formatDate(dueDate),
+        selectedStudents: Array.from(selectedStudents),
+        questionBank: Number(questionBank),
+        questionStudent: Number(questionStudent),
+        saveAndExit,
+        lockdown,
+        createdAt: serverTimestamp(),
+        questions: generatedQuestions,
+        additionalInstructions
+      });
+  
+      // Update class document - add to drafts array
+      const classRef = doc(db, 'classes', classId);
+      batch.update(classRef, {
+        drafts: arrayUnion({
+          id: finalDraftId,
+          name: assignmentName
+        })
+      });
+  
+      // Commit all operations atomically
+      await batch.commit();
+  
+      navigate(`/class/${classId}/Assignments`, {
+        state: { 
+          showDrafts: true, 
+          newDraftId: finalDraftId 
+        }
+      });
+    } catch (error) {
+      console.error("Error saving draft:", error);
+      alert(`Error saving draft: ${error.message}. Please try again.`);
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
 
 
