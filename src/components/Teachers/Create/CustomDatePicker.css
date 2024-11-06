@@ -1,16 +1,16 @@
 /* CustomDatePicker.css */
 .custom-date-input {
-  width: 330px;
+  width: 285px;
   height: 40px;
   z-index: 1;
-  font-size: 20px; /* Changed from 26px to 20px */
+  font-size: 16px; /* Changed from 26px to 20px */
   margin-left: 8px;
   margin-top: 0px;
   padding: 0px 0px 0px 0px;
   border-radius: 7px;
   font-weight: 500;
   color: rgb(54, 51, 51);
-  border: 2px solid#f4f4f4;
+  border: 1px solid#ddd;
   padding-left: 20px;
   background-color: transparent;
   cursor: pointer;

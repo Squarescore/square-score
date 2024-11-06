@@ -5,31 +5,32 @@ import CustomExpandingFormatSelector from './ExpandingFormatSelector';
 // Common styles used across components
 const styles = {
   sectionWrapper: {
-    width: '700px',
-    marginLeft: '25px',
+    width: '600px',
+    marginLeft: 'auto',
+    marginRight: 'auto',
     marginTop: '30px'
   },
   heading: {
-    fontSize: '16px',
+    fontSize: '18px',
     marginRight: 'auto',
     fontFamily: "'montserrat', sans-serif",
     color: 'lightgrey',
     fontWeight: '600'
   },
   sectionHeading: {
-    fontSize: '25px',
+    fontSize: '20px',
     color: 'black',
     width: '200px',
     fontWeight: '600',
   },
   input: {
-    width: '650px',
-    height: '40px',
-    fontSize: '25px',
+    width: '550px',
+    height: '30px',
+    fontSize: '20px',
     padding: '10px',
     paddingLeft: '25px',
     outline: 'none',
-    border: '2px solid #f4f4f4',
+    border: '1px solid #ddd',
     borderRadius: '10px',
     fontFamily: "'montserrat', sans-serif",
     fontWeight: 'bold',
@@ -111,7 +112,7 @@ export const AssignmentName = ({ value, onChange, maxLength = 25 }) => {
         textAlign: 'left',
         backgroundColor: 'white',
         marginTop: '0px',
-        fontSize: '25px',
+        fontSize: '16px',
         fontWeight: '600',
         color: 'black',
       }}>
@@ -165,14 +166,14 @@ export const FormatSection = ({ classId, selectedFormat, onFormatChange }) => {
 
 export const TimerSection = ({ timerOn, timer, onTimerChange, onToggle }) => {
   return (
-    <div style={{ width: '700px', marginLeft: '0px', height: '80px', display: 'flex', position: 'relative', alignItems: 'center' }}>
+    <div style={{ width: '600px', marginLeft: '0px', height: '80px', display: 'flex', position: 'relative', alignItems: 'center' }}>
       <h1 style={styles.sectionHeading}>Timer:</h1>
       {timerOn ? (
         <div style={{ display: 'flex', alignItems: 'center', position: 'relative', marginLeft: '30px' }}>
           <input
             type="number"
             style={{
-              marginLeft: '170px',
+              marginLeft: '0px',
               height: '30px',
               width: '60px',
               fontFamily: "'montserrat', sans-serif",
@@ -187,11 +188,11 @@ export const TimerSection = ({ timerOn, timer, onTimerChange, onToggle }) => {
             value={timer}
             onChange={(e) => onTimerChange(e.target.value)}
           />
-          <h1 style={{  fontSize: '20px', fontWeight: '600' }}>Minutes</h1>
+          <h1 style={{  fontSize: '20px', fontWeight: '600', marginLeft: '10px' }}>Minutes</h1>
         </div>
       ) : (
         <span style={{
-          marginLeft: '300px',
+          marginLeft: '70px',
           height: '30px',
           width: '50px',
           textAlign: 'center',
@@ -256,7 +257,7 @@ export const ToggleSwitch = ({ label, value, onChange }) => {
       display: 'flex', 
       alignItems: 'center', 
       height: '80px', 
-      width: '700px', 
+      width: '600px', 
       borderBottom: '0px solid lightgrey', 
       position: 'relative', 
       marginTop: '-40px', 
@@ -288,24 +289,7 @@ export const ToggleSwitch = ({ label, value, onChange }) => {
 export const PreferencesSection = ({ children }) => {
   return (
     <div style={styles.sectionWrapper}>
-      <div style={{
-        width: '100%',
-        padding: '0px',
-        fontSize: '30px',
-        backgroundColor: 'white',
-        color: 'black',
-        border: 'none',
-        height: '30px',
-        marginTop: '10px',
-        cursor: 'pointer',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center'
-      }}>
-        <Settings size={20} color="lightgrey" style={{
-        marginRight: '5px',}} />
-        <h1 style={styles.heading}>Preferences</h1>
-      </div>
+    
       {children}
     </div>
   );

@@ -63,14 +63,14 @@ function SelectStudents({ classId, selectedStudents = new Set(), setSelectedStud
   return (
     <div onClick={stopPropagation} style={{  overflow: 'auto', padding: '0 10px' ,
       
-      width: '700px',}}>
+      width: '900px',}}>
      
       <div style={{ 
         display: 'flex', 
          marginTop: '15px',
          marginBottom: '15px',
         flexWrap: 'wrap',
-        width: '700px',
+        width: '900px',
         
         justifyContent: 'flex-start',
         gap: '10px', 
@@ -80,7 +80,7 @@ function SelectStudents({ classId, selectedStudents = new Set(), setSelectedStud
             key={student.uid}
             onClick={() => handleStudentClick(student.uid)}
             style={{
-              width: 'calc(33.5% - 12px)',
+              width: 'calc(24.5% - 12px)',
               padding: '10px',
               border: `2px solid ${selectedStudents.has(student.uid) ? '#73D87D' : 'lightgrey'}`,
               borderRadius: '5px',

@@ -4,30 +4,12 @@ import { ChevronDown, ChevronUp, GlobeLock } from 'lucide-react';
 const SecuritySettings = ({ saveAndExit, setSaveAndExit, lockdown, setLockdown }) => {
 
   return (
-    <div style={{ width: '700px', marginTop: '10px',    }}>
-      <div
-
-        style={{
-          width: '100%',
-          padding: '0px',
-          fontSize: '30px',
-          backgroundColor: 'white',
-          color: 'black',
-          border: 'none',
-          height: '50px',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center'
-        }}
-      >
-        <GlobeLock size={20} color="lightgrey" />    
-        <h1 style={{ fontSize: '16px', marginLeft: '5px', marginRight: 'auto', fontFamily: "'montserrat', sans-serif", color: 'lightgrey', fontWeight: '600' }}>Permissions</h1>
-      
-      </div>
+    <div style={{ width: '600px', marginTop: '-10px',   marginLeft: 'auto', marginRight: 'auto'  }}>
+   
       <div >
         <div style={{ marginTop: '-20px',  }}>
           <div style={{ display: 'flex', alignItems: 'center', marginBottom: '0px' }}>
-            <h1 style={{ fontSize: '24px', color: '#333333', marginLeft: '0px', flex: 1, width: '270px', fontWeight: '600' }}>Save & Exit</h1>
+            <h1 style={{ fontSize: '20px', color: '#333333', marginLeft: '0px', flex: 1, width: '270px', fontWeight: '600' }}>Save & Exit</h1>
             <input
               style={{ marginRight: '0px' }}
               type="checkbox"
@@ -39,7 +21,7 @@ const SecuritySettings = ({ saveAndExit, setSaveAndExit, lockdown, setLockdown }
           
          
           <div style={{ display: 'flex', alignItems: 'center', marginTop: '-10px' }}>
-            <h1 style={{ fontSize: '25px', color: '#333333', marginLeft: '0px', flex: 1, width: '270px', fontWeight: '600'}}>Lockdown</h1>
+            <h1 style={{ fontSize: '20px', color: '#333333', marginLeft: '0px', flex: 1, width: '270px', fontWeight: '600'}}>Lockdown</h1>
             <input
               style={{ marginRight: '0px' }}
               type="checkbox"

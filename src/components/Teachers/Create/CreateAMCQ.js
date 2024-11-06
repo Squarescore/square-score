@@ -909,21 +909,24 @@ const generateQuestions = async () => {
     },
     {
       name: 'Select Students',
-      backgroundColor: '#C7CFFF',
-      borderColor: '#020CFF',
-      textColor: '#020CFF'
-    },
-    {
-      name: 'Generate Questions',
+      
       backgroundColor: '#FFECA8',
-      borderColor: '#CE7C00',
+      borderColor: '#FFD13B',
       textColor: '#CE7C00'
     },
     {
-      name: 'Preview',
+      name: 'Generate Questions',
+      
       backgroundColor: '#F8CFFF',
       borderColor: '#E01FFF',
       textColor: '#E01FFF'
+    },
+    {
+      name: 'Preview',
+      
+      backgroundColor: '#C7CFFF',
+      borderColor: '#020CFF',
+      textColor: '#020CFF'
     }
   ];
   return (
@@ -955,6 +958,14 @@ const generateQuestions = async () => {
 
 
       <div>
+      <FormatSection
+     classId={classId}
+     selectedFormat={selectedFormat}
+     onFormatChange={(newFormat) => {
+       setSelectedFormat(newFormat);
+       // Any additional format change logic
+     }}
+   />
     {currentStep === 1 && (
 
 
@@ -964,7 +975,7 @@ const generateQuestions = async () => {
         boxShadow: '1px 1px 10px 1px rgb(0,0,155,.1)', marginBottom: '40px' }}>
    
    
-   <div style={{ marginLeft: '0px', color: '#2BB514', margin: '-15px', padding: '10px 10px 10px 60px',  border: '10px solid #2BB514', borderRadius: '30px 30px 0px 0px', fontFamily: "'montserrat', sans-serif",  fontSize: '40px', display: 'flex', width: '740px', background: '#AEF2A3', marginBottom: '180px', fontWeight: 'bold' }}>
+   <div style={{ marginLeft: '0px', color: '#2BB514', margin: '-15px', padding: '10px 10px 10px 60px',  border: '10px solid #2BB514', borderRadius: '30px 30px 0px 0px', fontFamily: "'montserrat', sans-serif",  fontSize: '40px', display: 'flex', width: '740px', background: '#AEF2A3', marginBottom: '10px', fontWeight: 'bold' }}>
        Settings
      
   
@@ -979,14 +990,13 @@ const generateQuestions = async () => {
      onChange={setAssignmentName}
    />
    
-   <FormatSection
-     classId={classId}
-     selectedFormat={selectedFormat}
-     onFormatChange={(newFormat) => {
-       setSelectedFormat(newFormat);
-       // Any additional format change logic
-     }}
-   />
+
+   <DateSettings
+          assignDate={assignDate}
+          setAssignDate={setAssignDate}
+          dueDate={dueDate}
+          setDueDate={setDueDate}
+        />
 
    <TimerSection
      timerOn={timerOn}
@@ -998,14 +1008,14 @@ const generateQuestions = async () => {
  
   
    
-   <div style={{ display: 'flex', alignItems: 'center', height: '80px', width: '700px', position: 'relative', marginTop: '-30px', paddingBottom: '20px' }}>
-               <label style={{ fontSize: '25px', color: 'black',  marginRight: '38px', marginTop: '13px', fontFamily: "'montserrat', sans-serif", fontWeight: '600', marginLeft: '0px' }}>Feedback: </label>
+   <div style={{ display: 'flex', alignItems: 'center', height: '80px', width: '600px', position: 'relative', marginTop: '-30px', paddingBottom: '20px', marginLeft: 'auto',  }}>
+               <label style={{ fontSize: '20px', color: 'black',  marginRight: '38px', marginTop: '13px', fontFamily: "'montserrat', sans-serif", fontWeight: '600', marginLeft: '0px' }}>Feedback: </label>
                <div style={{ display: 'flex', justifyContent: 'space-around', width: '350px', marginLeft: 'auto', alignItems: 'center', marginTop: '20px', marginRight: '10px' }}>
                  <div
                    style={{
-                     height: '40px',
-                     lineHeight: '40px',
-                     fontSize: '20px',
+                     height: '30px',
+                     lineHeight: '30px',
+                     fontSize: '16px',
                      width: '120px',
                      textAlign: 'center',
                      transition: '.3s',
@@ -1022,9 +1032,9 @@ const generateQuestions = async () => {
                  </div>
                  <div
                    style={{
-                     height: '40px',
-                     lineHeight: '40px',
-                     fontSize: '20px',
+                     height: '30px',
+                     lineHeight: '30px',
+                     fontSize: '16px',
                      marginLeft: 'auto',
                      width: '200px',
                      textAlign: 'center',
@@ -1045,20 +1055,44 @@ const generateQuestions = async () => {
 
    
  </PreferencesSection>
- <div>
-  {currentStep > 1 && <button onClick={handlePrevious}>Previous</button>}
-  {currentStep < 4 && <button onClick={nextStep}>Next</button>}
+
+
+           
+        
+
+
+          <SecuritySettings
+          saveAndExit={saveAndExit}
+          setSaveAndExit={setSaveAndExit}
+          lockdown={lockdown}
+          setLockdown={setLockdown}
+        />
+
+
+
+
+
+
+ <div style={{width: '600px' , marginLeft: 'auto', marginRight: 'auto'}}>
+  {currentStep < 4 && <button onClick={nextStep}
+   style={{width: '100px', height:' 40px', borderRadius: '10px',  fontSize: '20px',  background: 'white', marginLeft: 'auto' }}
+ 
+  
+  >Next</button>}
 </div>
+
+
+
  </div>
     )}
 
     {currentStep === 2 && (
 
-<div style={{ marginTop: '150px', width: '800px', padding: '15px', marginLeft: 'auto', marginRight: 'auto', fontFamily: "'montserrat', sans-serif", background: 'white', borderRadius: '25px', 
+<div style={{ marginTop: '150px', width: '967px', padding: '15px', marginLeft: 'auto', marginRight: 'auto', fontFamily: "'montserrat', sans-serif", background: 'white', borderRadius: '25px', 
   boxShadow: '1px 1px 10px 1px rgb(0,0,155,.1)', marginBottom: '40px' }}>
 
 
-<div style={{ marginLeft: '0px', color: '#2BB514', margin: '-15px', padding: '10px 10px 10px 60px',  border: '10px solid #2BB514', borderRadius: '30px 30px 0px 0px', fontFamily: "'montserrat', sans-serif",  fontSize: '40px', display: 'flex', width: '740px', background: '#AEF2A3', marginBottom: '180px', fontWeight: 'bold' }}>
+<div style={{ marginLeft: '0px', color: '#2BB514', margin: '-15px', padding: '10px 10px 10px 40px',  border: '10px solid #2BB514', borderRadius: '30px 30px 0px 0px', fontFamily: "'montserrat', sans-serif",  fontSize: '40px', display: 'flex', width: '930px', background: '#AEF2A3', marginBottom: '180px', fontWeight: 'bold' }}>
  Select Students
 
 
@@ -1070,15 +1104,18 @@ const generateQuestions = async () => {
         selectedStudents={selectedStudents}
         setSelectedStudents={setSelectedStudents}
       />
-  <div>
-  {currentStep > 1 && <button onClick={handlePrevious}>Previous</button>}
-  {currentStep < 4 && <button onClick={nextStep}>Next</button>}
+  <div style={{width: '900px', display: "flex", marginTop: '20px', marginBottom: '20px'}}>
+  {currentStep > 1 && <button  style={{width: '100px', height:' 40px', borderRadius: '10px',  fontSize: '20px',  background: 'white', marginLeft: 'auto', marginRight: '20px' }} onClick={handlePrevious}>Previous</button>}
+  {currentStep < 4 && <button
+  
+  style={{width: '100px', height:' 40px', borderRadius: '10px',  fontSize: '20px',  background: 'white',  }}
+  onClick={nextStep}>Next</button>}
 </div>
       </div>
     )}
 
     {currentStep === 3 && (
-      <div style={{ marginTop: '150px', width: '800px', padding: '15px', marginLeft: 'auto', marginRight: 'auto', fontFamily: "'montserrat', sans-serif", background: 'white', borderRadius: '25px', 
+      <div style={{ marginTop: '150px', width: '800px', padding: '15px', marginLeft: 'auto', marginRight: 'auto', fontFamily: "'montserrat', sans-serif", background: 'white', borderRadius: '25px', height: '400px',
         boxShadow: '1px 1px 10px 1px rgb(0,0,155,.1)', marginBottom: '40px' }}>
       
       
@@ -1087,7 +1124,6 @@ const generateQuestions = async () => {
         
         </div>
         
-          <div style={{ width: '700px', padding: '0px', marginTop: '20px',  borderRadius: '10px', marginBottom: '20px', zIndex: '-10', marginLeft: '-10px'}}>
           <div
             style={{
               width: '100%',
@@ -1104,9 +1140,7 @@ const generateQuestions = async () => {
               alignItems: 'center'
             }}
           >
-            <CircleHelp size={20} color="lightgrey" />
-            <h1 style={{ fontSize: '16px', marginLeft: '10px', marginRight: 'auto', fontFamily: "'montserrat', sans-serif", color: 'lightgrey' }}>Generate Questions</h1>
-      
+
 
           <div >
             <div style={{ marginTop: '-30px' }}>
@@ -1118,7 +1152,7 @@ const generateQuestions = async () => {
 
           
 
-              <div style={{ width: '700px', marginLeft: '10px', }}>
+              <div style={{ width: '700px', marginLeft: '10px', marginTop: '-40px'}}>
            
 <SourcePreviewToggle
 sourceText={sourceText}
@@ -1135,17 +1169,22 @@ progressText={progressText}
 
 
 
-              </div>
             </div>
           </div>
           </div>
+  
           </div>
 
-
-          <div>
-  {currentStep > 1 && <button onClick={handlePrevious}>Previous</button>}
-  {currentStep < 4 && <button onClick={nextStep}>Next</button>}
+          <div style={{marginTop: '100px'}}>
+  {currentStep > 1 && <button   style={{width: '100px', height:' 40px', borderRadius: '10px',  fontSize: '20px',  background: 'white', marginLeft: 'auto', marginRight: '20px' }}
+  onClick={handlePrevious}>Previous</button>}
+  {currentStep < 4 && <button 
+   style={{width: '100px', height:' 40px', borderRadius: '10px',  fontSize: '20px',  background: 'white',  }}
+ 
+  
+  onClick={nextStep}>Next</button>}
 </div>
+         
           </div>
     )}
 

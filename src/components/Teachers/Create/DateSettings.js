@@ -28,31 +28,13 @@ export const formatDate = (date) => {
 const DateSettings = ({ assignDate, setAssignDate, dueDate, setDueDate }) => {
  
   return (
-    <div style={{ width: '700px', marginTop: '-50px', }}>
-      <div
-      
-        style={{
-          width: '100%',
-          padding: '0px',
-          fontSize: '30px',
-          backgroundColor: 'white',
-          color: 'black',
-          border: 'none',
-          height: '50px',
-          marginBottom: '-30px',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center'
-        }}
-      >
-        <CalendarCog size={20} color="lightgrey" />
-        <h1 style={{ fontSize: '16px', marginLeft: '5px', marginRight: 'auto', fontFamily: "'montserrat', sans-serif", color: 'lightgrey', fontWeight: '600' }}> Dates</h1>
-      </div>
+    <div style={{ width: '600px', marginTop: '0px',  marginLeft: 'auto', marginRight: 'auto',  height: '80px', marginLeft: '-5px'}}>
+     
 
       <div>
-        <div style={{ marginTop: '-10px', height: '150px' , marginBottom: '-30px'}}>
-          <div style={{ position: 'relative', alignItems: 'center',  height: '60px', borderRadius:'10px', width: '690px',  marginTop: '10px', display: 'flex' }}>
-            <h1 style={{ marginLeft: '0px', marginBottom: '10px', fontSize: '25px', fontWeight: '600', marginTop: '10px', color: 'black'}}>Assign on:</h1>
+        <div style={{ marginTop: '-10px', height: '150px' , marginBottom: '-30px', display: 'flex'}}>
+          <div style={{ position: 'relative', alignItems: 'center',  height: '60px', borderRadius:'10px', width: '600px',  marginTop: '-5px',  }}>
+            <h1 style={{ marginLeft: '5px', marginBottom: '5px', fontSize: '14px', fontWeight: '600', marginTop: '10px', color: 'black'}}>Assign on:</h1>
             <div style={{ marginLeft: 'auto', zIndex: '2', }}>
               <CustomDateTimePicker
                 selected={assignDate}
@@ -61,8 +43,8 @@ const DateSettings = ({ assignDate, setAssignDate, dueDate, setDueDate }) => {
               />
             </div>
           </div>
-          <div style={{ position: 'relative', alignItems: 'center',  height: '60px', borderRadius:'10px', width: '690px',  marginTop: '-5px', display: 'flex'  }}>
-            <h1 style={{ marginLeft: '0px', marginBottom: '10px', fontSize: '25px', fontWeight: '600', marginTop: '10px', color: 'black'}}>Due on:</h1>
+          <div style={{ position: 'relative', alignItems: 'center',  height: '60px', borderRadius:'10px', width: '600px',  marginTop: '-5px', }}>
+            <h1 style={{ marginLeft: '10px', marginBottom: '5px', fontSize: '14px', fontWeight: '600', marginTop: '10px', color: 'black'}}>Due on:</h1>
             <div style={{ marginLeft: 'auto', zIndex: '2',  }}>
               <CustomDateTimePicker
                 selected={dueDate}

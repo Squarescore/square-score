@@ -18,7 +18,7 @@ const Stepper = ({ currentStep, setCurrentStep, steps, isPreviewAccessible, visi
       border: isActive || isCompleted ? `3px solid ${step.borderColor}` : '3px solid #d1d1d1',
       borderRadius: '10px',
       padding: '10px 20px',
-      marginRight: '10px',
+      marginRight: '-7px',
       position: 'relative',
       color: isActive || isCompleted ? step.textColor : '#9ca3af',
       fontWeight: isActive || isCompleted ? '600' : '500',
@@ -34,7 +34,21 @@ const Stepper = ({ currentStep, setCurrentStep, steps, isPreviewAccessible, visi
       borderBottom: '15px solid transparent',
       borderLeft: `15px solid ${currentStep > index + 1 ? step.backgroundColor : '#f0f0f0'}`,
       position: 'absolute',
-      right: '-15px',
+      right: '4px',
+      top: '50%',
+      transform: 'translateY(-50%)',
+      zIndex: 12,
+    };
+  };
+  const OuterTriangleStyles = (step, index) => {
+    return {
+      width: '0',
+      height: '0',
+      borderTop: '19px solid transparent',
+      borderBottom: '19px solid transparent',
+      borderLeft: `19px solid ${currentStep > index + 1 ? step.borderColor : 'grey'}`,
+      position: 'absolute',
+      right: '-18px',
       top: '50%',
       transform: 'translateY(-50%)',
       zIndex: 1,
@@ -51,7 +65,7 @@ const Stepper = ({ currentStep, setCurrentStep, steps, isPreviewAccessible, visi
         >
           <span>{step.name}</span>
           {/* Add triangle except for the last step */}
-          {index < steps.length - 1 && <div style={triangleStyles(step, index)}></div>}
+          {index < steps.length - 1 && <div style={OuterTriangleStyles(step, index)}><div style={triangleStyles(step, index)}></div></div>}
         </div>
       ))}
     </div>
