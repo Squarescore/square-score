@@ -28,7 +28,7 @@ export const formatDate = (date) => {
 const DateSettings = ({ assignDate, setAssignDate, dueDate, setDueDate }) => {
  
   return (
-    <div style={{ width: '600px', marginTop: '0px',  marginLeft: 'auto', marginRight: 'auto',  height: '80px', marginLeft: '-5px'}}>
+    <div style={{ width: '506px', marginTop: '0px',  marginLeft: 'auto', marginRight: 'auto',  height: '80px', marginLeft: '-5px'}}>
      
 
       <div>

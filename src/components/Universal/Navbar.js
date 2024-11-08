@@ -337,7 +337,7 @@ const Navbar = ({ userType, currentPage, firstName, lastName }) => {
                       onClick={e => handleClassChange(cls.id, e)}
                       style={{
                         width: '212px',
-                        height: '105px',
+                        height: '50px',
                         borderRadius: '10px',
                         margin: '15px',
                         marginLeft: '30px',
@@ -375,7 +375,7 @@ const Navbar = ({ userType, currentPage, firstName, lastName }) => {
                       <div
                         style={{
                           width: '208px',
-                          height: '70px',
+                          height: '50px',
                           marginTop: '-0px',
                           borderBottomLeftRadius: '10px',
                           borderBottomRightRadius: '10px',
@@ -402,7 +402,7 @@ const Navbar = ({ userType, currentPage, firstName, lastName }) => {
                     </motion.div>
                       );
                     })}
-              <div style={{ height: '60px', width: '100%', background: '#fcfcfc' }}></div>
+              <div style={{ height: '40px', width: '100%', background: '#fcfcfc' }}></div>
             </div>
           </motion.div>
           )}
@@ -419,7 +419,7 @@ const Navbar = ({ userType, currentPage, firstName, lastName }) => {
           width: '100%',
           display: 'flex',
           alignItems: 'center',
-          height: '70px',
+          height: '50px',
           color: 'grey',
           zIndex: '1000',
           backgroundColor: 'rgb(255,255,255,.9)',
@@ -508,7 +508,7 @@ const Navbar = ({ userType, currentPage, firstName, lastName }) => {
               height: '40px',
               justifyContent: 'center',
               position: 'absolute',
-              top: '15px',
+              top: '5px',
               right: '70px',
             }}></div>
           <div
@@ -518,7 +518,7 @@ const Navbar = ({ userType, currentPage, firstName, lastName }) => {
               alignItems: 'center',
               justifyContent: 'center',
               position: 'fixed',
-              top: '20px',
+              top: '10px',
               right: '-45px',
             }}
           >
@@ -627,7 +627,7 @@ const Navbar = ({ userType, currentPage, firstName, lastName }) => {
                     alignItems: 'center',
                     justifyContent: 'center',
                     width: '50px',
-                    height: '50px',
+                    height: '30px',
                     borderBottom: (getCurrentPage() === linkText || (linkText === 'Create' && showCreateDropdown)) 
                       ? `4px solid ${linkBorderColors[linkText]}` 
                       : 'none',

@@ -1013,14 +1013,14 @@ const generateQuestions = async () => {
 
 
 
-      <div style={{ marginTop: '0px', width: '650px', padding: '15px',  top:'-60px', position: 'absolute' , left:' 50%', transform: 'translatex(-50%) ',fontFamily: "'montserrat', sans-serif", background: 'white', borderRadius: '25px', 
+      <div style={{ marginTop: '0px', width: '550px', padding: '15px',  top:'-60px', position: 'absolute' , left:' 50%', transform: 'translatex(-50%) ',fontFamily: "'montserrat', sans-serif", background: 'white', borderRadius: '25px', 
         boxShadow: '1px 1px 10px 1px rgb(0,0,155,.1)', marginBottom: '40px', zIndex: '100' }}>
    
    
-   <div style={{ marginLeft: '0px', color: '#2BB514', margin: '-15px', padding: '10px 40px 10px 30px',  border: '10px solid #2BB514', borderRadius: '30px 30px 0px 0px', fontFamily: "'montserrat', sans-serif",  fontSize: '40px', display: 'flex', width: '590px', background: '#A6FF98', marginBottom: '10px', fontWeight: 'bold' }}>
-      
- <Settings size={40} strokeWidth={2.5} style={{marginRight: '10px', marginTop: '5px'}}/>
-       Settings
+   <div style={{ marginLeft: '0px', color: '#2BB514', margin: '-15px', padding: '10px 40px 10px 30px',  border: '10px solid #2BB514', borderRadius: '30px 30px 0px 0px', fontFamily: "'montserrat', sans-serif",  fontSize: '30px', display: 'flex', width: '490px', background: '#A6FF98', marginBottom: '10px', fontWeight: 'bold' }}>
+   Settings
+ <Settings size={35} strokeWidth={2.5} style={{marginRight: '10px', marginTop: '0px', marginLeft: 'auto'}}/>
+    
      
   
       
@@ -1052,7 +1052,7 @@ const generateQuestions = async () => {
  
   
    
-   <div style={{ display: 'flex', alignItems: 'center', height: '30px', width: '600px', position: 'relative', marginTop: '0px', paddingBottom: '30px', marginLeft: 'auto',  }}>
+   <div style={{ display: 'flex', alignItems: 'center', height: '30px', width: '502px', position: 'relative', marginTop: '0px', paddingBottom: '30px', marginLeft: 'auto',  }}>
                <label style={{ fontSize: '16px', color: 'grey',  marginRight: '38px', marginTop: '18px', fontFamily: "'montserrat', sans-serif", fontWeight: '600', marginLeft: '0px' }}>Feedback: </label>
              
              
@@ -1150,11 +1150,11 @@ const generateQuestions = async () => {
   assignmentName={assignmentName}
   hasGeneratedQuestions={generatedQuestions.length > 0}
 />
-<div style={{  width: '700px', padding: '15px', top:'-60px', position: 'absolute' , left:' 50%', transform: 'translatex(-50%) ', fontFamily: "'montserrat', sans-serif", background: 'white', borderRadius: '25px', 
+<div style={{  width: '600px', padding: '15px', top:'-60px', position: 'absolute' , left:' 50%', transform: 'translatex(-50%) ', fontFamily: "'montserrat', sans-serif", background: 'white', borderRadius: '25px', 
   boxShadow: '1px 1px 10px 1px rgb(0,0,155,.1)', zIndex: '1000', height: '400px' }}>
 
 
-<div style={{ marginLeft: '0px', color: '#FFAE00', margin: '-15px', padding: '10px 10px 10px 40px',  border: '10px solid #FFAE00', borderRadius: '30px 30px 0px 0px', fontFamily: "'montserrat', sans-serif",  fontSize: '40px', display: 'flex', width: '662px', background: '#FFF0BE', marginBottom: '180px', fontWeight: 'bold' }}>
+<div style={{ marginLeft: '0px', color: '#FFAE00', margin: '-15px', padding: '10px 10px 10px 40px',  border: '10px solid #FFAE00', borderRadius: '30px 30px 0px 0px', fontFamily: "'montserrat', sans-serif",  fontSize: '40px', display: 'flex', width: '562px', background: '#FFF0BE', marginBottom: '180px', fontWeight: 'bold' }}>
  
  
  <SquareDashedMousePointer size={40} strokeWidth={2.5} style={{marginRight: '10px', marginTop: '5px'}}/>

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { doc, getDoc, writeBatch, arrayUnion, serverTimestamp } from 'firebase/firestore';
 import { deleteDoc } from 'firebase/firestore';
-import { CalendarCog, SquareDashedMousePointer, Sparkles, GlobeLock, EyeOff, Landmark, Eye, User, PencilRuler, SendHorizonal, Folder, SquareX, ChevronUp, ChevronDown, FileText, CircleHelp  } from 'lucide-react';
+import { CalendarCog, SquareDashedMousePointer, Sparkles, GlobeLock, EyeOff, Landmark, Eye, User, PencilRuler, SendHorizonal, Folder, SquareX, ChevronUp, ChevronDown, FileText, CircleHelp, Settings  } from 'lucide-react';
 import { db } from '../../Universal/firebase'; // Ensure the path is correct
 import TeacherPreview from './PreviewSAQ';
 import { setDoc, updateDoc } from 'firebase/firestore';
@@ -26,6 +26,8 @@ import CustomExpandingFormatSelector from './ExpandingFormatSelector';
 import AnimationAll from '../../Universal/AnimationAll';
 import { AssignmentName, FormatSection, PreferencesSection, QuestionCountSection, TimerSection, ToggleSwitch } from './Elements';
 import { safeClassUpdate, safeTeacherDataUpdate } from '../../teacherDataHelpers';
+import Stepper from './Stepper';
+import StepPreviewCards from './StepPreviewCards';
 
 const dropdownContentStyle = `
   .dropdown-content {
@@ -266,7 +268,10 @@ function CreateAssignment() {
   const [showAdditionalInstructions, setShowAdditionalInstructions] = useState(false);
   const [generatedQuestions, setGeneratedQuestions] = useState([]);
   const [questionsGenerated, setQuestionsGenerated] = useState(false);
-
+  const [currentStep, setCurrentStep] = useState(1);
+  const [visitedSteps, setVisitedSteps] = useState([]);
+  const [onViolation, setOnViolation] = useState('pause');
+  
   const [draftId, setDraftId] = useState(null);
   const [selectedFormat, setSelectedFormat] = useState('SAQ');
   const [showFormatDropdown, setShowFormatDropdown] = useState(false);
@@ -309,7 +314,23 @@ function CreateAssignment() {
       setIsAdaptive(isAdaptive);
     }
   }, [location.state]);
-  
+  useEffect(() => {
+    // Whenever currentStep changes, add it to visitedSteps if not already present
+    setVisitedSteps(prev => {
+      if (!prev.includes(currentStep)) {
+        return [...prev, currentStep];
+      }
+      return prev;
+    });
+  }, [currentStep]);
+
+  const handlePrevious = () => {
+    if (currentStep === 1) {
+      navigate(-1);
+    } else {
+      setCurrentStep(prev => Math.max(prev - 1, 1));
+    }
+  };
   useEffect(() => {
     // Set due date to 48 hours after assign date whenever assign date changes
     setDueDate(new Date(assignDate.getTime() + 48 * 60 * 60 * 1000));
@@ -320,9 +341,17 @@ function CreateAssignment() {
     setShowPreview(!showPreview);
   };
   
-  const handlePrevious = () => {
-    navigate(-1);
+  const prevStepFromStepper = (step) => {
+    setCurrentStep(step + 1);
   };
+  const nextStep = () => {
+    if (currentStep === 3 && showPreview && generatedQuestions.length > 0) {
+      alert('Please generate questions before proceeding to Preview.');
+      return;
+    }
+    setCurrentStep(prev => Math.min(prev + 1, 4));
+  };
+  
   const toggleAdditionalInstructions = () => {
     setShowAdditionalInstructions(!showAdditionalInstructions);
     if (showAdditionalInstructions) {
@@ -663,14 +692,14 @@ const GenerateSAQ = async (sourceText, questionCount, additionalInstructions, cl
 
   const handleGenerateClick = async () => {
     if (generatedQuestions.length > 0) {
-      setShowPreview(true);
+      setCurrentStep(4);
     } else {
       setGenerating(true);
       try {
         const questions = await GenerateSAQ(sourceText, questionBank, additionalInstructions, classId, teacherId);
         setGeneratedQuestions(questions);
         setQuestionsGenerated(true);
-        setShowPreview(true);
+        setCurrentStep(4);
       } catch (error) {
         console.error("Error generating questions:", error);
         // You might want to add error handling/user feedback here
@@ -679,6 +708,57 @@ const GenerateSAQ = async (sourceText, questionCount, additionalInstructions, cl
       }
     }
   };
+
+
+  
+  const steps = [
+    {
+      name: 'Settings',
+      backgroundColor: '#AEF2A3',
+      borderColor: '#2BB514',
+      textColor: '#2BB514',
+      condition: assignmentName.trim() !== '', // Example condition
+
+    },
+    {
+      name: 'Select Students',
+      
+      backgroundColor: '#FFECA8',
+      borderColor: '#FFD13B',
+      textColor: '#CE7C00',
+      condition: selectedStudents.size > -1, // Example condition
+
+    },
+    {
+      name: 'Generate Questions',
+      
+      backgroundColor: '#F8CFFF',
+      borderColor: '#E01FFF',
+      condition: sourceText.trim() !== '',
+
+      textColor: '#E01FFF'
+    },
+    {
+      name: 'Preview',
+      
+      backgroundColor: '#C7CFFF',
+      borderColor: '#020CFF',
+      condition: true, // Always accessible
+ 
+      textColor: '#020CFF'
+    }
+  ];
+    const isStepCompleted = (stepNumber) => {
+      const step = steps.find((s) => s.number === stepNumber);
+      if (!step) return false;
+      return step.condition;
+    };
+    const handleStepClick = (stepNumber) => {
+      // Only allow navigation if the step is completed or it's the current step
+      if (isStepCompleted(stepNumber - 1) || stepNumber === currentStep) {
+        setCurrentStep(stepNumber);
+      }
+    };
     return (
       <div style={{    position: 'absolute',
         top: 0,
@@ -689,10 +769,278 @@ const GenerateSAQ = async (sourceText, questionCount, additionalInstructions, cl
         flexDirection: 'column',
         backgroundColor: '#fcfcfc'}}>  <Navbar userType="teacher" />
         <style>{dropdownContentStyle}</style>
+
+        {isSaving && <LoaderScreen />}
+
+        <Stepper
+        currentStep={currentStep}
+        setCurrentStep={setCurrentStep}
+        steps={steps}
+        isPreviewAccessible={questionsGenerated}
+        visitedSteps={visitedSteps}
+      />
+
+
+<div>
+      <FormatSection
+     classId={classId}
+     selectedFormat={selectedFormat}
+     onFormatChange={(newFormat) => {
+       setSelectedFormat(newFormat);
+       // Any additional format change logic
+     }}
+   />
+
+
+
+{currentStep === 1 && (
+
+
+<div style={{width: '900px',  height: '500px',marginLeft: 'auto', marginRight: 'auto', marginTop: '50px', position: 'relative'}}>
+
+
+
+<StepPreviewCards
+  currentStep={currentStep}
+  canProgress={isFormValid()}
+  onNextStep={nextStep}
+  onPrevStep={handlePrevious}
+  assignmentName={assignmentName}
+  hasGeneratedQuestions={generatedQuestions.length > 0}
+/>
+
+
+
+
+
+
+
+
+
+      <div style={{ marginTop: '0px', width: '650px', padding: '15px',  top:'-60px', position: 'absolute' , left:' 50%', transform: 'translatex(-50%) ',fontFamily: "'montserrat', sans-serif", background: 'white', borderRadius: '25px', 
+        boxShadow: '1px 1px 10px 1px rgb(0,0,155,.1)', marginBottom: '40px', zIndex: '100' }}>
+   
+   
+   <div style={{ marginLeft: '0px', color: '#2BB514', margin: '-15px', padding: '10px 40px 10px 30px',  border: '10px solid #2BB514', borderRadius: '30px 30px 0px 0px', fontFamily: "'montserrat', sans-serif",  fontSize: '40px', display: 'flex', width: '590px', background: '#A6FF98', marginBottom: '10px', fontWeight: 'bold' }}>
+      
+ <Settings size={40} strokeWidth={2.5} style={{marginRight: '10px', marginTop: '5px'}}/>
+       Settings
+     
+  
+      
+    
+        </div>
+
+        
+   <PreferencesSection>
+   <AssignmentName
+     value={assignmentName}
+     onChange={setAssignmentName}
+   />
+   
+
+   <DateSettings
+          assignDate={assignDate}
+          setAssignDate={setAssignDate}
+          dueDate={dueDate}
+          setDueDate={setDueDate}
+        />
+
+   <TimerSection
+     timerOn={timerOn}
+     timer={timer}
+     onTimerChange={setTimer}
+     onToggle={() => setTimerOn(!timerOn)}
+   />
+   
+ 
+  
+  
+
+   
+ </PreferencesSection>
+
+
+           
+        
+
+
+ <SecuritySettings
+  saveAndExit={saveAndExit}
+  setSaveAndExit={setSaveAndExit}
+  lockdown={lockdown}
+  setLockdown={setLockdown}
+  onViolation={onViolation}
+  setOnViolation={setOnViolation}
+/>
+
+
+
+
+
+
+
+ </div>
+ </div>
+    )}
+
+    {currentStep === 2 && (
+      <div style={{width: '900px',  height: '500px',marginLeft: 'auto', marginRight: 'auto', marginTop: '50px', position: 'relative'}}>
+
+
+<StepPreviewCards
+  currentStep={currentStep}
+  canProgress={isFormValid()}
+  onNextStep={nextStep}
+  onPrevStep={handlePrevious}
+  assignmentName={assignmentName}
+  hasGeneratedQuestions={generatedQuestions.length > 0}
+/>
+<div style={{  width: '700px', padding: '15px', top:'-60px', position: 'absolute' , left:' 50%', transform: 'translatex(-50%) ', fontFamily: "'montserrat', sans-serif", background: 'white', borderRadius: '25px', 
+  boxShadow: '1px 1px 10px 1px rgb(0,0,155,.1)', zIndex: '1000', height: '400px' }}>
+
+
+<div style={{ marginLeft: '0px', color: '#FFAE00', margin: '-15px', padding: '10px 10px 10px 40px',  border: '10px solid #FFAE00', borderRadius: '30px 30px 0px 0px', fontFamily: "'montserrat', sans-serif",  fontSize: '40px', display: 'flex', width: '662px', background: '#FFF0BE', marginBottom: '180px', fontWeight: 'bold' }}>
+ 
+ 
+ <SquareDashedMousePointer size={40} strokeWidth={2.5} style={{marginRight: '10px', marginTop: '5px'}}/>
+ Select Students
+
+
+
+
+  </div>
+      <SelectStudentsDW
+        classId={classId}
+        selectedStudents={selectedStudents}
+        setSelectedStudents={setSelectedStudents}
+      />
+
+      </div>
+      </div>
+    )}
+
+    {currentStep === 3 && (
+     <div style={{width: '900px', height: '500px',marginLeft: 'auto', marginRight: 'auto', marginTop: '50px', position: 'relative'}}>
+
+<StepPreviewCards
+currentStep={currentStep}
+canProgress={isFormValid()}
+onNextStep={nextStep}
+onPrevStep={handlePrevious}
+assignmentName={assignmentName}
+hasGeneratedQuestions={generatedQuestions.length > 0}
+/>
+      <div style={{width: '730px', padding: '15px', top:'-60px', position: 'absolute' , left:' 50%', transform: 'translatex(-50%) ', zIndex: '10', fontFamily: "'montserrat', sans-serif", background: 'white', borderRadius: '25px', height: '450px',
+        boxShadow: '1px 1px 10px 1px rgb(0,0,155,.1)', marginBottom: '40px' }}>
+      
+      
+      <div style={{ marginLeft: '0px', color: '#E01FFF', margin: '-15px', padding: '10px 10px 10px 20px',  border: '10px solid #E01FFF', borderRadius: '30px 30px 0px 0px', fontFamily: "'montserrat', sans-serif",  fontSize: '40px', display: 'flex', width: '710px', background: '#F8CAFF', marginBottom: '180px', fontWeight: 'bold' }}>
+       
+       
+ <Sparkles size={40} strokeWidth={2.5} style={{marginRight: '10px', marginTop: '5px'}}/>
+        Generate Questions
+        
+        </div>
+        
+          <div
+            style={{
+              width: '100%',
+              padding: '10px',
+              fontSize: '30px',
+              backgroundColor: 'white',
+              color: 'black',
+              border: 'none',
+              height: '30px',
+              marginTop: '10px',
+              cursor: 'pointer',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center'
+            }}
+          >
+
+
+          <div >
+            <div style={{ marginTop: '-30px' }}>
+       
+
+            <QuestionCountSection
+        bankCount={questionBank}
+        studentCount={questionStudent}
+        onBankChange={setQuestionBank}
+        onStudentChange={setQuestionStudent}
+      />
+
+          
+
+              <div style={{ width: '700px', marginLeft: '10px', marginTop: '-40px'}}>
+           
+
+              <SourcePreviewToggle 
+  sourceText={sourceText}
+  onSourceChange={setSourceText}
+  additionalInstructions={additionalInstructions}
+  onAdditionalInstructionsChange={setAdditionalInstructions}
+  onPreviewClick={handlePreviewToggle}
+  onGenerateClick={handleGenerateClick}
+  generating={generating}
+  generatedQuestions={generatedQuestions}
+  questionBank={questionBank}
+  questionStudent={questionStudent}
+  setQuestionBank={setQuestionBank}
+  setQuestionStudent={setQuestionStudent}
+/>
+
+
+
+            </div>
+          </div>
+          </div>
+  
+          </div>
+
+    
+         
+          </div></div>
+    )}
+
+    {currentStep === 4 && (
+       <div style={{width: '900px',  height: '500px',marginLeft: 'auto', marginRight: 'auto', marginTop: '50px', position: 'relative'}}>
+
+       <StepPreviewCards
+       currentStep={currentStep}
+       canProgress={isFormValid()}
+       onNextStep={nextStep}
+       onPrevStep={handlePrevious}
+       assignmentName={assignmentName}
+       hasGeneratedQuestions={generatedQuestions.length > 0}
+       />
+     {/* Step 4: Preview */}
+     <TeacherPreview
+        questionsWithIds={generatedQuestions}
+        setQuestionsWithIds={setGeneratedQuestions}
+        sourceText={sourceText}
+        questionCount={questionBank}
+        classId={classId}
+        teacherId={teacherId} // Hide the close button in stepper flow
+     />
+     <div>
+       {currentStep > 1 && <button onClick={handlePrevious}>Previous</button>}
+       {/* No Next button on the last step */}
+       <button onClick={saveAssignment} disabled={isPublishDisabled}>
+         Publish
+       </button>
+     </div>
+   </div>
+ )}
+
+
+
         <div style={{ marginTop: '150px', width: '800px', padding: '15px', marginLeft: 'auto', marginRight: 'auto', fontFamily: "'montserrat', sans-serif", background: 'white', borderRadius: '25px', 
                boxShadow: '1px 1px 10px 1px rgb(0,0,155,.1)', marginBottom: '40px' }}>
        
-       {isSaving && <LoaderScreen />}
+   
 
 
         {showPreview && generatedQuestions.length > 0 && (
@@ -967,8 +1315,7 @@ const GenerateSAQ = async (sourceText, questionCount, additionalInstructions, cl
       />
 
 
-
-      </div>
+</div>      </div>
     );
   };
 

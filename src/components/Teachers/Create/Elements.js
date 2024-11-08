@@ -5,7 +5,7 @@ import CustomExpandingFormatSelector from './ExpandingFormatSelector';
 // Common styles used across components
 const styles = {
   sectionWrapper: {
-    width: '600px',
+    width: '490px',
     marginLeft: 'auto',
     marginRight: 'auto',
     marginTop: '30px'
@@ -24,7 +24,7 @@ const styles = {
     fontWeight: '600',
   },
   input: {
-    width: '550px',
+    width: '450px',
     height: '30px',
     fontSize: '20px',
     padding: '10px',
@@ -166,7 +166,7 @@ export const FormatSection = ({ classId, selectedFormat, onFormatChange }) => {
 
 export const TimerSection = ({ timerOn, timer, onTimerChange, onToggle }) => {
   return (
-    <div style={{ width: '600px', marginLeft: '0px', height: '30px', display: 'flex', position: 'relative', alignItems: 'center', marginTop: '5px',marginBottom: '0px' }}>
+    <div style={{ width: '500px', marginLeft: '0px', height: '30px', display: 'flex', position: 'relative', alignItems: 'center', marginTop: '5px',marginBottom: '0px' }}>
       <h1 style={styles.sectionHeading}>Timer:</h1>
       {timerOn  ?
         <div style={{ display: 'flex', alignItems: 'center', position: 'relative', marginLeft: '100px', background:'#f4f4f4', height: '26px', borderRadius: '5px', width:' 130px', marginTop: '-8px' }}>
@@ -252,7 +252,7 @@ export const ToggleSwitch = ({ label, value, onChange }) => {
       display: 'flex', 
       alignItems: 'center', 
       height: '80px', 
-      width: '600px', 
+      width: '500px', 
       borderBottom: '0px solid lightgrey', 
       position: 'relative', 
       marginTop: '-40px', 

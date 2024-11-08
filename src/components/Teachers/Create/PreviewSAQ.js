@@ -108,21 +108,19 @@ const TeacherPreview = ({ questionsWithIds, setQuestionsWithIds, sourceText, que
 
   return (
     <div style={{
-      width: '900px',
+      width: '700px',
       height: '550px',
-      marginTop: '80px',
+      zIndex: '10',
+      position: 'absolute',  top:'-60px', position: 'absolute' , left:' 50%', transform: 'translatex(-50%) ',fontFamily: "'montserrat', sans-serif",
+
       border: '10px solid white',
                boxShadow: '1px 1px 5px 1px rgb(0,0,155,.07)' ,
-      background: 'RGB(255,255,255,)',
-      backdropFilter: 'blur(5px)',
+      background: 'white',
       borderRadius: '20px',
       padding: '20px',
-      marginLeft: 'auto',
-      marginRight: 'auto',
-      position: 'relative',
     }}>
       <div style={{
-        width: '940px',
+        width: '740px',
         backgroundColor: '#FCD3FF',
         marginLeft: '-30px',
         display: 'flex',
@@ -135,6 +133,12 @@ const TeacherPreview = ({ questionsWithIds, setQuestionsWithIds, sourceText, que
         <h1 style={{fontSize: '40px', fontFamily: "'montserrat', sans-serif", color: '#D800FB', marginLeft: '40px',marginTop: '5px', }}>Question Bank</h1>
        
       </div>
+
+
+
+
+
+
       {showRegenerateDropdown && (
         <div style={{
           backgroundColor: 'white',
@@ -158,7 +162,7 @@ const TeacherPreview = ({ questionsWithIds, setQuestionsWithIds, sourceText, que
             onChange={(e) => setRegenerateInput(e.target.value)}
             placeholder="Enter general adjustments you want made to questions"
             style={{
-              width: '700px',
+              width: '600px',
               marginLeft: '90px',
               height:'100px',
               marginRight: '40px',
@@ -223,7 +227,15 @@ const TeacherPreview = ({ questionsWithIds, setQuestionsWithIds, sourceText, que
 
 
 
-<div style={{display: 'flex', width: '840px', marginLeft: '20px', marginRight: 'auto', marginTop: '20px',  marginBottom: '20px'}}>
+
+
+
+
+
+
+
+
+<div style={{display: 'flex', width: '690px', marginLeft: '20px', marginRight: 'auto', marginTop: '20px',  marginBottom: '20px'}}>
       <h2 style={{color: 'lightgrey', fontSize: '16px', fontWeight: 'bold', width: '300px',  }}>Click to edit Questions and rubrics, </h2>
   
         <button
@@ -277,21 +289,26 @@ const TeacherPreview = ({ questionsWithIds, setQuestionsWithIds, sourceText, que
         </div> 
       
       
-        <div ref={containerRef} style={{ height: '400px', overflowY: 'auto', width: '930px', marginLeft: '-40px' }}>
+
+
+
+
+      
+        <div ref={containerRef} style={{ height: '400px', overflowY: 'auto', width: '760px', marginLeft: '-40px' }}>
         {questionsWithIds.map((question, index) => (
           <div key={index} style={{ 
             padding: '0px', 
             marginTop: '15px',
             marginBottom: '15px',
             borderBottom: '2px solid #f4f4f4', 
-            width: '820px', 
+            width: '700px', 
             marginLeft: '50px', 
             position: 'relative',
             display: 'flex',
             flexDirection: 'column',
           }}>
             <div style={{
-              width: '820px', 
+              width: '650px', 
               borderRadius: '10px', 
               display: 'flex',
               fontSize: '12px',
@@ -321,7 +338,7 @@ const TeacherPreview = ({ questionsWithIds, setQuestionsWithIds, sourceText, que
                   fontWeight: '600',
                   fontSize: '20px',
                   borderRadius: '0px 10px 10px 0px',
-                  width: '580px',
+                  width: '500px',
                   resize: 'none',
                   lineHeight: '1.2', // Add this to control line height
                 }}
@@ -397,7 +414,7 @@ const TeacherPreview = ({ questionsWithIds, setQuestionsWithIds, sourceText, que
                 </div>
                 <TextareaAutosize
                   style={{
-                    width: '585px',
+                    width: '500px',
                     border: '4px solid #F4F4F4',
                     padding: '15px',
                     fontWeight: '600',

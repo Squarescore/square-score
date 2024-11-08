@@ -12,14 +12,14 @@ const SecuritySettings = ({
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
   return (
-    <div style={{ width: '590px', marginTop: '-10px', marginLeft: 'auto', marginRight: 'auto' }}>
+    <div style={{ width: '490px', marginTop: '-10px', marginLeft: 'auto', marginRight: 'auto',  }}>
       <div style={{marginLeft:'-5px'}}>
         <div style={{ marginTop: '-20px' }}>
           <div style={{ display: 'flex', alignItems: 'center', marginBottom: '0px' , marginTop: '10px'}}>
-            <h1 style={{ fontSize: '16px', color: 'grey', marginLeft: '0px', flex: 1, width: '270px', fontWeight: '600' }}>
+            <h1 style={{ fontSize: '16px', color: 'grey', marginLeft: '5px', flex: 1, width: '270px', fontWeight: '600' }}>
               Save & Exit
             </h1>
-            <div style={{ position: 'relative' , marginRight:'10px'}}>
+            <div style={{ position: 'relative' , marginRight:'4px'}}>
               <input
                 style={{ marginRight: '0px' }}
                 type="checkbox"
@@ -32,7 +32,7 @@ const SecuritySettings = ({
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', marginTop: '0px' }}>
-            <h1 style={{ fontSize: '16px', color: 'grey', marginLeft: '0px', flex: 1, width: '270px', fontWeight: '600' }}>
+            <h1 style={{ fontSize: '16px', color: 'grey', marginLeft: '5px', flex: 1, width: '270px', fontWeight: '600' }}>
               Lockdown:
             </h1>
             {lockdown && (
@@ -137,7 +137,7 @@ const SecuritySettings = ({
               </div>
             </div>
           )}
-            <div style={{ position: 'relative', marginRight:'10px' }}>
+            <div style={{ position: 'relative', marginRight:'5px' }}>
               <input
                 style={{ marginRight: '0px' }}
                 type="checkbox"
