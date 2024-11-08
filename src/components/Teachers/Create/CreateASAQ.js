@@ -18,7 +18,7 @@ import SelectStudentsDW from './SelectStudentsDW';
 import { AssignmentActionButtons, usePublishState } from './AssignmentActionButtons';
 import { v4 as uuidv4 } from 'uuid';
 import CustomExpandingFormatSelector from './ExpandingFormatSelector';
-import { AssignmentName, FormatSection, PreferencesSection, TimerSection, ToggleSwitch } from './Elements';
+import { AssignmentName, FormatSection, PreferencesSection, TimerSection} from './Elements';
 import { Button } from 'react-scroll';
 import { safeClassUpdate } from '../../teacherDataHelpers';
 const dropdownContentStyle = `
@@ -534,11 +534,7 @@ function SAQA() {
       
     
       
-      <ToggleSwitch
-        label="Half Credit"
-        value={halfCredit}
-        onChange={setHalfCredit}
-      />
+    
       
 
 

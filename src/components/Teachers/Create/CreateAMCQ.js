@@ -8,16 +8,17 @@ import 'react-datepicker/dist/react-datepicker.css';
 import PreviewAMCQ from './previewAMCQ';
 import axios from 'axios';
 import { auth,db } from '../../Universal/firebase';
-import { CalendarCog, SquareDashedMousePointer, Sparkles, GlobeLock, Eye, PencilRuler, SendHorizonal, ChevronDown, ChevronUp, CircleHelp, FileText, Landmark, SquareX  } from 'lucide-react';
+import { CalendarCog, SquareDashedMousePointer, Sparkles, GlobeLock, Eye, PencilRuler, SendHorizonal, ChevronDown, ChevronUp, CircleHelp, FileText, Landmark, SquareX, Settings, Sparkle, ChevronLast, ChevronLeft, ChevronRight  } from 'lucide-react';
 import CustomExpandingFormatSelector from './ExpandingFormatSelector';
 import SelectStudentsDW from './SelectStudentsDW';
 import SecuritySettings from './SecuritySettings';
 import DateSettings from './DateSettings';
-import { AssignmentName, ChoicesPerQuestion, FormatSection, PreferencesSection, TimerSection, ToggleSwitch } from './Elements';
+import { AssignmentName, ChoicesPerQuestion, FormatSection, PreferencesSection, TimerSection, } from './Elements';
 import { AssignmentActionButtons, usePublishState } from './AssignmentActionButtons';
 import { safeClassUpdate } from '../../teacherDataHelpers';
 import { v4 as uuidv4 } from 'uuid';
 import Stepper from './Stepper'; // Import the Stepper component
+import StepPreviewCards from './StepPreviewCards';
 
 
 const dropdownContentStyle = `
@@ -335,7 +336,7 @@ const MCQA = () => {
 
   const [currentStep, setCurrentStep] = useState(1);
   const [visitedSteps, setVisitedSteps] = useState([]);
-
+  const [onViolation, setOnViolation] = useState('pause');
   const [draftId, setDraftId] = useState(null);
   const [sourceOption, setSourceOption] = useState(null);
   const [sourceText, setSourceText] = useState('');
@@ -683,7 +684,8 @@ const generateQuestions = async () => {
       } else {
         setDueDate(new Date(loadedAssignDate.getTime() + 48 * 60 * 60 * 1000));
       }
-
+      setLockdown(data.lockdown || false);
+      setOnViolation(data.onViolation || 'pause');
       setSelectedStudents(new Set(data.selectedStudents || []));
       setSaveAndExit(data.saveAndExit !== undefined ? data.saveAndExit : true);
       setLockdown(data.lockdown || false);
@@ -722,6 +724,7 @@ const generateQuestions = async () => {
       selectedStudents: Array.from(selectedStudents),
       saveAndExit,
       lockdown,
+      onViolation: lockdown ? onViolation : null, 
       createdAt: serverTimestamp(),
       questions: generatedQuestions,
       sourceOption,
@@ -824,7 +827,8 @@ const generateQuestions = async () => {
   
     const assignmentData = {
       classId,
-      
+      lockdown,
+      onViolation: lockdown ? onViolation : null, 
       format: 'AMCQ',
       assignmentName,
       timer: timerOn ? Number(timer) : 0,
@@ -834,7 +838,6 @@ const generateQuestions = async () => {
       selectedStudents: Array.from(selectedStudents),
       feedback,
       saveAndExit,
-      lockdown,
       createdAt: serverTimestamp(),
       questions: generatedQuestions.map(formatQuestion)
     };
@@ -905,20 +908,26 @@ const generateQuestions = async () => {
       name: 'Settings',
       backgroundColor: '#AEF2A3',
       borderColor: '#2BB514',
-      textColor: '#2BB514'
+      textColor: '#2BB514',
+      condition: assignmentName.trim() !== '', // Example condition
+
     },
     {
       name: 'Select Students',
       
       backgroundColor: '#FFECA8',
       borderColor: '#FFD13B',
-      textColor: '#CE7C00'
+      textColor: '#CE7C00',
+      condition: selectedStudents.size > -1, // Example condition
+
     },
     {
       name: 'Generate Questions',
       
       backgroundColor: '#F8CFFF',
       borderColor: '#E01FFF',
+      condition: sourceText.trim() !== '',
+
       textColor: '#E01FFF'
     },
     {
@@ -926,9 +935,24 @@ const generateQuestions = async () => {
       
       backgroundColor: '#C7CFFF',
       borderColor: '#020CFF',
+      condition: true, // Always accessible
+ 
       textColor: '#020CFF'
     }
   ];
+  const isStepCompleted = (stepNumber) => {
+    const step = steps.find((s) => s.number === stepNumber);
+    if (!step) return false;
+    return step.condition;
+  };
+
+  // Handle StepCard click
+  const handleStepClick = (stepNumber) => {
+    // Only allow navigation if the step is completed or it's the current step
+    if (isStepCompleted(stepNumber - 1) || stepNumber === currentStep) {
+      setCurrentStep(stepNumber);
+    }
+  };
   return (
     <div style={{    position: 'absolute',
       top: 0,
@@ -951,9 +975,8 @@ const generateQuestions = async () => {
         setCurrentStep={setCurrentStep}
         steps={steps}
         isPreviewAccessible={questionsGenerated}
-        visitedSteps={visitedSteps} // Pass the visitedSteps
+        visitedSteps={visitedSteps}
       />
-
 
 
 
@@ -969,13 +992,34 @@ const generateQuestions = async () => {
     {currentStep === 1 && (
 
 
+<div style={{width: '900px',  height: '500px',marginLeft: 'auto', marginRight: 'auto', marginTop: '50px', position: 'relative'}}>
 
-          
-      <div style={{ marginTop: '150px', width: '800px', padding: '15px', marginLeft: 'auto', marginRight: 'auto', fontFamily: "'montserrat', sans-serif", background: 'white', borderRadius: '25px', 
-        boxShadow: '1px 1px 10px 1px rgb(0,0,155,.1)', marginBottom: '40px' }}>
+
+
+<StepPreviewCards
+  currentStep={currentStep}
+  canProgress={isFormValid()}
+  onNextStep={nextStep}
+  onPrevStep={handlePrevious}
+  assignmentName={assignmentName}
+  hasGeneratedQuestions={generatedQuestions.length > 0}
+/>
+
+
+
+
+
+
+
+
+
+      <div style={{ marginTop: '0px', width: '650px', padding: '15px',  top:'-60px', position: 'absolute' , left:' 50%', transform: 'translatex(-50%) ',fontFamily: "'montserrat', sans-serif", background: 'white', borderRadius: '25px', 
+        boxShadow: '1px 1px 10px 1px rgb(0,0,155,.1)', marginBottom: '40px', zIndex: '100' }}>
    
    
-   <div style={{ marginLeft: '0px', color: '#2BB514', margin: '-15px', padding: '10px 10px 10px 60px',  border: '10px solid #2BB514', borderRadius: '30px 30px 0px 0px', fontFamily: "'montserrat', sans-serif",  fontSize: '40px', display: 'flex', width: '740px', background: '#AEF2A3', marginBottom: '10px', fontWeight: 'bold' }}>
+   <div style={{ marginLeft: '0px', color: '#2BB514', margin: '-15px', padding: '10px 40px 10px 30px',  border: '10px solid #2BB514', borderRadius: '30px 30px 0px 0px', fontFamily: "'montserrat', sans-serif",  fontSize: '40px', display: 'flex', width: '590px', background: '#A6FF98', marginBottom: '10px', fontWeight: 'bold' }}>
+      
+ <Settings size={40} strokeWidth={2.5} style={{marginRight: '10px', marginTop: '5px'}}/>
        Settings
      
   
@@ -1008,23 +1052,35 @@ const generateQuestions = async () => {
  
   
    
-   <div style={{ display: 'flex', alignItems: 'center', height: '80px', width: '600px', position: 'relative', marginTop: '-30px', paddingBottom: '20px', marginLeft: 'auto',  }}>
-               <label style={{ fontSize: '20px', color: 'black',  marginRight: '38px', marginTop: '13px', fontFamily: "'montserrat', sans-serif", fontWeight: '600', marginLeft: '0px' }}>Feedback: </label>
-               <div style={{ display: 'flex', justifyContent: 'space-around', width: '350px', marginLeft: 'auto', alignItems: 'center', marginTop: '20px', marginRight: '10px' }}>
+   <div style={{ display: 'flex', alignItems: 'center', height: '30px', width: '600px', position: 'relative', marginTop: '0px', paddingBottom: '30px', marginLeft: 'auto',  }}>
+               <label style={{ fontSize: '16px', color: 'grey',  marginRight: '38px', marginTop: '18px', fontFamily: "'montserrat', sans-serif", fontWeight: '600', marginLeft: '0px' }}>Feedback: </label>
+             
+             
+             
+          
+             
+             
+             
+             
+             
+               <div style={{ display: 'flex', borderRadius: '5px', justifyContent: 'space-around', width: '210px', marginLeft: 'auto', alignItems: 'center', marginTop: '20px', marginRight: '15px', background:'#f4f4f4', height: '28px' }}>
                  <div
                    style={{
-                     height: '30px',
-                     lineHeight: '30px',
-                     fontSize: '16px',
-                     width: '120px',
+                    
+                    marginLeft: '4px',
+                    height: '20px',
+                    lineHeight: '20px',
+                    fontSize: '12px',
+                     width: '80px',
                      textAlign: 'center',
                      transition: '.3s',
-                     borderRadius: '10px',
+                     borderRadius: '3px',
                      fontWeight: feedback === 'instant' ? '600' : '500',
-                     backgroundColor: feedback === 'instant' ? '#AEF2A3' : 'white',
-                     color: feedback === 'instant' ? '#2BB514' : 'grey',
-                     border: feedback === 'instant' ? '3px solid #2BB514' : '3px solid transparent',
-                     cursor: 'pointer'
+                     backgroundColor: feedback === 'instant' ? 'white' : '#f4f4f4',
+                     color: feedback === 'instant' ? 'black' : 'grey',
+                     cursor: 'pointer',
+                     
+                     boxShadow:feedback === 'instant' ? '1px 1px 5px 1px rgb(0,0,155,.03)': 'none' ,
                    }}
                    onClick={() => setFeedback('instant')}
                  >
@@ -1032,19 +1088,21 @@ const generateQuestions = async () => {
                  </div>
                  <div
                    style={{
-                     height: '30px',
-                     lineHeight: '30px',
-                     fontSize: '16px',
+                     height: '20px',
+                     lineHeight: '20px',
+                     fontSize: '12px',
                      marginLeft: 'auto',
-                     width: '200px',
+                    
+                     marginRight: '4px',
+                     width: '120px',
                      textAlign: 'center',
                      transition: '.3s',
-                     borderRadius: '10px',
-                     backgroundColor: feedback === 'at_completion' ? '#AEF2A3' : 'white',
+                     borderRadius: '3px',
+                     backgroundColor: feedback === 'at_completion' ? 'white' : 'transparent',
                      fontWeight: feedback === 'at_completion' ? '600' : '500',
-                     color: feedback === 'at_completion' ? '#2BB514' : 'grey',
-                     border: feedback === 'at_completion' ? '3px solid #2BB514' : '3px solid transparent',
-                     cursor: 'pointer'
+                     color: feedback === 'at_completion' ? 'black' : 'grey',
+                     cursor: 'pointer',
+                     boxShadow:feedback === 'at_completion' ? '1px 1px 5px 1px rgb(0,0,155,.03)': 'none' ,
                    }}
                    onClick={() => setFeedback('at_completion')}
                  >
@@ -1061,38 +1119,45 @@ const generateQuestions = async () => {
         
 
 
-          <SecuritySettings
-          saveAndExit={saveAndExit}
-          setSaveAndExit={setSaveAndExit}
-          lockdown={lockdown}
-          setLockdown={setLockdown}
-        />
+ <SecuritySettings
+  saveAndExit={saveAndExit}
+  setSaveAndExit={setSaveAndExit}
+  lockdown={lockdown}
+  setLockdown={setLockdown}
+  onViolation={onViolation}
+  setOnViolation={setOnViolation}
+/>
 
 
 
 
-
-
- <div style={{width: '600px' , marginLeft: 'auto', marginRight: 'auto'}}>
-  {currentStep < 4 && <button onClick={nextStep}
-   style={{width: '100px', height:' 40px', borderRadius: '10px',  fontSize: '20px',  background: 'white', marginLeft: 'auto' }}
- 
-  
-  >Next</button>}
-</div>
 
 
 
  </div>
+ </div>
     )}
 
     {currentStep === 2 && (
-
-<div style={{ marginTop: '150px', width: '967px', padding: '15px', marginLeft: 'auto', marginRight: 'auto', fontFamily: "'montserrat', sans-serif", background: 'white', borderRadius: '25px', 
-  boxShadow: '1px 1px 10px 1px rgb(0,0,155,.1)', marginBottom: '40px' }}>
+      <div style={{width: '900px',  height: '500px',marginLeft: 'auto', marginRight: 'auto', marginTop: '50px', position: 'relative'}}>
 
 
-<div style={{ marginLeft: '0px', color: '#2BB514', margin: '-15px', padding: '10px 10px 10px 40px',  border: '10px solid #2BB514', borderRadius: '30px 30px 0px 0px', fontFamily: "'montserrat', sans-serif",  fontSize: '40px', display: 'flex', width: '930px', background: '#AEF2A3', marginBottom: '180px', fontWeight: 'bold' }}>
+<StepPreviewCards
+  currentStep={currentStep}
+  canProgress={isFormValid()}
+  onNextStep={nextStep}
+  onPrevStep={handlePrevious}
+  assignmentName={assignmentName}
+  hasGeneratedQuestions={generatedQuestions.length > 0}
+/>
+<div style={{  width: '700px', padding: '15px', top:'-60px', position: 'absolute' , left:' 50%', transform: 'translatex(-50%) ', fontFamily: "'montserrat', sans-serif", background: 'white', borderRadius: '25px', 
+  boxShadow: '1px 1px 10px 1px rgb(0,0,155,.1)', zIndex: '1000', height: '400px' }}>
+
+
+<div style={{ marginLeft: '0px', color: '#FFAE00', margin: '-15px', padding: '10px 10px 10px 40px',  border: '10px solid #FFAE00', borderRadius: '30px 30px 0px 0px', fontFamily: "'montserrat', sans-serif",  fontSize: '40px', display: 'flex', width: '662px', background: '#FFF0BE', marginBottom: '180px', fontWeight: 'bold' }}>
+ 
+ 
+ <SquareDashedMousePointer size={40} strokeWidth={2.5} style={{marginRight: '10px', marginTop: '5px'}}/>
  Select Students
 
 
@@ -1104,22 +1169,30 @@ const generateQuestions = async () => {
         selectedStudents={selectedStudents}
         setSelectedStudents={setSelectedStudents}
       />
-  <div style={{width: '900px', display: "flex", marginTop: '20px', marginBottom: '20px'}}>
-  {currentStep > 1 && <button  style={{width: '100px', height:' 40px', borderRadius: '10px',  fontSize: '20px',  background: 'white', marginLeft: 'auto', marginRight: '20px' }} onClick={handlePrevious}>Previous</button>}
-  {currentStep < 4 && <button
-  
-  style={{width: '100px', height:' 40px', borderRadius: '10px',  fontSize: '20px',  background: 'white',  }}
-  onClick={nextStep}>Next</button>}
-</div>
+
+      </div>
       </div>
     )}
 
     {currentStep === 3 && (
-      <div style={{ marginTop: '150px', width: '800px', padding: '15px', marginLeft: 'auto', marginRight: 'auto', fontFamily: "'montserrat', sans-serif", background: 'white', borderRadius: '25px', height: '400px',
+     <div style={{width: '900px', height: '500px',marginLeft: 'auto', marginRight: 'auto', marginTop: '50px', position: 'relative'}}>
+
+<StepPreviewCards
+currentStep={currentStep}
+canProgress={isFormValid()}
+onNextStep={nextStep}
+onPrevStep={handlePrevious}
+assignmentName={assignmentName}
+hasGeneratedQuestions={generatedQuestions.length > 0}
+/>
+      <div style={{width: '730px', padding: '15px', top:'-60px', position: 'absolute' , left:' 50%', transform: 'translatex(-50%) ', zIndex: '10', fontFamily: "'montserrat', sans-serif", background: 'white', borderRadius: '25px', height: '450px',
         boxShadow: '1px 1px 10px 1px rgb(0,0,155,.1)', marginBottom: '40px' }}>
       
       
-      <div style={{ marginLeft: '0px', color: '#2BB514', margin: '-15px', padding: '10px 10px 10px 60px',  border: '10px solid #2BB514', borderRadius: '30px 30px 0px 0px', fontFamily: "'montserrat', sans-serif",  fontSize: '40px', display: 'flex', width: '740px', background: '#AEF2A3', marginBottom: '180px', fontWeight: 'bold' }}>
+      <div style={{ marginLeft: '0px', color: '#E01FFF', margin: '-15px', padding: '10px 10px 10px 20px',  border: '10px solid #E01FFF', borderRadius: '30px 30px 0px 0px', fontFamily: "'montserrat', sans-serif",  fontSize: '40px', display: 'flex', width: '710px', background: '#F8CAFF', marginBottom: '180px', fontWeight: 'bold' }}>
+       
+       
+ <Sparkles size={40} strokeWidth={2.5} style={{marginRight: '10px', marginTop: '5px'}}/>
         Generate Questions
         
         </div>
@@ -1175,22 +1248,22 @@ progressText={progressText}
   
           </div>
 
-          <div style={{marginTop: '100px'}}>
-  {currentStep > 1 && <button   style={{width: '100px', height:' 40px', borderRadius: '10px',  fontSize: '20px',  background: 'white', marginLeft: 'auto', marginRight: '20px' }}
-  onClick={handlePrevious}>Previous</button>}
-  {currentStep < 4 && <button 
-   style={{width: '100px', height:' 40px', borderRadius: '10px',  fontSize: '20px',  background: 'white',  }}
- 
-  
-  onClick={nextStep}>Next</button>}
-</div>
+    
          
-          </div>
+          </div></div>
     )}
 
     {currentStep === 4 && (
-     
-     <div>
+       <div style={{width: '900px',  height: '500px',marginLeft: 'auto', marginRight: 'auto', marginTop: '50px', position: 'relative'}}>
+
+       <StepPreviewCards
+       currentStep={currentStep}
+       canProgress={isFormValid()}
+       onNextStep={nextStep}
+       onPrevStep={handlePrevious}
+       assignmentName={assignmentName}
+       hasGeneratedQuestions={generatedQuestions.length > 0}
+       />
      {/* Step 4: Preview */}
      <PreviewAMCQ
        questions={generatedQuestions}

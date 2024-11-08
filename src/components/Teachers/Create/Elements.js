@@ -18,8 +18,8 @@ const styles = {
     fontWeight: '600'
   },
   sectionHeading: {
-    fontSize: '20px',
-    color: 'black',
+    fontSize: '16px',
+    color: 'grey',
     width: '200px',
     fontWeight: '600',
   },
@@ -114,7 +114,7 @@ export const AssignmentName = ({ value, onChange, maxLength = 25 }) => {
         marginTop: '0px',
         fontSize: '16px',
         fontWeight: '600',
-        color: 'black',
+        color: 'grey',
       }}>
         Assignment Name
       </h1>
@@ -166,44 +166,35 @@ export const FormatSection = ({ classId, selectedFormat, onFormatChange }) => {
 
 export const TimerSection = ({ timerOn, timer, onTimerChange, onToggle }) => {
   return (
-    <div style={{ width: '600px', marginLeft: '0px', height: '80px', display: 'flex', position: 'relative', alignItems: 'center' }}>
+    <div style={{ width: '600px', marginLeft: '0px', height: '30px', display: 'flex', position: 'relative', alignItems: 'center', marginTop: '5px',marginBottom: '0px' }}>
       <h1 style={styles.sectionHeading}>Timer:</h1>
-      {timerOn ? (
-        <div style={{ display: 'flex', alignItems: 'center', position: 'relative', marginLeft: '30px' }}>
+      {timerOn  ?
+        <div style={{ display: 'flex', alignItems: 'center', position: 'relative', marginLeft: '100px', background:'#f4f4f4', height: '26px', borderRadius: '5px', width:' 130px', marginTop: '-8px' }}>
           <input
             type="number"
             style={{
-              marginLeft: '0px',
-              height: '30px',
-              width: '60px',
+              marginLeft: '3px',
+              height: '20px',
+              width: '40px',
               fontFamily: "'montserrat', sans-serif",
               textAlign: 'center',
               fontWeight: '600',
-              border: '3px solid lightgrey',
+              border: 'none' ,
               outline: 'none',
               borderRadius: '5px',
-              fontSize: '25px',
+              fontSize: '12px',
+              boxShadow: '1px 1px 5px 1px rgb(0,0,155,.03)',
+                  
             }}
             placeholder="10"
             value={timer}
             onChange={(e) => onTimerChange(e.target.value)}
           />
-          <h1 style={{  fontSize: '20px', fontWeight: '600', marginLeft: '10px' }}>Minutes</h1>
+          <h1 style={{  fontSize: '12px', fontWeight: '600', marginLeft: '10px', color: 'grey' }}>Minutes</h1>
         </div>
-      ) : (
-        <span style={{
-          marginLeft: '70px',
-          height: '30px',
-          width: '50px',
-          textAlign: 'center',
-          marginTop: '0px',
-          fontSize: '20px',
-          fontWeight: '600',
-          color: 'grey'
-        }}>
-          Off
-        </span>
-      )}
+      :''
+          }
+          <div style={{ position: 'relative', marginLeft: "auto" }}>
       <input
         style={{ marginLeft: 'auto', marginRight: '14px' }}
         type="checkbox"
@@ -211,7 +202,11 @@ export const TimerSection = ({ timerOn, timer, onTimerChange, onToggle }) => {
         checked={timerOn}
         onChange={onToggle}
       />
+ <span style={{marginRight: '16px'}}>On</span>
+ </div>
+      
     </div>
+    
   );
 };
 

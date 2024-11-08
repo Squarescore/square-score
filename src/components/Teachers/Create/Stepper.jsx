@@ -1,9 +1,45 @@
-// Stepper.jsx
 import React from 'react';
+import { PencilRuler, SendHorizonal } from 'lucide-react';
 
-const Stepper = ({ currentStep, setCurrentStep, steps, isPreviewAccessible, visitedSteps }) => {
+const ActionButton = ({ onClick, icon: Icon, text, disabled, styles }) => (
+  <button
+    onClick={onClick}
+    disabled={disabled}
+    style={{
+      height: '43px',
+      padding: '0 20px',
+      display: 'flex',
+      alignItems: 'center',
+      gap: '8px',
+      borderRadius: '10px',
+      border: `3px solid ${styles.borderColor}`,
+      backgroundColor: styles.backgroundColor || 'white',
+      color: disabled ? '#9ca3af' : styles.color,
+      cursor: disabled ? 'not-allowed' : 'pointer',
+      fontWeight: '600',
+      fontSize: '14px',
+      transition: 'all 0.3s ease',
+      opacity: disabled ? 0.5 : 1,
+      ...styles.custom
+    }}
+  >
+    <Icon size={20} />
+    <span>{text}</span>
+  </button>
+);
+
+const Stepper = ({ 
+  currentStep, 
+  setCurrentStep, 
+  steps, 
+  isPreviewAccessible, 
+  visitedSteps,
+  onSaveDraft,
+  onPublish,
+  isPublishDisabled 
+}) => {
   const handleStepClick = (index) => {
-    if (index === 3 && !isPreviewAccessible) return; // Prevent navigating to Preview if not accessible
+    if (index === 3 && !isPreviewAccessible) return;
     setCurrentStep(index + 1);
   };
 
@@ -40,6 +76,7 @@ const Stepper = ({ currentStep, setCurrentStep, steps, isPreviewAccessible, visi
       zIndex: 12,
     };
   };
+
   const OuterTriangleStyles = (step, index) => {
     return {
       width: '0',
@@ -55,21 +92,95 @@ const Stepper = ({ currentStep, setCurrentStep, steps, isPreviewAccessible, visi
     };
   };
 
+  const containerStyles = {
+    display: 'flex',
+    justifyContent: 'center',
+    boxShadow: '1px 1px 5px 1px rgb(0,0,155,.07)',
+    padding: "10px",
+    alignItems: 'center',
+    background: 'white',
+    marginTop: '120px',
+    marginBottom: '40px',
+    position: 'relative',
+    borderRadius: '10px',
+    width: '900px',
+    margin: '120px auto 40px'
+  };
+
+  const stepsContainerStyles = {
+    display: 'flex',
+    justifyContent: 'center',
+    position: 'relative',
+    flex: 1
+  };
+
   return (
-    <div style={{ display: 'flex', justifyContent: 'center', marginTop: '120px', marginBottom: '40px' }}>
-      {steps.map((step, index) => (
-        <div
-          key={index}
-          style={stepStyles(step, index)}
-          onClick={() => handleStepClick(index)}
-        >
-          <span>{step.name}</span>
-          {/* Add triangle except for the last step */}
-          {index < steps.length - 1 && <div style={OuterTriangleStyles(step, index)}><div style={triangleStyles(step, index)}></div></div>}
-        </div>
-      ))}
+    <div style={containerStyles}>
+      {/* Publish Button (left of Preview) */}
+      <div style={{ 
+        position: 'absolute', 
+        right: '10px',
+        zIndex: 20
+      }}>
+        <ActionButton
+          onClick={onPublish}
+          icon={SendHorizonal}
+          text="Publish"
+          disabled={isPublishDisabled}
+          styles={{
+            borderColor: '#00D409',
+            color: '#00D409',
+            backgroundColor: 'white'
+          }}
+        />
+      </div>
+
+      {/* Draft Button (right of Settings) */}
+      <div style={{ 
+        position: 'absolute', 
+        left: '10px',
+        zIndex: 20
+      }}>
+        <ActionButton
+          onClick={onSaveDraft}
+          icon={PencilRuler}
+          text="Save Draft"
+          styles={{
+            borderColor: '#d1d1d1',
+            color: 'grey',
+            backgroundColor: 'white'
+          }}
+        />
+      </div>
+
+      <div style={stepsContainerStyles}>
+        {steps.map((step, index) => (
+          <div
+            key={index}
+            style={stepStyles(step, index)}
+            onClick={() => handleStepClick(index)}
+          >
+            <span>{step.name}</span>
+            {index < steps.length - 1 && (
+              <div style={OuterTriangleStyles(step, index)}>
+                <div style={triangleStyles(step, index)} />
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
     </div>
   );
 };
-
+export const usePublishState = (assignmentName, generatedQuestions) => {
+  const isPublishDisabled = !assignmentName || generatedQuestions.length === 0;
+  
+  return {
+    isPublishDisabled,
+    publishDisabledConditions: {
+      assignmentName: !assignmentName,
+      questionsGenerated: generatedQuestions.length === 0
+    }
+  };
+};
 export default Stepper;

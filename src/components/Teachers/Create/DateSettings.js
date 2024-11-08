@@ -34,7 +34,7 @@ const DateSettings = ({ assignDate, setAssignDate, dueDate, setDueDate }) => {
       <div>
         <div style={{ marginTop: '-10px', height: '150px' , marginBottom: '-30px', display: 'flex'}}>
           <div style={{ position: 'relative', alignItems: 'center',  height: '60px', borderRadius:'10px', width: '600px',  marginTop: '-5px',  }}>
-            <h1 style={{ marginLeft: '5px', marginBottom: '5px', fontSize: '14px', fontWeight: '600', marginTop: '10px', color: 'black'}}>Assign on:</h1>
+            <h1 style={{ marginLeft: '5px', marginBottom: '5px', fontSize: '14px', fontWeight: '600', marginTop: '10px', color: 'grey'}}>Assign on:</h1>
             <div style={{ marginLeft: 'auto', zIndex: '2', }}>
               <CustomDateTimePicker
                 selected={assignDate}
@@ -44,7 +44,7 @@ const DateSettings = ({ assignDate, setAssignDate, dueDate, setDueDate }) => {
             </div>
           </div>
           <div style={{ position: 'relative', alignItems: 'center',  height: '60px', borderRadius:'10px', width: '600px',  marginTop: '-5px', }}>
-            <h1 style={{ marginLeft: '10px', marginBottom: '5px', fontSize: '14px', fontWeight: '600', marginTop: '10px', color: 'black'}}>Due on:</h1>
+            <h1 style={{ marginLeft: '10px', marginBottom: '5px', fontSize: '14px', fontWeight: '600', marginTop: '10px', color: 'grey'}}>Due on:</h1>
             <div style={{ marginLeft: 'auto', zIndex: '2',  }}>
               <CustomDateTimePicker
                 selected={dueDate}

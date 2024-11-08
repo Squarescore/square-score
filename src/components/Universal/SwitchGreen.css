@@ -1,84 +1,89 @@
 .greenSwitch {
-    position: relative;
-    height: 1rem;
-    width: 1.9rem;
-    cursor: pointer;
-    appearance: none;
-    -webkit-appearance: none;
-    border-radius: 5px;
-    background-color: rgba(201, 201, 201, 0.377);
-    transition: all .3s ease;
-  }
-  .greenSwitch:checked {
-    background-color: #46DE2E;
-  }
-  .greenSwitch::before {
-    position: absolute;
-    content: "";
-    left: calc(2.15rem - 2.05rem);
-    top: calc(2.2rem - 2.05rem);
-    display: block;
-    height: .55rem;
-    width: .55rem;
-    cursor: pointer;
-    border: 2px solid rgba(255, 255, 255, 0.527);
-    border-radius: 3px;
-    background-color: rgba(255, 255, 255, 1);
-   box-shadow:  none;
-    transition: all .3s ease;
-  }
-  .greenSwitch:hover::before {
-    box-shadow: 0 0 0px 10px rgba(0, 0, 0, .15)
-  }
-  .greenSwitch:checked:hover::before {
-    box-shadow: 0 0 0px 10px rgba(124, 236, 72, 0.15)
-  }
-  .greenSwitch:checked:before {
-    transform: translateX(110%);
-    border-color: #ffffff;
-  }
-
-  /* From Uiverse.io by ozgeozkaraa01 */ 
-.toggle-switch {
   position: relative;
-  display: inline-block;
-  width: 30px;
-  height: 17px;
-}
-
-.toggle-input {
-  display: none;
-}
-
-.toggle-label {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 30px;
-  height: 17px;
-  border-radius: 9px;
-  background-color: #ccc;
+  height: 28px;
+  width: 100px;
   cursor: pointer;
-  transition: background-color 0.4s ease;
+  appearance: none;
+  -webkit-appearance: none;
+  border-radius: 5px;
+  background-color: #f4f4f4;
+  transition: all .9s ease;
 }
 
-.toggle-label:before {
-  content: '';
+.greenSwitch:checked {
+  background-color: #f4f4f4;
+}
+
+/* White block that toggles */
+.greenSwitch::before {
   position: absolute;
-  top: 3px;
-  left: 3px;
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-  background-color: #fff;
-  box-shadow: 0 2px 2px rgba(0, 0, 0, 0.2);
-  transition: transform 0.4s ease;
+  content: "";
+  display: block;
+  height: 20px;
+  width: 47px;
+  cursor: pointer;
+  border-radius: 3px;
+  background-color: rgba(255, 255, 255, 1);
+
+  box-shadow: 1px 1px 5px 1px rgb(0,0,155,.07);
+  opacity: 0;
+  transition: opacity 0.2s ease;
 }
 
-.toggle-input:checked + .toggle-label {
-  background-color: #86d993;
+/* Left position white block */
+.greenSwitch::before {
+  left: 4px;
+  top: 4px;
+  opacity: 1;
 }
 
-.toggle-input:checked + .toggle-label:before {
-  transform: translateX(13px);
+/* Right position white block */
+.greenSwitch:checked::before {
+  left: calc(100% - 51px);
+  top: 4px;
+  opacity: 1;
+}
+
+/* NO text */
+.greenSwitch::after {
+  content: "Off";
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  left: 17px;
+  font-size: 12px;
+  font-family: montserrat, sans-serif;
+  font-weight: 600;
+  color: #333333;
+}
+
+/* YES text */
+.greenSwitch + span {
+  content: "On";
+  position: absolute;
+  top: 45%;
+  transform: translateY(-50%);
+  right: 17px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #999999;
+  pointer-events: none;
+}
+
+/* Text color states */
+.greenSwitch:checked::after {
+  color: #999999;
+}
+
+.greenSwitch:checked + span {
+  color: #333333;
+}
+
+/* Hover effects */
+.greenSwitch:hover::before {
+  box-shadow: 1px 1px 5px 1px rgb(0,0,155,.07);
+}
+
+.greenSwitch:checked:hover::before {
+  box-shadow: 1px 1px 5px 1px rgb(0,0,155,.07);
 }

@@ -10,6 +10,7 @@ import {
   SquareX,
   PencilOff,
   SquareCheck,
+  Eye,
 } from 'lucide-react';
 import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '../../Universal/firebase';
@@ -147,20 +148,13 @@ const PreviewAMCQ = ({ questions, onBack, onSave, assignmentId, showCloseButton 
 
   return (
 
-     <div style={{    position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        zIndex: 10,
-        bottom: 0,    overflowY: 'auto',
-        display: 'flex',
-        flexDirection: 'column',
-        backgroundColor: '#fcfcfc'}}> 
     <div
       style={{
-        marginTop: '150px',
-        width: '1000px',
-      height: '600px',
+        width: '800px',
+        position: 'absolute', 
+        top:'20px',  left:' 50%', transform: 'translatex(-50%) ',
+      height: '480px',
+      background:" white",
         boxShadow: '1px 1px 10px 1px rgb(0,0,155,.1)',
         borderRadius: '30px',
         marginLeft: 'auto',
@@ -173,53 +167,33 @@ const PreviewAMCQ = ({ questions, onBack, onSave, assignmentId, showCloseButton 
         style={{
           display: 'flex',
           marginTop: '-60px',
-          width: '980px',
+          width: '780px',
           height: '70px',
-          background: '#FBE0FF',
+          background: '#C0CAFF',
           marginBottom: '10px',
-          border: '10px solid #E01FFF',
+          border: '10px solid #020CFF',
           borderRadius: '30px 30px 0px 0px ',
           position: 'relative',
         }}
       >
-        <button
-          onClick={onBack}
-          style={{
-            backgroundColor: 'transparent',
-            cursor: 'pointer',
-            border: 'none',
-            fontSize: '30px',
-            color: '#45B434',
-            borderRadius: '10px',
-            fontWeight: 'bold',
-            fontFamily: "'montserrat', sans-serif",
-            transition: '.5s',
-            transform: 'scale(1)',
-            opacity: '100%',
-            position: 'absolute',
-            right: '10px',
-            top: '15px',
-          }}
-        >
-          <SquareX style={{ marginTop: '0px' }} size={40} color="#E01FFF" />
-        </button>
+
         <h1
           style={{
             marginLeft: '40px',
             fontFamily: "'montserrat', sans-serif",
-            color: '#E01FFF',
+            color: '#020CFF',
             fontSize: '40px',
             display: 'flex',
             marginTop: '10px',
           }}
         >
-          Question Preview{' '}
+         <Eye size={50} style={{marginLeft: '-20px', marginRight: "20px"}}/> Question Preview{' '}
         </h1>
       </div>
       <div style={{ display: 'flex', marginBottom: '0px' }}>
         <h1
           style={{
-            fontSize: '20px',
+            fontSize: '14px',
             fontWeight: '600',
             marginLeft: '30px',
             color:'lightgrey',
@@ -237,7 +211,7 @@ const PreviewAMCQ = ({ questions, onBack, onSave, assignmentId, showCloseButton 
             color: '#FFD13B',
             padding: '5px 10px',
             borderRadius: '5px',
-            marginLeft: '100px',
+            marginLeft: '50px',
           }}
         >
           {' '}
@@ -272,7 +246,7 @@ const PreviewAMCQ = ({ questions, onBack, onSave, assignmentId, showCloseButton 
           Hard
         </h1>
       </div>
-<div style={{height: '490px', overflowY: 'auto',}}>
+<div style={{height: '360px', overflowY: 'auto',}}>
       {editedQuestions.map((question, questionIndex) => (
         <div
           key={questionIndex}
@@ -601,7 +575,6 @@ const PreviewAMCQ = ({ questions, onBack, onSave, assignmentId, showCloseButton 
     </div>
     </div>
     
-    </div>
   );
 };
 

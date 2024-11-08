@@ -12,31 +12,32 @@ const FormatOption = ({ format, onClick, isVisible, isSelected }) => {
     <div
       style={{
         padding: '5px 10px',
-        width: isSelected ? '100px' : '60px',
+        width: isSelected ? '80px' : '60px',
         overflow: 'hidden',
         whiteSpace: 'nowrap',
-        fontSize: isSelected ? '20px' : '20px',
-        textAlign: isSelected ? 'right' : 'center',
+        fontWeight: '600',
+        fontSize: isSelected ? '25px' : '25px',
+        textAlign: isSelected ? 'left' : 'center',
         cursor: 'pointer',
         display: 'flex',
         alignItems: 'center',
         opacity: isSelected ? '100%' : isHovered ? '100%' : '80%',
-        justifyContent: isSelected ? 'flex-end' : 'center',
+        justifyContent: 'center',
         color: format.color,
-        backgroundColor: !isSelected && isHovered ? '#f4f4f4' : 'transparent',
-        borderRadius: '5px',
-        margin: '0px 0px 0px 10px',
+         boxShadow:!isSelected && isHovered ?  '1px 1px 5px 1px rgb(0,0,255,.05)': 'none',
+        backgroundColor: !isSelected && isHovered ? 'white' : 'transparent',
+        borderRadius: '10px',
+        margin: '0px 10px 0px 0px',
         transition: 'all 0.3s ease',
       }}
       onClick={() => onClick(format.value)}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      
       {format.label}
       {format.hasAsterisk && (
         <span style={{
-          marginLEft: '2px',
+          marginLeft: '2px',
           color: '#FCCA18',
           fontWeight: 'bold'
         }}>*</span>
@@ -126,35 +127,47 @@ const CustomExpandingFormatSelector = ({ classId, selectedFormat, onFormatChange
       display: 'flex',
       userSelect: 'none',
       alignItems: 'center',
-      fontWeight: '600',
       position: 'relative',
       zIndex: 11,
-      justifyContent: 'flex-end'
     }}>
       <div
         style={{
-          border: isExpanded ? '4px dashed #f4f4f4' : '4px solid white',
-          backgroundColor: 'transparent',
           borderRadius: '10px',
+          padding: '5px',
           cursor: 'pointer',
-          
-      padding: '5px',
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'flex-end',
           transition: 'width 0.3s ease',
-          width: isExpanded ? `${allFormats.length * 90}px` : '100px',
+          width: isExpanded ? `${allFormats.length * 90}px` : '130px',
           overflow: 'hidden',
         }}
         onClick={() => setIsExpanded(!isExpanded)}
       >
+        <div style={{ display: 'flex', alignItems: 'center', position: 'relative' }}>
+          <FormatOption
+            format={selectedFormatObject}
+            onClick={() => {}}
+            isVisible={true}
+            isSelected={true}
+          />
+          <Repeat
+            style={{
+              color: 'grey',
+              marginLeft: '-10px',
+              transition: 'transform 0.3s ease',
+              transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
+            }}
+            strokeWidth={2}
+            size={20}
+          />
+        </div>
         <div style={{
           display: 'flex',
           position: 'absolute',
-          left: '0px',
-          width: isExpanded ? '300px' : '0px',
+          left: '140px',
+          width: isExpanded ? '450px' : '0px',
           opacity: isExpanded ? '100%' : '0%',
-          transition: 'transform 0.6s ease',
+          transition: 'transform 0.3s ease',
         }}>
           {allFormats.filter(format => format.value !== selectedFormat).map((format) => (
              <FormatOption
@@ -168,24 +181,6 @@ const CustomExpandingFormatSelector = ({ classId, selectedFormat, onFormatChange
              isSelected={false}
            />
           ))}
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', position: 'relative' }}>
-          <Repeat
-            style={{
-              color: 'grey',
-              marginRight: '-60px',
-              transition: 'transform 0.3s ease',
-              transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
-            }}
-            strokeWidth={2.5}
-            size={15}
-          />
-          <FormatOption
-            format={selectedFormatObject}
-            onClick={() => {}}
-            isVisible={true}
-            isSelected={true}
-          />
         </div>
       </div>
     </div>

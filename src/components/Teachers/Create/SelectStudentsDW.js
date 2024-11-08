@@ -5,7 +5,7 @@ import SelectStudents from './SelectStudents';
 const SelectStudentsDW = ({ classId, selectedStudents, setSelectedStudents }) => {
 
   return (
-    <div style={{ width: '900px',  marginTop: '-160px', marginBottom: '0px',   marginLeft: '30px'}}>
+    <div style={{ width: '700px',  marginTop: '-160px', marginBottom: '0px',   marginLeft: '30px'}}>
     
       <div>
         <div style={{ marginTop: '0px' }}>
