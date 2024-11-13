@@ -153,11 +153,11 @@ const Login = () => {
   };
 
   return (
-    <div style={{ position: 'relative',  height: '100vh', display: 'flex', flexDirection: 'column', backgroundColor: '#fcfcfc',  }}>
+    <div style={{ position: 'relative',  height: '100vh', display: 'flex', flexDirection: 'column', backgroundColor: '#white',  }}>
    
 
    <div style={{ 
-          position: 'fixed', top: 0, width: '100%', display: 'flex',boxShadow: '1px 1px 5px 1px rgb(0,0,155,.1)',
+          position: 'fixed', top: 0, width: '100%', display: 'flex',borderBottom: '1px solid lightgrey',
           padding: '0px 0', alignItems: 'center', height: '70px', color: 'grey', zIndex: 1000,
           backgroundColor: navbarBg, transition: 'background-color 0.3s ease',
           backdropFilter: 'blur(7px)',
@@ -199,13 +199,13 @@ const Login = () => {
           </div>
         </div>
 
-      <div  style={{width: '450px', marginLeft: 'auto', height: '380px', marginTop: '190px', marginRight: 'auto',  backgroundColor: 'white',padding: '20px', boxShadow: '1px 1px 5px 1px rgb(0,0,155,.07)', borderRadius: '30px', }}>
+      <div  style={{width: '450px', marginLeft: 'auto', height: '380px', marginTop: '190px', marginRight: 'auto',  backgroundColor: 'white',padding: '20px', borderRadius: '30px', }}>
         
        
         <form onSubmit={handleLogin} style={{ width: '450px' }}>
-        <div style={{background: '#F4F4F4 ', border: '10px solid #C1C1C1', margin: '-20px -20px 10px -20px', height: '70px', borderRadius: '30px 30px 0px 0px', display: 'flex' }}>
-        <h1 style={{ fontWeight: 'Bold',
-           color: '#C1C1C1', fontSize: '40px', fontFamily: "'montserrat', sans-serif", 
+        <div style={{background: 'white ', border: '4px solid white', margin: '-20px -20px 10px -20px', height: '70px', borderRadius: '30px 30px 0px 0px', display: 'flex' }}>
+        <h1 style={{ fontWeight: '600',
+           color: 'black', fontSize: '40px', fontFamily: "'montserrat', sans-serif", 
             padding: '0px', backgroundColor: 'transparent', 
              marginLeft: '30px',width: '370px', marginTop: '10px'}}>Login</h1>
       
@@ -233,11 +233,11 @@ const Login = () => {
               }}
               style={{
                 width: '97%', 
-                padding: '15px', 
+                padding: ' 10px 15px ', 
                 fontWeight: 'bold',
-                border: '2px solid lightgrey', 
+                border: '1px solid lightgrey', 
                 color: 'black',
-                borderRadius: '10px', 
+                borderRadius: '5px', 
                 outline: 'none', 
                 backdropFilter: 'blur(7px)',
                 fontSize: '20px',
@@ -263,12 +263,12 @@ const Login = () => {
                 }}
                 style={{
                   width: '97%',
-                  padding: '15px',
+                  padding: ' 10px 15px ', 
                   marginTop: '30px',
                   fontWeight: 'bold',
-                  border: '2px solid lightgrey',
+                  border: '1px solid lightgrey',
                   color: 'black',
-                  borderRadius: '10px',
+                  borderRadius: '5px',
                   outline: 'none',
                   backdropFilter: 'blur(7px)',
                   fontSize: '20px',
@@ -305,13 +305,13 @@ const Login = () => {
                 type="submit"
                 disabled={isSubmitting}
                 style={{
-                  width: '120px',
+                  width: '98%',
                   marginLeft: '0px',
-                  color: 'grey',
-                  background: isSubmitting ? '#f0f0f0' : '#f4f4f4',
+                  color: isSubmitting ? 'black' : 'white',
+                  background: isSubmitting ? 'white' : 'black',
                   fontWeight: '600',
                   padding: '8px',
-                  border: '3px solid lightgrey',
+                  border: '1px solid lightgrey',
                   zIndex: '1000',
                   height: '40px',
                   borderRadius: '8px',
@@ -322,30 +322,32 @@ const Login = () => {
                 }}
                 onMouseEnter={(e) => {
                   if (!isSubmitting) {
-                    e.target.style.background = '#f8f8f8';
+                    e.target.style.background = '#3D3D3D';
                   }
                 }}
                 onMouseLeave={(e) => {
                   if (!isSubmitting) {
-                    e.target.style.background = 'white';
+                    e.target.style.background = 'black';
                   }
                 }}
               >
                 <h1 style={{ 
-                  marginTop: isSubmitting ? '5px' : '-5px',
+                  marginTop:  '0px'  ,
                   fontSize: isSubmitting ? '12px' : '20px',
               
                   pointerEvents: 'none',
-                  color: 'grey',
+                  color: isSubmitting ? 'black' : 'white',
                   fontWeight: '600'
                 }}>
                   {isSubmitting ? 'Logging in...' : 'Login'}
                 </h1>
               </button>
-              <p style={{ fontFamily: "'montserrat', sans-serif", color: 'black', marginLeft: '20px', fontSize: '14px', width: '340px', marginTop: '5px'}}>
+             
+            </div>
+
+            <p style={{ fontFamily: "'montserrat', sans-serif", color: 'grey', marginLeft: '0px', fontSize: '12px', width: '280px', marginTop: '20px'}}>
                 By Logging in you agree to SquareScore's <a href="/TermsofService" style={{ color: 'blue' }}>Terms of Service</a> and <a href="/PrivacyPolicy" style={{ color: 'blue' }}>Privacy Policy</a>
               </p>
-            </div>
           </div>
         </form>
 

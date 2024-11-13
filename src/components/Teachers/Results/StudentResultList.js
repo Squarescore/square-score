@@ -4,6 +4,15 @@ import { ArrowRight } from 'lucide-react';
 import PropTypes from 'prop-types';
 
 // Wrap the component with React.memo for performance optimization
+const getGradeColors = (grade) => {
+  if (grade === undefined || grade === null) return { color: 'grey', background: '#f4f4f4' };
+  if (grade < 50) return { color: '#FF0000', background: '#FFECEC' };
+  if (grade < 70) return { color: '#FF8C00', background: '#FFF3E6' };
+  if (grade < 80) return { color: '#FFD700', background: '#FFFBE6' };
+  if (grade < 90) return { color: '#90EE90', background: '#F0FFF0' };
+  return { color: '#008000', background: '#E6FFE6' };
+};
+
 const StudentResultsList = React.memo(
   ({
     students,
@@ -20,17 +29,13 @@ const StudentResultsList = React.memo(
     handleReset,
     resetStatus,
     handleAssign,
-    gradeField, // e.g., 'SquareScore' or 'percentageScore'
+    gradeField,
   }) => {
     return (
       <ul
         style={{
           background: 'white',
-          width: '900px',
-          margin: '0 auto',
-          boxShadow: '1px 1px 5px 1px rgb(0,0,155,0.07)',
-          borderRadius: '20px',
-          paddingTop: '20px',
+          width: '100%', 
           listStyleType: 'none',
           padding: 0,
           marginTop: '20px',
@@ -42,36 +47,44 @@ const StudentResultsList = React.memo(
           const isPaused = status === 'Paused';
           const isCompleted = status === 'completed';
           const isAssigned = student.isAssigned;
+          const score = studentGrade ? studentGrade[gradeField] : undefined;
+          const gradeColors = getGradeColors(score);
 
           return (
             <li
               key={student.uid}
               style={{
-                width: '860px',
-
+                width: 'calc(100% - 200px)',
+                marginLeft: '200px',
                 alignItems: 'center',
                 display: 'flex',
                 justifyContent: 'space-between',
-                marginLeft: '20px',
                 borderBottom: '2px solid #f4f4f4',
-                backgroundColor: 'white',
-                padding: '0px 0',
+                
                 position: 'relative',
-                zIndex: '0',
-                transition: 'background-color 0.3s',
+                minHeight: '80px',
               }}
+           
             >
+          
               {/* Student Name */}
-              <div style={{ marginLeft: '20px', width: '460px', display: 'flex', marginTop: '5px',  
-                }}>
+              <div style={{ 
+                marginLeft: '4%', 
+                width: '460px', 
+                display: 'flex', 
+                marginTop: '5px',
+                position: 'relative',
+                zIndex: 1
+              }}>
                 <div
                   style={{
                     display: 'flex',
                     marginBottom: '10px',
                     cursor: 'pointer',
                     transition: 'color 0.3s',
-                    width: '260px',
                     marginTop: '5px',
+                    position: 'relative',
+                    zIndex: 1,
                   }}
                   onClick={() => navigateToStudentGrades(student.uid)}
                   onMouseEnter={(e) => {
@@ -83,101 +96,77 @@ const StudentResultsList = React.memo(
                     e.currentTarget.style.textDecoration = 'none';
                   }}
                 >
-                  <h3 style={{ fontWeight: 'normal', fontSize: '20px' }}>
+                  <h3 style={{ fontWeight: '600', fontSize: '20px' }}>
                     {student.lastName},
                   </h3>
                   <h3 style={{ fontWeight: '600', fontSize: '20px', marginLeft: '10px' }}>
                     {student.firstName}
                   </h3>
                 </div>
-              </div>
 
-              {/* Grades and Status */}
-              {isAssigned ? (
-                <>
-                  {/* Grade Display */}
+                {isAssigned && (
                   <div
                     style={{
-                      fontWeight: 'bold',
+                      fontWeight: '500',
                       textAlign: 'center',
-                      color: 'black',
-                      marginTop: '0px',
-                      width: '100px',
-                      marginRight: '20px',
-                      marginLeft: '-140px',
+                      height: '50px',
+                      marginTop: '10px',
+                      width: '170px',
+                      position: 'relative',
+                      marginLeft: 'auto',
+                      zIndex: 1,
                     }}
                   >
-                    {studentGrade ? (
-                      <div
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        marginTop: '-13px',
+                        width: '170px',
+                      }}
+                    >
+                      <p style={{ 
+                        fontSize: '20px', 
+                        padding: '5px', 
+                        borderRadius: '5px',
+                        color: gradeColors.color,
+                        backgroundColor: gradeColors.background
+                      }}>
+                        {score !== undefined ? `${Math.round(score)}%` : '00%'}
+                      </p>
+                      <p
                         style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          marginTop: '-2px',
-                          width: '130px',
-                        }}
-                      >
-                        <p
-                          style={{
-                            fontWeight: 'bold',
-                            width: '23px',
-                            fontSize: '22px',
-                            backgroundColor: '#566DFF',
-                            height: '23px',
-                            border: '4px solid #003BD4',
-                            lineHeight: '23px',
-                            color: 'white',
-                            borderRadius: '7px',
-                          }}
-                        >
-                          {calculateLetterGrade(studentGrade[gradeField])}
-                        </p>
-                        <p style={{ fontSize: '25px', color: 'grey', marginLeft: '20px' }}>
-                          {studentGrade[gradeField] !== undefined
-                            ? `${Math.round(studentGrade[gradeField])}%`
-                            : '00%'}
-                        </p>
-                      </div>
-                    ) : (
-                      <div
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          marginTop: '-2px',
-                          width: '130px',
-                        }}
-                      >
-                        <p
-                          style={{
-                            fontWeight: 'bold',
-                            width: '23px',
-                            fontSize: '22px',
-                            backgroundColor: '#C0C0C0',
-                            height: '23px',
-                            border: '4px solid #A8A8A8',
-                            lineHeight: '23px',
-                            color: 'white',
-                            borderRadius: '7px',
-                          }}
-                        >
-                          Z
-                        </p>
-                        <p style={{ fontSize: '25px', color: 'lightgrey', marginLeft: '20px' }}>
-                          00%
-                        </p>
-                      </div>
-                    )}
-                  </div>
+                          fontWeight: '500',
+                          width: '23px',
+                          fontSize: '22px',
+                          marginLeft: 'auto',
+                          height: '23px',
 
-                  {/* Assignment Status */}
+                          lineHeight: '23px',
+                          color:   'black',
+                          borderRadius: '7px',
+                        }}
+                      >
+                        {score !== undefined ? calculateLetterGrade(score) : 'Z'}
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Assignment Status */}
+              {isAssigned && (
+                <>
                   <div
                     style={{
                       color: 'lightgrey',
                       width: '360px',
                       display: 'flex',
                       alignItems: 'center',
-                      marginLeft: '20px',
-                      marginTop: '5px',
+                      position: 'absolute',
+                      right: 'calc(4% + 200px)',
                       fontFamily: "'montserrat', sans-serif",
+                      zIndex: 1,
                     }}
                   >
                     <div style={{ display: 'flex', alignItems: 'center' }}>
@@ -190,9 +179,8 @@ const StudentResultsList = React.memo(
                       </div>
                       <h1
                         style={{
-                          fontSize: studentGrade && studentGrade.submittedAt ? '17px' : '20px',
+                          fontSize: '20px',
                           fontWeight: '600',
-                          fontStyle: studentGrade && studentGrade.submittedAt ? 'italic' : 'normal',
                           color: studentGrade && studentGrade.submittedAt
                             ? '#808080'
                             : getStatusColor(status),
@@ -211,6 +199,7 @@ const StudentResultsList = React.memo(
                       >
                         {studentGrade && studentGrade.submittedAt
                           ? ` ${new Date(studentGrade.submittedAt.toDate()).toLocaleString(undefined, {
+                              weekday: 'short',
                               year: 'numeric',
                               month: 'numeric',
                               day: 'numeric',
@@ -223,6 +212,34 @@ const StudentResultsList = React.memo(
                           : status}
                       </h1>
                     </div>
+
+                    {studentGrade?.submittedAt && (
+                      <div
+                        style={{
+                          position: 'absolute',
+                          right: '-40px',
+                          top: '-10px',
+                          height: '38px',
+                          width: '50px',
+                          padding: '11px',
+                          zIndex: 2,
+                          backgroundColor: 'transparent',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          border: '4px solid transparent',
+                          borderBottomRightRadius: '10px',
+                          borderTopRightRadius: '10px',
+                          cursor: 'pointer',
+                        }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigateToStudentResults(student.uid);
+                        }}
+                      >
+                        <ArrowRight size={30} color="#09BA00" strokeWidth={2.5} />
+                      </div>
+                    )}
                   </div>
 
                   {/* Reset Button */}
@@ -231,30 +248,39 @@ const StudentResultsList = React.memo(
                       backgroundColor: 'transparent',
                       color: resetStatus[student.uid] === 'success' ? 'lightgreen' : 'red',
                       cursor: 'pointer',
-                      textAlign: 'left',
                       borderColor: 'transparent',
-                      fontWeight: 'bold',
-                      fontSize: '16px',
-                      marginTop: '-0px',
-                      marginLeft: '0px',
-                      marginRight: '0px',
+                      fontWeight: '500',
+                      fontSize: '20px',
+                      width: '100px',
+                      textAlign: 'left',
+                      marginRight: '4%',
                       fontFamily: "'montserrat', sans-serif",
+                      position: 'relative',
+                      zIndex: 1,
                     }}
                     onClick={() => handleReset(student.uid)}
                   >
                     {resetStatus[student.uid] === 'success' ? 'Success' : 'Reset'}
                   </button>
                 </>
-              ) : (
-                // Not Assigned
-                <div style={{ display: 'flex', alignItems: 'center', marginLeft: 'auto' }}>
+              )}
+
+              {/* Not Assigned */}
+              {!isAssigned && (
+                <div style={{ 
+                  display: 'flex', 
+                  alignItems: 'center',
+                  marginRight: '4%',
+                  position: 'relative',
+                  zIndex: 1,
+                }}>
                   <h1
                     style={{
-                      fontSize: '16px',
+                      fontSize: '20px',
                       color: 'lightgrey',
                       marginRight: '200px',
-                      width: '120px',
-                      fontWeight: '600',
+                      width: '200px',
+                      fontWeight: '500',
                       fontFamily: "'montserrat', sans-serif",
                     }}
                   >
@@ -266,9 +292,10 @@ const StudentResultsList = React.memo(
                       color: '#2BB514',
                       cursor: 'pointer',
                       borderColor: 'transparent',
-                      fontWeight: 'bold',
-                      fontSize: '16px',
-                      marginRight: '0px',
+                      fontSize: '20px',
+                      fontWeight: '500',
+                      width: '100px',
+                      textAlign: 'left',
                       fontFamily: "'montserrat', sans-serif",
                     }}
                     onClick={() => handleAssign(student.uid)}
@@ -277,35 +304,6 @@ const StudentResultsList = React.memo(
                   </button>
                 </div>
               )}
-
-              {/* Navigate to Student Results */}
-{isAssigned && studentGrade?.submittedAt && (
-  <div
-    style={{
-      position: 'absolute',
-      right: '80px',
-      top: '10px',
-      height: '38px',
-      width: '50px',
-      padding: '11px',
-      zIndex: '2',
-      backgroundColor: 'transparent',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      border: '4px solid transparent',
-      borderBottomRightRadius: '10px',
-      borderTopRightRadius: '10px',
-      cursor: 'pointer',
-    }}
-    onClick={(e) => {
-      e.stopPropagation();
-      navigateToStudentResults(student.uid);
-    }}
-  >
-    <ArrowRight size={30} color="#09BA00" strokeWidth={2.5} />
-  </div>
-)}
             </li>
           );
         })}

@@ -71,7 +71,7 @@ const StepCard = ({
                   key={i} 
                   style={{ 
                     height: '20px', 
-                    border: `1px solid ${color}`, 
+                    border: `1px solid #2BB514`, 
                     fontSize: '8px', 
                     lineHeight: "20px", 
                     borderRadius: '5px', 
@@ -178,7 +178,8 @@ const StepCard = ({
         )}
 
         <div style={{
-          boxShadow: '1px 1px 10px 1px rgb(0,0,155,.1)',
+         
+        border: `1px solid lightgrey`,
           width: '400px',
           height: '250px',
           borderRadius: '20px',
@@ -188,7 +189,7 @@ const StepCard = ({
           <div style={{
             marginLeft: '0px',
             color: color,
-            border: `7px solid ${color}`,
+            border: `7px solid white`,
             borderRadius: '20px 20px 0px 0px',
             height: '35px',
             display: 'flex',
@@ -198,8 +199,8 @@ const StepCard = ({
             marginBottom: '10px',
             fontWeight: 'bold'
           }}>
-            <Icon style={{ marginLeft: '20px' }} />
-            <h1 style={{ fontSize: '20px', marginLeft: '10px' }}>{title}</h1>
+            <Icon size={20} style={{ marginLeft: '20px' }} />
+            <h1 style={{ fontSize: '16px', marginLeft: '10px' , fontWeight: '600'}}>{title}</h1>
           </div>
 
           {renderContent()}
@@ -220,29 +221,29 @@ const StepPreviewCards = ({
       stepNumber: 1,
       title: 'Settings',
       icon: Settings,
-      color: '#2BB514',
-      bgColor: '#A6FF98'
+      color: 'black',
+      bgColor: 'white'
     },
     {
       stepNumber: 2,
       title: 'Select Students',
       icon: SquareDashedMousePointer,
-      color: '#FFAE00',
-      bgColor: '#FFEBAA'
+      color: 'black',
+      bgColor: 'white'
     },
     {
       stepNumber: 3,
       title: 'Generate Questions',
       icon: Sparkles,
-      color: '#E01FFF',
-      bgColor: '#F8CAFF'
+      color: 'black',
+      bgColor: 'white'
     },
     {
       stepNumber: 4,
       title: 'Preview',
       icon: Eye,
-      color: '#020CFF',
-      bgColor: '#C0CAFF'
+      color: 'black',
+      bgColor: 'white'
     }
   ];
 
@@ -266,7 +267,7 @@ const StepPreviewCards = ({
       display: 'flex',
       justifyContent: 'space-between',
       width: '100%',
-      marginTop: '100px'
+      marginTop: '170px'
     }}>
       {currentStep === 1 ? (
         <>

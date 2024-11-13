@@ -1,5 +1,6 @@
+
 import React from 'react';
-import { Landmark, User, Settings } from 'lucide-react';
+import { Landmark, User, Settings, LineChart } from 'lucide-react';
 import CustomExpandingFormatSelector from './ExpandingFormatSelector';
 
 // Common styles used across components
@@ -25,7 +26,7 @@ const styles = {
   },
   input: {
     width: '450px',
-    height: '30px',
+    height: '28px',
     fontSize: '20px',
     padding: '10px',
     paddingLeft: '25px',
@@ -37,73 +38,85 @@ const styles = {
     marginBottom: '20px'
   },
   numberInput: {
-    width: '50px',
+    width: '40px',
     fontWeight: 'bold',
     marginBottom: '0px',
-    textAlign: 'center',
+    textAlign: 'left',
     fontFamily: "'montserrat', sans-serif",
     marginTop: '0px',
     marginLeft: 'auto',
     marginRight: '20px',
     padding: '0px',
-    paddingLeft: '15px',
-    height: '35px',
-    fontSize: '30px',
-    border: '2px solid #f4f4f4',
-    borderRadius: '10px'
+    boxShadow: '1px 1px 5px 1px rgb(0,0,155,.03)',
+    paddingLeft: '5px',
+    height: '20px',
+    fontSize: '16px',
+    border: 'none',
+    borderRadius: '3px'
   },
   choicesWrapper: {
-    width: '700px',
+    width: '490px',
     height: '80px',
     border: '4px solid transparent',
     display: 'flex',
     position: 'relative',
     alignItems: 'center',
-    borderRadius: '10px',
+    borderRadius: '4px',
     padding: '10px',
     marginLeft: '-15px',
-    marginTop: '-20px'
+    marginTop: '-50px',
+    
+    marginBottom: '-45px'
   },
   choicesHeading: {
-    fontSize: '25px',
-    color: 'black',
+    fontSize: '16px',
+    color: 'grey',
     width: '400px',
-    paddingLeft: '10px',
     fontWeight: '600'
   },
   choicesContainer: {
     marginLeft: 'auto',
-    marginTop: '45px',
+    marginTop: '0px',
+    border: '2px solid white',
+    borderRadius: '5px',
+
+    background: '#f4f4f4',
+    height:'28px',
+    paddingRight: '4px',
     display: 'flex',
     position: 'relative',
     alignItems: 'center'
   },
-  choiceButton: (isSelected, optionStyle) => ({
-    width: '60px',
-    height: '40px',
-    marginLeft: '20px',
-    marginTop: '-45px',
-    backgroundColor: isSelected ? optionStyle.background : 'white',
-    border: isSelected ? `4px solid ${optionStyle.color}` : '2px solid #f4f4f4',
-    borderRadius: '10px',
+  choiceButton: (isSelected) => ({
+    width: '30px',
+    height: '20px',
+    marginLeft: '5px',
+    marginTop: '0px',
+    
+    boxShadow: isSelected ? '1px 1px 5px 1px rgb(0,0,155,.06)': 'none',
+    backgroundColor: isSelected ? "white" : '#f4f4f4',
+    border:  'none',
+    borderRadius: '4px',
     cursor: 'pointer',
     transition: 'all 0.3s ease'
   }),
-  choiceText: (isSelected, optionStyle) => ({
-    fontSize: '24px',
+  choiceText: (isSelected ) => ({
+    fontSize: '16px',
+    lineHeight: '10px',
+    fontWeight: '600',
     fontFamily: "'montserrat', sans-serif",
-    color: isSelected ? optionStyle.color : 'black',
+    color: isSelected ? 'grey' : 'lightgrey',
     margin: 0
   })
 };
 
-
 const optionStyles = {
-    2: { background: '#A3F2ED', color: '#00645E' },
-    3: { background: '#AEF2A3', color: '#006428' },
-    4: { background: '#F8CFFF', color: '#E01FFF' },
-    5: { background: '#FFECA8', color: '#CE7C00' }
-  };
+  2: { background: '#A3F2ED', color: '#00645E' },
+  3: { background: '#AEF2A3', color: '#006428' },
+  4: { background: '#F8CFFF', color: '#E01FFF' },
+  5: { background: '#FFECA8', color: '#CE7C00' }
+};
+
 export const AssignmentName = ({ value, onChange, maxLength = 25 }) => {
   return (
     <div style={{ position: 'relative' }}>
@@ -212,13 +225,15 @@ export const TimerSection = ({ timerOn, timer, onTimerChange, onToggle }) => {
 
 export const QuestionCountSection = ({ bankCount, studentCount, onBankChange, onStudentChange }) => {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', position: 'relative' }}>
+    <div style={{ display: 'flex', alignItems: 'center', position: 'relative', marginTop: '10px' , marginBottom: '10px' }}>
       <h1 style={styles.sectionHeading}>Questions:</h1>
       
-      <div style={{ display: 'flex', marginLeft: 'auto' }}>
+
+      <div style={{ display: 'flex', width: '100px', marginLeft: 'auto', marginRight: '62px', marginBottom: '15px', marginTop: '5px'}}>
+      <div style={{ display: 'flex', marginLeft: 'auto', background: '#f4f4f4',  height: '28px', width: '70px', paddingLeft: '4px', borderRadius : '5px'}}>
         <div style={{ display: 'flex', alignItems: 'center' }}>
-          <div style={{ marginRight: '10px' }}> 
-            <Landmark size={30} color="#000000" />
+          <div style={{ marginRight: '5px' , marginTop: '2px'}}> 
+            <Landmark size={15} color="grey" />
           </div>
           <input
             type="number"
@@ -230,9 +245,14 @@ export const QuestionCountSection = ({ bankCount, studentCount, onBankChange, on
         </div>
       </div>
 
-      <div style={{ display: 'flex', marginLeft: '30px', marginRight: '-15px', alignItems: 'center' }}>
-        <div style={{ marginRight: '10px' }}> 
-          <User size={30} color="#000000" />
+      <div style={{ display: 'flex', marginLeft: '10px', background: '#f4f4f4',  height: '28px', width: '70px', paddingLeft: '4px', borderRadius : '7px',}}> 
+           <div style={{ marginRight: '5px' }}> 
+       
+      <div style={{ display: 'flex', alignItems: 'center' }}>
+       
+      <div style={{ marginRight: '0px' , marginTop: '2px'}}> 
+         
+          <User size={20} color="grey" />
         </div>
         <input
           type="number"
@@ -242,6 +262,7 @@ export const QuestionCountSection = ({ bankCount, studentCount, onBankChange, on
           style={styles.numberInput}
         />
       </div>
+    </div> </div> </div>
     </div>
   );
 };
@@ -259,8 +280,8 @@ export const ToggleSwitch = ({ label, value, onChange }) => {
       paddingBottom: '10px' 
     }}>
       <label style={{ 
-        fontSize: '25px', 
-        color: 'black', 
+        fontSize: '16px', 
+        color: 'grey', 
         marginRight: '38px', 
         marginTop: '13px', 
         fontFamily: "'montserrat', sans-serif", 
@@ -269,13 +290,18 @@ export const ToggleSwitch = ({ label, value, onChange }) => {
       }}>
         {label}
       </label>
+
+      
       <div style={{ marginLeft: 'auto', marginRight: '10px', marginTop: '20px' }}>
-        <input
+      <div style={{ position: 'relative' , marginRight:'4px'}}>
+      <input
           type="checkbox"
           className="greenSwitch"
           checked={value}
           onChange={(e) => onChange(e.target.checked)}
         />
+           <span>On</span>
+      </div>
       </div>
     </div>
   );
@@ -308,9 +334,9 @@ export const ChoicesPerQuestion = ({ selectedOptions, onChange }) => {
             <button
               key={num}
               onClick={() => handleOptionClick(num)}
-              style={styles.choiceButton(selectedOptions.includes(num), optionStyles[num])}
+              style={styles.choiceButton(selectedOptions.includes(num))}
             >
-              <h1 style={styles.choiceText(selectedOptions.includes(num), optionStyles[num])}>
+              <h1 style={styles.choiceText(selectedOptions.includes(num))}>
                 {num}
               </h1>
             </button>
@@ -325,5 +351,5 @@ export default {
   QuestionCountSection,
   ToggleSwitch,
   PreferencesSection,
-  optionStyles 
+  optionStyles
 };

@@ -538,7 +538,7 @@ const TakeAmcq = () => {
     <div style={{
       minHeight: '100vh',
       width: '100%',
-      backgroundColor: '#FCFCFC',
+      backgroundColor: '#white',
       display: 'flex',
       flexDirection: 'column',
       position: 'relative'
@@ -798,7 +798,7 @@ const TakeAmcq = () => {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
             transition={{ duration: 0.2 }}
-            style={{ width: '1020px', position: 'fixed', top: '100px', background: '#fcfcfc', height: '700px', padding: '20px' }}
+            style={{ width: '1020px', position: 'fixed', top: '100px', background: '#white', height: '700px', padding: '20px' }}
           >
             {assignment.feedback === 'instant' ? (
               // Existing instant feedback logic
@@ -930,7 +930,7 @@ const TakeAmcq = () => {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.2 }}
-              style={{ width: '960px', position: 'fixed', top: '100px', background: '#fcfcfc', height: '700px', padding: '20px' }}
+              style={{ width: '960px', position: 'fixed', top: '100px', background: '#white', height: '700px', padding: '20px' }}
             >
 
               

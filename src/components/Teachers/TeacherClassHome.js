@@ -328,7 +328,7 @@ backgroundColor: 'rgb(50,50,50)',
 
 
   return (
-    <div style={{  display: 'flex', flexDirection: 'column', backgroundColor: '#FCFCFC', position: 'absolute', top: 0, left: 0, bottom: 0, right: 0}}>
+    <div style={{  display: 'flex', flexDirection: 'column', backgroundColor: '#white', position: 'absolute', top: 0, left: 0, bottom: 0, right: 0}}>
 
       <Navbar userType="teacher" currentPage={currentPage}  />
      

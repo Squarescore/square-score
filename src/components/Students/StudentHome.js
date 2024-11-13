@@ -176,7 +176,7 @@ const inputRefs = useRef([]);
   }, [error, retryCount, fetchClassesAndRequests]);
   if (loading) {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh', background: '#fcfcfc' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh', background: '#white' }}>
         <HomeNavbar userType="student" />
         <div style={{ textAlign: 'center', marginTop: '20px' }}>
           <RefreshCw size={50} color="#020CFF" style={{ animation: 'spin 1s linear infinite' }} />
@@ -188,7 +188,7 @@ const inputRefs = useRef([]);
 
   if (error) {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh', background: '#fcfcfc' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh', background: '#white' }}>
         <HomeNavbar userType="student" />
         <div style={{ textAlign: 'center', marginTop: '20px' }}>
           <p style={{ color: 'red', fontFamily: "'montserrat', sans-serif", fontSize: '18px' }}>{error}</p>
@@ -213,7 +213,7 @@ const inputRefs = useRef([]);
     );
   }
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', backgroundColor: '#fcfcfc', flexWrap: 'wrap', }}>
+    <div style={{ display: 'flex', flexDirection: 'column', backgroundColor: '#white', flexWrap: 'wrap', }}>
       <HomeNavbar userType="student" />
       <style>{loaderStyle} </style>
       {pendingRequests.length > 0 && (
@@ -252,14 +252,14 @@ const inputRefs = useRef([]);
           </div>
         </div>
       )}
-      <main style={{ flexGrow: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: '10px', backgroundColor: '#fcfcfc', marginBottom: '230px' }}>
+      <main style={{ flexGrow: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: '10px', backgroundColor: '#white', marginBottom: '230px' }}>
         <div style={{
           marginTop: '70px',
           display: 'flex',
           flexWrap:'wrap', 
           width: '1000px',
           fontFamily: "'montserrat', sans-serif",
-          backgroundColor: '#fcfcfc',
+          backgroundColor: '#white',
           marginLeft: 'auto',
           marginRight: 'auto'
         }}>
@@ -325,7 +325,7 @@ const inputRefs = useRef([]);
                 </div>
             
                 <button
-                  onClick={() => navigate(`/studentassignments/${classItem.id}`)} 
+                  onClick={() => navigate(`/studentassignments/${classItem.id}/active`)} 
                   style={{ 
                     marginLeft: 'auto',
                     marginRight: 'auto',

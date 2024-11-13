@@ -113,7 +113,7 @@ const TakeAssignmentNav = ({
         }}
 
         onMouseEnter={(e) => {
-          e.currentTarget.style.background = '#FBFBFB';
+          e.currentTarget.style.background = '#white';
         }}
         onMouseLeave={(e) => {
           e.currentTarget.style.background = 'white';

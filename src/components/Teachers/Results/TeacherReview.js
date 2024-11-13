@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { db } from '../../Universal/firebase';
 import { doc, collection, updateDoc, where, query, getDocs, getDoc } from 'firebase/firestore';
@@ -6,6 +6,41 @@ import Confetti from 'react-confetti';
 import Navbar from '../../Universal/Navbar';
 import { ClipboardList, MessageSquareMore, SquareCheck, SquareSlash, SquareX, User } from 'lucide-react';
 import { transform } from 'framer-motion';
+const AutoResizeTextarea = ({ value, onChange, placeholder }) => {
+  const textareaRef = useRef(null);
+
+  useEffect(() => {
+    const textarea = textareaRef.current;
+    if (textarea) {
+      textarea.style.height = 'auto';
+      textarea.style.height = `${textarea.scrollHeight}px`;
+    }
+  }, [value]);
+
+  return (
+    <textarea
+      ref={textareaRef}
+      style={{
+        width: '100%',
+        border: 'none',
+        fontSize: '14px',
+        fontWeight: '600',
+        resize: 'none',
+        outline: 'none',
+        color:'#848484',
+        overflow: 'hidden',
+        background: 'transparent',
+        padding: '0',
+        margin: '0',
+        lineHeight: '1.5'
+      }}
+      value={value || ''}
+      onChange={onChange}
+      placeholder={placeholder}
+      rows={1}
+    />
+  );
+};
 
 const TeacherReview = () => {
   const [editingFeedback, setEditingFeedback] = useState(false);
@@ -151,7 +186,7 @@ const TeacherReview = () => {
   };
 
   if (!currentReview) {
-    return <div style={{}}>Finished</div>;
+    return <div style={{}}>No responses are currently for review</div>;
   }
 
   const currentQuestion = currentReview.questions[currentIndex];
@@ -182,8 +217,6 @@ const TeacherReview = () => {
       display: 'flex',
       position: 'fixed',
       bottom: '40px',
-      left: '50%',
-      transform: 'translateX(-50%)',
       justifyContent: 'space-between',
       alignItems: 'center',
       borderRadius: '15px',
@@ -191,37 +224,17 @@ const TeacherReview = () => {
       
       padding: '10px 10px',
       background: 'white',
-      marginLeft: 'auto',
-      marginRight: 'auto',
+      left: 'calc(200px + 4%)',
       boxShadow: '1px 1px 5px 1px rgb(0,0,155,.07)',
       marginTop: '20px'
     };
   
-    const iconContainerStyle = {
-      border: '4px solid lightgrey',
-      background: '#f4f4f4',
-      color: 'grey',
-      width: '40px',
-      borderRadius: '10px 0px 0px 10px',
-      display: 'flex',
-      justifyContent: 'center',
-      alignItems: 'center',
-      marginRight: '-4px',
-      zIndex: '1'
-    };
+    
   
-    const contentContainerStyle = {
-      flex: 1,
-      marginLeft: '-4px',
-      background: 'white',
-      borderRadius: '0px 10px 10px 0px',
-      border: '4px solid #f4f4f4',
-      padding: '10px 15px'
-    };
   
     return (
       <div style={{
-        minHeight: '100vh',
+      
         display: 'flex',
         flexDirection: 'column',
         backgroundColor: 'white'
@@ -229,51 +242,52 @@ const TeacherReview = () => {
 
 
 
-        <button  style={{position: 'fixed', left: '20px', top: "100px", background: 'white', border: '0px',  borderRadius:  '10px', cursor: 'pointer',
-fontSize: '20px',
-padding: '10px 20px',
-          fontWeight: '600',
-fontFamily: "'montserrat', sans-serif",
-boxShadow: '1px 1px 5px 1px rgb(0,0,155,.07)',
-        }}onClick={handleBack}>
-
-          Previous Response
-        </button>
-        <Navbar userType="teacher" />
+       
       
         <div style={{
-          width: '800px',
+          width: 'calc(92% - 200px)',
          position: 'absolute',
-         left: '50%',
-         top: '30%',
-         transform: 'translate(-50%,-30%)',
+         left: 'calc(200px + 4%) ',
           textAlign: 'left',
           backgroundColor: 'white',
           padding: '0px',
           borderRadius: '15px',
-          marginTop: '100px',
+          marginTop: '0px',
         }}>
+          <div style={{display:" flex"}}>
           <h2 style={{
-            fontSize: '12px',
+            fontSize: '25px',
             fontWeight: '600',
-            color: 'lightgray',
-            marginLeft: '40px',
+
           }}>
-            {reviewCount} flagged Responses remain, Reviewing for {students.find(student => student.uid === currentReview.studentUid)?.name}
+            {reviewCount} Flagged Responses  
           </h2>
-  
+          <button  style={{ background: 'white',  borderRadius:  '5px', cursor: 'pointer', marginTop:'20px', marginLeft: 'auto',
+
+padding: '10px 20px',
+          fontWeight: '600',
+          fontSize: '16px',
+          color: 'grey',
+          lineHeight: '10px',
+          height: '35px', border: '1px solid lightgrey',
+fontFamily: "'montserrat', sans-serif",
+        }}onClick={handleBack}>
+
+          Previous Response
+        </button>
+        </div>
           <div style={{
-            marginLeft: 'auto',
-            marginRight: 'auto',
             position: 'relative',
-            width: '700px',
+            width: '750px',
             marginBottom: '20px',
             backgroundColor: 'white',
             borderRadius: '15px',
             color: 'black',
-            border: '10px solid white',
-            boxShadow: '1px 1px 5px 1px rgb(0,0,155,.07)',
           }}>
+            <h1
+  style={{fontSize: '14px',  marginTop: '50px', 
+    color: 'lightgray',}}
+  >{students.find(student => student.uid === currentReview.studentUid)?.name}</h1>
             <button 
               onClick={() => setShowRubric(!showRubric)}
               style={{
@@ -282,36 +296,18 @@ boxShadow: '1px 1px 5px 1px rgb(0,0,155,.07)',
                 right: '10px',
                 color: 'grey',
                 background: 'none',
-                border: 'none',
+                border: 'none',        
                 cursor: 'pointer'
               }}
             >
               <ClipboardList/>
             </button>
   
-            <h4 style={{
-              margin: '-12px',
-              color: 'grey',
-              marginBottom: '-35px',
-              zIndex: '11',
-              position: 'relative',
-              borderRadius: '15px 15px 0px 0px',
-              backgroundColor: '#f4f4f4',
-              border: '4px solid lightgrey',
-              width: '675px',
-              padding: '5px 20px',
-              fontFamily: "'montserrat', sans-serif",
-              fontWeight: '600',
-              fontSize: '20px'
-            }}>
-              {assignmentName}
-            </h4>
+         
   
             <p style={{
               width: '630px',
-              marginLeft: '20px',
-              padding: '10px',
-              marginTop: '50px',
+              marginTop: '15px',
               fontSize: '18px',
               fontFamily: "'montserrat', sans-serif",
               fontWeight: '600',
@@ -336,55 +332,55 @@ boxShadow: '1px 1px 5px 1px rgb(0,0,155,.07)',
           </div>
   
           <div style={{
-            boxShadow: '1px 1px 5px 1px rgb(0,0,155,.07)',
-            width: '720px',
+      
+            width: '700px',
             borderRadius: '15px',
-            padding: '30px 0px 30px 0px ',
-            marginLeft: 'auto',
-            marginRight: 'auto',
             marginBottom: '10px',
           }}>
             {/* Student Response */}
-            <div style={{ display: 'flex', width: '90%', marginBottom: '10px', marginLeft: 'auto', marginRight: 'auto', }}>
-              <div style={iconContainerStyle}>
-                <User size={25} />
-              </div>
-              <div style={contentContainerStyle}>
+          
+              <div style={{ background: '#f4f4f4', padding: '10px', borderLeft: '4px solid #7B7B7B', color: '#7B7B7B'}}>
                 <p style={{
                   margin: 0,
                   fontSize: '14px',
                   fontFamily: "'montserrat', sans-serif",
-                  fontWeight: '600'
+                  fontWeight: '500'
                 }}>
                   {currentQuestion.studentResponse || "Not provided"}
                 </p>
-              </div>
+             
             </div>
   
             {/* Teacher Feedback */}
-            <div style={{ display: 'flex', width: '90%', marginLeft: 'auto', marginRight: 'auto', }}>
-              <div style={iconContainerStyle}>
-                <MessageSquareMore size={25} />
-              </div>
-              <div style={contentContainerStyle}>
-                <textarea
-                  style={{
-                    width: '100%',
-                    border: 'none',
-                    fontSize: '14px',
-                    fontWeight: '600',
-                    resize: 'none',
-                    outline: 'none',
-                    minHeight: '60px',
-                    background: 'transparent'
-                  }}
-                  value={currentQuestion.feedback || ''}
-                  onChange={handleFeedbackChange}
-                  placeholder="Add feedback..."
-                />
-              </div>
-            </div>
-          </div>
+            <div style={{ display: 'flex', width: '100%', marginTop: '30px'}}>
+        <div style={{
+          border: '0px solid lightgrey',
+          color: '#848484',
+          width: '40px',
+          borderRadius: '10px 0px 0px 10px',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          marginRight: '-4px',
+          zIndex: '1'
+        }}>
+          <MessageSquareMore size={25} />
+        </div>
+        <div style={{
+          flex: 1,
+          marginLeft: '-4px',
+          background: 'white',
+          borderRadius: '0px 10px 10px 0px',
+          padding: '10px 15px'
+        }}>
+          <AutoResizeTextarea
+            value={currentQuestion.feedback}
+            onChange={handleFeedbackChange}
+            placeholder="Add feedback..."
+          />
+        </div>
+        </div>
+        </div>
   
         </div>
 

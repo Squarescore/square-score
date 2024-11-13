@@ -23,24 +23,6 @@ const storage = getStorage(app);
 const performance = getPerformance(app);
 
 // Enable Firestore debug logging in development
-if (process.env.NODE_ENV === 'development') {
-  setLogLevel('debug');
-}
 
-// Create a monitoring wrapper for logging (optional)
-const monitorFirestoreOperations = (operation, path, data = null) => {
-  const start = performance.now();
-  console.log(`[Firestore ${operation}] ${path}`, data ? data : '');
-  return {
-    complete: () => {
-      console.log(`[Firestore ${operation} Complete] ${path} - ${performance.now() - start}ms`);
-    }
-  };
-};
-
-// Add monitoring to window object for debugging (optional)
-if (typeof window !== 'undefined') {
-  window.monitorFirestore = monitorFirestoreOperations;
-}
 
 export { db, auth, storage };

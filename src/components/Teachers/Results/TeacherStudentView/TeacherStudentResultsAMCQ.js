@@ -616,7 +616,7 @@ function TeacherStudentResultsAMCQ() {
             style={{
                 minHeight: '100vh',
                 width: '100%',
-                backgroundColor: '#FCFCFC',
+                backgroundColor: '#white',
                 display: 'flex',
                 flexDirection: 'column',
                 position: 'relative'

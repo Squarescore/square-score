@@ -2,14 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { doc, setDoc,updateDoc, writeBatch, arrayUnion, serverTimestamp, getDoc, arrayRemove } from 'firebase/firestore';
 
-import { CalendarCog, SquareDashedMousePointer, Sparkles, GlobeLock, PencilRuler, Eye, SendHorizonal, SquareX, ChevronUp, ChevronDown,  } from 'lucide-react';
+import { CalendarCog, SquareDashedMousePointer, Sparkles, GlobeLock, PencilRuler, Eye, SendHorizonal, SquareX, ChevronUp, ChevronDown, Settings,  } from 'lucide-react';
 import { db } from '../../Universal/firebase';  // Ensure the path is correct
 import TeacherPreviewASAQ from './PreviewASAQ';
 import { auth } from '../../Universal/firebase';
 import '../../Universal//SwitchGreen.css';
-import SelectStudents from './SelectStudents';
 import Navbar from '../../Universal/Navbar';
-import CustomDateTimePicker from './CustomDateTimePicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import axios from 'axios';
 import DateSettings, { formatDate } from './DateSettings';
@@ -17,69 +15,37 @@ import SecuritySettings from './SecuritySettings';
 import SelectStudentsDW from './SelectStudentsDW';
 import { AssignmentActionButtons, usePublishState } from './AssignmentActionButtons';
 import { v4 as uuidv4 } from 'uuid';
-import CustomExpandingFormatSelector from './ExpandingFormatSelector';
-import { AssignmentName, FormatSection, PreferencesSection, TimerSection} from './Elements';
-import { Button } from 'react-scroll';
-import { safeClassUpdate } from '../../teacherDataHelpers';
-const dropdownContentStyle = `
-  .dropdown-content {
-    max-height: 0;
-    opacity: 0;
-    overflow: visible;
-    transition: max-height 0.5s ease, opacity 0.5s ease, visibility 0.5s ease;
-    visibility: hidden;
-    position: relative;
-    z-index: 90;
-  }
+import { AssignmentName, FormatSection, PreferencesSection, QuestionCountSection, TimerSection, ToggleSwitch} from './Elements';
 
-  .dropdown-content.open {
-    max-height: 1000px;
-    opacity: 1;
-    visibility: visible;
-  }
-`;
-const loaderStyle = `
-  .loader {
-    height: 4px;
-    width: 130px;
-    --c: no-repeat linear-gradient(#020CFF 0 0);
-    background: var(--c), var(--c), #627BFF;
-    background-size: 60% 100%;
-    animation: l16 3s infinite;
-  }
-  @keyframes l16 {
-    0%   {background-position: -150% 0, -150% 0}
-    66%  {background-position: 250% 0, -150% 0}
-    100% {background-position: 250% 0, 250% 0}
-  }
-`;
+import SourcePreviewToggle from './SourcePreviewToggle';
+import StepPreviewCards from './StepPreviewCards';
+import { StepContainer } from './ContainerPost';
+import Stepper from './Stepper';
+import LoaderScreen from './LoaderScreen';
 
 function SAQA() {
   const [showPreview, setShowPreview] = useState(false);
   const [assignmentName, setAssignmentName] = useState('');
   const [timer, setTimer] = useState('60');
   const [halfCredit, setHalfCredit] = useState(false);
-  const [securityDropdownOpen, setSecurityDropdownOpen] = useState(false);
   const [saveAndExit, setSaveAndExit] = useState(true);
   const [generating, setGenerating] = useState(false);
   const [lockdown, setLockdown] = useState(false);
   
+  const [onViolation, setOnViolation] = useState('pause');
   const [assignmentType, setAssignmentType] = useState('');
   const [selectedFormat, setSelectedFormat] = useState('ASAQ');
   const [teacherId, setTeacherId] = useState(null);
-  const [contentDropdownOpen, setContentDropdownOpen] = useState(false);
-  const [studentsDropdownOpen, setStudentsDropdownOpen] = useState(false);
-  const [timeDropdownOpen, setTimeDropdownOpen] = useState(false);
   const [assignDate, setAssignDate] = useState(new Date());
   const [dueDate, setDueDate] = useState(new Date());
-  const [sourceOption, setSourceOption] = useState(null);
+  
+  const [visitedSteps, setVisitedSteps] = useState([]);
   const [sourceText, setSourceText] = useState('');
-  const [youtubeLink, setYoutubeLink] = useState('10');
   const [questionBank, setQuestionBank] = useState('40');
   const [timerOn, setTimerOn] = useState(false);
   const location = useLocation();
   const [isSaving, setIsSaving] = useState(false);
-
+  const [currentStep, setCurrentStep] = useState(1);
   const [draftId, setDraftId] = useState(null);
   const [isAdaptive, setIsAdaptive] = useState(true);
   const [additionalInstructions, setAdditionalInstructions] = useState(['']);
@@ -122,7 +88,14 @@ function SAQA() {
     }
   }, [classId, assignmentId]);
 
- 
+  const nextStep = () => {
+    if (currentStep === 3 && showPreview && generatedQuestions.length > 0) {
+      alert('Please generate questions before proceeding to Preview.');
+      return;
+    }
+    setCurrentStep(prev => Math.min(prev + 1, 4));
+  };
+  
 
   const assignToStudents = async () => {
     const selectedStudentIds = Array.from(selectedStudents);
@@ -269,6 +242,8 @@ function SAQA() {
         },
         createdAt: serverTimestamp(),
         questions: formattedQuestions,
+        
+      onViolation: lockdown ? onViolation : null, 
         lockdown,
         saveAndExit,
         isAdaptive
@@ -357,6 +332,8 @@ function SAQA() {
           };
           return acc;
         }, {}),
+        
+      onViolation: lockdown ? onViolation : null, 
         lockdown,
         saveAndExit,
         isAdaptive,
@@ -410,6 +387,7 @@ function SAQA() {
         setDueDate(new Date(data.dueDate));
       }
       
+      setOnViolation(data.onViolation || 'pause');
       setSelectedStudents(new Set(data.selectedStudents || []));
       setQuestionBank(data.questionBank?.toString() || '40');
       setSaveAndExit(data.saveAndExit !== undefined ? data.saveAndExit : true);
@@ -430,9 +408,93 @@ function SAQA() {
   };
 
   
+  const isFormValid = () => {
+    return assignmentName !== '' && assignDate !== '' && dueDate !== '';
+  };
   
   
+  const steps = [
+    {
+      name: 'Settings',
+      backgroundColor: '#AEF2A3',
+      borderColor: '#2BB514',
+      textColor: '#2BB514',
+      condition: assignmentName.trim() !== '', // Example condition
 
+    },
+    {
+      name: 'Select Students',
+      
+      backgroundColor: '#FFECA8',
+      borderColor: '#FFD13B',
+      textColor: '#CE7C00',
+      condition: selectedStudents.size > -1, // Example condition
+
+    },
+    {
+      name: 'Generate Questions',
+      
+      backgroundColor: '#F8CFFF',
+      borderColor: '#E01FFF',
+      condition: sourceText.trim() !== '',
+
+      textColor: '#E01FFF'
+    },
+    {
+      name: 'Preview',
+      
+      backgroundColor: '#C7CFFF',
+      borderColor: '#020CFF',
+      condition: true, // Always accessible
+ 
+      textColor: '#020CFF'
+    }
+  ];
+
+  const StepContainerConfig = {
+    settings: {
+      width: '550px',
+      titleWidth: '512px'
+    },
+    students: {
+      width: '600px',
+      titleWidth: '562px'
+    },
+    generate: {
+      width: '710px',
+      titleWidth: '672px'
+    },
+    preview: {
+      width: '800px',
+      titleWidth: '780px'
+    }
+  };
+
+  const { isPublishDisabled, publishDisabledConditions } = usePublishState(
+    assignmentName, 
+    generatedQuestions
+  );
+  
+  const handleGenerateClick = async () => {
+    if (generatedQuestions.length > 0) {
+      setCurrentStep(4);
+    } else {
+      setGenerating(true);
+      try {
+        const questions = await GenerateASAQ(sourceText, questionBank, additionalInstructions, classId, teacherId);
+        setGeneratedQuestions(questions);
+        setQuestionsGenerated(true);
+        setCurrentStep(4);
+      } catch (error) {
+        console.error("Error generating questions:", error);
+        // You might want to add error handling/user feedback here
+      } finally {
+        setGenerating(false);
+      }
+    }
+  };
+
+ 
     return (
       <div style={{    position: 'absolute',
         top: 0,
@@ -441,394 +503,292 @@ function SAQA() {
         bottom: 0,    overflowY: 'auto',
         display: 'flex',
         flexDirection: 'column',
-        backgroundColor: '#fcfcfc'}}> 
+        backgroundColor: '#white'}}> 
         <Navbar userType="teacher" />
-           <style>{loaderStyle} {dropdownContentStyle}</style>
-           <div style={{ marginTop: '150px', width: '800px', padding: '15px', marginLeft: 'auto', marginRight: 'auto', fontFamily: "'montserrat', sans-serif", background: 'white', borderRadius: '25px', 
-               boxShadow: '1px 1px 10px 1px rgb(0,0,155,.1)', marginBottom: '40px' }}>
-       
+      
+        {isSaving && <LoaderScreen />}
+
+
+
+
+
+       <div style={{marginTop: '100px'}}>
+ 
+ <div style={{marginTop: '100px'}}>
+ <Stepper
+   currentStep={currentStep}
+   setCurrentStep={setCurrentStep}
+   steps={steps}
+   isPreviewAccessible={questionsGenerated}
+   visitedSteps={visitedSteps}
+   onSaveDraft={saveDraft}
+   onPublish={saveAssignment}
+   isPublishDisabled={isPublishDisabled}
+   classId={classId}
+   selectedFormat={selectedFormat}
+   onFormatChange={setSelectedFormat}
+ />
+ </div>
+
+
+ {currentStep === 1 && (
+
+
+
+<div style={{width: '900px',  height: '500px',marginLeft: 'auto', marginRight: 'auto', marginTop: '50px', position: 'relative'}}>
+
+
+
+<StepPreviewCards
+  currentStep={currentStep}
+  canProgress={isFormValid()}
+  onNextStep={nextStep}
+  onPrevStep={handlePrevious}
+  assignmentName={assignmentName}
+  hasGeneratedQuestions={generatedQuestions.length > 0}
+/>
+
+
+
+
+
+
+
+
+
+<StepContainer 
+          title="Settings" 
+          icon={Settings}
+          color="#2BB514"
           
-        {showPreview && generatedQuestions.length > 0 && (
-          <div style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            width: '100vw',
-            height: '100vh',
-            background: 'rgba(0, 0, 0, 0.5)',
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            zIndex: 1000
-          }}>
-            <div style={{position: 'relative'}}>
-              <button
-                onClick={handlePreviewToggle}
-                style={{
-                  position: 'absolute',
-                  top: '-30px',
-                  right: '-30px',
-                  zIndex: '990',
-                  background: 'none',
-                  border: 'none',
-                  color: '#D800FB',
-                  fontSize: '24px',
-                  cursor: 'pointer'
-                }}
-              >
-                <SquareX size={50} style={{ marginTop: '30px', marginRight: '40px'}}/>
-              </button>
-              <TeacherPreviewASAQ
-            questionsWithIds={generatedQuestions}
-            setQuestionsWithIds={setGeneratedQuestions}
-            sourceText={sourceText}
-            questionCount={questionBank}
-            classId={classId}
-            teacherId={teacherId}
-          />
-        </div>
-          </div>
-        )}
+          backgroundColor="#A6FF98"
+          width={StepContainerConfig.settings.width}
+          titleWidth={StepContainerConfig.settings.titleWidth}
+        >
         
-        
-           
-        <div style={{ marginLeft: '0px', color: '#2BB514', margin: '-15px', padding: '10px 10px 10px 60px',  border: '10px solid #2BB514', borderRadius: '30px 30px 0px 0px', fontFamily: "'montserrat', sans-serif",  fontSize: '40px', display: 'flex', width: '740px', background: '#AEF2A3', marginBottom: '180px', fontWeight: 'bold' }}>
-        Create Assignment
-     
-  
-    <button style={{background: 'transparent', border: 'none', marginBottom: '-5px', marginLeft: 'auto'}}
-    onClick={handlePrevious}>
-<SquareX size={45} color="#2BB514"/>
 
-    </button>
-    
+        
+   <PreferencesSection>
+   <AssignmentName
+     value={assignmentName}
+     onChange={setAssignmentName}
+   />
    
-        </div>
 
-
-       
-        <div style={{ width: '100%', height: 'auto', marginTop: '-200px', border: '10px solid transparent', borderRadius: '20px', padding: '20px' }}>
-        
-
-        <PreferencesSection>
-      <AssignmentName
-        value={assignmentName}
-        onChange={setAssignmentName}
-      />
-      
-      <FormatSection
-        classId={classId}
-        selectedFormat={selectedFormat}
-        onFormatChange={(newFormat) => {
-          setSelectedFormat(newFormat);
-          // Any additional format change logic
-        }}
-      />
-
-      <TimerSection
-        timerOn={timerOn}
-        timer={timer}
-        onTimerChange={setTimer}
-        onToggle={() => setTimerOn(!timerOn)}
-      />
-      
-    
-      
-    
-      
-
-
-
-      
-    </PreferencesSection>
-
-    <div style={{ width: '700px', marginLeft: '25px', marginTop: '30px', marginBottom: '-20px' }}>
-  
-
-
-
-    <DateSettings
+   <DateSettings
           assignDate={assignDate}
           setAssignDate={setAssignDate}
           dueDate={dueDate}
           setDueDate={setDueDate}
         />
 
-          <SelectStudentsDW
-          classId={classId}
-          selectedStudents={selectedStudents}
-          setSelectedStudents={setSelectedStudents}
-        />
+   <TimerSection
+     timerOn={timerOn}
+     timer={timer}
+     onTimerChange={setTimer}
+     onToggle={() => setTimerOn(!timerOn)}
+   />
+   
  
+  
+
+
+          
+<ToggleSwitch
+        label="Half Credit"
+        value={halfCredit}
+        onChange={setHalfCredit}
+      />
+      
+
+     
+ </PreferencesSection>
+
+
+           
         
 
-          <SecuritySettings
-          saveAndExit={saveAndExit}
-          setSaveAndExit={setSaveAndExit}
-          lockdown={lockdown}
-          setLockdown={setLockdown}
-        />
+
+ <SecuritySettings
+  saveAndExit={saveAndExit}
+  setSaveAndExit={setSaveAndExit}
+  lockdown={lockdown}
+  setLockdown={setLockdown}
+  onViolation={onViolation}
+  setOnViolation={setOnViolation}
+/>
 
 
 
 
+</StepContainer>
+
+
+ </div>
+    )}
+
+    {currentStep === 2 && (
+      <div style={{width: '900px',  height: '500px',marginLeft: 'auto', marginRight: 'auto', marginTop: '50px', position: 'relative'}}>
+
+
+<StepPreviewCards
+  currentStep={currentStep}
+  canProgress={isFormValid()}
+  onNextStep={nextStep}
+  onPrevStep={handlePrevious}
+  assignmentName={assignmentName}
+  hasGeneratedQuestions={generatedQuestions.length > 0}
+/>
+
+
+<StepContainer
+          title="Select Students" 
+          icon={SquareDashedMousePointer}
+          color="#FFAE00"   widt
+          
+          backgroundColor="#FFEFB9"
+          width={StepContainerConfig.students.width}
+          titleWidth={StepContainerConfig.students.titleWidth}
+        >
+      <SelectStudentsDW
+        classId={classId}
+        selectedStudents={selectedStudents}
+        setSelectedStudents={setSelectedStudents}
+      />
+
+    </StepContainer>
+      </div>
+    
+    )}
+
+    {currentStep === 3 && (
+     <div style={{width: '900px', height: '500px',marginLeft: 'auto', marginRight: 'auto', marginTop: '50px', position: 'relative'}}>
+
+<StepPreviewCards
+currentStep={currentStep}
+canProgress={isFormValid()}
+onNextStep={nextStep}
+onPrevStep={handlePrevious}
+assignmentName={assignmentName}
+hasGeneratedQuestions={generatedQuestions.length > 0}
+/>
+      <div style={{width: '730px', padding: '15px', top:'-60px', position: 'absolute' , left:' 50%', transform: 'translatex(-50%) ', zIndex: '10', fontFamily: "'montserrat', sans-serif", background: 'white', borderRadius: '25px', height: '450px',
+        boxShadow: '1px 1px 10px 1px rgb(0,0,155,.1)', marginBottom: '40px' }}>
+      
+      
+      <div style={{ marginLeft: '0px', color: '#E01FFF', margin: '-15px', padding: '10px 10px 10px 20px',  border: '10px solid #E01FFF', borderRadius: '30px 30px 0px 0px', fontFamily: "'montserrat', sans-serif",  fontSize: '40px', display: 'flex', width: '710px', background: '#F8CAFF', marginBottom: '180px', fontWeight: 'bold' }}>
+       
+       
+ <Sparkles size={40} strokeWidth={2.5} style={{marginRight: '10px', marginTop: '5px'}}/>
+        Generate Questions
+        
+        </div>
+        
+          <div
+            style={{
+              width: '100%',
+              padding: '10px',
+              fontSize: '30px',
+              backgroundColor: 'white',
+              color: 'black',
+              border: 'none',
+              height: '30px',
+              marginTop: '10px',
+              cursor: 'pointer',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center'
+            }}
+          >
+
+
+          <div >
+            <div style={{ marginTop: '-30px' }}>
+       
+
+      
+
+              <div style={{ width: '700px', marginLeft: '10px', marginTop: '-40px'}}>
+           
+
+              <SourcePreviewToggle
+  sourceText={sourceText}
+  onSourceChange={setSourceText}
+  additionalInstructions={additionalInstructions}
+  onAdditionalInstructionsChange={setAdditionalInstructions}
+  onPreviewClick={handlePreviewToggle}
+  onGenerateClick={handleGenerateClick}
+  generating={generating}
+  generatedQuestions={generatedQuestions}
+  questionBank={questionBank}
+  setQuestionBank={setQuestionBank}
+/>
 
 
 
+            </div>
+          </div>
+          </div>
+  
+          </div>
 
+    
+         
+          </div></div>
+    )}
 
+    {currentStep === 4 && (
+       <div style={{width: '900px',  height: '500px',marginLeft: 'auto', marginRight: 'auto', marginTop: '50px', position: 'relative'}}>
 
-
-
-
+       <StepPreviewCards
+       currentStep={currentStep}
+       canProgress={isFormValid()}
+       onNextStep={nextStep}
+       onPrevStep={handlePrevious}
+       assignmentName={assignmentName}
+       hasGeneratedQuestions={generatedQuestions.length > 0}
+       />
+     {/* Step 4: Preview */}
+     <TeacherPreviewASAQ
+        questionsWithIds={generatedQuestions}
+        setQuestionsWithIds={setGeneratedQuestions}
+        sourceText={sourceText}
+        questionCount={questionBank}
+        classId={classId}
+        teacherId={teacherId} // Hide the close button in stepper flow
+     />
+ 
+   </div>
+ )}
 
 
 
  
-{/* Content Dropdown */}
-<div style={{ width: '770px', padding: '10px', marginTop: '20px',  border: ' 2px solid #f4f4f4', borderRadius: '10px', marginBottom: '20px' }}>
-  <button
-    onClick={() => setContentDropdownOpen(!contentDropdownOpen)}
-    style={{
-      width: '100%',
-      padding: '10px',
-      fontSize: '30px',
-      backgroundColor: 'white',
-      color: 'black',
-      border: 'none',
-      height: '50px',
-      cursor: 'pointer',
-      display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'center'
-    }}
-  >
-
-<Sparkles size={40} color="#000000" />
-  
-  
-<h1 style={{ fontSize: '30px', marginLeft: '20px', marginRight: 'auto',  fontFamily: "'montserrat', sans-serif"}}>Generate Questions</h1>
-{contentDropdownOpen ? <ChevronUp style={{color: 'grey'}}/> : <ChevronDown style={{color: 'grey'}}/>}
-            
-  </button>
-
-  <div className={`dropdown-content ${contentDropdownOpen ? 'open' : ''}`}>
-    <div style={{ marginTop: '0px' }}>
-      {/* Questions Section */}
-    
-      {/* Source Section */}
-      <div style={{ width: '740px', marginLeft: '20px', }}>
-               
-                   
-               <textarea
-                 placeholder="Paste source here"
-                 value={sourceText}
-                 onChange={(e) => setSourceText(e.target.value)}
-                 style={{
-                   width: '688px',
-                   height: '100px',
-                   marginTop: '30px',
-                   fontSize: '16px',
-                   background: '#F4F4F4',
-                   padding: '20px 20px',
-                   border: 'none',
-                   outline: 'none',
-                   borderRadius: '10px',
-                   resize: 'vertical'
-                 }}
-               />
-             
-
-      {/* Additional Instructions Section */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '-15px' }}>
-                      <h1 style={{ marginTop: '20px', color: 'grey', display: 'flex', fontSize: '25px', alignItems: 'center',   fontWeight: '600', }}>
-                        Additional instructions
-                        <p style={{ fontSize: '20px', marginTop: '20px', marginLeft: '10px', color: 'lightgrey' }}>- optional</p>
-                      </h1>
-                      <button
-                        onClick={toggleAdditionalInstructions}
-                        style={{
-                          marginRight: 'auto',
-                          backgroundColor: 'transparent',
-                          border: 'none',
-                          marginTop: '0px',
-                          fontSize: '30px',
-                          marginLeft: '20px',
-                          color: 'grey',
-                          fontWeight: 'bold',
-                          cursor: 'pointer'
-                        }}
-                      >
-                        {showAdditionalInstructions ? '-' : '+'}
-                      </button>
-                    </div>
-                    {showAdditionalInstructions && (
-                      <input
-                        style={{
-                          width: '96%',
-                          height: '20px',
-                          padding: '2%',
-                          fontWeight: 'bold',
-                          fontSize: '14px',
-                          marginTop: '-20px',
-                          fontFamily: "'montserrat', sans-serif",
-                          borderRadius: '10px',
-                           border: ' 2px solid #f4f4f4',
-                          outline: 'none'
-                        }}
-                        type='text'
-                        placeholder="ex. only use chapter one"
-                        value={additionalInstructions}
-                        onChange={(e) => setAdditionalInstructions(e.target.value)}
-                      />
-                    )}
-                  
-                  
-      {/* Generate Questions Button */}
-    {/* Generate Questions Button */}
-  {/* Generate Questions Button */}
-  {sourceText.trim() !== '' && (
-  <div style={{ display: 'flex', alignItems: 'center', marginTop: '20px' }}>
-    <button
-      onClick={async () => {
-        if (generatedQuestions.length > 0) {
-          setShowPreview(true);
-        } else {
-          setGenerating(true);
-          try {
-            const questions = await GenerateASAQ(sourceText, questionBank, additionalInstructions, classId, teacherId);
-     
-            setGeneratedQuestions(questions);
-            setShowPreview(true);
-          } finally {
-            setGenerating(false);
-          }
-        }
-      }}
-      disabled={generating}
-      style={{
-        width: '180px',
-        fontWeight: 'bold',
-        height: '50px',
-        padding: '10px',
-        fontSize: '24px',
-        backgroundColor: generating ? 'lightgrey' : 
-                        generatedQuestions.length > 0 ? '#FCD3FF' : '#FCD3FF',
-        color: 'white',
-        borderRadius: '10px',
-        border: generating ? '4px solid lightgrey' : 
-                generatedQuestions.length > 0 ? '4px solid #D800FB' : '4px solid #D800FB',
-        cursor: generating ? 'default' : 'pointer',
-        transition: 'box-shadow 0.3s ease',
-      }}
-     
-    >
-    {generating ? 'Generating...' : 
-       generatedQuestions.length > 0 ? 
-       <div style={{ display: 'flex', marginTop: '-4px' }}> 
-       
-           <Eye size={30} color="#D800FB" strokeWidth={2.5} />
-           <h1 style={{
-             fontSize: '25px',  
-             marginTop: '0px', 
-             color: '#D800FB', 
-             marginLeft: '10px',
-             fontFamily: "'montserrat', sans-serif",
-           }}>Preview</h1>
-         </div>
-       : <div style={{ display: 'flex', marginTop: '-4px' }}> 
-           <Sparkles size={30} color="#E441FF" strokeWidth={3} />
-           <h1 style={{
-             fontSize: '25px',  
-             marginTop: '0px', 
-             marginLeft: '4px', 
-             color: '#E441FF', 
-             fontFamily: "'montserrat', sans-serif",
-           }}>Generate</h1>
-         </div>}
-    </button>
-    {generating && (
-      <div className="loader" style={{ marginLeft: '20px' }}></div>
-    )}
-  </div>
-)}
-</div>
-
-    </div>
-</div>
-
-
-</div>
+</div>      
 
 
 
 
-          <div style={{ display: 'flex', justifyContent: 'space-between', width: '796px',height: '50px' }}>
-         
-          <button
-              
-              onClick={saveDraft}
-              style={{
-                width: '270px',
-                height: '60px',
-                marginTop: '0px',
-                border: '4px solid lightgrey',
-                marginBottom: '40px',
-                backgroundColor: '#f4f4f4',
-                color: 'grey',
-                borderRadius: '10px',
-                fontSize: '20px',fontFamily: "'montserrat', sans-serif",  
-                fontWeight: 'bold',
-                display: 'flex',
-                cursor: 'pointer',
-                transition: 'border-color 0.3s ease',
-              }}
-              onMouseEnter={(e) => e.target.style.borderColor = 'grey'}
-              onMouseLeave={(e) => e.target.style.borderColor = 'lightgrey'}
-            >
-             <PencilRuler size={40} style={{marginLeft: '0px', marginTop: '5px', background: 'transparent'}} /> <h1 style={{fontSize: '25px', marginTop: '10px', marginLeft: '15px',background: 'transparent'}}>Save As Draft</h1>
-            </button>
-            <button
-              onClick={saveAssignment}
-              disabled={!assignmentName || generatedQuestions.length === 0}
-style={{
-  width: '480px',
-  height: '60px',
-  marginTop: '0px',
-  border: '4px solid ',
-  marginBottom: '40px',
-  marginLeft: '0px',
-  opacity: (!assignmentName || generatedQuestions.length === 0) ? '0%' : '100%',
-  backgroundColor: (!assignmentName || generatedQuestions.length === 0) ? '#f4f4f4' : '#A6FFAF',
-  color: (!assignmentName || generatedQuestions.length === 0) ? 'lightgrey' : '#00D409',
-  
-  borderColor: (!assignmentName || generatedQuestions.length === 0) ? 'lightgrey' : '#00D409',
-  borderRadius: '10px',
-  fontSize: '20px',
-  fontFamily: "'montserrat', sans-serif",  
-  fontWeight: 'bold',
-  cursor: (!assignmentName || generatedQuestions.length === 0) ? 'default' : 'pointer',
-  display: 'flex',
-  transition: 'background-color 0.3s ease',
-}}
-onMouseEnter={(e) => {
-  if (assignmentName && generatedQuestions.length > 0) {
-    e.target.style.borderColor = '#2BB514';
-  }
-}}
-onMouseLeave={(e) => {
-  if (assignmentName && generatedQuestions.length > 0) {
-    e.target.style.borderColor = '#00D409';
-  }
-}}
-            >
-              <h1 style={{fontSize: '25px', marginTop: '10px', marginLeft: '15px',background: 'transparent'}}>Publish</h1>
-              <SendHorizonal size={40} style={{marginLeft: 'auto', marginTop: '5px', background: 'transparent'}} /> 
-            </button>
-          </div>
-        </div>
-        </div>
-        </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       </div>
     );
   };

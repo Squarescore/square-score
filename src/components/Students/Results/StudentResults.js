@@ -177,7 +177,7 @@ const [incorrectCount, setIncorrectCount] = useState(0);
 
 
   return (
-    <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', backgroundColor: '#fcfcfc' }}>
+    <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', backgroundColor: '#white' }}>
       <Navbar userType="student" />
 
              
@@ -194,7 +194,7 @@ const [incorrectCount, setIncorrectCount] = useState(0);
       boxShadow: '1px 1px 5px 1px rgb(0,0,155,.1)',
       borderRadius: '10px',
       transition: 'all 0.3s',
-      zIndex: 1000,
+      zIndex: 10,
       display: 'flex',
       flexDirection: 'column'
     }}>
@@ -244,7 +244,7 @@ const [incorrectCount, setIncorrectCount] = useState(0);
                 </div>
             </div>
 
-            <div style={{  fontFamily: "'montserrat', sans-serif", backgroundColor: '#fcfcfc', width: '860px', zIndex: '100', alignItems: 'center', marginLeft: 'auto', marginRight: 'auto', marginTop: '100px'}}>
+            <div style={{  fontFamily: "'montserrat', sans-serif", backgroundColor: '#white', width: '860px', zIndex: '100', alignItems: 'center', marginLeft: 'auto', marginRight: 'auto', marginTop: '100px'}}>
            
            
            

@@ -31,6 +31,31 @@ const [confirmAssignment, setConfirmAssignment] = useState(null);
 const [studentName, setStudentName] = useState('');
 const [textSize, setTextSize] = useState(40);
 const [calculatedAverage, setCalculatedAverage] = useState(0);
+
+  
+// Set initial tab based on URL path
+useEffect(() => {
+  const path = location.pathname;
+  if (path.includes('/active')) {
+    setActiveTab('active');
+  } else if (path.includes('/completed')) {
+    setActiveTab('completed');
+  } else if (path.includes('/upcoming')) {
+    setActiveTab('upcoming');
+  } else if (path.includes('/overdue')) {
+    setActiveTab('overdue');
+  } else {
+    // Default to active if no specific tab in URL
+    setActiveTab('active');
+  }
+}, [location.pathname]);
+
+// Update URL when tab changes
+const handleTabChange = (newTab) => {
+  setActiveTab(newTab);
+  navigate(`/studentassignments/${classId}/${newTab}`);
+};
+
 useEffect(() => {
   if (completedAssignments.length > 0) {
     const totalScore = completedAssignments.reduce((sum, assignment) => {
@@ -811,7 +836,7 @@ const renderAssignments = (assignments) => {
   return (
     <div style={{    minHeight: '100vh',
       width: '100%',
-      backgroundColor: '#FCFCFC',
+      backgroundColor: '#white',
       display: 'flex',
       flexDirection: 'column',
       position: 'relative' }}>
@@ -860,77 +885,7 @@ const renderAssignments = (assignments) => {
     >
 
       
-         <div style={{
-        marginTop: '166px',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'flex-start',
-        gap: '20px'
-      }}>
-          {[
-  { label: 'active', icon: BookOpen, tooltip: 'Active' },
-  { label: 'completed', icon: BookOpenCheck, tooltip: 'Completed' },
-  { label: 'upcoming', icon: CalendarClock, tooltip: 'Upcoming' },
-  { label: 'overdue', icon: CalendarX2, tooltip: 'Overdue' }
-].map(({label, icon: Icon, tooltip}) => (
-  <div key={label}>
-    <div style={{ 
-      height: '4px', 
-      width: '80px', 
-      background: 'white', 
-      marginLeft: '10px',  
-      marginBottom: '25px',
-    }}></div>
-    <button
-      onClick={() => setActiveTab(label)}
-      style={{
-        fontSize: '15px',
-        fontFamily: "'montserrat', sans-serif",
-        background: activeTab === label ? tabStyles[label].background : 'transparent',
-        border: '4px solid transparent',
-        boxShadow: activeTab === label ? '1px 1px 2px 1px rgb(0,0,0,.07)' : 'none',
-        color: activeTab === label ? tabStyles[label].color : '#676767',
-        borderRadius: '10px',
-        padding: '5px 5px',
-        width: '70px',
-        marginLeft: '10px',
-        height: '70px',
-        marginBottom: '-10px',
-        cursor: 'pointer',
-        fontWeight: 'bold',
-        alignItems: 'center',
-        transition: 'all .3s ease',
-      }}
-      onMouseEnter={(e) => {
-        if (activeTab !== label) {
-          e.currentTarget.style.color = 'black';
-          e.currentTarget.style.boxShadow = '1px 1px 2px 1px rgb(0,0,0,.07)';
-          e.currentTarget.style.background = '#FAFAFA';
-        }
-      }}
-      onMouseLeave={(e) => {
-        if (activeTab !== label) {
-          e.currentTarget.style.color = '#676767';
-          e.currentTarget.style.boxShadow = 'none';
-          e.currentTarget.style.background = 'transparent';
-        }
-      }}
-    >
-      <Tooltip text={tooltip}>
-        <Icon 
-          size={40} 
-          style={{
-            marginTop: '3px',
-            transition: 'all .3s ease'
-          }}
-          color={activeTab === label ? tabStyles[label].color : '#9C9C9C'} 
-          strokeWidth={activeTab === label ? 2.1 : 1.7} 
-        />
-      </Tooltip>
-    </button>
-  </div>
-))}
-</div>
+      
           </div>
 
           <div style={{ width: '840px', marginRight: 'auto', marginLeft: 'auto', marginTop: '160px', }}>
@@ -1005,9 +960,9 @@ const renderAssignments = (assignments) => {
           <button
             onClick={() => setShowDueDate(false)}
             style={{
-              background: showDueDate ? '#fcfcfc' : '#f4f4f4',
+              background: showDueDate ? '#white' : '#f4f4f4',
               color: '#B6B6B6',
-              border: showDueDate ? '4px solid #fcfcfc' : '4px solid #f4f4f4',
+              border: showDueDate ? '4px solid #white' : '4px solid #f4f4f4',
               lineHeight: '18px',
               fontWeight: 'bold',
               padding: '0px 10px',
@@ -1025,9 +980,9 @@ const renderAssignments = (assignments) => {
           <button
             onClick={() => setShowDueDate(true)}
             style={{
-              background: showDueDate ? '#f4f4f4' : '#fcfcfc',
+              background: showDueDate ? '#f4f4f4' : '#white',
               color: '#B6B6B6',
-              border: showDueDate ? '4px solid #f4f4f4' : '4px solid #fcfcfc',
+              border: showDueDate ? '4px solid #f4f4f4' : '4px solid #white',
               lineHeight: '18px',
               fontWeight: 'bold',
               padding: '0px 10px',

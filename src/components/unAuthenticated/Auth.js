@@ -168,7 +168,7 @@ const Auth = () => {
   const positions = generateUniquePositions(20, 200, 100);
 
   return (
-    <div style={{ position: 'relative', background: '#fcfcfc' }}>
+    <div style={{ position: 'relative', background: '#white' }}>
       {/* Background Divs */}
    
       {/* Main Content */}
@@ -286,7 +286,7 @@ const Auth = () => {
        }}
       
        onMouseEnter={(e) => {
-         e.currentTarget.style.background = '#FBFBFB';
+         e.currentTarget.style.background = '#white';
        }}
        onMouseLeave={(e) => {
          e.currentTarget.style.background = 'white';
@@ -315,7 +315,7 @@ const Auth = () => {
               }}
              
               onMouseEnter={(e) => {
-                e.currentTarget.style.background = '#FBFBFB';
+                e.currentTarget.style.background = '#white';
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.background = 'white';
@@ -525,7 +525,7 @@ const Auth = () => {
 
 
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.background = '#FBFBFB';
+                  e.currentTarget.style.background = '#white';
                 }}
                 onMouseLeave={(e) => {
                   e.currentTarget.style.background = 'white';
@@ -607,7 +607,7 @@ const Auth = () => {
               fontFamily: '"montserrat", sans-serif',
               fontWeight: '700',
               color: format.color,
-              background: selectedFormat === format.id ? 'white' : '#fcfcfc',
+              background: selectedFormat === format.id ? 'white' : '#white',
               boxShadow:selectedFormat === format.id ? '1px 1px 5px 1px rgb(0,0,155,.1)' : 'none' ,
               
               cursor: 'pointer'

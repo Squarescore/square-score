@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { arrayRemove, arrayUnion, doc, getDoc, setDoc, updateDoc, serverTimestamp, deleteDoc } from 'firebase/firestore';
 import { useParams, useNavigate } from 'react-router-dom';
 import { db, auth } from '../../Universal/firebase';
@@ -20,9 +20,11 @@ function TakeTests() {
   const [assignmentName, setAssignmentName] = useState('');
   const [timerStarted, setTimerStarted] = useState(false);
   const [progressExists, setProgressExists] = useState(false);
+  const [isSubmitted, setIsSubmitted] = useState(false);
 
+  const saveIntervalRef = useRef(null);
+  const [halfCredit, setHalfCredit] = useState(false);
 
-  const [HalfCredit, setHalfCredit] = useState(false);
   const studentUid = auth.currentUser.uid;
   const navigate = useNavigate();
   const [scaleMin, setScaleMin] = useState(0);
@@ -44,6 +46,191 @@ const [scaleMax, setScaleMax] = useState(2);
   useEffect(() => {
     fetchUserName();
   }, []);
+
+  
+  const handleLockdownViolation = async () => {
+    if (isSubmitted) {
+      console.log('Assignment already submitted, ignoring lockdown violation.');
+      return;
+    }
+
+    try {
+      // Update the student's assignment status
+      const studentRef = doc(db, 'students', studentUid);
+      await updateDoc(studentRef, {
+        assignmentsToTake: arrayRemove(assignmentId),
+        assignmentsInProgress: arrayRemove(assignmentId),
+        assignmentsPaused: arrayUnion(assignmentId)
+      });
+
+      await saveProgress('paused');
+      setAssignmentStatus('paused');
+      navigate(`/studentassignments/${classId}?tab=completed`);
+    } catch (error) {
+      console.error("Error handling lockdown violation:", error);
+    }
+  };
+
+  const saveProgress = async (status = 'in_progress') => {
+    if (isSubmitted) {
+      console.log('Assignment already submitted, not saving progress.');
+      return;
+    }
+
+    try {
+      // First, check if the assignment is already submitted
+      const gradeDocRef = doc(db, `grades`, `${assignmentId}_${studentUid}`);
+      const gradeDoc = await getDoc(gradeDocRef);
+      
+      if (gradeDoc.exists()) {
+        console.log('Assignment already has grades, canceling save.');
+        return;
+      }
+
+      const progressRef = doc(db, 'assignments(progress)', `${assignmentId}_${studentUid}`);
+      await setDoc(progressRef, {
+        assignmentId,
+        studentUid,
+        questions: questions.map(question => ({
+          questionId: question.questionId,
+          text: question.text,
+          rubric: question.rubric,
+          studentResponse: answers.find(answer => answer.questionId === question.questionId)?.answer || ''
+        })),
+        timeRemaining: secondsLeft,
+        savedAt: serverTimestamp(),
+        status: status
+      }, { merge: true });
+
+      // Update student assignment status
+      const studentRef = doc(db, 'students', studentUid);
+      const studentDoc = await getDoc(studentRef);
+      
+      if (studentDoc.exists()) {
+        const studentData = studentDoc.data();
+        
+        // Only update if the assignment isn't already in assignmentsTaken
+        if (!studentData.assignmentsTaken?.includes(assignmentId)) {
+          const updates = {
+            assignmentsToTake: arrayRemove(assignmentId),
+            assignmentsInProgress: arrayRemove(assignmentId),
+          };
+
+          if (status === 'paused') {
+            updates.assignmentsPaused = arrayUnion(assignmentId);
+          } else if (status === 'in_progress') {
+            updates.assignmentsInProgress = arrayUnion(assignmentId);
+          }
+
+          await updateDoc(studentRef, updates);
+        }
+      }
+
+      console.log('Progress saved and status updated');
+    } catch (error) {
+      console.error("Error saving progress:", error);
+    }
+  };
+
+  const handleSubmit = async () => {
+    setIsSubmitting(true);
+    try {
+      const gradeDocRef = doc(db, `grades`, `${assignmentId}_${studentUid}`);
+      const progressRef = doc(db, 'assignments(progress)', `${assignmentId}_${studentUid}`);
+      const studentRef = doc(db, 'students', studentUid);
+
+      // Clean up all assignment states first
+      await updateDoc(studentRef, {
+        assignmentsToTake: arrayRemove(assignmentId),
+        assignmentsInProgress: arrayRemove(assignmentId),
+        assignmentsPaused: arrayRemove(assignmentId),
+        assignmentsTaken: arrayUnion(assignmentId)
+      });
+
+      const maxRawScore = questions.length * (scaleMax - scaleMin);
+
+      // Save the student's answers without grading results
+      await setDoc(gradeDocRef, {
+        assignmentId,
+        studentUid,
+        assignmentName,
+        firstName,
+        lastName,
+        classId,
+        halfCreditEnabled: halfCredit,
+        submittedAt: serverTimestamp(),
+        questions: answers.map((answer, index) => ({
+          questionId: questions[index].questionId,
+          question: questions[index].text,
+          studentResponse: answer.answer,
+          rubric: questions[index].rubric,
+          feedback: 'responses havent been graded',
+          score: 0,
+        })),
+        viewable: false,
+        rawTotalScore: 0,
+        maxRawScore,
+        scaledScore: 0,
+        scaleMin,
+        scaleMax,
+        percentageScore: 0,
+      });
+
+      // Delete the progress document
+      await deleteDoc(progressRef);
+
+      // Clear the save interval
+      if (saveIntervalRef.current) {
+        clearInterval(saveIntervalRef.current);
+        saveIntervalRef.current = null;
+      }
+
+      setIsSubmitted(true);
+
+      // Grade the assignment
+      const gradingResults = await gradeAssignmentWithRetries(questions, answers, halfCredit);
+
+      // Update with grading results
+      const combinedResults = gradingResults.map((result, index) => ({
+        ...result,
+        score: ((result.score / 2) * (scaleMax - scaleMin) + scaleMin),
+        question: questions[index].text,
+        studentResponse: answers[index].answer,
+        rubric: questions[index].rubric,
+        questionId: questions[index].questionId,
+        flagged: false,
+      }));
+
+      const rawTotalScore = combinedResults.reduce((sum, result) => sum + result.score, 0);
+      const percentageScore = ((rawTotalScore / maxRawScore) * 100);
+
+      await updateDoc(gradeDocRef, {
+        rawTotalScore,
+        maxRawScore,
+        scaledScore: rawTotalScore / maxRawScore,
+        scaleMin,
+        scaleMax,
+        percentageScore,
+        questions: combinedResults,
+      });
+
+      navigate(`/studentassignments/${classId}`);
+    } catch (error) {
+      console.error("Error submitting and grading assignment:", error);
+      alert("Your submission was saved, but we encountered an issue during grading. Your instructor has been notified.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+
+
+
+
+
+
+
+
 
   useEffect(() => {
     const fetchAssignmentAndProgress = async () => {
@@ -152,13 +339,6 @@ const [scaleMax, setScaleMax] = useState(2);
   };
   
 
-  const handleLockdownViolation = async () => {
-    await saveProgress('paused');
-    setAssignmentStatus('paused');
-    navigate(`/studentassignments/${classId}?tab=completed`);
-  };
-
-
 
 
   useEffect(() => {
@@ -177,66 +357,23 @@ const [scaleMax, setScaleMax] = useState(2);
       }
     };
   
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    window.addEventListener('resize', handleResize);
+    if (lockdown && !isSubmitted) {
+      document.addEventListener('visibilitychange', handleVisibilityChange);
+      window.addEventListener('resize', handleResize);
+    }
   
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('resize', handleResize);
     };
-  }, [lockdown, initialWindowSize]);
-
+  }, [lockdown, initialWindowSize, isSubmitted]);
+  
   useEffect(() => {
     if (lockdown) {
       setInitialWindowSize({ width: window.innerWidth, height: window.innerHeight });
     }
   }, [lockdown]);
 
-
-  const saveProgress = async (status = 'in_progress') => {
-    try {
-      const progressRef = doc(db, 'assignments(progress)', `${assignmentId}_${studentUid}`);
-      await setDoc(progressRef, {
-        assignmentId,
-        studentUid,
-        questions: questions.map(question => ({
-          questionId: question.questionId,
-          text: question.text,
-          rubric: question.rubric,
-          studentResponse: answers.find(answer => answer.questionId === question.questionId)?.answer || ''
-        })),
-        timeRemaining: secondsLeft,
-        savedAt: serverTimestamp(),
-        status: status
-      }, { merge: true });
-  
-      // Update student assignment status
-      const studentRef = doc(db, 'students', studentUid);
-      if (status === 'paused') {
-        await updateDoc(studentRef, {
-          assignmentsToTake: arrayRemove(assignmentId),
-          assignmentsInProgress: arrayRemove(assignmentId),
-          assignmentsPaused: arrayUnion(assignmentId)
-        });
-      } else if (status === 'in_progress') {
-        await updateDoc(studentRef, {
-          assignmentsToTake: arrayRemove(assignmentId),
-          assignmentsInProgress: arrayUnion(assignmentId)
-        });
-      } else if (status === 'submitted') {
-        await updateDoc(studentRef, {
-          assignmentsToTake: arrayRemove(assignmentId),
-          assignmentsInProgress: arrayRemove(assignmentId),
-          assignmentsTaken: arrayUnion(assignmentId)
-        });
-      }
-  
-      console.log('Progress saved and status updated');
-    } catch (error) {
-      console.error("Error saving progress:", error);
-    }
-  };
-  
   useEffect(() => {
     if (timeLimit !== null) {
       setSecondsLeft(timeLimit);
@@ -284,79 +421,13 @@ const [scaleMax, setScaleMax] = useState(2);
       handleSubmit();
     }
   };
-  const handleSubmit = async () => {
-    setIsSubmitting(true);
-    try {
-      // Attempt to grade the assignment with retries
-      const gradingResults = await gradeAssignmentWithRetries(questions, answers);
-  
-      // Combine grading results with question and student response
-      const combinedResults = gradingResults.map((result, index) => ({
-        ...result,
-        score: ((result.score / 2) * (scaleMax - scaleMin) + scaleMin),
-        question: questions[index].text,
-        studentResponse: answers[index].answer,
-        rubric: questions[index].rubric,
-        questionId: questions[index].questionId, // Add questionId to the results
-        flagged: false
-      }));
-  
-      // Calculate the total score
-      const rawTotalScore = combinedResults.reduce((sum, result) => sum + result.score, 0);
-      const maxRawScore = questions.length;
-  
-      // Apply scaling
-      const scaledScore = (rawTotalScore / maxRawScore);
-      const percentageScore = ((rawTotalScore / (maxRawScore*(scaleMax - scaleMin)))  * 100) ;
-  
-      // Create the grade document
-      const gradeDocRef = doc(db, `grades`, `${assignmentId}_${studentUid}`);
-      await setDoc(gradeDocRef, {
-        assignmentId,
-        studentUid,
-        assignmentName,
-        firstName: firstName,
-        lastName: lastName,
-        classId,
-        halfCreditEnabled: HalfCredit,
-        submittedAt: serverTimestamp(),
-        rawTotalScore,
-        maxRawScore,
-        scaledScore,
-        scaleMin,
-        scaleMax,
-        percentageScore,
-        questions: combinedResults.map(result => ({
-          ...result,
-          questionId: result.questionId // Ensure questionId is included in the final document
-        })),
-        viewable: false,
-      });
-  
-      // Update student's assignment status
-      const studentRef = doc(db, 'students', studentUid);
-      await updateDoc(studentRef, {
-        assignmentsToTake: arrayRemove(assignmentId),
-        assignmentsInProgress: arrayRemove(assignmentId),
-        assignmentsTaken: arrayUnion(assignmentId)
-      });
-  
-      // Remove the progress document if it exists
-      const progressRef = doc(db, 'assignments(progress)', `${assignmentId}_${studentUid}`);
-      await deleteDoc(progressRef);
-  
-      navigate(`/studentassignments/${classId}`);
-    } catch (error) {
-      console.error("Error submitting and grading assignment:", error);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+ 
 
-  const gradeAssignmentWithRetries = async (questions, answers, maxRetries = 2) => {
+  const gradeAssignmentWithRetries = async (questions, answers,halfCredit,  maxRetries = 2) => {
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
       try {
-        const gradingResults = await gradeAssignment(questions, answers);
+        const gradingResults = await gradeAssignment(questions, answers, halfCredit);
+
         return gradingResults; // If successful, return the results
       } catch (error) {
         console.error(`Grading attempt ${attempt + 1} failed:`, error);
@@ -370,7 +441,6 @@ const [scaleMax, setScaleMax] = useState(2);
       }
     }
   };
-
   const gradeAssignment = async (questions, answers, halfCredit) => {
     const questionsToGrade = questions.map((question, index) => ({
       questionId: question.questionId,
@@ -378,24 +448,26 @@ const [scaleMax, setScaleMax] = useState(2);
       rubric: question.rubric,
       studentResponse: answers[index].answer,
     }));
-
+  
     const response = await fetch('https://us-central1-square-score-ai.cloudfunctions.net/GradeSAQ', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({   questions: questionsToGrade,
-        halfCreditEnabled: halfCredit }),
+      body: JSON.stringify({
+        questions: questionsToGrade,
+        halfCreditEnabled: halfCredit, // Corrected parameter name
+      })
     });
-
+  
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
-
+  
     const gradingResults = await response.json();
     return gradingResults;
   };
-
+  
 
 
 
@@ -406,17 +478,20 @@ const [scaleMax, setScaleMax] = useState(2);
 
 
   useEffect(() => {
-    let saveInterval;
-    if (saveAndExit && !loading && questions.length > 0) {
-      saveInterval = setInterval(() => {
+    if (saveAndExit && !loading && questions.length > 0 && !isSubmitted) {
+      saveIntervalRef.current = setInterval(() => {
         saveProgress();
       }, 20000); 
     }
-
+  
     return () => {
-      if (saveInterval) clearInterval(saveInterval);
+      if (saveIntervalRef.current) {
+        clearInterval(saveIntervalRef.current);
+        saveIntervalRef.current = null;
+      }
     };
-  }, [saveAndExit, loading, questions]);
+  }, [saveAndExit, loading, questions, isSubmitted]);
+  
 
   const handleAnswerChange = (e) => {
     const updatedAnswers = answers.map(answer => 

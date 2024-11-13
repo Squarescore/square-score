@@ -49,7 +49,6 @@ import SignUpAdmin from './components/unAuthenticated/SignUpAdmin';
 import PageNotFound from './components/Universal/PageNotFound'; // Import the PageNotFound component
 import QuestionResults from './components/Teachers/Results/QuestionResultsSAQ';
 import ProtectedRoute from './components/ProtectedRoute';
-import { useFirestoreMonitoring } from './components/Universal/useFirestoreMonitoring';
 
 function App() {
   const [user, setUser] = useState(null);
@@ -60,18 +59,6 @@ function App() {
 
 
 
-  const firestoreStats = useFirestoreMonitoring();
-
-  // Optional: Display stats in development
-  useEffect(() => {
-    if (process.env.NODE_ENV === 'development') {
-      console.table({
-        'Total Reads': firestoreStats.reads,
-        'Total Writes': firestoreStats.writes,
-        'Active Subscriptions': firestoreStats.subscriptions
-      });
-    }
-  }, [firestoreStats]);
 
 
 
@@ -305,7 +292,13 @@ function App() {
         
             <Route path="/studenthome" element={<StudentHome />} />
             <Route path="/testPage" element={<TestPage />} />
-        <Route path="/studentassignments/:classId" element={<StudentAssignments />} />
+            <Route path="/studentassignments/:classId" element={<StudentAssignments />} />
+  
+  {/* Specific tab routes */}
+  <Route path="/studentassignments/:classId/active" element={<StudentAssignments />} />
+  <Route path="/studentassignments/:classId/completed" element={<StudentAssignments />} />
+  <Route path="/studentassignments/:classId/upcoming" element={<StudentAssignments />} />
+  <Route path="/studentassignments/:classId/overdue" element={<StudentAssignments />} />
         <Route
                     path="/takeMCQ/:assignmentId"
                     element={

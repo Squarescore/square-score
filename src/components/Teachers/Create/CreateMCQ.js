@@ -11,7 +11,7 @@ import { AssignmentActionButtons, usePublishState } from './AssignmentActionButt
 
 import 'react-datepicker/dist/react-datepicker.css';
 import { v4 as uuidv4 } from 'uuid';
-import {Sparkles,Landmark, Eye, User, Repeat, PencilRuler, ChevronUp, ChevronDown, SendHorizonal, CircleHelp, FileText, Settings, SquareX   } from 'lucide-react';
+import {Sparkles,Landmark, Eye, User, Repeat, PencilRuler, ChevronUp, ChevronDown, SendHorizonal, CircleHelp, FileText, Settings, SquareX, SquareDashedMousePointer   } from 'lucide-react';
 
 import Navbar from '../../Universal/Navbar';
 import DateSettings, { formatDate } from './DateSettings';
@@ -19,29 +19,15 @@ import SecuritySettings from './SecuritySettings';
 import SelectStudentsDW from './SelectStudentsDW';
 import PreviewMCQ from './previewMCQ';
 import CustomExpandingFormatSelector from './ExpandingFormatSelector';
-import { AssignmentName, ChoicesPerQuestion, FormatSection, PreferencesSection, QuestionCountSection, TimerSection } from './Elements';
-import ToggleSwitch from './ToggleSwitch';
+import { AssignmentName, ChoicesPerQuestion, FormatSection, PreferencesSection, QuestionCountSection, TimerSection, ToggleSwitch } from './Elements';
+
 import SourcePreviewToggle from './SourcePreviewToggle';
-import { safeClassUpdate } from '../../teacherDataHelpers';
 import Loader from '../../Universal/Loader';
+import LoaderScreen from './LoaderScreen';
+import Stepper from './Stepper';
+import StepPreviewCards from './StepPreviewCards';
+import { StepContainer } from './ContainerPost';
 
-const dropdownContentStyle = `
-  .dropdown-content {
-    max-height: 0;
-    opacity: 0;
-    overflow: visible;
-    transition: max-height 0.5s ease, opacity 0.5s ease, visibility 0.5s ease;
-    visibility: hidden;
-    position: relative;
-    z-index: 90;
-  }
-
-  .dropdown-content.open {
-    max-height: 1000px;
-    opacity: 1;
-    visibility: visible;
-  }
-`;
 
 
 
@@ -58,20 +44,21 @@ const MCQ = () => {
   const [assignDate, setAssignDate] = useState(new Date());
   const [questionsGenerated, setQuestionsGenerated] = useState(false);
 
+  const [currentStep, setCurrentStep] = useState(1);
   const [dueDate, setDueDate] = useState(() => {
     const date = new Date();
     date.setHours(date.getHours() + 48);
     return date;
   })
   
+  const [onViolation, setOnViolation] = useState('pause');
+  const [visitedSteps, setVisitedSteps] = useState([]);
   const [draftId, setDraftId] = useState(null);
   const [sourceText, setSourceText] = useState('');
-  const [isExpanded, setIsExpanded] = useState(false);
   const [questionBank, setQuestionBank] = useState('10');
   const [questionStudent, setQuestionStudent] = useState('5');
   const [className, setClassName] = useState('');
   const [additionalInstructions, setAdditionalInstructions] = useState('');
-  const [showAdditionalInstructions, setShowAdditionalInstructions] = useState(false);
   const [selectedStudents, setSelectedStudents] = useState(new Set());
   const [generatedQuestions, setGeneratedQuestions] = useState([]);
   const [generating, setGenerating] = useState(false);
@@ -81,67 +68,28 @@ const MCQ = () => {
 const [progressText, setProgressText] = useState('');
   const navigate = useNavigate();
 
-  const convertToDateTime = (date) => {
-    return formatDate(new Date(date));
-  };
   const [selectedFormat, setSelectedFormat] = useState('MCQ');
-  const [showFormatDropdown, setShowFormatDropdown] = useState(false);
-
 
 // Add to state declarations
 const [isSaving, setIsSaving] = useState(false)
-  const LoaderScreen = () => (
-    <div style={{
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      backgroundColor: 'rgba(255, 255, 255, 0.9)',
-      backdropFilter: 'blur(5px)',
-      display: 'flex',
-      flexDirection: 'column',
-      justifyContent: 'center',
-      alignItems: 'center',
-      zIndex: 99
-    }}>
-      <Loader/>
-      <div style={{
-        fontFamily: "'montserrat', sans-serif",
-        fontSize: '16px',
-        marginTop: '20px',
-        color: 'lightgrey ',
 
-        fontWeight: '600'
-      }}>
-        Saving...
-      </div>
-    </div>
-  );
   
 
  
-  const toggleAdditionalInstructions = () => {
-    setShowAdditionalInstructions(!showAdditionalInstructions);
-    if (showAdditionalInstructions) {
-      setAdditionalInstructions('');
-    }
-  };
+ 
 
   const handlePrevious = () => {
-    navigate(-1);
+    if (currentStep === 1) {
+      navigate(-1);
+    } else {
+      setCurrentStep(prev => Math.max(prev - 1, 1));
+    }
   };
   const { isPublishDisabled, publishDisabledConditions } = usePublishState(
     assignmentName, 
     generatedQuestions
   );
-  const isReadyToPublish = () => {
-    return (
-      assignmentName !== '' &&
-      assignDate.getTime() !== dueDate.getTime() &&
-      generatedQuestions.length > 0
-    );
-  };
+
 
   // Fetch class name effect
   useEffect(() => {
@@ -171,18 +119,7 @@ const [isSaving, setIsSaving] = useState(false)
 
   
 
-  const assignToStudents = async (assignmentId) => {
-    const selectedStudentIds = Array.from(selectedStudents);
-    const batch = writeBatch(db);
-    selectedStudentIds.forEach(studentUid => {
-      const studentRef = doc(db, 'students', studentUid);
-      batch.update(studentRef, {
-        assignmentsToTake: arrayUnion(assignmentId)
-      });
-    });
-    await batch.commit();
-  };
-  
+ 
   const generateQuestions = async () => {
     try {
       setGenerating(true);
@@ -259,10 +196,18 @@ const [isSaving, setIsSaving] = useState(false)
     }
   };
   
+  const nextStep = () => {
+    if (currentStep === 3 && questionsGenerated) {
+      alert('Please generate questions before proceeding to Preview.');
+      return;
+    }
+    setCurrentStep(prev => Math.min(prev + 1, 4));
+  };
+  
  
   const handleGenerateQuestions = () => {
     if (generatedQuestions.length > 0) {
-      setShowPreview(true);
+      setCurrentStep(4);
     } else {
       generateQuestions();
     }
@@ -343,6 +288,8 @@ const [isSaving, setIsSaving] = useState(false)
         questionBank: Number(questionBank),
         questionStudent: Number(questionStudent),
         saveAndExit,
+        
+      onViolation: lockdown ? onViolation : null, 
         lockdown,
         createdAt: serverTimestamp(),
         questions: formattedQuestions,
@@ -424,6 +371,8 @@ const [isSaving, setIsSaving] = useState(false)
         questionBank: Number(questionBank),
         questionStudent: Number(questionStudent),
         saveAndExit,
+        
+      onViolation: lockdown ? onViolation : null, 
         lockdown,
         createdAt: serverTimestamp(),
         questions: generatedQuestions,
@@ -467,6 +416,8 @@ const [isSaving, setIsSaving] = useState(false)
       setTimer(data.timer?.toString() || '');
       setTimerOn(data.timerOn || false);
       setFeedback(data.feedback || false);
+      
+      setOnViolation(data.onViolation || 'pause');
       setRetype(data.retype || false);
       const loadedAssignDate = data.assignDate ? new Date(data.assignDate) : new Date();
       setAssignDate(loadedAssignDate);
@@ -487,51 +438,84 @@ const [isSaving, setIsSaving] = useState(false)
       if (data.questions && data.questions.length > 0) {
         setGeneratedQuestions(data.questions);
         setQuestionsGenerated(true);
+        setCurrentStep(4); 
         
       }
     }
   };
 
-  const optionStyles = {
-    2: { background: '#A3F2ED', color: '#00645E' },
-    3: { background: '#AEF2A3', color: '#006428' },
-    4: { background: '#F8CFFF', color: '#E01FFF' },
-    5: { background: '#FFECA8', color: '#CE7C00' }
+  useEffect(() => {
+    // Whenever currentStep changes, add it to visitedSteps if not already present
+    setVisitedSteps(prev => {
+      if (!prev.includes(currentStep)) {
+        return [...prev, currentStep];
+      }
+      return prev;
+    });
+  }, [currentStep]);
+
+  const steps = [
+    {
+      name: 'Settings',
+      backgroundColor: '#AEF2A3',
+      borderColor: '#2BB514',
+      textColor: '#2BB514',
+      condition: assignmentName.trim() !== '', // Example condition
+
+    },
+    {
+      name: 'Select Students',
+      
+      backgroundColor: '#FFECA8',
+      borderColor: '#FFD13B',
+      textColor: '#CE7C00',
+      condition: selectedStudents.size > -1, // Example condition
+
+    },
+    {
+      name: 'Generate Questions',
+      
+      backgroundColor: '#F8CFFF',
+      borderColor: '#E01FFF',
+      condition: sourceText.trim() !== '',
+
+      textColor: '#E01FFF'
+    },
+    {
+      name: 'Preview',
+      
+      backgroundColor: '#C7CFFF',
+      borderColor: '#020CFF',
+      condition: true, // Always accessible
+ 
+      textColor: '#020CFF'
+    }
+  ];
+
+  const StepContainerConfig = {
+    settings: {
+      width: '550px',
+      titleWidth: '512px'
+    },
+    students: {
+      width: '600px',
+      titleWidth: '562px'
+    },
+    generate: {
+      width: '710px',
+      titleWidth: '672px'
+    },
+    preview: {
+      width: '800px',
+      titleWidth: '780px'
+    }
   };
-  const FormatOption = ({ format, onClick, isAlternate }) => (
-    <div 
-      style={{
-        padding: '5px 10px',
-        width: '100px',
-        textAlign: 'center',
-        fontSize: '35px',
-        cursor: 'pointer',
-        display: 'flex',
-        alignItems: 'center',
-        opacity: '50%',
-        justifyContent: 'center',
-        color: format.color,
-        backgroundColor: 'white',
-        borderRadius: '5px',
-        margin: '2px',
-        transition: 'all 0.3s ease',
-      }}
-      onClick={() => onClick(format.value)}
-    >
-      {format.label}
-      {format.hasAsterisk && (
-        <span style={{
-          marginLeft: '2px',
-          color: '#FCCA18',
-          fontWeight: 'bold'
-        }}>*</span>
-      )}
-    </div>
-  );
 
 
 
-
+  const isFormValid = () => {
+    return assignmentName !== '' && assignDate !== '' && dueDate !== '';
+  };
 
 
 
@@ -543,9 +527,285 @@ const [isSaving, setIsSaving] = useState(false)
       bottom: 0,    overflowY: 'auto',
       display: 'flex',
       flexDirection: 'column',
-      backgroundColor: '#fcfcfc'}}>  <Navbar userType="teacher" />
-      <style>{dropdownContentStyle}</style>
+      backgroundColor: '#white'}}>  <Navbar userType="teacher" />
+    
       {isSaving && <LoaderScreen />}
+
+
+
+
+
+
+
+
+
+
+
+
+      <div style={{marginTop: '100px'}}>
+ 
+ <div style={{marginTop: '100px'}}>
+ <Stepper
+   currentStep={currentStep}
+   setCurrentStep={setCurrentStep}
+   steps={steps}
+   isPreviewAccessible={questionsGenerated}
+   visitedSteps={visitedSteps}
+   onSaveDraft={saveDraft}
+   onPublish={saveAssignment}
+   isPublishDisabled={isPublishDisabled}
+   classId={classId}
+   selectedFormat={selectedFormat}
+   onFormatChange={setSelectedFormat}
+ />
+ </div>
+ 
+   
+     {currentStep === 1 && (
+ 
+ 
+ <div style={{width: '900px',  height: '500px',marginLeft: 'auto', marginRight: 'auto', marginTop: '50px', position: 'relative'}}>
+ 
+ 
+ 
+ <StepPreviewCards
+   currentStep={currentStep}
+   canProgress={isFormValid()}
+   onNextStep={nextStep}
+   onPrevStep={handlePrevious}
+   assignmentName={assignmentName}
+   hasGeneratedQuestions={generatedQuestions.length > 0}
+ />
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ <StepContainer
+           title="Settings" 
+           icon={Settings}
+           color="#2BB514"
+           
+           backgroundColor="#A6FF98"
+           width={StepContainerConfig.settings.width}
+           titleWidth={StepContainerConfig.settings.titleWidth}
+         >
+         
+    <PreferencesSection>
+    <AssignmentName
+      value={assignmentName}
+      onChange={setAssignmentName}
+    />
+    
+ 
+    <DateSettings
+           assignDate={assignDate}
+           setAssignDate={setAssignDate}
+           dueDate={dueDate}
+           setDueDate={setDueDate}
+         />
+ 
+    <TimerSection
+      timerOn={timerOn}
+      timer={timer}
+      onTimerChange={setTimer}
+      onToggle={() => setTimerOn(!timerOn)}
+    />
+    
+  
+    <ToggleSwitch
+        label="Feedback"
+        value={feedback}
+        onChange={setFeedback}
+      />
+      <ToggleSwitch
+        label="Retype"
+        value={retype}
+        onChange={setRetype}
+      />
+    
+      
+              <ChoicesPerQuestion
+     selectedOptions={selectedOptions}
+     onChange={setSelectedOptions}
+   />
+  </PreferencesSection>
+ 
+ 
+            
+         
+ 
+ 
+  <SecuritySettings
+   saveAndExit={saveAndExit}
+   setSaveAndExit={setSaveAndExit}
+   lockdown={lockdown}
+   setLockdown={setLockdown}
+   onViolation={onViolation}
+   setOnViolation={setOnViolation}
+ />
+ 
+ </StepContainer>
+ 
+ 
+ 
+ 
+ 
+  </div>
+     )}
+ 
+     {currentStep === 2 && (
+       <div style={{width: '900px',  height: '500px',marginLeft: 'auto', marginRight: 'auto', marginTop: '50px', position: 'relative'}}>
+ 
+ 
+ <StepPreviewCards
+   currentStep={currentStep}
+   canProgress={isFormValid()}
+   onNextStep={nextStep}
+   onPrevStep={handlePrevious}
+   assignmentName={assignmentName}
+   hasGeneratedQuestions={generatedQuestions.length > 0}
+ />
+ 
+ <StepContainer 
+           title="Select Students" 
+           icon={SquareDashedMousePointer}
+           color="#FFAE00"
+           
+           backgroundColor="#FFEFB9"
+           width={StepContainerConfig.students.width}
+           titleWidth={StepContainerConfig.students.titleWidth}
+         >
+       <SelectStudentsDW
+         classId={classId}
+         selectedStudents={selectedStudents}
+         setSelectedStudents={setSelectedStudents}
+       />
+ 
+     </StepContainer>
+       </div>
+     )}
+ 
+     {currentStep === 3 && (
+      <div style={{width: '900px', height: '500px',marginLeft: 'auto', marginRight: 'auto', marginTop: '50px', position: 'relative'}}>
+ 
+ <StepPreviewCards
+ currentStep={currentStep}
+ canProgress={isFormValid()}
+ onNextStep={nextStep}
+ onPrevStep={handlePrevious}
+ assignmentName={assignmentName}
+ hasGeneratedQuestions={generatedQuestions.length > 0}
+ />
+ <StepContainer 
+           title="Generate Questions" 
+           icon={Sparkles}
+           color="#E01FFF"
+           
+           backgroundColor="#F7C4FF"
+           width={StepContainerConfig.generate.width}
+           titleWidth={StepContainerConfig.generate.titleWidth}
+         >
+        
+ 
+ 
+ 
+     
+ 
+           
+ 
+               <div style={{ width: '700px', marginLeft: '10px', marginTop: '-40px'}}>
+            
+ <SourcePreviewToggle
+ sourceText={sourceText}
+ onSourceChange={setSourceText}
+ additionalInstructions={additionalInstructions}
+ onAdditionalInstructionsChange={setAdditionalInstructions}
+ onPreviewClick={handleGenerateQuestions}
+ onGenerateClick={handleGenerateQuestions}
+ generating={generating}
+ generatedQuestions={generatedQuestions}
+ progress={progress}
+ progressText={progressText}
+ />
+ 
+ </div>
+ </StepContainer>
+ 
+ 
+ </div>
+     )}
+ 
+     {currentStep === 4 && (
+        <div style={{width: '900px',  height: '500px',marginLeft: 'auto', marginRight: 'auto', marginTop: '50px', position: 'relative'}}>
+ 
+        <StepPreviewCards
+        currentStep={currentStep}
+        canProgress={isFormValid()}
+        onNextStep={nextStep}
+        onPrevStep={handlePrevious}
+        assignmentName={assignmentName}
+        hasGeneratedQuestions={generatedQuestions.length > 0}
+        />
+      {/* Step 4: Preview */}
+      <PreviewMCQ
+        questions={generatedQuestions}
+        onBack={() => setCurrentStep(3)} // Navigate back to Generate Questions
+        onSave={handleSaveQuestions}
+        assignmentId={draftId || assignmentId} // Pass assignmentId for saving
+        showCloseButton={false} // Hide the close button in stepper flow
+      />
+    
+    </div>
+  )}
+      
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
       <div style={{ marginTop: '150px', width: '800px', padding: '15px', marginLeft: 'auto', marginRight: 'auto', fontFamily: "'montserrat', sans-serif", background: 'white', borderRadius: '25px', 
                boxShadow: '1px 1px 10px 1px rgb(0,0,155,.1)', marginBottom: '40px' }}>

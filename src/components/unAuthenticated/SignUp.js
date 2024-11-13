@@ -4,7 +4,7 @@ import { db, auth } from "../Universal/firebase"; // Adjust the path to your fir
 import { Link, useNavigate } from 'react-router-dom'; // Import the navigate hook
 import './BackgroundDivs.css'; // Import the CSS file
 import { doc, setDoc, serverTimestamp, getDoc, updateDoc } from "firebase/firestore"; 
-import { SquareCheck, SquareX } from 'lucide-react';
+import { BookOpenText, GraduationCap, SquareCheck, SquareX } from 'lucide-react';
 
 const SignUp = () => {
   // State Variables
@@ -23,6 +23,9 @@ const SignUp = () => {
   const [referralError, setReferralError] = useState('');
   const [isEmailValid, setIsEmailValid] = useState(true);
   const [allCriteriaMet, setAllCriteriaMet] = useState(false);
+  const [isPasswordFocused, setIsPasswordFocused] = useState(false);
+const [isConfirmPasswordFocused, setIsConfirmPasswordFocused] = useState(false);
+
   const [inputValidation, setInputValidation] = useState({
     firstName: false,
     lastName: false,
@@ -44,6 +47,115 @@ const SignUp = () => {
     confirmPassword: false,
   });
 
+  
+  const PasswordCriteria = ({ passwordCriteria, allCriteriaMet }) => (
+    <div style={{
+      position: 'absolute',
+      top: '48px',
+      backgroundColor: 'white',
+      width: '380px',
+      zIndex: '10',
+      padding: '16px',
+      borderRadius: '8px',
+      boxShadow: '1px 1px 5px 1px rgb(0,0,155,.1)'
+    }}>
+      <h1 style={{ 
+        fontSize: '16px',
+        fontWeight: '600',
+        marginTop: '0',
+        marginBottom: '16px',
+        color: 'grey'
+      }}>
+        Password Criteria
+      </h1>
+      
+      {/* First row: Length and Number */}
+      <div style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        marginBottom: '12px'
+      }}>
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          width: '50%'
+        }}>
+          {passwordCriteria.length ? (
+            <SquareCheck size={20} style={{ color: '#2BB514' }} />
+          ) : (
+            <SquareX size={20} style={{ color: '#D3D3D3' }} />
+          )}
+          <span style={{ 
+            marginLeft: '8px',
+            color: passwordCriteria.length ? '#2BB514' : '#D3D3D3'
+          }}>
+            8+ characters
+          </span>
+        </div>
+        
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          width: '50%'
+        }}>
+          {passwordCriteria.number ? (
+            <SquareCheck size={20} style={{ color: '#2BB514' }} />
+          ) : (
+            <SquareX size={20} style={{ color: '#D3D3D3' }} />
+          )}
+          <span style={{ 
+            marginLeft: '8px',
+            color: passwordCriteria.number ? '#2BB514' : '#D3D3D3'
+          }}>
+            Number
+          </span>
+        </div>
+      </div>
+      
+      {/* Second row: Uppercase and Lowercase */}
+      <div style={{
+        display: 'flex',
+        justifyContent: 'space-between'
+      }}>
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          width: '50%'
+        }}>
+          {passwordCriteria.uppercase ? (
+            <SquareCheck size={20} style={{ color: '#2BB514' }} />
+          ) : (
+            <SquareX size={20} style={{ color: '#D3D3D3' }} />
+          )}
+          <span style={{ 
+            marginLeft: '8px',
+            color: passwordCriteria.uppercase ? '#2BB514' : '#D3D3D3'
+          }}>
+            Uppercase letter
+          </span>
+        </div>
+        
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          width: '50%'
+        }}>
+          {passwordCriteria.lowercase ? (
+            <SquareCheck size={20} style={{ color: '#2BB514' }} />
+          ) : (
+            <SquareX size={20} style={{ color: '#D3D3D3' }} />
+          )}
+          <span style={{ 
+            marginLeft: '8px',
+            color: passwordCriteria.lowercase ? '#2BB514' : '#D3D3D3'
+          }}>
+            Lowercase letter
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+  
   // Utility Functions
   const validateEmail = (email) => {
     const re = /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
@@ -217,7 +329,7 @@ const SignUp = () => {
       height: '100vh', 
       display: 'flex', 
       flexDirection: 'column', 
-      backgroundColor: '#fcfcfc',
+      backgroundColor: '#white',
       backdropFilter: 'blur(7px)'
     }}>
   
@@ -304,14 +416,13 @@ const SignUp = () => {
 
       {/* Sign-Up Form Container */}
       <div style={{
-        width: '400px', 
+        width: '390px', 
         marginLeft: 'auto', 
         height: 'auto', 
-        marginTop: '120px', 
+        marginTop: '100px', 
         marginRight: 'auto',  
         backgroundColor: 'white',
-        padding: '40px 30px', 
-        boxShadow: '1px 1px 5px 1px rgb(0,0,155,.07)', 
+        padding: '0px 30px', 
         borderRadius: '30px',
         display: 'flex',
         flexDirection: 'column',
@@ -319,40 +430,25 @@ const SignUp = () => {
       }}>
         
         {/* Form Header */}
-        <div style={{
-          background: '#AEF2A3', 
-          border: '10px solid #2AD00E', 
-          margin: '-40px -30px 30px -30px', 
-          height: '70px', 
-          borderRadius: '30px 30px 0px 0px', 
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center'
-        }}>
+      
           <h1 style={{ 
-            fontWeight: 'Bold',
-            color: '#2AD00E', 
+            fontWeight: '600',
+            color: 'black', width: '100%', 
+            textAlign: 'left',
             fontSize: '40px', 
             fontFamily: "'montserrat', sans-serif", 
-            margin: '0'
+        
           }}>
-            Create Account +
+            Sign Up
           </h1>
-        </div>
+    
 
         {/* Sign-Up Form */}
         <form onSubmit={handleSignUp} style={{ width: '100%' }}> 
           
           {/* Role Selection */}
-          <div style={{marginBottom: '30px', display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
-            <h1 style={{ 
-              fontFamily: "'montserrat', sans-serif", 
-              fontWeight: '600', 
-              fontSize: '25px', 
-              marginBottom: '10px' 
-            }}>
-              Select Role:
-            </h1>
+          <div style={{marginBottom: '45px', display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
+       
             <div style={{ 
               display: 'flex', 
               justifyContent: 'center', 
@@ -360,53 +456,54 @@ const SignUp = () => {
               width: '100%', 
               maxWidth: '400px'
             }}>
-              <button 
+             <button 
                 type="button"
                 onClick={() => toggleRole('student')}
                 style={{ 
                   flex: 1, 
-                  padding: '10px 0',
-                  backgroundColor: role === 'student' ? '#FFEC87' : 'transparent',
-                  color:   role === 'student' ? '#FC8518' : 'grey',
-                  borderColor: role === 'student' ? '#FC8518' : 'transparent',
-                  borderWidth: '3px',
-                  borderStyle: 'solid',
+                  height: '30px',
+                  backgroundColor: role === 'student' ? '#FFF5DE' : '#F8F8F8',
+                  color:   role === 'student' ? '#FFAE00' : 'grey',
+                  border: 'none',
                   fontSize: '20px', 
                   fontWeight: '600',
                   cursor: 'pointer',
                   fontFamily: "'montserrat', sans-serif",
-                  borderRadius: '10px',
+                  display: 'flex',
+
                   transition: '.2s',
                 }}
               >
-                Student
+                <BookOpenText size={24} style={{padding: '3px',    backgroundColor: role === 'student' ? '#FFAE00' : '#D2D2D2', color: 'white', marginTop: '-1px', marginLeft: '-10px'}}/>
+                <h1 style={{fontWeight: '600', fontSize: '20px', marginTop: '2px', marginLeft: "10px"}}>Student</h1>
               </button>
               <button 
                 type="button"
                 onClick={() => toggleRole('teacher')}
                 style={{ 
                   flex: 1, 
-                  padding: '10px 0',
-                  backgroundColor: role === 'teacher' ? '#C2D3FF' : 'transparent',
+                  height: '30px',
+                  backgroundColor: role === 'teacher' ? '#C2D3FF' : '#F8F8F8',
                   color:   role === 'teacher' ? '#020CFF' : 'grey',
-                  borderColor: role === 'teacher' ? '#020CFF' : 'transparent',
-                  borderWidth: '3px',
-                  borderStyle: 'solid',
+                  border: 'none',
                   fontSize: '20px', 
+                  marginRight: '-20px',
                   fontWeight: '600',
                   cursor: 'pointer',
                   fontFamily: "'montserrat', sans-serif",
-                  borderRadius: '10px',
+                  display: 'flex',
+
                   transition: '.2s',
                 }}
               >
-                Teacher
+                <GraduationCap size={24} style={{padding: '3px',    backgroundColor: role === 'teacher' ? '#020CFF' : '#D2D2D2', color: 'white', marginTop: '-1px', marginLeft: '-10px'}}/>
+                <h1 style={{fontWeight: '600', fontSize: '20px', marginTop: '2px', marginLeft: "10px"}}>Teacher</h1>
               </button>
             </div>
           </div>
 
           {/* First Name */}
-          <div style={{ position: 'relative', marginBottom: '25px' }}>
+          <div style={{ position: 'relative', marginBottom: '45px' }}>
             <input 
               type="text" 
               value={firstName}
@@ -423,15 +520,13 @@ const SignUp = () => {
               placeholder=" " // To ensure the input remains styled
               style={{ 
                 width: '100%', 
-                padding: '15px 10px 10px 10px', 
-                border: '2px solid lightgrey', 
+                padding: '8px 10px 8px 10px', 
+                border: '1px solid lightgrey', 
                 color: 'black',
                 fontWeight: '600',
                 borderRadius: '8px', 
                 outline: 'none', 
-                backdropFilter: 'blur(7px)',
-                fontSize: '20px',
-                backgroundColor: 'rgb(250,250,250,.5)', 
+                fontSize: '16px',
                 fontFamily: "'montserrat', sans-serif",
                 position: 'relative'
               }}
@@ -439,8 +534,7 @@ const SignUp = () => {
             {/* Label */}
             <label style={{ 
               position: 'absolute', 
-              top: '-10px', 
-              left: '10px', 
+              top: '-25px', 
               backgroundColor: 'white', 
               padding: '0 5px', 
               fontFamily: "'montserrat', sans-serif", 
@@ -458,7 +552,7 @@ const SignUp = () => {
           </div>
 
           {/* Last Name */}
-          <div style={{ position: 'relative', marginBottom: '25px' }}>
+          <div style={{ position: 'relative', marginBottom: '45px' }}>
             <input 
               type="text" 
               value={lastName}
@@ -475,15 +569,13 @@ const SignUp = () => {
               placeholder=" "
               style={{ 
                 width: '100%', 
-                padding: '15px 10px 10px 10px', 
-                border: '2px solid lightgrey', 
+                padding: '8px 10px 8px 10px', 
+                border: '1px solid lightgrey', 
                 color: 'black',
                 fontWeight: '600',
                 borderRadius: '8px', 
                 outline: 'none', 
-                backdropFilter: 'blur(7px)',
-                fontSize: '20px',
-                backgroundColor: 'rgb(250,250,250,.5)', 
+                fontSize: '16px',
                 fontFamily: "'montserrat', sans-serif",
                 position: 'relative'
               }}
@@ -491,8 +583,7 @@ const SignUp = () => {
             {/* Label */}
             <label style={{ 
               position: 'absolute', 
-              top: '-10px', 
-              left: '10px', 
+              top: '-25px', 
               backgroundColor: 'white', 
               padding: '0 5px', 
               fontFamily: "'montserrat', sans-serif", 
@@ -510,7 +601,7 @@ const SignUp = () => {
           </div>
 
           {/* Email */}
-          <div style={{ position: 'relative', marginBottom: '25px' }}>
+          <div style={{ position: 'relative', marginBottom: '45px' }}>
             <input 
               type="email" 
               value={email}
@@ -529,31 +620,28 @@ const SignUp = () => {
               placeholder=" "
               style={{ 
                 width: '100%', 
-                padding: '15px 10px 10px 10px', 
-                border: '2px solid lightgrey', 
+                padding: '8px 10px 8px 10px', 
+                border: '1px solid lightgrey', 
                 color: 'black',
                 fontWeight: '600',
                 borderRadius: '8px', 
                 outline: 'none', 
-                backdropFilter: 'blur(10px)',
-                fontSize: '20px',
-                backgroundColor: 'rgb(250,250,250,.5)', 
+                fontSize: '16px',
                 fontFamily: "'montserrat', sans-serif",
                 position: 'relative'
               }}
             />
             {/* Label */}
             <label style={{ 
-              position: 'absolute', 
-              top: '-10px', 
-              left: '10px', 
-              backgroundColor: 'white', 
-              padding: '0 5px', 
-              fontFamily: "'montserrat', sans-serif", 
-              fontWeight: '600', 
-              fontSize: '16px', 
-              display: 'flex', 
-              alignItems: 'center' 
+             position: 'absolute', 
+             top: '-25px', 
+             backgroundColor: 'white', 
+             padding: '0 5px', 
+             fontFamily: "'montserrat', sans-serif", 
+             fontWeight: '600', 
+             fontSize: '16px', 
+             display: 'flex', 
+             alignItems: 'center' 
             }}>
               Email
               {inputValidation.email ? 
@@ -563,47 +651,21 @@ const SignUp = () => {
             </label>
           </div>
 
-          {/* Password Criteria */}
-          <div style={{ 
-            display: 'flex', 
-            flexDirection: 'column',
-            backgroundColor: 'transparent',
-            borderRadius: '10px',
-            backdropFilter: 'blur(5px)',
-            justifyContent: 'flex-start', 
-            width: '100%', 
-            marginTop: '-10px', 
-            marginBottom: '25px' 
-          }}>
-            <h1 style={{ 
-              fontFamily: "'montserrat', sans-serif", 
-              fontSize: '16px', 
-              color: allCriteriaMet ? '#91D487' : 'grey',
-              marginBottom: '10px'
-            }}>
-              Password Criteria
-            </h1>
-            {Object.entries(passwordCriteria).map(([criterion, isMet]) => (
-              <div key={criterion} style={{ display: 'flex', alignItems: 'center', fontFamily: "'montserrat', sans-serif", marginBottom: '5px' }}>
-                <div style={{ color: isMet ? '#2BB514' : 'grey', marginRight: '5px' }}>
-                  {isMet ? <SquareCheck size={20} style={{marginTop: '2px'}}/> : <SquareX size={20} style={{marginTop: '2px'}}/>}
-                </div>
-                <span style={{ color: isMet ? '#2BB514' : 'grey', fontSize: '16px' }}>
-                  {criterion === 'length' ? '8+ characters' : 
-                   criterion === 'uppercase' ? 'Uppercase letter' :
-                   criterion === 'lowercase' ? 'Lowercase letter' : 'Number'}
-                </span>
-              </div>
-            ))}
-          </div>
+        
 
           {/* Password */}
-          <div style={{ position: 'relative', marginBottom: '25px' }}>
+          <div style={{ position: 'relative', marginBottom: '45px' }}>
             <input 
               type="password" 
               value={password}
-              onFocus={() => handleInputFocus('password')}
-              onBlur={(e) => handleInputBlur('password', e.target.value)}
+              onFocus={() => {
+                handleInputFocus('password');
+                setIsPasswordFocused(true);
+              }}
+              onBlur={(e) => {
+                handleInputBlur('password', e.target.value);
+                setIsPasswordFocused(false);
+              }}
               onChange={e => {
                 const newPassword = e.target.value;
                 setPassword(newPassword);
@@ -612,32 +674,29 @@ const SignUp = () => {
               }}
               placeholder=" "
               style={{ 
-                width: '100%',  
-                padding: '15px 10px 10px 10px', 
-                border: '2px solid lightgrey', 
+                width: '100%', 
+                padding: '8px 10px 8px 10px', 
+                border: '1px solid lightgrey', 
                 color: 'black',
+                fontWeight: '600',
                 borderRadius: '8px', 
                 outline: 'none', 
-                fontWeight: '600',
-                backdropFilter: 'blur(7px)',
-                fontSize: '20px',
-                backgroundColor: 'rgb(255,255,255,.5)', 
+                fontSize: '16px',
                 fontFamily: "'montserrat', sans-serif",
                 position: 'relative'
               }}
             />
             {/* Label */}
             <label style={{ 
-              position: 'absolute', 
-              top: '-10px', 
-              left: '10px', 
-              backgroundColor: 'white', 
-              padding: '0 5px', 
-              fontFamily: "'montserrat', sans-serif", 
-              fontWeight: '600', 
-              fontSize: '16px', 
-              display: 'flex', 
-              alignItems: 'center' 
+            position: 'absolute', 
+            top: '-25px', 
+            backgroundColor: 'white', 
+            padding: '0 5px', 
+            fontFamily: "'montserrat', sans-serif", 
+            fontWeight: '600', 
+            fontSize: '16px', 
+            display: 'flex', 
+            alignItems: 'center'  
             }}>
               Password
               {inputValidation.password ? 
@@ -645,6 +704,10 @@ const SignUp = () => {
                 <SquareX size={20} style={{marginLeft: '10px', color: 'lightgrey'}}/>
               }
             </label>
+            {isPasswordFocused && (
+  <PasswordCriteria passwordCriteria={passwordCriteria} allCriteriaMet={allCriteriaMet} />
+)}
+
           </div>
 
           {/* Confirm Password */}
@@ -652,8 +715,12 @@ const SignUp = () => {
             <input 
               type="password" 
               value={confirmPassword}
-              onFocus={() => handleInputFocus('confirmPassword')}
-              onBlur={(e) => handleInputBlur('confirmPassword', e.target.value)}
+              onFocus={() => {
+                handleInputFocus('confirmPassword');
+              }}
+              onBlur={(e) => {
+                handleInputBlur('confirmPassword', e.target.value);
+              }}
               onChange={e => {
                 setConfirmPassword(e.target.value);
                 setPasswordsMatch(e.target.value === password);
@@ -665,35 +732,28 @@ const SignUp = () => {
               placeholder=" "
               style={{ 
                 width: '100%', 
-                padding: '15px 10px 10px 10px', 
-                fontWeight: '600',
-                border: '2px solid lightgrey', 
+                padding: '8px 10px 8px 10px', 
+                border: '1px solid lightgrey', 
                 color: 'black',
+                fontWeight: '600',
                 borderRadius: '8px', 
                 outline: 'none', 
-                backdropFilter: 'blur(7px)',
-                fontSize: '20px',
-                backgroundColor: 'rgb(255,255,255,.5)', 
+                fontSize: '16px',
                 fontFamily: "'montserrat', sans-serif",
                 position: 'relative'
               }}
             />
             {/* Label */}
             <label style={{ 
-              position: 'absolute', 
-              top: '-10px', 
-              left: '10px', 
-              backgroundColor: 'white', 
-              padding: '0 5px',  
-              borderTopRightRadius: '3px', 
-              borderTopLeftRadius: '3px', 
-              zIndex: '20',
-              fontFamily: "'montserrat', sans-serif", 
-              fontWeight: '600', 
-              height: '13px', 
-              fontSize: '16px', 
-              display: 'flex', 
-              alignItems: 'center' 
+            position: 'absolute', 
+            top: '-25px', 
+            backgroundColor: 'white', 
+            padding: '0 5px', 
+            fontFamily: "'montserrat', sans-serif", 
+            fontWeight: '600', 
+            fontSize: '16px', 
+            display: 'flex', 
+            alignItems: 'center' 
             }}>
               Confirm Password
               {inputValidation.confirmPassword ? 
@@ -701,6 +761,9 @@ const SignUp = () => {
                 <SquareX size={20} style={{marginLeft: '10px', color: 'lightgrey'}}/>
               }
             </label>
+
+
+
           </div>
 
           {/* Passwords Match Error */}
@@ -727,15 +790,15 @@ const SignUp = () => {
                     maxWidth: '400px',
                     height: '50px',
                     fontSize: '25px',
-                    color: role === 'student' ? '#FC8518' : 'blue',
+                    color: role === 'student' ? 'white' : 'white',
                     border: '4px solid',
                     borderRadius: '10px',
-                    backgroundColor: role === 'student' ? '#FFEC87' : '#A9B7FF',
-                    fontWeight: 'bold',
+                    backgroundColor: role === 'student' ? '#FFAE00' : 'blue',
+                    fontWeight: '600',
                     fontFamily: "'montserrat', sans-serif",
                     transition: '.3s',
                     cursor: 'pointer',
-                    marginBottom: '20px'
+                    marginBottom: '10px'
                   }}
                   onMouseEnter={(e) => {
                     if (isFormComplete()) {
@@ -749,13 +812,13 @@ const SignUp = () => {
                     }
                   }}
                 >
-                  Create Account <span style={{fontSize: '16px', lineHeight: '10px'}}>({role})</span>
+                 Sign Up
                 </button>
                 <p style={{ 
                   fontFamily: "'montserrat', sans-serif", 
                   color: 'black', 
-                  fontSize: '20px', 
-                  textAlign: 'center',
+                  fontSize: '14px', 
+                  textAlign: 'left',
                   maxWidth: '400px'
                 }}>
                   By signing up you agree to SquareScore's <a href="/TermsofService" style={{ color: 'blue' }}>Terms of Service</a> and <a href="/PrivacyPolicy" style={{ color: 'blue' }}>Privacy Policy</a>

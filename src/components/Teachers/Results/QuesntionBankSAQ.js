@@ -5,7 +5,8 @@ import { SquareX, CornerDownRight, Repeat, SquarePlus, ClipboardMinus, Clipboard
 import { collection, doc, getDocs, query, updateDoc, where } from 'firebase/firestore';
 import { db } from '../../Universal/firebase';
 import { useNavigate, useParams } from 'react-router-dom';
-
+import QuestionResultsModal from './QuestionResultsModal';
+import QuestionResults from './QuestionResultsSAQ';
 const QuestionBankSAQ = ({ questionsWithIds, setQuestionsWithIds, sourceText, questionCount, classId, teacherId, assignmentId }) => {
   const containerRef = useRef(null);
   const [questionStats, setQuestionStats] = useState({});
@@ -19,8 +20,8 @@ const QuestionBankSAQ = ({ questionsWithIds, setQuestionsWithIds, sourceText, qu
   const [questionData, setQuestionData] = useState(null);
   const [showResponseMap, setShowResponseMap] = useState({});
   const [showRubric, setShowRubric] = useState(false);
-  const [loading, setLoading] = useState(true);
-
+  const [loading, setLoading] = useState(true);const [selectedQuestionId, setSelectedQuestionId] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const updateQuestionContent = async (newQuestion, newRubric) => {
     try {
       // Get all grade documents for this assignment
@@ -235,51 +236,51 @@ const QuestionBankSAQ = ({ questionsWithIds, setQuestionsWithIds, sourceText, qu
     };
   }, [calculateQuestionStats, questionsWithIds, classId, assignmentId]);
 
-  // Render the statistics badge
   const renderStatsBadge = (questionId) => {
     const percentage = questionStats[questionId];
     if (percentage === null) return null;
-
-    // Determine color based on percentage
-    let backgroundColor = '#f4f4f4';
-    let textColor = 'grey';
-    let borderColor = 'lightgrey';
-
-    if (percentage >= 80) {
-      textColor = '#2BB514';
-    } else if (percentage >= 60) {
-      textColor = '#FFA500';
-    } else if (percentage < 60) {
-      textColor = '#FF0000';
-    }
+  
+    let textColor = '#2BB514';
+    if (percentage < 80) textColor = '#FFA500';
+    if (percentage < 60) textColor = '#FF0000';
+  
     return (
-      <button   onClick={() => navigate(`/questionResults/${assignmentId}/${questionId}`)}
-      
-      style={{
-        position: 'absolute',
-        right: '-50px',
-        top: '50%',
-        height: '30px',
-        transform: 'translateY(-50%)',
-        borderRadius: '8px',
-        fontSize: '16px',
-        fontWeight: '600',
-        background: 'white', border: 'none',
-        display: 'flex',
-        lineHeight: '10px',
-        color: textColor,
-        
-        cursor: 'pointer', 
-        minWidth: '40px',
-        textAlign: 'center'
-      }}>
-        <p style={{marginTop: '8px',  fontFamily: "'montserrat', sans-serif", width: '40px', textAlign: 'left'}}>{percentage}%</p> 
+      <button
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          console.log('Opening modal for question:', questionId); // Debug log
+          setSelectedQuestionId(questionId);
+          setIsModalOpen(true);
+        }}
+        style={{
+          position: 'absolute',
+          right: '4%',
+          top: '50%',
+          height: '30px',
+          transform: 'translateY(-50%)',
+          borderRadius: '8px',
+          fontSize: '16px',
+          fontWeight: '600',
+          background: 'white',
+          border: 'none',
+          display: 'flex',
+          lineHeight: '10px',
+          color: textColor,
+          cursor: 'pointer',
+          minWidth: '40px',
+          textAlign: 'center'
+        }}>
+        <p style={{
+          marginTop: '8px',
+          fontFamily: "'montserrat', sans-serif",
+          width: '40px',
+          textAlign: 'left'
+        }}>{percentage}%</p>
         <ArrowRight size={20} style={{marginTop: '3px', marginLeft: '0px'}}/>
       </button>
     );
   };
-
-
 
   const sortedQuestions = useMemo(() => {
     return [...questionsWithIds].sort((a, b) =>
@@ -289,35 +290,25 @@ const QuestionBankSAQ = ({ questionsWithIds, setQuestionsWithIds, sourceText, qu
 
   
   return (
-    <div style={{
-      width: '900px',
-      height: '550px',
-      marginTop: '80px',
-      border: '10px solid white',
-      boxShadow: '1px 1px 5px 1px rgb(0,0,155,.07)',
-      background: 'RGB(255,255,255,)',
-      backdropFilter: 'blur(5px)',
-      borderRadius: '20px',
-      padding: '20px',
-      marginLeft: 'auto',
-      marginRight: 'auto',
-      position: 'relative',
-    }}>
-      <div style={{
-        width: '940px',
-        backgroundColor: '#FCD3FF',
-        marginLeft: '-30px',
-        display: 'flex',
-        height: '60px',
-        border: '10px solid #D800FB',
-        borderTopRightRadius: '20px',
-        borderTopLeftRadius: '20px',
-        marginTop: '-30px'
-      }}>
-        <h1 style={{ fontSize: '40px', fontFamily: "'montserrat', sans-serif", color: '#D800FB', marginLeft: '40px', marginTop: '5px', }}>Question Bank</h1>
-      </div>
+   
+      <div ref={containerRef} style={{ width: '100%', marginTop: '-20px'}}>
+
+<QuestionResultsModal
+      isOpen={isModalOpen}
+      onClose={() => {
+        setIsModalOpen(false);
+        setSelectedQuestionId(null);
+      }}
+    >
+      {selectedQuestionId && (
+        <QuestionResults
+          assignmentId={assignmentId}
+          questionId={selectedQuestionId}
+          inModal={true}
+        />
+      )}
+    </QuestionResultsModal>
     
-      <div ref={containerRef} style={{ height: '500px', overflowY: 'auto', width: '960px', marginLeft: '-30px', }}>
       {sortedQuestions.map((question, index) => {
           const isEditing = editingQuestions[question.questionId];
           const showRubric = showRubrics[question.questionId];
@@ -326,20 +317,20 @@ const QuestionBankSAQ = ({ questionsWithIds, setQuestionsWithIds, sourceText, qu
             padding: '15px',
             paddingRight: '8%',
             fontFamily:  isEditing ? "default": "'montserrat', sans-serif",
-            fontWeight: '600',
+            fontWeight: '500',
             fontSize: '20px',
             borderRadius: '0px 10px 10px 0px',
-            width: '560px',
+            width: 'calc(70% - 40px)',
             resize: 'none',
             lineHeight: '1.2',
             background: isEditing ? 'white' : 'white', // Light background when editing
           };
 
           const rubricTextareaStyle = {
-            width: '585px',
-            border: '4px solid #F4F4F4',
+            width: '70%',
+            border: '0px solid #F4F4F4',
             padding: '15px',
-            fontWeight: '600',
+            fontWeight: '500',
             color: 'grey',
             outline: 'none',
             fontSize: '14px',
@@ -354,18 +345,22 @@ const QuestionBankSAQ = ({ questionsWithIds, setQuestionsWithIds, sourceText, qu
               padding: '0px',
               
 
-              marginTop: '10px',
-              marginBottom: '0px',
-              borderBottom: '2px solid #f4f4f4',
-              width: '870px',
-              marginLeft: '50px',
+              marginTop: '20px',
+              marginBottom: '20px',
+              
+              paddingBottom: '10px',
+              paddingLeft: '4%',
+              
+              paddingRight: '4%',
+              borderBottom: '1px solid lightgrey',
+              width: '92%',
               position: 'relative',
               display: 'flex',
               flexDirection: 'column',
             }}>
               {/* Question section */}
               <div style={{
-                width: '820px',
+                width: '100%',
                 borderRadius: '10px',
                 display: 'flex',
                 fontSize: '12px',
@@ -386,7 +381,7 @@ const QuestionBankSAQ = ({ questionsWithIds, setQuestionsWithIds, sourceText, qu
                   alignSelf: 'stretch',
                   position: 'relative',
                 }}>
-                  <h1 style={{ margin: 'auto' }}>{index + 1}. </h1>
+                  <h1 style={{ margin: 'auto', fontWeight: '600'}}>{index + 1}. </h1>
                 
                 </div>
                 
@@ -404,16 +399,15 @@ const QuestionBankSAQ = ({ questionsWithIds, setQuestionsWithIds, sourceText, qu
                   </div>
                 )}
     
-
-                {/* Rubric toggle button */}
-                <button
+    <button
                   onClick={() => toggleRubric(question.questionId)}
                   style={{
                     position: 'absolute',
                     transform: 'translatey(-50%)',
                     top: '50%',
+                    
+                    right: '17%',
                     cursor: 'pointer', 
-                    right: '80px',
                     fontSize: '20px',
                     background: 'white',
                     border: '0px solid lightgrey',
@@ -434,11 +428,12 @@ const QuestionBankSAQ = ({ questionsWithIds, setQuestionsWithIds, sourceText, qu
                   onClick={() => handleEditQuestionToggle(question.questionId)}
                   style={{
                     position: 'absolute',
-                    right: '40px',
+                    
+                    right: '14%',
                     transform: 'translatey(-50%)',
                     top: '50%',
                     fontSize: '20px',
-                    zIndex: '10',
+                    zIndex: '1',
                     height: '25px',
                     width: '25px',
                     borderRadius: '6px',
@@ -451,6 +446,8 @@ const QuestionBankSAQ = ({ questionsWithIds, setQuestionsWithIds, sourceText, qu
                   {isEditing ?  <PencilOff size={20} color={ 'grey'} strokeWidth={2} /> :  <Pencil size={20} color={ 'grey'} strokeWidth={2} />}   
                   </div>
                 </button>
+                {/* Rubric toggle button */}
+              
                
                 {renderStatsBadge(question.questionId)}
 
@@ -486,16 +483,16 @@ const QuestionBankSAQ = ({ questionsWithIds, setQuestionsWithIds, sourceText, qu
                   )}
 
                   <div style={{ marginLeft: '100px' }}>
-                    <CornerDownRight size={40} color="#c9c9c9" strokeWidth={3} />
+                    <CornerDownRight size={40} color="#c9c9c9" strokeWidth={2} />
                   </div>
                   <div style={{
                     width: '30px',
                     padding: '8px',
-                    background: '#f4f4f4',
-                    border: '4px solid lightgrey',
+                    background: 'white',
+                    border: '4px solid white',
                     color: 'grey',
                     zIndex: '10',
-                    marginLeft: '20px',
+                    marginLeft: '0px',
                     borderRadius: '10px 0px 0px 10px',
                     display: 'flex',
                     justifyContent: 'center',
@@ -521,8 +518,10 @@ const QuestionBankSAQ = ({ questionsWithIds, setQuestionsWithIds, sourceText, qu
             </div>
           );
         })}
-      </div>
-    </div>
+          
+  </div>
+  
+ 
   );
 };
 

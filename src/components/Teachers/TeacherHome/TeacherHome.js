@@ -179,9 +179,9 @@ const handleCreateClass = async (e, period, classChoice) => {
  
  
   return (
-    <div style={{  display: 'flex', flexDirection: 'column', backgroundColor: '#FCFCFC', flexWrap: 'wrap' }}>
+    <div style={{  display: 'flex', flexDirection: 'column', backgroundColor: '#white', flexWrap: 'wrap' }}>
      <HomeNavbar userType="teacher" />
-      <main style={{ flexGrow: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: '10px', backgroundColor: '#FCFCFC', marginBottom: '230px' }}>
+      <main style={{ flexGrow: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: '10px', backgroundColor: '#white', marginBottom: '230px' }}>
         {loading && <p>Loading...</p>}
         {error && <p>Error: {error.message}</p>}
 
@@ -191,7 +191,7 @@ const handleCreateClass = async (e, period, classChoice) => {
          flexWrap:'wrap', 
          width: '1000px',
          fontFamily: "'montserrat', sans-serif",
-          backgroundColor: '#FCFCFC',
+          backgroundColor: '#white',
           
           marginLeft: 'auto',
           marginRight: 'auto'

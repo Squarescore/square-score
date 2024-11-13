@@ -4,7 +4,7 @@ import axios from 'axios';
 
 import { v4 as uuidv4 } from 'uuid'; // Add this import at the top
 
-import { SquareX, CornerDownRight, Repeat, SquarePlus, Clipboard, ClipboardMinus, ClipboardList, SquareArrowLeft } from 'lucide-react';
+import { SquareX, CornerDownRight, Repeat, SquarePlus, Clipboard, ClipboardMinus, ClipboardList, SquareArrowLeft, Eye } from 'lucide-react';
 const TeacherPreview = ({ questionsWithIds, setQuestionsWithIds, sourceText, questionCount, classId, teacherId }) => {
   const containerRef = useRef(null);
   const [showRegenerateDropdown, setShowRegenerateDropdown] = useState(false);
@@ -109,7 +109,7 @@ const TeacherPreview = ({ questionsWithIds, setQuestionsWithIds, sourceText, que
   return (
     <div style={{
       width: '700px',
-      height: '550px',
+      height: '450px',
       zIndex: '10',
       position: 'absolute',  top:'-60px', position: 'absolute' , left:' 50%', transform: 'translatex(-50%) ',fontFamily: "'montserrat', sans-serif",
 
@@ -119,19 +119,33 @@ const TeacherPreview = ({ questionsWithIds, setQuestionsWithIds, sourceText, que
       borderRadius: '20px',
       padding: '20px',
     }}>
-      <div style={{
-        width: '740px',
-        backgroundColor: '#FCD3FF',
-        marginLeft: '-30px',
-        display: 'flex',
-        height: '60px',
-        border: '10px solid #D800FB',
-        borderTopRightRadius: '20px',
-        borderTopLeftRadius: '20px',
-        marginTop: '-30px'
-      }}>
-        <h1 style={{fontSize: '40px', fontFamily: "'montserrat', sans-serif", color: '#D800FB', marginLeft: '40px',marginTop: '5px', }}>Question Bank</h1>
-       
+        <div
+        style={{
+          display: 'flex',
+          marginTop: '-60px',
+          width: '740px',
+          marginLeft:'-30px',
+          height: '70px',
+          background: '#C0CAFF',
+          marginBottom: '10px',
+          border: '10px solid #020CFF',
+          borderRadius: '30px 30px 0px 0px ',
+          position: 'relative',
+        }}
+      >
+
+        <h1
+          style={{
+            marginLeft: '40px',
+            fontFamily: "'montserrat', sans-serif",
+            color: '#020CFF',
+            fontSize: '40px',
+            display: 'flex',
+            marginTop: '10px',
+          }}
+        >
+         <Eye size={50} style={{marginLeft: '-20px', marginRight: "20px"}}/> Question Preview{' '}
+        </h1>
       </div>
 
 
@@ -152,20 +166,19 @@ const TeacherPreview = ({ questionsWithIds, setQuestionsWithIds, sourceText, que
                boxShadow: '1px 1px 5px 1px rgb(0,0,155,.07)' ,
           borderTop: '0px solid white',
           borderRadius: '0px 0px 20px 20px',
-          height: '490px'
+          height: '410px'
         }}>
 
-          <h1 style={{marginLeft: '90px', marginTop:'60px'}}>Regenerate</h1>
           <TextareaAutosize
             type="text"
             value={regenerateInput}
             onChange={(e) => setRegenerateInput(e.target.value)}
             placeholder="Enter general adjustments you want made to questions"
             style={{
-              width: '600px',
+              width: '560px',
               marginLeft: '90px',
               height:'100px',
-              marginRight: '40px',
+              marginRight: '40px',marginTop:'40px',
               padding: '10px',
               fontFamily: "'montserrat', sans-serif",
             fontSize: '25px',
@@ -235,8 +248,8 @@ const TeacherPreview = ({ questionsWithIds, setQuestionsWithIds, sourceText, que
 
 
 
-<div style={{display: 'flex', width: '690px', marginLeft: '20px', marginRight: 'auto', marginTop: '20px',  marginBottom: '20px'}}>
-      <h2 style={{color: 'lightgrey', fontSize: '16px', fontWeight: 'bold', width: '300px',  }}>Click to edit Questions and rubrics, </h2>
+<div style={{display: 'flex', width: '650px', marginLeft: '20px', marginRight: 'auto', marginTop: '20px',  marginBottom: '20px'}}>
+      <h2 style={{color: 'lightgrey', fontSize: '14px', fontWeight: 'bold', width: '300px',  }}>Click to edit Questions and rubrics, </h2>
   
         <button
         onClick={handleAddQuestion}
@@ -256,7 +269,7 @@ const TeacherPreview = ({ questionsWithIds, setQuestionsWithIds, sourceText, que
           fontFamily: "'montserrat', sans-serif",
           cursor: 'pointer',
           fontWeight: 'bold',
-          fontSize: '16px'
+          fontSize: '14px'
         }}
       >
         
@@ -294,15 +307,15 @@ const TeacherPreview = ({ questionsWithIds, setQuestionsWithIds, sourceText, que
 
 
       
-        <div ref={containerRef} style={{ height: '400px', overflowY: 'auto', width: '760px', marginLeft: '-40px' }}>
+        <div ref={containerRef} style={{ height: '330px', overflowY: 'auto', width: '760px', marginLeft: '-40px' }}>
         {questionsWithIds.map((question, index) => (
           <div key={index} style={{ 
             padding: '0px', 
             marginTop: '15px',
             marginBottom: '15px',
             borderBottom: '2px solid #f4f4f4', 
-            width: '700px', 
-            marginLeft: '50px', 
+            width: '670px', 
+            marginLeft: '30px', 
             position: 'relative',
             display: 'flex',
             flexDirection: 'column',
@@ -351,12 +364,12 @@ const TeacherPreview = ({ questionsWithIds, setQuestionsWithIds, sourceText, que
         onClick={() => toggleRubric(index)}
         style={{
           position: 'absolute',
-          right: '70px',
+          right: '0px',
           top: '50%',
           transform: 'translateY(-50%)',
           fontSize: '20px', 
-          background: '#f4f4f4',
-          border: '0px solid lightgrey',
+          background: 'white',
+          border: '1px solid #ddd',
           borderRadius: '8px',
           height: '40px',
           width: '40px',
@@ -371,7 +384,9 @@ const TeacherPreview = ({ questionsWithIds, setQuestionsWithIds, sourceText, que
       </button>
       <button 
                 onClick={() => handleDeleteQuestion(index)}
-                style={{position: 'absolute', right: '0px', top: '15px', fontSize: '20px', 
+                style={{position: 'absolute', right: '-40px', 
+                  top: '50%',
+                  transform: 'translateY(-50%)', fontSize: '20px', 
      
             
                   zIndex: '10',

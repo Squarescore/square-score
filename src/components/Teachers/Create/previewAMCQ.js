@@ -152,7 +152,7 @@ const PreviewAMCQ = ({ questions, onBack, onSave, assignmentId, showCloseButton 
       style={{
         width: '800px',
         position: 'absolute', 
-        top:'20px',  left:' 50%', transform: 'translatex(-50%) ',
+        top:'-60px',  left:' 50%', transform: 'translatex(-50%) ',
       height: '480px',
       background:" white",
         boxShadow: '1px 1px 10px 1px rgb(0,0,155,.1)',
@@ -318,12 +318,12 @@ const PreviewAMCQ = ({ questions, onBack, onSave, assignmentId, showCloseButton 
             )}
             <button
               onClick={() => handleEdit(questionIndex)}
-              style={{   cursor: 'pointer', background: '#F4F4F4 ', borderRadius: '10px', border: '0px solid white', padding: '5px 8px'}}
+              style={{   cursor: 'pointer', background: 'white ', border: '1px solid #ddd', borderRadius: '5px',  padding: '5px 6px'}}
             >
               {editingQuestionIndex === questionIndex ? (
-                <PencilOff size={24} color="#757575" strokeWidth={2} />
+                <PencilOff size={20} color="#757575" strokeWidth={2} />
               ) : (
-                <Pencil strokeWidth={2} size={24} color="#757575" />
+                <Pencil strokeWidth={2} size={20} color="#757575" />
               )}
             </button>
           </div>

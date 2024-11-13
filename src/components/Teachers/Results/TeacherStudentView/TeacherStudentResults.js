@@ -304,14 +304,14 @@ const toggleFlag = async (index) => {
 
     return (
         <div style={{   minHeight: '100vh',
-            width: '100%',
-            backgroundColor: '#FCFCFC',
+            width: 'calc(100% - 200px)',
+            marginLeft:'200px',
+            backgroundColor: 'white',
             display: 'flex',
             flexDirection: 'column',
             position: 'relative' }}>
             <Navbar userType="teacher" />
-            <header style={{ backgroundColor: 'white', borderRadius: '10px', color: 'white', marginTop: '80px', height: '14%', display: 'flex', marginBottom: '-46px', alignItems: 'center', justifyContent: 'center', position: 'relative', margin: '1% auto', width: '70%' }}>
-            </header>
+   
 
 
             <div style={{
@@ -378,7 +378,9 @@ const toggleFlag = async (index) => {
             </div>
 
 
-            <div style={{  fontFamily: "'montserrat', sans-serif", backgroundColor: '', width: '870px', zIndex: '20', alignItems: 'center', marginLeft: 'auto', marginRight: 'auto', marginTop: '150px'}}>
+
+
+            <div style={{  fontFamily: "'montserrat', sans-serif", backgroundColor: '', width: '100%', zIndex: '20', alignItems: 'center', marginLeft: 'auto', marginRight: 'auto', marginTop: '0px'}}>
            
            
            
@@ -390,9 +392,9 @@ const toggleFlag = async (index) => {
 
         <div style={{display: 'flex'}}>
             <div style={{display: 'flex',
-               boxShadow: '1px 1px 5px 1px rgb(0,0,155,.07)' , paddingRight: '0px', width: '655px ', borderRadius: '15px', marginBottom: '20px', height: '190px', marginLeft: '-10px',background: 'white' }}>
-       <div style={{marginLeft: '30px', marginBottom: '40px'}}>
-       <h1 style={{ fontSize: '40px', color: 'black', marginBottom: '0px', cursor: 'pointer' , marginLeft: '-5px',fontFamily: "'montserrat', sans-serif", textAlign: 'left',  }}
+           paddingRight: '0px', width: '655px ', borderRadius: '15px', marginBottom: '20px', height: '190px', marginLeft: '4%', }}>
+       <div style={{marginBottom: '40px'}}>
+       <h1 style={{ fontSize: '30px', color: 'black', marginBottom: '0px', cursor: 'pointer' , marginLeft: '-5px',fontFamily: "'montserrat', sans-serif", textAlign: 'left',  }}
               onClick={() => navigate(`/class/${classId}/student/${studentUid}/grades`)}
               onMouseEnter={(e) => { e.target.style.textDecoration = 'underline'; }}
               onMouseLeave={(e) => { e.target.style.textDecoration = 'none'; }}
@@ -406,7 +408,7 @@ const toggleFlag = async (index) => {
        
        onClick={() => navigate(`/class/${classId}/assignment/${assignmentId}/TeacherResults`)}
                              
-       style={{ fontSize: '30px', fontFamily: "'montserrat', sans-serif", textAlign: 'left', color: 'grey', fontWeight: '600', marginTop: '10px', cursor: 'pointer'   }}
+       style={{ fontSize: '16px', fontFamily: "'montserrat', sans-serif", textAlign: 'left', color: 'lightgrey', fontWeight: '600', marginTop: '10px', cursor: 'pointer'   }}
        
        
        onMouseEnter={(e) => { e.target.style.textDecoration = 'underline'; }}
@@ -414,17 +416,17 @@ const toggleFlag = async (index) => {
     > 
         {assignmentName}
       </h1>
-       <h1 style={{ fontSize: '20px', fontFamily: "'montserrat', sans-serif", textAlign: 'left',  color: 'grey', fontWeight: '500', marginTop: '-10px' }}> Submitted: {new Date(results.submittedAt.toDate()).toLocaleString()} </h1>
+       <h1 style={{ fontSize: '16px', fontFamily: "'montserrat', sans-serif", textAlign: 'left',  color: 'grey', fontWeight: '500', marginTop: '30px' }}> {new Date(results.submittedAt.toDate()).toLocaleString()} </h1>
             
         
        </div>
          
 
        </div>
-       <div style={{height: '190px ', position: 'relative', marginLeft:'auto', boxShadow: '1px 1px 5px 1px rgb(0,0,155,.07)' , borderRadius: '15px', width: '190px ', background: 'white'}}>
-       <img style={{ width: '150px', marginLeft: '20px' , marginTop: '23px' }} src="/Score.svg" alt="logo" />
+       <div style={{height: '100px ', position: 'relative', marginLeft:'auto',  borderRadius: '15px', width: '100px ',  marginTop:'30px' ,background: 'white', marginRight: '4%', }}>
+       <img style={{ width: '100px',   }} src="/Score.svg" alt="logo" />
      
-       <div style={{fontSize: '60px', fontWeight: 'bold', width: '150px', height: '150px',position: 'absolute', background: 'transparent',  borderRadius:  '10px', top: '20px', left: '20px', textAlign: 'center', lineHeight: '150px'}}> 
+       <div style={{fontSize: '40px', fontWeight: 'bold', width: '90px', height: '70px',position: 'absolute', background: 'transparent',  borderRadius:  '10px', top: '-25px', left: '5px', textAlign: 'center', lineHeight: '150px'}}> 
        {letterGrade}
 
           </div>
@@ -432,6 +434,22 @@ const toggleFlag = async (index) => {
                    
            </div>
            </div>
+
+           <div style={{width: '100%', background: ' lightgrey', height:'1px', marginTop:'-50px', marginBottom: '40px'}}></div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
            <div style={{display: 'flex', width: '880px', marginTop: '10px'}}>
                <div style={{width: '415px', background: 'white',
                boxShadow: '1px 1px 5px 1px rgb(0,0,155,.07)' , borderRadius: '15px', height: '135px',  padding: '0px 0px', marginLeft: '-10px'}}>
@@ -464,7 +482,10 @@ const toggleFlag = async (index) => {
                        <h1 style={{backgroundColor: 'white', borderRadius: '5px', margin: 'auto', marginLeft: '5px', marginTop: '0px', fontSize: '35px', alignItems: 'center', position: 'relative', fontFamily: "'montserrat', sans-serif" }}>{incorrectCount}</h1>
                    </div>
                    </div>
+                 
                    </div>
+
+
 
 
                    <div style={{width: '435px', background: 'white',
@@ -490,7 +511,7 @@ const toggleFlag = async (index) => {
        
                 
               
-                <ul style={{ listStyle: 'none', padding: '0', marginTop: '0px',  width: '880px',marginLeft: 'auto', marginRight: 'auto', borderRadius: '20px' }}>
+                <ul style={{ listStyle: 'none', padding: '0', marginTop: '0px',  width: '100%',marginLeft: 'auto', marginRight: 'auto', borderRadius: '20px' }}>
                     {results.questions && results.questions.map((question, index) => {
                         const studentResponseLength = (question.studentResponse || "").length;
                         const isShortResponse = studentResponseLength < 50;
@@ -501,17 +522,9 @@ const toggleFlag = async (index) => {
                             <li key={index} 
                                 ref={el => questionRefs.current[index] = el} 
                                 style={{ position: 'relative', fontFamily: "'montserrat', sans-serif", marginBottom: '20px', background: 'white',
-                                    boxShadow: '1px 1px 5px 1px rgb(0,0,155,.07)',  width: '840px', marginRight: 'auto', borderRadius: '20px' , borderBottom: ' 2px solid #f4f4f4',  marginTop: '30px', padding: '20px',  paddingBottom:'35px', marginLeft: '-5px' }}>
+                                     width: '92%', marginRight: 'auto', paddingLeft: '4%',paddingRight: '4%', borderBottom: ' 1px solid lightgrey',  marginTop: '0px',   paddingBottom:'35px', marginLeft: '-5px' }}>
                              <div style={{ display: 'flex', fontFamily: "'montserrat', sans-serif", alignItems: 'center' }}>
-                             <div style={{ position: 'relative', width: '40px', marginTop: '0px' }}>
-            {question.score === results.scaleMax ? (
-                <SquareCheck size={40} color="#00d12a" />
-            ) : question.score === results.scaleMin ? (
-                <SquareX size={40} color="#FF0000" />
-            ) : (
-                <SquareSlash size={40} color="#FFD13B" />
-            )}
-        </div>
+                      
         
         {/* Question Text */}
         <button
@@ -572,9 +585,8 @@ const toggleFlag = async (index) => {
                         padding: '4px',
                         borderRadius: '5px',
                         border: '2px solid',
-                        backgroundColor: question.score === 2 ? '#dcfce7' : 'transparent',
                         color: question.score === 2 ? '#16a34a' : '#9ca3af',
-                        borderColor: question.score === 2 ? '#16a34a' : 'transparent',
+                        borderColor: question.score === 1 ? 'white' : 'white',
                         transition: 'background-color 0.3s, color 0.3s, border-color 0.3s'
                     }}
                 />
@@ -600,9 +612,8 @@ const toggleFlag = async (index) => {
                         padding: '4px',
                         borderRadius: '5px',
                         border: '2px solid',
-                        backgroundColor: question.score === 1 ? '#FFF7DB' : 'transparent',
                         color: question.score === 1 ? '#FFD13B' : '#9ca3af',
-                        borderColor: question.score === 1 ? '#FFD13B' : 'transparent',
+                        borderColor: question.score === 1 ? 'white' : 'white',
                         transition: 'background-color 0.3s, color 0.3s, border-color 0.3s'
                     }}
                 />
@@ -628,9 +639,8 @@ const toggleFlag = async (index) => {
                         padding: '4px',
                         borderRadius: '5px',
                         border: '2px solid',
-                        backgroundColor: question.score === 0 ? '#fee2e2' : 'transparent',
                         color: question.score === 0 ? '#dc2626' : '#9ca3af',
-                        borderColor: question.score === 0 ? '#dc2626' : 'transparent',
+                        borderColor: question.score === 1 ? 'white' : 'white',
                         transition: 'background-color 0.3s, color 0.3s, border-color 0.3s'
                     }}
                 />
@@ -645,9 +655,9 @@ const toggleFlag = async (index) => {
                     cursor: 'pointer',
                     borderRadius: '5px',
                     border: '2px solid',
-                    background: question.flagged ? '#DEE3FF' : 'white',
+                    background:'white',
                     color: question.flagged ? '#020CFF' : '#9ca3af',
-                    borderColor: question.flagged ? '#020CFF' : 'transparent',
+                    borderColor: question.score === 1 ? 'white' : 'white',
                     transition: 'background-color 0.3s, color 0.3s, border-color 0.3s'
                 }}
                 title="Flag this question"
@@ -658,91 +668,54 @@ const toggleFlag = async (index) => {
         </div>
                                 </div>
                                 <div style={{display: 'flex', marginTop: '20px'}}>
-                                    <div style={{
-                                        width: `${studentResponseWidth}px`,
-                                        backgroundColor: 'white',
-                                        position: 'relative',
-                                        borderRadius: '20px',
-                                        display: 'flex',
-                                        border: '4px solid #f4f4f4',
-                                        marginRight: '20px',
-                                    }}>
-                                        <div style={{
-                                            width: '50px',
-                                            position: 'absolute',
-                                            borderRadius: '15px 0px 0px 15px',
-                                            left:'-4px',
-                                            top: '-4px',
-                                            bottom:'-4px',
-                                            background: `${question.score === 2 ? '#AEF2A3' : question.score === 1 ? '#FFDE67' : '#FFD3D3'}`,
-                                            border: `4px solid ${question.score === 2 ? '#20BF00' : question.score === 1 ? '#F4C10A' : '#FF0000'}`, 
-                                            color: `${question.score === 2 ? '#20BF00' : question.score === 1 ? '#E76F00' : '#FF0000'}`, 
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center'
-                                        }}> 
-                                            <User size={40} />
-                                        </div>
+                               
+                                    
                                         <div style={{
                                             flexGrow: 1,
                                             paddingLeft: '30px',
                                             paddingRight: '0px',
                                             marginLeft: '20px',
                                             position: 'relative',
+                                            background: `${question.score === 2 ? '#CCFFC3' : question.score === 1 ? '#FFF5D2' : '#FFCDCD'}`,
+                                            borderLeft: `4px solid ${question.score === 2 ? '#20BF00' : question.score === 1 ? '#F4C10A' : '#FF0000'}`, 
+                                            color: `${question.score === 2 ? '#20BF00' : question.score === 1 ? '#E76F00' : '#FF0000'}`, 
                                             display: 'flex',
                                             alignItems: 'center',
                                             justifyContent: 'center',
-                                            minHeight: '100px',
                                         }}>
                                             <p style={{
                                                 fontSize: '16px',
                                                 fontWeight: '600',
                                                 textAlign: 'left',
                                                 margin: 0,
-                                                width: '88%',
+                                                width: '100%',
                                                 padding: '0px',
                                             }}>
                                                 {question.studentResponse || "Not provided"}
                                             </p>
-                                        </div>
+                              
                                     </div>
                                     <div style={{
-                                        width: `${feedbackWidth}px`,
+                                        width: `50%`,
                                         backgroundColor: 'white',
                                         position: 'relative',
                                         borderRadius: '20px',
                                         display: 'flex',
-                                        border: '4px solid #f4f4f4',
                                         marginRight: '0px',
                                     }}>
-                                        <div style={{
-                                            width: '50px',
-                                            position: 'absolute',
-                                            borderRadius: '15px 0px 0px 15px',
-                                            left:'-4px',
-                                            top: '-4px',
-                                            bottom:'-4px',
-                                            background: `#f4f4f4`,
-                                            border: `4px solid lightgrey`, 
-                                            color: `grey`, 
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center'
-                                        }}> 
-                                            <MessageSquareMore size={40} />
-                                        </div>
+                                      
+                                            <MessageSquareMore size={25}  style={{position: 'absolute', left: '35px', top: '50%', transform: 'translatey(-50%)', color: 'grey'}}/>
+                                      
                                         <textarea
                                             style={{
                                                 fontSize: '16px',
                                                 color: 'grey',
-                                                paddingTop: '10px',
                                                 textAlign: 'left',
+                                                width: `100%`,
                                                 marginLeft: '70px',
-                                                width: `${feedbackWidth - 80}px`,
                                                 border: 'none',
                                                 resize: 'vertical',
-                                                minHeight: '30px',
-                                                fontFamily: "'montserrat', sans-serif",
+                                                fontFamily: "default",
                                             }}
                                             value={debouncedFeedback[index] || question.feedback || ""}
                                             onChange={(e) => handleFeedbackChange(index, e.target.value)}

@@ -6,8 +6,8 @@ import { ClipboardList, ClipboardMinus, Flag, Pencil, Square, SquareSlash, Squar
 import Navbar from '../../Universal/Navbar';
 
 import TextareaAutosize from 'react-textarea-autosize';
-const QuestionResults = () => {
-  const { assignmentId, questionId } = useParams();
+const QuestionResults = ({ assignmentId, questionId, inModal = false, onClose }) => {
+  
   const [students, setStudents] = useState([]);
   const [assignmentName, setAssignmentName] = useState('');
   const [questionData, setQuestionData] = useState(null);
@@ -372,9 +372,9 @@ const QuestionResults = () => {
   
   return (
     <div>
-      <Navbar userType="teacher" classId={classId} />
+  
       <div style={{
-        maxWidth: '970px',
+       width: 'calc(100% - 200px)',
         margin: '100px auto 0 auto',
         padding: '24px'
       }}>
@@ -391,31 +391,7 @@ const QuestionResults = () => {
             position: 'relative',
             marginBottom: '24px'
           }}>
-            <p 
-              onClick={handleAssignmentClick}
-            style={{
-              width: '700px',
-              borderRadius: '15px 15px 0px 0px',
-              padding: '5px 20px',
-              border: '4px solid lightgrey',
-              background: '#f4f4f4',
-              color: 'grey',
-              cursor: 'pointer',
-              margin: '-24px',
-              fontSize: '25px',
-              fontWeight: 'bold',
-              fontFamily: "'montserrat', sans-serif"
-            }}
-            onMouseEnter={(e) => {
-                e.target.style.textDecoration = 'underline';
-              }}
-              onMouseLeave={(e) => {
-                e.target.style.textDecoration = 'none';
-              }}
-            
-            >
-              {assignmentName}
-            </p>
+       
             <div style={{ display: 'flex',  height: '145px', alignItems: 'center' }}>
           
 
@@ -493,7 +469,6 @@ const QuestionResults = () => {
             width: '190px',
             background: 'white'
           }}>
-            <img style={{ width: '150px', marginLeft: '20px', marginTop: '23px' }} src="/Score.svg" alt="logo" />
             <div style={{
               fontSize: '45px',
               fontWeight: 'bold',
