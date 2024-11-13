@@ -374,21 +374,20 @@ const QuestionResults = ({ assignmentId, questionId, inModal = false, onClose })
     <div>
   
       <div style={{
-       width: 'calc(100% - 200px)',
-        margin: '100px auto 0 auto',
-        padding: '24px'
+       width: '100%',
+        border: '1px solid green'
       }}>
 
         {/* Assignment and Question Details */}
         <div style={{ display: 'flex' }}>
           {/* Assignment Header */}
           <div style={{
-            backgroundColor: 'white',
+            backgroundColor: 'blue',
+            position: 'fixed',top: '10px',
             borderRadius: '15px',
-            width: '700px',
+            width: '100%',
             boxShadow: '1px 1px 5px 1px rgb(0,0,155,.07)',
             padding: '24px',
-            position: 'relative',
             marginBottom: '24px'
           }}>
        
@@ -457,18 +456,7 @@ const QuestionResults = ({ assignmentId, questionId, inModal = false, onClose })
 
               </div>
             </div>
-          </div>
 
-          {/* Average Score Display */}
-          <div style={{
-            height: '190px',
-            position: 'relative',
-            marginLeft: 'auto',
-            boxShadow: '1px 1px 5px 1px rgb(0,0,155,.07)',
-            borderRadius: '15px',
-            width: '190px',
-            background: 'white'
-          }}>
             <div style={{
               fontSize: '45px',
               fontWeight: 'bold',
@@ -485,7 +473,10 @@ const QuestionResults = ({ assignmentId, questionId, inModal = false, onClose })
             }}> 
               {questionData?.averageScore.toFixed(0)}
             </div>
+
           </div>
+
+      
         </div>
 
         {/* Rubric Section - Conditionally Rendered */}

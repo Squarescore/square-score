@@ -7,7 +7,7 @@ const QuestionResultsModal = ({ isOpen, onClose, children }) => {
   return (
   
       <div style={{
-        height: '100%',
+      
         position: ' absolute', 
         zIndex: '10',
         width:' calc(100% - 200px)',
@@ -18,9 +18,8 @@ const QuestionResultsModal = ({ isOpen, onClose, children }) => {
         {/* Modal panel */}
         <div style={{
           display: 'inline-block',
-          width: '100%',
-          maxWidth: '1152px', // 6xl in pixels
-          margin: '2rem auto',
+          width: '100%', // 6xl in pixels
+          
           overflow: 'hidden',
           textAlign: 'left',
           transition: 'all 0.3s',
@@ -53,9 +52,7 @@ const QuestionResultsModal = ({ isOpen, onClose, children }) => {
 
           {/* Modal content */}
           <div style={{
-            maxHeight: '90vh',
-            overflowY: 'auto',
-            padding: '1rem'
+            
           }}>
             {children}
           </div>

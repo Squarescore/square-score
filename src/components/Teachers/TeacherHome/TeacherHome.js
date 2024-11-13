@@ -8,7 +8,7 @@ import { useState, useEffect } from 'react';
 import {  useNavigate, useLocation } from 'react-router-dom';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { useCollection } from 'react-firebase-hooks/firestore';
-import HomeNavbar from '../../Universal/HomeNavbar';
+import Navbar from '../../Universal/Navbar';
 import FooterAuth from '../../unAuthenticated/FooterAuth'; 
 import CreateClassModal from './CreateClassModal';// Make sure this file exists in the same directory
 import AnimationGreen from '../../Universal/AnimationGreen';
@@ -67,6 +67,8 @@ const handleCreateClass = async (e, period, classChoice) => {
     alert(`Error creating class: ${err.message}. Please try again.`);
   }
 };
+
+
 
   useEffect(() => {
     const fetchTeacherData = async () => {
@@ -180,22 +182,83 @@ const handleCreateClass = async (e, period, classChoice) => {
  
   return (
     <div style={{  display: 'flex', flexDirection: 'column', backgroundColor: '#white', flexWrap: 'wrap' }}>
-     <HomeNavbar userType="teacher" />
-      <main style={{ flexGrow: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: '10px', backgroundColor: '#white', marginBottom: '230px' }}>
+     <Navbar userType="teacher" />
+      <main style={{ flexGrow: 1, display: 'flex', flexDirection: 'column', alignItems: 'left', marginTop: '10px', backgroundColor: '#white', marginBottom: '230px' }}>
         {loading && <p>Loading...</p>}
         {error && <p>Error: {error.message}</p>}
 
+
+        <div style={{width: '100%', borderBottom: '1px solid lightgrey', }}>
+            <h1 style={{
+fontSize: '30px',
+marginLeft: 'calc(4% + 200px)',
+fontWeight: '600'
+
+
+            }}>
+SquareScore      </h1>
+
+<button
+           
+            style={{
+              background: 'none',
+              border: 'none',
+              fontSize: '14px',
+              cursor: 'pointer',
+              
+marginLeft: 'calc(4% + 200px)',
+              fontWeight: "600",
+              padding: '12px 10px',
+              fontFamily: "'Montserrat', sans-serif",
+              borderBottom:  '2px solid blue',
+              color:  '#020CFF' ,
+            }}
+          >
+            Classes
+          </button>
+      
+          <button
+           
+           style={{
+             background: 'none',
+             border: 'none',
+             fontSize: '14px',
+             cursor: 'pointer',
+             marginRight: 'auto',
+marginLeft: 'calc(4% + 200px)',
+             fontWeight: "600",
+             padding: '12px 10px',
+             fontFamily: "'Montserrat', sans-serif",
+             borderBottom:  '2px solid transparent',
+             color:  'grey' ,
+           }}
+         >
+           Tutorials
+         </button>
+
+            </div>
+
+
+
+
+
+
+
+
+
+
         <div style={{
-          marginTop: '70px',
+          marginTop: '40px',
           display: 'flex',
          flexWrap:'wrap', 
-         width: '1000px',
+         width: 'calc(92% - 200px)',
+         marginLeft: 'calc(200px + 4%)',
          fontFamily: "'montserrat', sans-serif",
-          backgroundColor: '#white',
+          backgroundColor: 'white',
           
-          marginLeft: 'auto',
-          marginRight: 'auto'
           }}>
+
+           
             {successMessage && (
   <div style={{
     position: 'fixed',
@@ -221,7 +284,7 @@ const handleCreateClass = async (e, period, classChoice) => {
       padding: '0px 20px',
       height: '40px',
       display: 'flex',
-      alignItems: 'center',
+      alignItems: 'left',
       marginTop: '0px',
       marginBottom: '20px',
       whiteSpace: 'nowrap'
@@ -264,15 +327,48 @@ const handleCreateClass = async (e, period, classChoice) => {
   </div>
 )}
 
-<div style={{ fontFamily: "'montserrat', sans-serif",width: '90%', display: 'flex',marginLeft: '32px', fontSize: '60px',  marginTop: '0px', height: '70px',
-  marginBottom: '60px', marginTop: '50px'
+<div style={{ fontFamily: "'montserrat', sans-serif",width: '100%', display: 'flex', height: '30px',
+  marginBottom: '60px', marginTop: '50px',
+
 }}>
             <h4 style={{
-              fontSize: '40px', 
+              fontSize: '20px', 
              fontWeight: '600'
             }}>Your Classes</h4>
 
-
+<button
+            onClick={() => setShowCreateClassModal(true)}
+            style={{
+              marginRight: '4%', 
+              backgroundColor: 'white',
+              border: '1px solid lightgrey',
+              marginLeft: 'auto',
+              fontSize: '14px', 
+              width: '140px',
+              marginTop: '40px',
+              transition: '.3s', 
+              color: 'grey',
+              borderRadius: '10px',
+              padding: '10px 5px', 
+              fontWeight: '600',
+              fontFamily: "'montserrat', sans-serif",
+              textAlign: 'center', 
+              lineHeight: '20px',
+              cursor: 'pointer',
+              height: '40px',
+              lineHeight: '14px'
+            }}
+            onMouseEnter={(e) => {
+              e.target.style.color = '#45B434';
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.color = 'grey';
+            }}
+          >
+          
+            Create Class +
+          </button>
+          
             </div>
            
        
@@ -360,89 +456,31 @@ zIndex: '100'
             const periodNumber = parseInt(classItem.className.split(' ')[1]);
             const periodStyle = periodStyles[periodNumber] || { background: '#F4F4F4', color: 'grey' };
             return (
-              <div key={classItem.id} style={{ 
-                marginBottom: '10px',
-                width: '280px',
-                borderRadius: '15px',
-                marginLeft:'32px',
-                
-                
-               boxShadow: '1px 1px 5px 1px rgb(0,0,155,.1)',
-                display: 'inline-block',
-                flexDirection: 'column',
-                flexWrap: 'wrap',
-                alignItems: 'center', 
-                fontFamily: "'montserrat', sans-serif" ,
-                position: 'relative',
-                marginTop: '20px', 
-              }}>
-                <div style={{
-                  fontSize: '16px',
-                  height: '50px',
-                  marginLeft: 'auto',
-                  
-                  marginRight: 'auto',
-                  fontFamily: "'montserrat', sans-serif",
-                  textAlign: 'center',
-                  marginBottom: '-27px',
-                  zIndex: '20',
-                  color: 'grey',
-                  position: 'relative',
-                  fontWeight: 'lighter',
-                  backgroundColor: 'transparent',
-                  alignItems: 'center',
-                  lineHeight: '1',
-                  display: 'flex',
-                  justifyContent: 'center'
-                }}>
-                  <div style={{
-                    width: '269px',
-                    border: `6px solid ${periodStyle.color}`,
-                    backgroundColor: periodStyle.background,
-                    paddingLeft: '0px',
-                    paddingRight: '0px',
-                    marginLeft: '0px',
-                    height: '30px',
-                    marginTop:'-10px',
-                    fontWeight: 'bold',
-                    color: periodStyle.color,
-                    lineHeight: '30px',
-                    borderTopLeftRadius: '15px',
-                    borderTopRightRadius: '15px',
-                   
-                  }}>
-                    <p style={{marginTop: '0px',  overflow: 'hidden',
-                    textOverflow: 'ellipsis', 
-                    textAlign: 'center',
-                    whiteSpace: 'nowrap',width: '268px', background: 'tranparent',   }}>{classItem.classChoice}</p>
-                    
-                  </div>
-                </div>
+             
+             
             
                 <button 
+                key={classItem.id}
                     onClick={() => navigate(`/class/${classItem.id}`)} 
                     style={{ 
-                      marginLeft: 'auto',
-                      marginRight: 'auto',
+                      marginRight: '3%',
                       flex: 1,
-                      fontWeight: '800',
-                      width: '280px',
-                      height: '100px',
-                      justifyContent: 'center',
+                      width: "30%",
+                      maxWidth: '30%',
+                      marginTop: '20px', 
+                      height: '120px',
                       display: 'flex',
                       backgroundColor: 'transparent',  
                       color: 'grey', 
                       cursor: 'pointer',
-                      border: '1px solid white', 
+                      border: '1px solid lightgrey', 
                       borderRadius: '15px', 
-                      lineHeight: '90px',
-                      textAlign: 'center',
+                      textAlign: 'left',
                       flexDirection: 'column',
-                      alignItems: 'center',
+                      alignItems: 'left',
                       transition: '.2s', 
                       position: 'relative',
                       zIndex: '1',
-                      marginTop:'0px',
                       fontFamily: "'montserrat', sans-serif",
                       transform: 'scale(1)',
                     }}
@@ -450,14 +488,34 @@ zIndex: '100'
                       e.target.style.borderColor = '#f4f4f4';
                     }}
                     onMouseLeave={(e) => {
-                      e.target.style.borderColor = 'none';
+                      e.target.style.borderColor = 'lightgrey';
                     }}
                     className="hoverableButton"
                   >
-                    <h1 style={{fontSize: '35px', marginTop: '35px', width: '250px',  textAlign: 'center',
+                    <h1 style={{fontSize: '35px', 
+                    
+                    
+                    backgroundColor: periodStyle.background,
+                    
+                    color: periodStyle.color,
+                    marginLeft: '15%',
+                    height: '16px',
+                    lineHeight: '16px',
+                    marginTop: '40px', width: '170px',  textAlign: 'left',
+                    paddingLeft: '5px',
                       fontWeight: '600',}}>{classItem.className}</h1>
+                
+                
+                <p style={{marginTop: '0px',  overflow: 'hidden',
+                    textOverflow: 'ellipsis', marginLeft: '15%',
+                    textAlign: 'left',color: 'lightgrey', fontWeight: '600', 
+                    marginTop: '-10px',
+                    whiteSpace: 'nowrap',width: '268px', background: 'tranparent',   }}>{classItem.classChoice}</p>
+                    
+                
+                
                   </button>
-              </div>
+            
                );
               })
             }
@@ -468,38 +526,7 @@ zIndex: '100'
 
 
 <div style={{width: '1000px', marginRight: 'auto', marginLeft: 'auto', marginTop: '30px', display: 'flex'}}>
-<button
-            onClick={() => setShowCreateClassModal(true)}
-            style={{
-              marginRight: 'auto', 
-              backgroundColor: 'white',
-              border: '4px solid white',
-              boxShadow: '1px 1px 5px 1px rgb(0,0,155,.1)',
-              marginLeft: '32px',
-              fontSize: '20px', 
-              transition: '.3s', 
-              color: 'grey',
-              borderRadius: '10px',
-              padding: '10px 15px', 
-              width: '200px', 
-              fontWeight: '600',
-              fontFamily: "'montserrat', sans-serif",
-              textAlign: 'center', 
-              lineHeight: '20px',
-              cursor: 'pointer',
-              height: '48px',
-            }}
-            onMouseEnter={(e) => {
-              e.target.style.color = '#45B434';
-            }}
-            onMouseLeave={(e) => {
-              e.target.style.color = 'grey';
-            }}
-          >
-          
-            Create Class +
-          </button>
-          
+
           {teacherData && teacherData.school ? (
          <div
          style={{ 
