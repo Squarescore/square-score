@@ -370,69 +370,6 @@ const toggleFlag = async (index) => {
    
 
 
-            <div style={{
-      position: 'fixed',
-      height: isMapCollapsed ? '50px' : contentHeight,
-      overflow: isMapCollapsed ? 'hidden' : 'auto',
-      top: '180px',
-      left: '40px',
-      width: '80px',
-      paddingBottom: isMapCollapsed ? '0px' : '30px',
-      backgroundColor: 'white',
-      
-               boxShadow: '1px 1px 5px 1px rgb(0,0,155,.07)', 
-      borderRadius: '10px',
-      transition: 'all 0.3s',
-      zIndex: 10,
-      display: 'flex',
-      flexDirection: 'column'
-    }}>
-      <div style={{
-        display: 'flex',
-        width: '50px',
-        marginLeft: 'auto',
-        marginRight: 'auto',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        padding: '10px',
-        height: '30px'
-      }}>
-        <span style={{ fontWeight: 'bold' }}>Map</span>
-        <button
-          onClick={() => setIsMapCollapsed(!isMapCollapsed)}
-          style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '20px' }}
-        >
-          {isMapCollapsed ? '+' : '-'}
-        </button>
-      </div>
-      <div ref={contentRef} style={{ overflowY: 'auto', flex: 1 }}>
-        {results.questions.map((question, index) => (
-          <div
-            key={index}
-            onClick={() => scrollToQuestion(index)}
-            style={{
-              width: '50px',
-              marginLeft: 'auto',
-              marginRight: 'auto',
-              alignItems: 'center',
-              padding: '10px 5px',
-              display: 'flex',
-              borderTop: ' 2px solid #f4f4f4'
-            }}
-          >
-            <span style={{ marginLeft: '0px', fontWeight: '700', marginRight: 'auto' }}>{index + 1}.</span>
-            {question.score === results.scaleMax ? (
-              <SquareCheck size={25} color="#00d12a" style={{ marginRight: '0px' }} />
-            ) : question.score === results.scaleMin ? (
-              <SquareX size={25} color="#FF0000" style={{ marginRight: '0px' }} />
-            ) : (
-              <SquareSlash size={25} color="#FFD13B" style={{ marginRight: '0px' }} />
-            )}
-          </div>
-         ))}
-                </div>
-            </div>
-
 
 
 
@@ -506,59 +443,59 @@ const toggleFlag = async (index) => {
 
 
 
-           <div style={{display: 'flex', width: '880px', marginTop: '10px'}}>
-               <div style={{width: '415px', background: 'white',
-               boxShadow: '1px 1px 5px 1px rgb(0,0,155,.07)' , borderRadius: '15px', height: '135px',  padding: '0px 0px', marginLeft: '-10px'}}>
-                   <h1 style={{  marginBottom: '-20px', marginTop:'15px', marginLeft: '30px', fontSize: '25px', }}> Point Distribution</h1>
-                 <div style={{display: 'flex', justifyContent: 'space-around'}}> 
-                   <div style={{ fontSize: '30px', fontWeight: 'bold', color: 'black', display: 'flex', alignItems: 'center',  justifyContent: 'space-around', marginLeft: '5px', width: '90px', marginTop: '50px' , }}>
-                   
-                       <div style={{width: '40px'}}>
-                       <SquareCheck size={40} color="#00d12a" />
-                       </div>
-                       <h1 style={{ backgroundColor: 'white', borderRadius: '5px', margin: 'auto', marginLeft: '5px', marginTop: '0px', fontSize: '35px', alignItems: 'center', position: 'relative', fontFamily: "'montserrat', sans-serif" }}>{correctCount}</h1>
-                
-                   </div>
-               
-               
-                   
-                   <div style={{ fontSize: '40px', fontWeight: 'bold', color: 'black', display: 'flex', alignItems: 'center',  justifyContent: 'space-around', marginLeft: '5px',  width: '90px' ,  marginTop: '50px'}}>
-                   <div style={{width: '40px'}}>
-                       <SquareSlash size={40} color="#FFD13B"  />
-                       </div>
-                       <h1 style={{backgroundColor: 'white', borderRadius: '5px', margin: 'auto', marginLeft: '5px', marginTop: '0px', fontSize: '35px', alignItems: 'center', position: 'relative', fontFamily: "'montserrat', sans-serif" }}>{partialCount}</h1>
-                       
-                   </div>
-            
-                   <div style={{ fontSize: '40px', fontWeight: 'bold', color: 'black', display: 'flex', alignItems: 'center',  justifyContent: 'space-around', marginLeft: '5px',  width: '90px', marginTop: '50px' }}>
-                     
-                   <div style={{width: '40px'}}>
-                         <SquareX size={40} color="#ff0000" />
-                       </div>
-                       <h1 style={{backgroundColor: 'white', borderRadius: '5px', margin: 'auto', marginLeft: '5px', marginTop: '0px', fontSize: '35px', alignItems: 'center', position: 'relative', fontFamily: "'montserrat', sans-serif" }}>{incorrectCount}</h1>
-                   </div>
-                   </div>
+
+
                  
-                   </div>
-
-
-
-
-                   <div style={{width: '435px', background: 'white',
-               boxShadow: '1px 1px 5px 1px rgb(0,0,155,.07)' , borderRadius: '15px', height: '135px',  padding: '0px 0px', marginLeft: '30px' }}>
-                   <h1 style={{  marginBottom: '-20px', marginTop:'15px', marginLeft: '30px', fontSize: '25px', }}>Grade</h1>
-                   <div style={{display: 'flex', justifyContent: 'space-around', marginTop: '25px'}}> 
-                   <p style={{fontSize: '25px', width: '20px',color: 'grey', padding: '5px 30px', background: '#f4f4f4', borderRadius: '5px', fontWeight: 'bold',  textAlign: 'center'}}>{letterGrade}</p>
-                   <p style={{fontSize: '25px', width: '60px',color: 'grey', padding: '5px 25px', background: '#f4f4f4', borderRadius: '5px', fontWeight: 'bold',  textAlign: 'center'}}>   {results.percentageScore.toFixed(0)}%</p>
-                   <p style={{fontSize: '25px', width: '90px',color: 'grey', padding: '5px 0px', background: '#f4f4f4', borderRadius: '5px', fontWeight: 'bold',  textAlign: 'center'}}>     {`${results.rawTotalScore}/${results.questions.length * results.scaleMax}`}</p>
-
-                   </div>
-              </div>
               
                </div>
 
 
-               </div>
+               <div style={{
+      position: 'sticky',
+      height: '50px',
+      top: '0px',
+      left: '200px',
+      width: 'calc(100%)',
+      background: 'rgb(255,255,255,.9)',
+      backdropFilter: 'blur(5px)',
+      borderBottom: '1px solid lightgrey',
+    marginTop: '-40px',
+      transition: 'all 0.3s',
+      zIndex: 50,
+      display: 'flex',
+      flexDirection: 'row'
+    }}>
+     <div style={{marginLeft: '4%', width: '86%', display: 'flex', overflow: 'hidden', }}>
+      {results.questions.map((question, index) => (
+          <div
+            key={index}
+            onClick={() => scrollToQuestion(index)}
+            style={{
+              width: '30px',
+           cursor: 'pointer',
+              padding: '10px 5px',
+            }}
+          >
+            {question.score === results.scaleMax ? (
+              <SquareCheck size={25} color="#00d12a" style={{ marginRight: '0px',
+                cursor: 'pointer', }} />
+            ) : question.score === results.scaleMin ? (
+              <SquareX size={25} color="#FF0000" style={{ marginRight: '0px' ,
+                cursor: 'pointer',}} />
+            ) : (
+              <SquareSlash size={25} color="#FFD13B" style={{ marginRight: '0px',
+                cursor: 'pointer', }} />
+            )}
+          </div>
+         ))}
+           </div>  
+           <div style={{fontSize: '20px', marginRight: '4%', marginLeft: 'auto', borderLeft: '1px solid lightgrey', paddingLeft: '20px', lineHeight: '50px'}}>
+          
+{results.percentageScore.toFixed(0)}%
+            </div> 
+            </div>
+
+            
        
 
                  

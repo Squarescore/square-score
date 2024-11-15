@@ -174,57 +174,25 @@ const CreateClassModal = ({ handleCreateClass, setShowCreateClassModal }) => {
     }}>
       <div style={{
         backgroundColor: 'rgba(255,255,255,.8)',
-        border: '10px solid white',
-        
-               boxShadow: '1px 1px 5px 1px rgb(0,0,155,.07)' ,
-        padding: '20px',
-        borderRadius: '20px',
+        border: '1px solid lightgrey',
+        padding: '40px',
+        borderRadius: '15px',
         width: '80%',
         position: 'relative',
         maxWidth: '800px',
       }}>
-        <button 
-          type="button" 
-          onClick={() => setShowCreateClassModal(false)}
-          style={{
-            position: 'absolute',
-            top: '-15px',
-            right: '15px',
-            background: 'transparent',
-            border: 'none',
-            cursor: 'pointer'
-          }}
-        >
-          <SquareX size={40} color="#2BB514" strokeWidth={3} />
-        </button>
-        <div style={{
-          fontFamily: "'montserrat', sans-serif",
-          fontWeight: 'bold',
-          fontSize: '50px',
-          background: 'blue',
-          marginLeft: '-30px',
-          marginRight: '-30px',
-          marginBottom: '30px',
-          marginTop: '-60px',
-          backgroundColor: '#CDFFC5',
-          height: '70px',
-          borderRadius:  '30px 30px 0 0' ,
-          cursor: 'pointer',
-          color: '#2BB514',
-          border: `10px solid #2BB514`,
-       
-
-        }}>
+     
+        
         <h2 style={{
           fontFamily: "'montserrat', sans-serif",
-          fontWeight: 'bold',
-          marginTop: '10px' ,
-          marginLeft: '40px',
+          fontWeight: '600',
+          marginTop: '-10px' ,
+          marginLeft: '0px',
           fontSize: '40px',
           
 
         }}>Create Class</h2>
-       </div>
+       
         <form onSubmit={handleSubmit}>
           {/* Period Selector */}
           <div style={{ border: '2px solid #f4f4f4', borderRadius: '10px', marginBottom: '20px' }}>
@@ -239,8 +207,8 @@ const CreateClassModal = ({ handleCreateClass, setShowCreateClassModal }) => {
                 alignItems: 'center'
               }}
             >
-              <div style={{marginLeft: '20px'}}><CalendarClock size={40} /></div>
-              <h1 style={{ fontSize: '30px', marginLeft: '20px' }}>Class Period:</h1>
+              <div style={{marginLeft: '20px', fontWeight: '600'}}><CalendarClock size={25} /></div>
+              <h1 style={{ fontSize: '25px', marginLeft: '20px', fontWeight: '600' }}>Class Period:</h1>
               <h1 style={{
                 fontSize: '30px',
                 width: '40px',
@@ -286,7 +254,7 @@ const CreateClassModal = ({ handleCreateClass, setShowCreateClassModal }) => {
           </div>
 
           {/* Class Selector */}
-          <div style={{ border: '2px solid #f4f4f4', borderRadius: '10px', marginBottom: '20px' }}>
+          <div style={{ borderTop: '1px solid lightgrey',  marginBottom: '20px' }}>
             <div 
               onClick={toggleClassSelector}
               style={{
@@ -298,10 +266,10 @@ const CreateClassModal = ({ handleCreateClass, setShowCreateClassModal }) => {
                 alignItems: 'center'
               }}
             >
-              <div style={{marginLeft: '20px'}}><Shapes size={40} /></div>
-              <h1 style={{ fontSize: '30px', marginLeft: '20px'}}>Select Class:</h1>
+              <div style={{marginLeft: '20px'}}><Shapes size={25} /></div>
+              <h1 style={{ fontSize: '25px', marginLeft: '20px', fontWeight: '600'}}>Select Class:</h1>
               <h1 style={{
-                fontSize: '24px',
+                fontSize: '16px',
                 marginLeft: '20px',
                 flex: 1,
                 overflow: 'hidden',
@@ -468,19 +436,57 @@ const CreateClassModal = ({ handleCreateClass, setShowCreateClassModal }) => {
               type="submit"
               disabled={!isFormValid}
               style={{
-                backgroundColor: isFormValid ? '#AEF2A3' : '#f4f4f4',
+                width: '200px',
+                marginLeft: '0px',
+                height: '40px',
+                lineHeight: '10PX',
+                padding: '5px 5px',
+                fontWeight: '600',
+                fontSize: '16px',
+                borderRadius: '5px',
+                marginTop: '-10px',
+                fontFamily: '"montserrat", sans-serif',
+                backgroundColor: 'white',
+                border: '1px solid lightgrey',
                 color: isFormValid ? '#348900' : '#a3a3a3',
-                border: isFormValid ? '3px solid #348900' : '3px solid #a3a3a3',
-                fontFamily: "'montserrat', sans-serif",
-                height: '50px', width: '150px',
-                borderRadius: '10px',
-                cursor: isFormValid ? 'pointer' : 'not-allowed',
+                cursor: 'pointer',
+                transition: '.3s',
+                marginBottom: '10px', 
+
+               
                 fontSize: '18px',
                 fontWeight: '600'
               }}
             >
               Create Class
             </button>
+            
+          <button 
+                  onClick={() => setShowCreateClassModal(false)}
+         
+            style={{
+              width: '100px',
+              marginRight: 'auto',
+              marginLeft: '30px',
+              height: '40px',
+              lineHeight: '10PX',
+              padding: '5px 5px',
+              fontWeight: '600',
+              fontSize: '16px',
+              borderRadius: '5px',
+              marginTop: '-10px',
+              fontFamily: '"montserrat", sans-serif',
+              backgroundColor: 'white',
+              border: '1px solid lightgrey',
+              color: 'grey',
+              cursor: 'pointer',
+              transition: '.3s',
+              marginBottom: '10px'
+            }}
+     
+          >
+            Cancel
+          </button>
           </div>
         </form>
       </div>

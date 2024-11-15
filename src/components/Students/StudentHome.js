@@ -219,31 +219,29 @@ const inputRefs = useRef([]);
       {pendingRequests.length > 0 && (
         <div style={{
           position: 'fixed',
-          top: '70px',
-          zIndex: '10000',
-          left: '0',
-          right: '0',
-          display: 'flex',
-          flexDirection: 'column',
+    bottom: '20px',
+    zIndex: '10000',
+    right: '4%',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center'
           
         }}>
           <div style={{width: '100%', background: '#F4C10A', height: '6px'}}></div>
           <div style={{
-            width: "400px",
-            marginLeft: '19%',
+            width: "400px", marginLeft: '0%',
             marginRight: 'auto',
             backgroundColor: '#FFECA8',
             border: '4px solid #F4C10A',
-            borderBottomLeftRadius: '20px',
-            borderTop: '0px',
-            borderBottomRightRadius: '20px',
-            padding: '0px 20px',
-            height: '40px',
-            display: 'flex',
-            alignItems: 'center',
-            marginTop: '0px',
-            marginBottom: '20px',
-            whiteSpace: 'nowrap'
+            borderRadius: '10px',
+      borderTop: '0px',
+      padding: '0px 20px',
+      height: '50px',
+      display: 'flex',
+      alignItems: 'left',
+      marginTop: '0px',
+      marginBottom: '20px',
+      whiteSpace: 'nowrap'
           }}>
             <p style={{ color: 'grey', fontWeight: 'bold', marginRight: '20px' }}>
               Waiting for teacher to accept request
@@ -252,118 +250,189 @@ const inputRefs = useRef([]);
           </div>
         </div>
       )}
+
+
+      
       <main style={{ flexGrow: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: '10px', backgroundColor: '#white', marginBottom: '230px' }}>
+      <div style={{width: '100%', borderBottom: '1px solid lightgrey',  marginBottom: '-40px'}}>
+            <h1 style={{
+fontSize: '30px',
+marginLeft: 'calc(4% + 200px)',
+fontWeight: '600'
+
+
+            }}>
+Home    </h1>
+
+<button
+           
+            style={{
+              background: 'none',
+              border: 'none',
+              fontSize: '14px',
+              cursor: 'pointer',
+              
+marginLeft: 'calc(4% + 200px)',
+              fontWeight: "600",
+              padding: '12px 10px',
+              fontFamily: "'Montserrat', sans-serif",
+              borderBottom:  '2px solid #E01FFF',
+              color:  '#E01FFF' ,
+            }}
+          >
+            Classes
+          </button>
+      
+          <button
+           
+           style={{
+             background: 'none',
+             border: 'none',
+             fontSize: '14px',
+             cursor: 'pointer',
+             marginLeft: '50px',
+
+             fontWeight: "600",
+             padding: '12px 10px',
+             fontFamily: "'Montserrat', sans-serif",
+             borderBottom:  '2px solid transparent',
+             color:  'grey' ,
+           }}
+         >
+           Tutorials
+         </button>
+
+            </div>
+
+
+
+
+
+
+
+
+
+
         <div style={{
-          marginTop: '70px',
+          marginTop: '40px',
           display: 'flex',
-          flexWrap:'wrap', 
-          width: '1000px',
-          fontFamily: "'montserrat', sans-serif",
-          backgroundColor: '#white',
-          marginLeft: 'auto',
-          marginRight: 'auto'
-        }}>
-          <h4 style={{width: '90%', marginLeft: '32px', fontSize: '60px', marginBottom: '20px', marginTop: '60px', fontFamily: "'montserrat', sans-serif",}}>Your Classes</h4>
-       
+         flexWrap:'wrap', 
+         width: 'calc(92% - 200px)',
+         marginLeft: 'calc(200px)',
+         fontFamily: "'montserrat', sans-serif",
+          backgroundColor: 'white',
+          
+          }}>
+
+           
+         
+
+<div style={{ fontFamily: "'montserrat', sans-serif",width: '100%', display: 'flex', height: '30px',
+
+  marginBottom: '10px', marginTop: '30px',
+
+}}>
+            <h4 style={{
+              fontSize: '25px', 
+              marginTop: '10px',
+             fontWeight: '600'
+            }}>Your Classes</h4>
+
+<button
+  onClick={() => setShowJoinClassModal(true)}
+           
+           style={{
+              marginRight: '4%', 
+              backgroundColor: 'white',
+              border: '1px solid lightgrey',
+              marginLeft: 'auto',
+              fontSize: '16px', 
+              width: '140px',
+              marginTop: '0px',
+              transition: '.3s', 
+              color: 'grey',
+              borderRadius: '5px',
+              padding: '10px 5px', 
+              fontWeight: '600',
+              fontFamily: "'montserrat', sans-serif",
+              textAlign: 'center', 
+              lineHeight: '20px',
+              cursor: 'pointer',
+              height: '40px',
+            }}
+            onMouseEnter={(e) => {
+              e.target.style.color = '#45B434';
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.color = 'grey';
+            }}
+          >
+          
+            Join Class +
+          </button>
+          
+            </div>
           {classes.map(classItem => {
             const periodNumber = parseInt(classItem.className.split(' ')[1]);
             const periodStyle = periodStyles[periodNumber] || { background: '#F4F4F4', color: 'grey' };
             return (
-              <div key={classItem.id} style={{ 
-                marginBottom: '10px',
-                width: '300px',
-                marginLeft:'32px',
-                display: 'inline-block',
-                flexDirection: 'column',
-                flexWrap: 'wrap',
-                alignItems: 'center', 
-                fontFamily: "'montserrat', sans-serif" ,
-                position: 'relative',
-                marginTop: '20px', 
-              }}>
-                <div style={{
-                  fontSize: '16px',
-                  height: '50px',
-                  marginLeft: 'auto',
-                  
-                  marginRight: 'auto',
-                  fontFamily: "'montserrat', sans-serif",
-                  textAlign: 'center',
-                  marginBottom: '-27px',
-                  zIndex: '20',
-                  color: 'grey',
-                  position: 'relative',
-                  fontWeight: 'lighter',
-                  backgroundColor: 'transparent',
-                  alignItems: 'center',
-                  lineHeight: '1',
-                  display: 'flex',
-                  justifyContent: 'center'
-                }}>
-                  <div style={{
-                    width: '268px',
-                    border: `6px solid ${periodStyle.color}`,
-                    backgroundColor: periodStyle.background,
-                    paddingLeft: '0px',
-                    paddingRight: '0px'
-                    , marginTop: '40px',
-                    marginLeft: '0px',
-                    height: '30px',
-                    fontWeight: 'bold',
-                    color: periodStyle.color,
-                    lineHeight: '30px',
-                    borderTopLeftRadius: '15px',
-                    borderTopRightRadius: '15px',
-                   
-                  }}>
-                    <p style={{marginTop: '0px',  overflow: 'hidden',
-                    textOverflow: 'ellipsis', 
-                    textAlign: 'center',
-                    whiteSpace: 'nowrap',width: '240px', background: 'tranparent', marginLeft: 'auto', marginRight: 'auto', }}>{classItem.classChoice}</p>
-                    
-                  </div>
-                </div>
-            
-                <button
+             
+              <button 
+              key={classItem.id}
                   onClick={() => navigate(`/studentassignments/${classItem.id}/active`)} 
                   style={{ 
-                    marginLeft: 'auto',
-                    marginRight: 'auto',
+                    marginRight: '3%',
                     flex: 1,
-                    fontWeight: '800',
-                    width: '280px',
+                    width: "30%",
+                    maxWidth: '30%',
+                    marginTop: '20px', 
                     height: '130px',
-                    justifyContent: 'center',
                     display: 'flex',
                     backgroundColor: 'transparent',  
                     color: 'grey', 
                     cursor: 'pointer',
-                    border: '2px solid white', 
-                    boxShadow: '1px 1px 5px 1px rgb(0,0,155,.1)',
+                    border: '1px solid lightgrey', 
                     borderRadius: '15px', 
-                    lineHeight: '30px',
                     textAlign: 'left',
                     flexDirection: 'column',
-                    alignItems: 'center',
+                    alignItems: 'left',
                     transition: '.2s', 
                     position: 'relative',
                     zIndex: '1',
-                    marginTop:'0px',
                     fontFamily: "'montserrat', sans-serif",
                     transform: 'scale(1)',
                   }}
                   onMouseEnter={(e) => {
-                    e.target.style.borderColor = '#f4f4f4';
+                    e.target.style.borderColor = '#dddddd';
                   }}
                   onMouseLeave={(e) => {
-                    e.target.style.borderColor = 'white';
+                    e.target.style.borderColor = 'lightgrey';
                   }}
                   className="hoverableButton"
                 >
-                 <h1 style={{fontSize: '35px', marginTop: '60px', width: '250px',  textAlign: 'center',
-                      fontWeight: '600',}}>{classItem.className}</h1>
+                  <h1 style={{fontSize: '35px', 
+                  
+                  
+                  backgroundColor: periodStyle.background,
+                  
+                  color: periodStyle.color,
+                  marginLeft: '15%',
+                  height: '16px',
+                  lineHeight: '16px',
+                  marginTop: '40px', width: '180px',  textAlign: 'left',
+                  paddingLeft: '5px', fontSize: '40px',
+                    fontWeight: '600',}}>{classItem.className}</h1>
+              
+              
+              <p style={{marginTop: '0px',  overflow: 'hidden',
+                  textOverflow: 'ellipsis', marginLeft: '15%',
+                  textAlign: 'left',color: 'lightgrey', fontWeight: '600', 
+                  marginTop: '-10px',fontSize: '16px',
+                  whiteSpace: 'nowrap',width: '268px', background: 'tranparent',   }}>{classItem.classChoice} </p>
+                  
+              
+              
                 </button>
-              </div>
             );
           })}
         </div>
@@ -371,35 +440,7 @@ const inputRefs = useRef([]);
         <div style={{width: '1000px', marginRight: 'auto', marginLeft: 'auto', marginTop: '30px'}}>
           
    
-      <button
-            onClick={() => setShowJoinClassModal(true)}
-            style={{
-              marginRight: 'auto', 
-              backgroundColor: '#AEF2A3' , 
-              marginBottom: '100px',
-              border: '5px solid #45B434',
-              marginLeft: '45px',
-              fontSize: '20px', 
-              transition: '.3s', 
-              
-              fontFamily: "'montserrat', sans-serif",
-              color: '#45B434',
-              borderRadius: '10px',
-              padding: '10px 0px', 
-              width: '150px', 
-              textAlign: 'center', 
-              fontWeight: 'bold',
-              cursor: 'pointer'
-            }}
-            onMouseEnter={(e) => {
-              e.target.style.opacity = '80%';
-            }}
-            onMouseLeave={(e) => {
-              e.target.style.opacity = '100%';
-            }}
-          >
-            Join Class +
-          </button>
+     
         </div>
       </main>
 

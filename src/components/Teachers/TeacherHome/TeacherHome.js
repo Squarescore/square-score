@@ -185,6 +185,73 @@ const handleCreateClass = async (e, period, classChoice) => {
     <div style={{  display: 'flex', flexDirection: 'column', backgroundColor: '#white', flexWrap: 'wrap' }}>
      <HomeNav userType="teacher" />
       <main style={{ flexGrow: 1, display: 'flex', flexDirection: 'column', alignItems: 'left', marginTop: '10px', backgroundColor: '#white', marginBottom: '230px' }}>
+
+      {successMessage && (
+  <div style={{
+    position: 'fixed',
+    bottom: '20px',
+    zIndex: '10000',
+    right: '4%',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center'
+  }}>
+   
+   
+
+    <div style={{
+      backgroundColor: '#CCFFC3',
+      marginLeft: '0%',
+      marginRight: 'auto',
+      border: '1px solid #4BD682',
+      borderRadius: '10px',
+      padding: '0px 20px',
+      height: '50px',
+      display: 'flex',
+      alignItems: 'left',
+      marginTop: '0px',
+      marginBottom: '20px',
+      whiteSpace: 'nowrap'
+    }}>
+      <p style={{ color: '#45B434', fontWeight: '600', marginRight: '20px' }}>{successMessage}</p>
+      <button
+        onClick={handleAddStudents}
+        style={{
+          backgroundColor: '#FFF5D2',
+          color: '#FFAE00',
+          fontSize: '16px',
+          marginTop: '10px',
+          fontFamily: "'montserrat', sans-serif",
+          fontWeight: '500',
+          height: '30px',
+          border: '1px solid #FFAE00',
+          borderRadius: '5px',
+          marginRight: '10px',
+          cursor: 'pointer'
+        }}
+      >
+        Add Students
+      </button>
+      <button
+        onClick={handleDismiss}
+        style={{
+          backgroundColor: '#FFFFFF',
+          color: 'lightgrey',
+          marginTop: '10px',
+          fontSize: '16px',
+          fontFamily: "'montserrat', sans-serif",
+          fontWeight: '500',
+          height: '30px',
+          border: '1px solid lightgrey',
+          borderRadius: '5px',
+          cursor: 'pointer'
+        }}
+      >
+        Dismiss
+      </button>
+    </div>
+  </div>
+)}
         {loading && <p>Loading...</p>}
         {error && <p>Error: {error.message}</p>}
 
@@ -260,73 +327,7 @@ marginLeft: 'calc(4% + 200px)',
           }}>
 
            
-            {successMessage && (
-  <div style={{
-    position: 'fixed',
-    bottom: '20px',
-    zIndex: '10000',
-    right: '4%',
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center'
-  }}>
-   
-   
-
-    <div style={{
-      backgroundColor: '#CCFFC3',
-      marginLeft: '0%',
-      marginRight: 'auto',
-      border: '1px solid #4BD682',
-      borderRadius: '10px',
-      borderTop: '0px',
-      padding: '0px 20px',
-      height: '50px',
-      display: 'flex',
-      alignItems: 'left',
-      marginTop: '0px',
-      marginBottom: '20px',
-      whiteSpace: 'nowrap'
-    }}>
-      <p style={{ color: '#45B434', fontWeight: '600', marginRight: '20px' }}>{successMessage}</p>
-      <button
-        onClick={handleAddStudents}
-        style={{
-          backgroundColor: '#FFF5D2',
-          color: '#FFAE00',
-          fontSize: '16px',
-          marginTop: '10px',
-          fontFamily: "'montserrat', sans-serif",
-          fontWeight: '500',
-          height: '30px',
-          border: '1px solid #FFAE00',
-          borderRadius: '5px',
-          marginRight: '10px',
-          cursor: 'pointer'
-        }}
-      >
-        Add Students
-      </button>
-      <button
-        onClick={handleDismiss}
-        style={{
-          backgroundColor: '#FFFFFF',
-          color: 'lightgrey',
-          marginTop: '10px',
-          fontSize: '16px',
-          fontFamily: "'montserrat', sans-serif",
-          fontWeight: '500',
-          height: '30px',
-          border: '1px solid lightgrey',
-          borderRadius: '5px',
-          cursor: 'pointer'
-        }}
-      >
-        Dismiss
-      </button>
-    </div>
-  </div>
-)}
+         
 
 <div style={{ fontFamily: "'montserrat', sans-serif",width: '100%', display: 'flex', height: '30px',
   marginBottom: '10px', marginTop: '30px',

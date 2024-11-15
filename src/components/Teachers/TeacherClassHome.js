@@ -344,34 +344,28 @@ backgroundColor: 'rgb(50,50,50)',
       {successMessage && (
           <div style={{
             position: 'fixed',
-            top: '70px',
+            bottom: '60px',
             zIndex: '10000',
-            left: '0',
-            right: '0',
+            right: '4%',
             display: 'flex',
             flexDirection: 'column',
-            alignItems: 'center',
-            background: getNotificationStyles(assignmentFormat).border,
              height: '6px'
           }}>
-            <div style={{width: '1000px',marginLeft: 'auto', marginRight: 'auto',  }}>
-            <div style={{
-              backgroundColor: getNotificationStyles(assignmentFormat).background,
-              border: `4px solid ${getNotificationStyles(assignmentFormat).border}`,
-              borderBottomLeftRadius: '20px',
-              
-             marginTop: '0px',
-              borderBottomRightRadius: '20px',
-              padding: '0px 20px',
-              height: '40px',
-              display: 'flex',
+           <div style={{
+              backgroundColor: '#CCFFC3',
+              marginLeft: '0%',
               marginRight: 'auto',
-              alignItems: 'center',
+              border: '1px solid #4BD682',
+              borderRadius: '10px',
+              padding: '0px 20px',
+              height: '50px',
+              display: 'flex',
+              alignItems: 'left',
+              marginTop: '0px',
               marginBottom: '20px',
-              whiteSpace: 'nowrap',
-              width: '500px',
+              whiteSpace: 'nowrap'
             }}>
-              <p style={{ color: getNotificationStyles(assignmentFormat).color, fontWeight: 'bold', marginRight: '20px' }}>{successMessage}</p>
+      <p style={{ color: '#45B434', fontWeight: '600', marginRight: '20px' }}>{successMessage}</p>
               <button
                 onClick={handleResults}
                 style={{
@@ -381,7 +375,9 @@ backgroundColor: 'rgb(50,50,50)',
                   fontFamily: "'montserrat', sans-serif",
                   fontWeight: 'BOLD',
                   height: '30px',
-                  border: `4px solid ${getNotificationStyles(assignmentFormat).buttonBorder}`,
+                  
+          marginTop: '10px',
+                  border: `1px solid ${getNotificationStyles(assignmentFormat).buttonBorder}`,
                   borderRadius: '5px',
                   marginRight: '10px',
                   cursor: 'pointer'
@@ -392,21 +388,23 @@ backgroundColor: 'rgb(50,50,50)',
               <button
                 onClick={handleDismiss}
                 style={{
-                  backgroundColor: 'white',
-                  color: getNotificationStyles(assignmentFormat).color,
-                  fontSize: '16px',
-                  fontFamily: "'montserrat', sans-serif",
-                  fontWeight: 'BOLD',
-                  height: '30px',
-                  border: `4px solid ${getNotificationStyles(assignmentFormat).border}`,
-                  borderRadius: '5px',
-                  cursor: 'pointer'
+                  backgroundColor: '#FFFFFF',
+          color: 'lightgrey',
+          marginTop: '10px',
+          fontSize: '16px',
+          fontFamily: "'montserrat', sans-serif",
+          fontWeight: '500',
+          marginBottom: '10px',
+          height: '30px',
+          border: '1px solid lightgrey',
+          borderRadius: '5px',
+          cursor: 'pointer'
                 }}
               >
                 Dismiss
               </button>
             </div>
-            </div>
+            
           </div>
         )}
      <div  style={{ flexGrow: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', marginTop: '-60px', width: '1000px'}}>

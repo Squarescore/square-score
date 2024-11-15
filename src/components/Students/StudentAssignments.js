@@ -156,28 +156,7 @@ const periodStyle = periodStyles[periodNumber] || { background: '#F4F4F4', color
       clearInterval(interval);
     };
   }, []);
-  useEffect(() => {
-    const fetchClassData = async () => {
-      const classDocRef = doc(db, 'classes', classId);
-      const classDoc = await getDoc(classDocRef);
-
-      if (classDoc.exists()) {
-        setClassName(classDoc.data().className);
-        setClassChoice(classDoc.data().classChoice);
-      }
-
-      const studentScoresRef = doc(classDocRef, 'studentScores', studentUid);
-      const studentScoresDoc = await getDoc(studentScoresRef);
-
-      if (studentScoresDoc.exists()) {
-        const data = studentScoresDoc.data();
-        setAverageScore(data.averageScore);
-        setMostRecentScore(data.mostRecentScore);
-      }
-    };
-
-    fetchClassData();
-  }, [classId, studentUid]);
+  
 
 
   useEffect(() => {
@@ -380,66 +359,24 @@ const getAssignmentStyle = (assignment) => {
         transform: 'translate(-50%, -50%)',
         width: '500px',
         backgroundColor: 'rgb(255,255,255,.001)',
-        border: '10px solid white',
+        border: '1px solid lightgrey',
         
-               boxShadow: '1px 1px 5px 1px rgb(0,0,155,.07)' ,
         fontFamily: 'Arial, sans-serif',
         zIndex: 100000
       }}>
-        <div style={{
-          backgroundColor: '#AEF2A3',
-          color: '#2BB514',
-          fontFamily: '"montserrat", sans-serif',
-          border: '10px solid #2BB514', 
-          borderTopRightRadius: '30px',
-          borderTopLeftRadius: '30px',
-          marginTop: '-10px',
-          marginLeft: '-10px',
-          width: '460px',
-          opacity: '80%',
-          textAlign: 'left',
-          fontSize: '40px',
-          padding: '12px 0px 10px 40px',
-          fontWeight: 'bold'
-        }}>
-          Confirm
-          <button 
-            onClick={onCancel}
-            style={{
-              width: '50px',
-              height: '50PX',
-              lineHeight: '10PX',
-              padding: '5px 5px',
-              fontWeight: 'bold',
-              fontSize: '24px',
-              position: 'absolute',
-              right: '15px',
-              top: '5px',
-              borderRadius: '10px',
-              color: '#2BB514',
-              fontFamily: '"montserrat", sans-serif',
-              backgroundColor: 'transparent',
-              border: '5px solid transparent',
-              cursor: 'pointer',
-              transition: '.3s'
-            }}
-         >
-          <SquareX size={40}/>
-          
-          </button>
-        </div>
-        <div style={{ padding: '20px 40px 10px 40px', textAlign: 'left', fontWeight: 'bold', fontFamily: '"montserrat", sans-serif', fontSize: '30px',  }}>
-       <h1 style={{marginBottom: '20px',  fontSize: '40px', marginTop: '0px' }}>Enter {assignmentName}? </h1>
+       
+        <div style={{ padding: '40px 40px 20px 40px', textAlign: 'left', fontWeight: '600', fontFamily: '"montserrat", sans-serif', fontSize: '30px',  }}>
+       <h1 style={{marginBottom: '20px',  fontSize: '25px', fontWeight: '600', marginTop: '0px' }}>Enter {assignmentName}? </h1>
        
         <div style={{display: 'flex',}}>
       
-        <h1 style={{fontSize: '30px', marginTop: '0px', marginRight: '20px',color: saveAndExit ? 'green' : 'grey', fontWeight: '600'}}>   Save and exit:</h1> 
-        {saveAndExit ? <SquareCheck size={40} color="#00a832" /> : <SquareMinus size={40} color="#9c9c9c" />}
+        <h1 style={{fontSize: '20px', marginTop: '0px', marginRight: 'auto',color: saveAndExit ? 'green' : 'grey', fontWeight: '500'}}>   Save and exit:</h1> 
+        {saveAndExit ? <SquareCheck size={25} color="#00a832" /> : <SquareMinus size={25} color="#9c9c9c" />}
         </div>
         <div style={{display: 'flex'}}>
    
-        <h1 style={{fontSize: '30px', marginTop: '0px', marginRight: '65px', color: lockdown ? 'green' : 'grey', fontWeight: '600'}}>   Lockdown:</h1>
-        {lockdown ? <SquareCheck size={40} color="#00a832" /> : <SquareMinus size={40} color="#9c9c9c" />}
+        <h1 style={{fontSize: '20px', marginTop: '0px', marginRight: 'auto', color: lockdown ? 'green' : 'grey', fontWeight: '500'}}>   Lockdown:</h1>
+        {lockdown ? <SquareCheck size={25} color="#00a832" /> : <SquareMinus size={25} color="#9c9c9c" />}
         </div>
 
       </div>
@@ -451,19 +388,19 @@ const getAssignmentStyle = (assignment) => {
           <button 
             onClick={onConfirm}
             style={{
-              width: '120px',
-              marginRight: 'auto',
+              width: '100px',
+              marginRight: '0px',
               marginLeft: '30px',
-              height: '40PX',
+              height: '30px',
               lineHeight: '10PX',
               padding: '5px 5px',
-              fontWeight: 'bold',
-              fontSize: '24px',
-              borderRadius: '10px',
+              fontWeight: '600',
+              fontSize: '16px',
+              borderRadius: '5px',
               marginTop: '-10px',
               fontFamily: '"montserrat", sans-serif',
-              backgroundColor: '#AEF2A3',
-              border: '5px solid #45B434',
+              backgroundColor: 'white',
+              border: '1px solid lightgrey',
               color: '#45B434',
               cursor: 'pointer',
               transition: '.3s',
@@ -474,6 +411,38 @@ const getAssignmentStyle = (assignment) => {
             Enter
           </button>
          
+
+
+
+
+          <button 
+                onClick={onCancel}
+            style={{
+              width: '100px',
+              marginRight: 'auto',
+              marginLeft: '30px',
+              height: '30px',
+              lineHeight: '10PX',
+              padding: '5px 5px',
+              fontWeight: '600',
+              fontSize: '16px',
+              borderRadius: '5px',
+              marginTop: '-10px',
+              fontFamily: '"montserrat", sans-serif',
+              backgroundColor: 'white',
+              border: '1px solid lightgrey',
+              color: 'grey',
+              cursor: 'pointer',
+              transition: '.3s',
+              marginBottom: '10px'
+            }}
+     
+          >
+            Cancel
+          </button>
+
+
+
         </div>
       </div>
     </div>
@@ -533,7 +502,7 @@ const getAssignmentStyle = (assignment) => {
             return (
               <div key={grade.id} style={{
                 backgroundColor: 'white',
-                boxShadow: '1px 1px 5px 1px rgb(0,0,155,.07)',
+               border: '1px solid lightgrey',
                 borderRadius: '15px',
                 padding: '20px 0px',
                 width: '400px',
@@ -700,18 +669,17 @@ const renderAssignments = (assignments) => {
 
     const formatDate = (dateString) => {
       const date = new Date(dateString);
-      const options = { 
-        weekday: 'short', 
-        year: 'numeric', 
-        month: 'long', 
+      const options = {
+        weekday: 'short',
+        year: 'numeric',
+        month: 'long',
         day: 'numeric',
-        hour: '2-digit', 
-        minute: '2-digit', 
-        hour12: true 
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true
       };
-      return date.toLocaleDateString('en-US', options);
+      return `${date.toLocaleDateString('en-US', options)} ${activeTab === 'active' ? 'Due' : activeTab === 'upcoming' ? 'Assign' : ''}`;
     };
-
     // Get border color but don't apply top border if it's the first item
     const borderColor = getBorderColor(assignment);
     const style = {
@@ -733,35 +701,36 @@ const renderAssignments = (assignments) => {
 
     return (
       <div key={assignment.id} style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-        <li
-          key={assignment.id}
-          style={style}
-          onMouseEnter={(e) => {
-            const now = new Date();
-            const assignDateTime = new Date(assignment.assignDate);
-            const dueDateTime = new Date(assignment.dueDate);
-            if (now >= assignDateTime && now <= dueDateTime) {
-              // Your mouse enter logic
-            }
-          }}
-        >
-          {/* Rest of your assignment rendering code stays exactly the same */}
-          {isActiveOrCompleted && (
-            <ArrowRight 
-              onClick={() => navigateToTest(
-                assignment.id, 
-                format, 
-                assignment.assignDate, 
-                assignment.dueDate, 
-                assignment.assignmentName,
-                assignment.saveAndExit,
-                assignment.lockdown 
-              )}
-              size={25}
-              strokeWidth={2.4} 
-              style={{ position: 'absolute', right: '10px', top: '17px', color: '#2BB514', cursor: 'pointer'}}
-            />
-          )}
+       
+          <li
+  key={assignment.id}
+  style={{
+    ...style,
+    cursor: isActiveOrCompleted ? 'pointer' : 'default'
+  }}
+  onClick={() => {
+    if (isActiveOrCompleted) {
+      navigateToTest(
+        assignment.id,
+        format,
+        assignment.assignDate,
+        assignment.dueDate,
+        assignment.assignmentName,
+        assignment.saveAndExit,
+        assignment.lockdown
+      );
+    }
+  }}
+
+  onMouseEnter={(e) => {
+    e.target.style.background = '#f2feff';
+  }}
+  onMouseLeave={(e) => {
+    e.target.style.background = 'white';
+  }}
+>
+       
+        
           
           {/* Add the status icon */}
           <div style={{ position: 'absolute', right: '10px', top: '16px' }}>
@@ -803,18 +772,18 @@ const renderAssignments = (assignments) => {
             {assignment.assignmentName}
           </div>
       
-            <h1 style={{ 
-              color: 'lightgrey', 
-              fontSize: '14px', 
-              fontWeight: '600', 
+          <h1 style={{
+              color: activeTab === 'active' ? 'grey' : (activeTab === 'upcoming' ? '#FC8518' : 'red'),
+              fontSize: '14px',
+              fontWeight: '600',
               fontFamily: "'montserrat', sans-serif",
-              marginTop: '10px', 
+              marginTop: '10px',
               fontStyle: 'italic',
-              marginLeft: '10px', 
-              width: '290px', 
-              textAlign: 'left' 
+              marginLeft: '10px',
+              width: '290px',
+              textAlign: 'left'
             }}>
-              {showDueDate ? formatDate(assignment.dueDate) : formatDate(assignment.assignDate)}
+              {formatDate(activeTab === 'active' ? assignment.dueDate : assignment.assignDate)}
             </h1>
     
           <h1 style={{ 
@@ -912,12 +881,7 @@ const renderAssignments = (assignments) => {
           Grade: {calculatedAverage}%
         </h2>
           </div>
-          <div style={{   height: '150px',   position:'relative', background: 'white', borderRadius: '15px',  boxShadow: '1px 1px 5px 1px rgb(0,0,155,.07)', width: '315px', marginLeft: 'auto', }}> 
-            <h1 style={{position: 'absolute', overflow: 'hidden',
-                    textOverflow: 'ellipsis', top: '-15px',  backgroundColor: periodStyle.background,
-                          color: periodStyle.color, border: '8px solid', width: '300px', fontSize: '20px', textAlign: 'center', height: '30px', paddingTop: '05px', borderRadius: '15px 15px 0px 0px ' }}>{classChoice}</h1>
-            <h1 style={{textAlign: 'center', lineHeight: '130px', fontSize: '45px', fontWeight: '600',color: '#7C7C7C'}}>{className}</h1>
-          </div>
+        
 
           
           </div>

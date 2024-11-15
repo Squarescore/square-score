@@ -53,12 +53,13 @@ const JoinClassModal = ({ onSubmit, onClose }) => {
       zIndex: 100
     }}>
       <div style={{
-        backgroundColor: 'transparent',
-        padding: '20px',
-        borderRadius: '10px',
-        width: '600px'
+        padding: '50px',
+        borderRadius: '15px',
+        width: '400px',
+        background: 'white',
+        border: '1px solid lightgrey'
       }}>
-        <h2 style={{ fontSize: '60px', fontFamily: '"montserrat", sans-serif', marginTop: '-100px', marginBottom: '60px', textAlign: 'center' }}>Join Class</h2>
+        <h2 style={{ fontSize: '40px', fontFamily: '"montserrat", sans-serif', marginTop: '-10px', marginBottom: '60px', textAlign: 'left', fontWeight: '600', marginLeft: '-20px' }}>Join Class</h2>
         <form onSubmit={handleSubmit}>
           <div style={{ display: 'flex', justifyContent: 'center', gap: '10px', marginBottom: '20px' }}>
             {code.map((digit, index) => (
@@ -76,7 +77,7 @@ const JoinClassModal = ({ onSubmit, onClose }) => {
                   textAlign: 'center',
                   fontFamily: "'montserrat', sans-serif",
                   fontWeight: 'bold',
-                  border: '4px solid lightgrey',
+                  border: '1px solid lightgrey',
                   borderRadius: '10px',
                   outline: 'none',
                 }}
@@ -85,21 +86,22 @@ const JoinClassModal = ({ onSubmit, onClose }) => {
             ))}
           </div>
           {joinClassError && <p style={{ color: 'red', marginBottom: '10px', textAlign: 'center' }}>{joinClassError}</p>}
-          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '-20px' }}>
             <button
               type="submit"
               style={{ 
                 backgroundColor: '#AEF2A3',
-                border: '4px solid #45B434',
+                border: '1px solid #45B434',
                 color: '#45B434',
-                borderRadius: '10px',
+                borderRadius: '5px',
                 cursor: 'pointer', 
                 marginTop: '30px',
+                height: "40px",
                 fontFamily: "'montserrat', sans-serif",
-                fontWeight: 'bold',
-                fontSize: '20px',
-                width: '45%',
-                marginLeft: '10%',
+                fontWeight: '600',
+                fontSize: '16px',
+                width: '60%',
+                marginLeft: '-20px',
                 marginRight: '10px'
               }}
             >
@@ -111,16 +113,17 @@ const JoinClassModal = ({ onSubmit, onClose }) => {
               style={{ 
                 backgroundColor: '#f4f4f4',
                 height: '50px',
-                border: '4px solid lightgrey',
+                border: '1px solid lightgrey',
                 color: 'grey',
-                borderRadius: '10px',
+                borderRadius: '5px',
                 cursor: 'pointer', 
                 marginTop: '30px',
+                height: "40px",
                 fontFamily: "'montserrat', sans-serif",
-                fontWeight: 'bold',
-                fontSize: '20px',
-                width: '35%',
-                marginRight: '10%'
+                fontWeight: '600',
+                fontSize: '16px',
+                width: '45%',
+                marginRight: '-20px'
               }}
             >
               Cancel
