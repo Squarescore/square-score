@@ -26,7 +26,8 @@ function TeacherStudentResults() {
     const [debouncedFeedback, setDebouncedFeedback] = useState({});
     const debouncedUpdateRef = useRef(null);
     const [classId, setClassId] = useState(null);
-
+    const [feedbackStates, setFeedbackStates] = useState({});
+    const textareaRefs = useRef({});
 
     const scrollToQuestion = (index) => {
         setActiveQuestionIndex(index);
@@ -133,16 +134,71 @@ const toggleFlag = async (index) => {
             }
         };
     }, []);
-
-    const handleFeedbackChange = (index, newFeedback) => {
-        setDebouncedFeedback(prev => ({
-            ...prev,
-            [index]: newFeedback
-        }));
-        if (debouncedUpdateRef.current) {
-            debouncedUpdateRef.current(index, results.questions[index].score, newFeedback);
+    useEffect(() => {
+        // Initialize feedback states from results
+        if (results?.questions) {
+          const initialFeedback = {};
+          results.questions.forEach((question, index) => {
+            initialFeedback[index] = question.feedback || '';
+          });
+          setFeedbackStates(initialFeedback);
         }
-    };
+      }, [results]);
+   // Initialize feedback states and set initial heights
+   useEffect(() => {
+    if (results?.questions) {
+      const initialFeedback = {};
+      results.questions.forEach((question, index) => {
+        initialFeedback[index] = question.feedback || '';
+      });
+      setFeedbackStates(initialFeedback);
+  
+      // Set initial heights after a short delay to ensure content is rendered
+      setTimeout(() => {
+        results.questions.forEach((_, index) => {
+          const textarea = textareaRefs.current[index];
+          if (textarea) {
+            textarea.style.height = '24px'; // Set to one line initially
+            textarea.style.height = textarea.value ? `${textarea.scrollHeight}px` : '24px';
+          }
+        });
+      }, 0);
+    }
+  }, [results]);
+  
+  const handleFeedbackChange = (index, newFeedback) => {
+    // Update local state immediately
+    setFeedbackStates(prev => ({
+      ...prev,
+      [index]: newFeedback
+    }));
+  
+    // Debounce the Firestore update
+    if (debouncedUpdateRef.current) {
+      debouncedUpdateRef.current.cancel();
+    }
+  
+    debouncedUpdateRef.current = debounce(async () => {
+      try {
+        const updatedQuestions = results.questions.map((q, i) => 
+          i === index ? { ...q, feedback: newFeedback } : q
+        );
+  
+        await updateDoc(doc(db, 'grades', `${assignmentId}_${studentUid}`), {
+          questions: updatedQuestions
+        });
+  
+        setResults(prev => ({
+          ...prev,
+          questions: updatedQuestions
+        }));
+      } catch (error) {
+        console.error('Error updating feedback:', error);
+      }
+    }, 1000);
+  
+    debouncedUpdateRef.current();
+  };
     useEffect(() => {
         const fetchResults = async () => {
             try {
@@ -534,7 +590,7 @@ const toggleFlag = async (index) => {
         navigate(`/questionResults/${assignmentId}/${question.questionId}`);
     }}
     style={{ 
-        width: '700px', 
+        width: 'calc(100%)', 
         backgroundColor: 'white', 
         fontWeight: 'bold', 
         lineHeight: '1.4', 
@@ -544,8 +600,6 @@ const toggleFlag = async (index) => {
         position: 'relative', 
         display: 'flex', 
         flexDirection: 'column', 
-        marginLeft: '10px', 
-        marginTop: '0px',
         cursor: 'pointer',
         padding: '0',
         fontFamily: 'inherit'
@@ -667,61 +721,77 @@ const toggleFlag = async (index) => {
             </button>
         </div>
                                 </div>
-                                <div style={{display: 'flex', marginTop: '20px'}}>
+                                <div style={{ marginTop: '0px'}}>
                                
                                     
-                                        <div style={{
-                                            flexGrow: 1,
-                                            paddingLeft: '30px',
-                                            paddingRight: '0px',
-                                            marginLeft: '20px',
-                                            position: 'relative',
-                                            background: `${question.score === 2 ? '#CCFFC3' : question.score === 1 ? '#FFF5D2' : '#FFCDCD'}`,
-                                            borderLeft: `4px solid ${question.score === 2 ? '#20BF00' : question.score === 1 ? '#F4C10A' : '#FF0000'}`, 
-                                            color: `${question.score === 2 ? '#20BF00' : question.score === 1 ? '#E76F00' : '#FF0000'}`, 
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                        }}>
-                                            <p style={{
-                                                fontSize: '16px',
-                                                fontWeight: '600',
-                                                textAlign: 'left',
-                                                margin: 0,
-                                                width: '100%',
-                                                padding: '0px',
-                                            }}>
-                                                {question.studentResponse || "Not provided"}
-                                            </p>
-                              
-                                    </div>
+                                <div style={{
+    flexGrow: 0, // Changed from 1 to 0 to prevent full width
+    paddingLeft: '30px',
+    paddingRight: '0px',
+    marginLeft: '0px',
+    position: 'relative',
+    padding: '10px 40px 10px 10px',
+    minWidth: '100px',
+    maxWidth: 'fit-content', // Added to make it inline
+    background: `${question.score === 2 ? '#CCFFC3' : question.score === 1 ? '#FFF5D2' : '#FFCDCD'}`,
+    borderLeft: `4px solid ${question.score === 2 ? '#20BF00' : question.score === 1 ? '#F4C10A' : '#FF0000'}`, 
+    color: `${question.score === 2 ? '#20BF00' : question.score === 1 ? '#E76F00' : '#FF0000'}`, 
+    display: 'inline-flex', // Changed from flex to inline-flex
+    alignItems: 'center',
+}}>
+    <p style={{
+        fontSize: '16px',
+        fontWeight: '600',
+        textAlign: 'left',
+        margin: 0,
+        width: 'auto', // Changed from 100% to auto
+        padding: '0px',
+        whiteSpace: 'pre-wrap', // Added to preserve line breaks
+        overflowWrap: 'break-word', // Added to handle long words
+    }}>
+        {question.studentResponse || "Not provided"}
+    </p>
+</div>
                                     <div style={{
-                                        width: `50%`,
+                                        width: `100%`,
                                         backgroundColor: 'white',
                                         position: 'relative',
                                         borderRadius: '20px',
                                         display: 'flex',
+                                        marginTop: '20px',
                                         marginRight: '0px',
                                     }}>
                                       
-                                            <MessageSquareMore size={25}  style={{position: 'absolute', left: '35px', top: '50%', transform: 'translatey(-50%)', color: 'grey'}}/>
+                                            <MessageSquareMore size={25}  style={{position: 'absolute', left: '0px', top: '50%', transform: 'translatey(-50%)', color: 'grey'}}/>
                                       
-                                        <textarea
-                                            style={{
-                                                fontSize: '16px',
-                                                color: 'grey',
-                                                textAlign: 'left',
-                                                width: `100%`,
-                                                marginLeft: '70px',
-                                                border: 'none',
-                                                resize: 'vertical',
-                                                fontFamily: "default",
-                                            }}
-                                            value={debouncedFeedback[index] || question.feedback || ""}
-                                            onChange={(e) => handleFeedbackChange(index, e.target.value)}
-                                            placeholder="Enter feedback here..."
-                                 
-                                        />
+                                            <textarea
+  style={{
+    fontSize: '16px',
+    color: 'grey',
+    textAlign: 'left',
+    width: '100%',
+    marginLeft: '30px',
+    border: 'none',
+    resize: 'none',
+    overflow: 'hidden',
+    fontFamily: "'montserrat', sans-serif",
+    padding: '0 10px',
+    background: 'transparent',
+    lineHeight: '1.5',
+    minHeight: '24px' // This sets exactly one line height (16px * 1.5)
+  }}
+  value={feedbackStates[index] || ''}
+  onChange={(e) => {
+    e.target.style.height = '24px'; // Reset to one line
+    e.target.style.height = `${e.target.scrollHeight}px`;
+    handleFeedbackChange(index, e.target.value);
+  }}
+  placeholder="Enter feedback here..."
+  onFocus={(e) => {
+    e.target.style.height = '24px'; // Reset to one line
+    e.target.style.height = `${e.target.scrollHeight}px`;
+  }}
+/>
                                     </div>
                                 </div>
                             </li>

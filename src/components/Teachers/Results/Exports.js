@@ -57,10 +57,10 @@ const Exports = ({ assignmentId, style }) => {
         console.error("Assignment not found");
         return;
       }
-      
+      const timestamp = Date.now();
       const assignmentData = assignmentDoc.data();
       const format = assignmentId.split('+').pop();
-      const newDraftId = `${classId}+${uuidv4()}+${format}`;
+      const newDraftId = `${classId}+${timestamp}+${format}`;
       
       // Create the draft document
       const draftRef = doc(db, 'drafts', newDraftId);
@@ -128,13 +128,13 @@ const Exports = ({ assignmentId, style }) => {
       <button
         onMouseEnter={handleMouseEnter}
         style={{
-          width: '100px',
+          width: '85px',
           height: '30px', 
-          marginTop: '45px',
+          marginTop: '60px',
           borderRadius: '5px',
        
           fontWeight: 'bold',
-          border: '1px solid lightgrey',
+          border: '1px solid white',
           backgroundColor: isHovered ? 'white' : 'transparent',
           color: isHovered ? '#2BB514' : 'grey',
           cursor: 'pointer',
@@ -155,7 +155,7 @@ const Exports = ({ assignmentId, style }) => {
           onMouseLeave={handleMouseLeave}
           style={{
             position: 'absolute',
-            top: '70px',
+            top: '90px',
             right: '0px',
             backgroundColor: 'white',
             borderRadius: '20px',

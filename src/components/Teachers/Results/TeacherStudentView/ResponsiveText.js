@@ -39,7 +39,7 @@ const ResponsiveText = ({ text, maxFontSize, minFontSize, style }) => {
         fontSize: `${fontSize}px`,
         fontWeight: '600',
         cursor: 'pointer',
-        width: '550px',
+        width: '100%',
         fontFamily: "'montserrat', sans-serif",
         whiteSpace: fontSize > minFontSize ? 'nowrap' : 'normal', // Allow wrapping when at min font size
       

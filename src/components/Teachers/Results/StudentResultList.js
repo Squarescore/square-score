@@ -96,10 +96,10 @@ const StudentResultsList = React.memo(
                     e.currentTarget.style.textDecoration = 'none';
                   }}
                 >
-                  <h3 style={{ fontWeight: '600', fontSize: '20px' }}>
+                  <h3 style={{ fontWeight: '600', fontSize: '16px' }}>
                     {student.lastName},
                   </h3>
-                  <h3 style={{ fontWeight: '600', fontSize: '20px', marginLeft: '10px' }}>
+                  <h3 style={{ fontWeight: '600', fontSize: '16px', marginLeft: '10px' }}>
                     {student.firstName}
                   </h3>
                 </div>
@@ -126,7 +126,7 @@ const StudentResultsList = React.memo(
                       }}
                     >
                       <p style={{ 
-                        fontSize: '20px', 
+                        fontSize: '16px', 
                         padding: '5px', 
                         borderRadius: '5px',
                         color: gradeColors.color,
@@ -138,7 +138,7 @@ const StudentResultsList = React.memo(
                         style={{
                           fontWeight: '500',
                           width: '23px',
-                          fontSize: '22px',
+                          fontSize: '16px',
                           marginLeft: 'auto',
                           height: '23px',
 
@@ -170,7 +170,7 @@ const StudentResultsList = React.memo(
                     }}
                   >
                     <div style={{ display: 'flex', alignItems: 'center' }}>
-                      <div style={{ marginRight: '10px', marginLeft: '10px' }}>
+                      <div style={{ marginRight: '10px', marginLeft: '10px', marginTop: '4px' }}>
                         {getStatusIcon(
                           studentGrade && studentGrade.submittedAt
                             ? 'completed'
@@ -179,8 +179,8 @@ const StudentResultsList = React.memo(
                       </div>
                       <h1
                         style={{
-                          fontSize: '20px',
-                          fontWeight: '600',
+                          fontSize: '16px',
+                          fontWeight: '500',
                           color: studentGrade && studentGrade.submittedAt
                             ? '#808080'
                             : getStatusColor(status),
@@ -218,7 +218,7 @@ const StudentResultsList = React.memo(
                         style={{
                           position: 'absolute',
                           right: '-40px',
-                          top: '-10px',
+                          top: '-14px',
                           height: '38px',
                           width: '50px',
                           padding: '11px',
@@ -237,7 +237,7 @@ const StudentResultsList = React.memo(
                           navigateToStudentResults(student.uid);
                         }}
                       >
-                        <ArrowRight size={30} color="#09BA00" strokeWidth={2.5} />
+                        <ArrowRight size={20} color="#09BA00" strokeWidth={2.5} />
                       </div>
                     )}
                   </div>
@@ -250,7 +250,7 @@ const StudentResultsList = React.memo(
                       cursor: 'pointer',
                       borderColor: 'transparent',
                       fontWeight: '500',
-                      fontSize: '20px',
+                      fontSize: '16px',
                       width: '100px',
                       textAlign: 'left',
                       marginRight: '4%',
@@ -276,7 +276,7 @@ const StudentResultsList = React.memo(
                 }}>
                   <h1
                     style={{
-                      fontSize: '20px',
+                      fontSize: '16px',
                       color: 'lightgrey',
                       marginRight: '200px',
                       width: '200px',
@@ -292,7 +292,7 @@ const StudentResultsList = React.memo(
                       color: '#2BB514',
                       cursor: 'pointer',
                       borderColor: 'transparent',
-                      fontSize: '20px',
+                      fontSize: '16px',
                       fontWeight: '500',
                       width: '100px',
                       textAlign: 'left',

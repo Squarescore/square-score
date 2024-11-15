@@ -10,7 +10,7 @@ const Step = ({ name, isComplete, isActive, onClick, disabled }) => {
       alignItems: 'center',
       gap: '4px',
       margin: '-10px',
-      padding: '14px 0px',
+      padding: '18px 0px',
       marginRight: '50px', 
       position: 'relative',
 
@@ -72,7 +72,7 @@ const ActionButtons = ({ onSaveDraft, onPublish, isPublishDisabled }) => {
     publish: {
       border:  isPublishDisabled ? '1px solid lightgrey' : '1px solid #2BB514',
       fontFamily: "'Montserrat', sans-serif",
-      backgroundColor: isPublishDisabled ? '#9ca3af' : '#2BB514',
+      backgroundColor: isPublishDisabled ? 'lightgrey' : '#2BB514',
       
       color: isPublishDisabled ? 'grey' : 'white',
       cursor: isPublishDisabled ? 'not-allowed' : 'pointer',
@@ -141,7 +141,7 @@ const Stepper = ({
       display: 'flex',
       justifyContent: 'space-between',
       alignItems: 'center',
-      padding: '0px 20px',
+      padding: '5px 20px',
       backgroundColor: 'white',
       width: '100%',
       maxWidth: '896px',

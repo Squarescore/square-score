@@ -16,6 +16,7 @@ import AnimationAll from '../../Universal/AnimationAll';
 import Loader from '../../Universal/Loader';
 import { safeClassUpdate} from '../../teacherDataHelpers';
 import { v4 as uuidv4 } from 'uuid';
+import HomeNav from '../../Universal/HomeNavbar';
 const TeacherHome = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -182,13 +183,13 @@ const handleCreateClass = async (e, period, classChoice) => {
  
   return (
     <div style={{  display: 'flex', flexDirection: 'column', backgroundColor: '#white', flexWrap: 'wrap' }}>
-     <Navbar userType="teacher" />
+     <HomeNav userType="teacher" />
       <main style={{ flexGrow: 1, display: 'flex', flexDirection: 'column', alignItems: 'left', marginTop: '10px', backgroundColor: '#white', marginBottom: '230px' }}>
         {loading && <p>Loading...</p>}
         {error && <p>Error: {error.message}</p>}
 
 
-        <div style={{width: '100%', borderBottom: '1px solid lightgrey', }}>
+        <div style={{width: '100%', borderBottom: '1px solid lightgrey',  marginBottom: '-40px'}}>
             <h1 style={{
 fontSize: '30px',
 marginLeft: 'calc(4% + 200px)',
@@ -196,7 +197,7 @@ fontWeight: '600'
 
 
             }}>
-SquareScore      </h1>
+Home    </h1>
 
 <button
            
@@ -210,8 +211,8 @@ marginLeft: 'calc(4% + 200px)',
               fontWeight: "600",
               padding: '12px 10px',
               fontFamily: "'Montserrat', sans-serif",
-              borderBottom:  '2px solid blue',
-              color:  '#020CFF' ,
+              borderBottom:  '2px solid #E01FFF',
+              color:  '#E01FFF' ,
             }}
           >
             Classes
@@ -224,8 +225,8 @@ marginLeft: 'calc(4% + 200px)',
              border: 'none',
              fontSize: '14px',
              cursor: 'pointer',
-             marginRight: 'auto',
-marginLeft: 'calc(4% + 200px)',
+             marginLeft: '50px',
+
              fontWeight: "600",
              padding: '12px 10px',
              fontFamily: "'Montserrat', sans-serif",
@@ -262,44 +263,43 @@ marginLeft: 'calc(4% + 200px)',
             {successMessage && (
   <div style={{
     position: 'fixed',
-    top: '70px',
+    bottom: '20px',
     zIndex: '10000',
-    left: '0',
-    right: '0',
+    right: '4%',
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center'
   }}>
-    <div style={{width: '100%', background: '#4BD682', height: '6px'}}></div>
-
-
+   
    
 
     <div style={{
-      backgroundColor: '#AEF2A3',
-      border: '6px solid #4BD682',
-      borderBottomLeftRadius: '20px',
+      backgroundColor: '#CCFFC3',
+      marginLeft: '0%',
+      marginRight: 'auto',
+      border: '1px solid #4BD682',
+      borderRadius: '10px',
       borderTop: '0px',
-      borderBottomRightRadius: '20px',
       padding: '0px 20px',
-      height: '40px',
+      height: '50px',
       display: 'flex',
       alignItems: 'left',
       marginTop: '0px',
       marginBottom: '20px',
       whiteSpace: 'nowrap'
     }}>
-      <p style={{ color: '#45B434', fontWeight: 'bold', marginRight: '20px' }}>{successMessage}</p>
+      <p style={{ color: '#45B434', fontWeight: '600', marginRight: '20px' }}>{successMessage}</p>
       <button
         onClick={handleAddStudents}
         style={{
-          backgroundColor: '#FFECA9',
-          color: '#CE7C00',
+          backgroundColor: '#FFF5D2',
+          color: '#FFAE00',
           fontSize: '16px',
+          marginTop: '10px',
           fontFamily: "'montserrat', sans-serif",
-          fontWeight: 'BOLD',
+          fontWeight: '500',
           height: '30px',
-          border: '4px solid #CE7C00',
+          border: '1px solid #FFAE00',
           borderRadius: '5px',
           marginRight: '10px',
           cursor: 'pointer'
@@ -310,13 +310,14 @@ marginLeft: 'calc(4% + 200px)',
       <button
         onClick={handleDismiss}
         style={{
-          backgroundColor: 'white',
-          color: '#4BD682',
+          backgroundColor: '#FFFFFF',
+          color: 'lightgrey',
+          marginTop: '10px',
           fontSize: '16px',
           fontFamily: "'montserrat', sans-serif",
-          fontWeight: 'BOLD',
+          fontWeight: '500',
           height: '30px',
-          border: '4px solid #4BD682',
+          border: '1px solid lightgrey',
           borderRadius: '5px',
           cursor: 'pointer'
         }}
@@ -328,11 +329,12 @@ marginLeft: 'calc(4% + 200px)',
 )}
 
 <div style={{ fontFamily: "'montserrat', sans-serif",width: '100%', display: 'flex', height: '30px',
-  marginBottom: '60px', marginTop: '50px',
+  marginBottom: '10px', marginTop: '30px',
 
 }}>
             <h4 style={{
-              fontSize: '20px', 
+              fontSize: '25px', 
+              marginTop: '10px',
              fontWeight: '600'
             }}>Your Classes</h4>
 
@@ -343,12 +345,12 @@ marginLeft: 'calc(4% + 200px)',
               backgroundColor: 'white',
               border: '1px solid lightgrey',
               marginLeft: 'auto',
-              fontSize: '14px', 
+              fontSize: '16px', 
               width: '140px',
-              marginTop: '40px',
+              marginTop: '0px',
               transition: '.3s', 
               color: 'grey',
-              borderRadius: '10px',
+              borderRadius: '5px',
               padding: '10px 5px', 
               fontWeight: '600',
               fontFamily: "'montserrat', sans-serif",
@@ -356,7 +358,6 @@ marginLeft: 'calc(4% + 200px)',
               lineHeight: '20px',
               cursor: 'pointer',
               height: '40px',
-              lineHeight: '14px'
             }}
             onMouseEnter={(e) => {
               e.target.style.color = '#45B434';
@@ -468,7 +469,7 @@ zIndex: '100'
                       width: "30%",
                       maxWidth: '30%',
                       marginTop: '20px', 
-                      height: '120px',
+                      height: '130px',
                       display: 'flex',
                       backgroundColor: 'transparent',  
                       color: 'grey', 
@@ -485,7 +486,7 @@ zIndex: '100'
                       transform: 'scale(1)',
                     }}
                     onMouseEnter={(e) => {
-                      e.target.style.borderColor = '#f4f4f4';
+                      e.target.style.borderColor = '#dddddd';
                     }}
                     onMouseLeave={(e) => {
                       e.target.style.borderColor = 'lightgrey';
@@ -501,16 +502,16 @@ zIndex: '100'
                     marginLeft: '15%',
                     height: '16px',
                     lineHeight: '16px',
-                    marginTop: '40px', width: '170px',  textAlign: 'left',
-                    paddingLeft: '5px',
+                    marginTop: '40px', width: '180px',  textAlign: 'left',
+                    paddingLeft: '5px', fontSize: '40px',
                       fontWeight: '600',}}>{classItem.className}</h1>
                 
                 
                 <p style={{marginTop: '0px',  overflow: 'hidden',
                     textOverflow: 'ellipsis', marginLeft: '15%',
                     textAlign: 'left',color: 'lightgrey', fontWeight: '600', 
-                    marginTop: '-10px',
-                    whiteSpace: 'nowrap',width: '268px', background: 'tranparent',   }}>{classItem.classChoice}</p>
+                    marginTop: '-10px',fontSize: '16px',
+                    whiteSpace: 'nowrap',width: '268px', background: 'tranparent',   }}>{classItem.classChoice} </p>
                     
                 
                 

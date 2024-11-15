@@ -374,174 +374,219 @@ const QuestionResults = ({ assignmentId, questionId, inModal = false, onClose })
     <div>
   
       <div style={{
-       width: '100%',
-        border: '1px solid green'
       }}>
 
-        {/* Assignment and Question Details */}
-        <div style={{ display: 'flex' }}>
-          {/* Assignment Header */}
-          <div style={{
-            backgroundColor: 'blue',
-            position: 'fixed',top: '10px',
-            borderRadius: '15px',
-            width: '100%',
-            boxShadow: '1px 1px 5px 1px rgb(0,0,155,.07)',
-            padding: '24px',
-            marginBottom: '24px'
-          }}>
        
-            <div style={{ display: 'flex',  height: '145px', alignItems: 'center' }}>
-          
-
-
-              {/* Question Title */}
-              {editingQuestions[questionId] ? (
-    <TextareaAutosize
-      style={{
-        fontSize: '1.5rem',
-        fontWeight: 'bold',
-        width: '650px', 
-        maxRows: 8,
-        position: 'absolute', 
-        top: '60px',
-        marginBottom: '0px',
-        borderRadius: '5px',
-        padding: '10px',
-        resize: 'none',
-      }}
-      value={questionData?.question}
-      onChange={(e) => setQuestionData(prev => ({ ...prev, question: e.target.value }))}
-      onBlur={handleQuestionBlur}
-    />
-  ) : (
-    <h1 style={{
-      fontSize: '1.5rem',
-      fontWeight: 'bold',
-      width: '650px',
-      marginTop: '20px',
-      marginBottom: '0px',
-      fontFamily: "'montserrat', sans-serif"
+          <div style={{
+      width: 'calc(92% - 200px)',
+      padding: '10px 4%',
+      position: 'fixed',
+      
+      zIndex: '2',
+      left: '200px',
+      top: '160px',
+      background: 'rgb(255,255,255,.9)',
+      backdropFilter: 'blur(5px)', 
+      borderBottom:" 1px solid lightgrey",
+ 
     }}>
-      {questionData?.question}
-    </h1>
-  )}
+      <div style={{
+        display: 'flex', 
+        gap: '24px'
+      }}>
+        {/* Main content area (80%) */}
+        <div style={{
+          flexGrow: 1,
+          width: '80%',
+        }}>
+          {/* Question Section */}
+          <div style={{  }}>
+            {editingQuestions[questionId] ? (
+              <TextareaAutosize
+                style={{
+                  width: '100%',
+                  fontSize: '1.5rem',
+                  fontWeight: 'bold',
+                  border: '1px solid #e5e7eb',
+                  
+                fontFamily: "default",
+                  borderRadius: '8px',
+                  outline: 'none',
+                  resize: 'none'
+                }}
+                value={questionData?.question}
+                onChange={(e) => setQuestionData(prev => ({ ...prev, question: e.target.value }))}
+                onBlur={handleQuestionBlur}
+                minRows={1}
+              />
+            ) : (
+              <h1 style={{
+                fontWeight: '600',
+                fontSize: '20px',
+                marginTop: '10px',marginBottom: '-0px',
+                fontFamily: "'Montserrat', sans-serif",
+             
+              }}>
+                {questionData?.question}
+              </h1>
+            )}
+          </div>
 
-
-
-              <div style={{ marginLeft: 'auto', display: 'flex', flexDirection: 'column', gap: '10px', height: '60px', marginTop: '20px' }}>
-                {/* Rubric Toggle Button */}
-                <button
-  onClick={toggleRubricVisibility}
-  style={{
-    fontSize: '24px',
-    background: 'transparent',
-    border: 'none',
-    cursor: 'pointer',
-    color: '#9ca3af'
-  }}
-
->
-  {showRubric ? <ClipboardMinus size={24} /> : <ClipboardList size={24} />}
-</button>
-                {/* Edit Button */}
-              {/* Edit Button */}
-<button
-  onClick={() => handleEditQuestionToggle(questionId)}
-  style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: '#9ca3af' }}
-  aria-label={editingQuestions[questionId] ? "Stop Editing" : "Edit Question"}
->
-  {editingQuestions[questionId] ? <PencilOff size={24} /> : <Pencil size={24} />}
-</button>
-
+          {/* Rubric Section */}
+          {showRubric && (
+            <div style={{
+              marginTop: '16px',
+              padding: '16px',
+              backgroundColor: '#f9fafb',
+              borderRadius: '8px'
+            }}>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '16px'
+              }}>
+                <ClipboardList style={{
+                  width: '24px',
+                  height: '24px',
+                  color: '#6b7280'
+                }} />
+                {editingQuestions[questionId] ? (
+                  <TextareaAutosize
+                    style={{
+                      width: '100%',
+                      fontSize: '1rem',
+                      background: 'transparent',
+                      border: '1px solid #e5e7eb',
+                      borderRadius: '8px',
+                      outline: 'none',
+                      resize: 'none'
+                    }}
+                    value={questionData?.rubric}
+                    onChange={(e) => setQuestionData(prev => ({ ...prev, rubric: e.target.value }))}
+                    onBlur={handleRubricBlur}
+                    minRows={3}
+                  />
+                ) : (
+                  <p style={{
+                    fontSize: '1rem',
+                    margin: '0'
+                  }}>
+                    {questionData?.rubric}
+                  </p>
+                )}
               </div>
             </div>
+          )}
+        </div>
 
-            <div style={{
-              fontSize: '45px',
-              fontWeight: 'bold',
-              width: '150px',
-              fontFamily: "'montserrat', sans-serif",
-              height: '150px',
-              position: 'absolute',
-              background: 'transparent',
-              borderRadius: '10px',
-              top: '20px',
-              left: '20px',
-              textAlign: 'center',
-              lineHeight: '150px'
-            }}> 
-              {questionData?.averageScore.toFixed(0)}
-            </div>
-
+        {/* Right sidebar with controls and score */}
+        <div style={{
+          width: '102px',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center'
+        }}>
+          {/* Control buttons */}
+          <div style={{
+            display: 'flex',
+            gap: '16px',
+          }}>
+            <button
+              onClick={toggleRubricVisibility}
+              style={{
+                padding: '8px',
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                color: '#9ca3af'
+              }}
+              aria-label={showRubric ? "Hide Rubric" : "Show Rubric"}
+            >
+              {showRubric ? (
+                <ClipboardMinus style={{ width: '24px', height: '24px' }} />
+              ) : (
+                <ClipboardList style={{ width: '24px', height: '24px' }} />
+              )}
+            </button>
+            <button
+              onClick={() => handleEditQuestionToggle(questionId)}
+              style={{
+                padding: '8px',
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                color: '#9ca3af'
+              }}
+              aria-label={editingQuestions[questionId] ? "Stop Editing" : "Edit Question"}
+            >
+              {editingQuestions[questionId] ? (
+                <PencilOff style={{ width: '24px', height: '24px' }} />
+              ) : (
+                <Pencil style={{ width: '24px', height: '24px' }} />
+              )}
+            </button>
           </div>
+
+          {/* Score display */}
+         
+        </div>
+        <div style={{
+            width: '70px',
+            height: '40px',
+            lineHeight: '40px',
+            borderRadius: '8px',
+            textAlign: 'right',
+            backgroundColor: 'white',
+            fontSize: '16px',
+            fontWeight: '600'
+          }}>
+            {questionData?.averageScore.toFixed(0)}%
+          </div>
+
+      </div>
+
+      </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
       
         </div>
 
         {/* Rubric Section - Conditionally Rendered */}
-        {showRubric && (
-          <div style={{
-            backgroundColor: 'white',
-            borderRadius: '15px',
-            width: '950px',
-            paddingLeft: '60px',
-            boxShadow: '1px 1px 5px 1px rgb(0,0,155,.07)',
-            padding: '10px 10px',
-            position: 'relative',
-            marginBottom: '24px',
-            display: 'flex',
-            alignItems: 'center'
-          }}>
-            <div style={{
-              margin: '-10px 10px -10px -10px',
-              width: '100px',
-              height: '90px',
-              borderRadius: '15px 0px 0px 15px',
-              border: '4px solid lightgrey',
-              background: '#f4f4f4',
-              color: 'grey',
-              position: 'relative'
-            }}>
-              <ClipboardList style={{
-                position: 'absolute',
-                height: '30px',
-                width: '30px',
-                left: '50%',
-                top: '50%',
-                transform: 'translate(-50%, -50%)',
-              }}/>
-            </div>
-
-              {/* Rubric Content */}
-              {showRubric && editingQuestions[questionId] ? (
-    <TextareaAutosize
-      style={{width: '140%', fontSize: '16px'}}
-      value={questionData?.rubric}
-      onChange={(e) => setQuestionData(prev => ({ ...prev, rubric: e.target.value }))}
-      onBlur={handleRubricBlur}
-    />
-  ) : (
-    <p style={{}}>
-      {questionData?.rubric}
-    </p>
-  )}
-  </div>
-)}
+       
         
 
         {/* Responses Header with Expand All Button */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
-          <div style={{fontWeight: '600', fontSize: '25px', marginBottom: '-15px', marginLeft: '15px'}}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginLeft: '4%', marginRight: '4%',  marginTop: '80px'}}>
+          <div style={{fontWeight: '600', fontSize: '16px', marginBottom: '-20px', color: 'lightgrey', marginTop: '-10px'}}>
             {questionData?.totalResponses} Responses
           </div>
           <button onClick={handleExpandAll} style={{
             padding: '8px 12px',
             backgroundColor: 'white',
-            marginBottom: '-5px', 
-            boxShadow: '1px 1px 5px 1px rgb(0,0,155,.07)',
+            marginBottom: '0px', 
+            border: '1px solid lightgrey',
             color: 'grey', 
-            border: 'none',
             borderRadius: '5px',
             cursor: 'pointer',
             display: 'flex',
@@ -556,8 +601,7 @@ const QuestionResults = ({ assignmentId, questionId, inModal = false, onClose })
 
 
 <div style={{
-            boxShadow: '1px 1px 5px 1px rgb(0,0,155,.10)',
-            borderRadius: '20px', 
+           
             background: 'white'}}>
 
 
@@ -578,32 +622,32 @@ const QuestionResults = ({ assignmentId, questionId, inModal = false, onClose })
         {/* Student List */}
         {students.map((student, index) => (
           <div key={student.id} style={{
-            padding: '25px',
-            marginBottom: '-40px'
+            padding: '10px 0px',
+            borderBottom: '1px solid lightgrey',
+            marginBottom: '0px'
           }}>
             {/* Student Header */}
             <div style={{
               display: 'flex',
               alignItems: 'center',
+              marginRight: '4%',
               justifyContent: 'space-between'
             }}>
               <div style={{
                 display: 'flex',
               
                 alignItems: 'center',
+                marginLeft: '4%',
                 gap: '16px'
               }}>
                 {/* Score Icon */}
-                <div style={{ width: '24px', height: '24px', marginLeft: '10px', marginTop: '-5px' }}>
-                  {student.score === 2 && <SquareCheck color="#22c55e" size={30} />}
-                  {student.score === 1 && <SquareSlash color="#FFD13B" size={30}  />}
-                  {student.score === 0 && <SquareX color="#ef4444"  size={30}  />}
-                </div>
+             
                 <h3 
                          onClick={() => handleStudentClick(student.studentUid)}
                 style={{
-                  fontWeight: '600',
+                  fontWeight: '500',
                   cursor: 'pointer',
+                  fontSize: '16px',
                   fontFamily: "'montserrat', sans-serif"
                 }}
                 
@@ -617,18 +661,52 @@ const QuestionResults = ({ assignmentId, questionId, inModal = false, onClose })
 
 
               </div>
-
+             
               <div style={{
                 display: 'flex',
-                marginRight: '15px',
                 alignItems: 'center',
-                gap: '16px'
+                width: '300px',
+                gap: '16px', 
               }}>
+
+{!showResponseMap[student.id] && (
+                    <div style={{
+                      overflow: 'hidden',
+                      padding: '5px 10px',
+                      zIndex: '0',
+                      maxWidth: '40%',
+                      position: 'absolute', left: '250px',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                      background: student.score === 2 ? '#CCFFC3' : student.score === 1 ? '#FFF5D2' : '#FFCDCD',
+                      borderLeft: `4px solid ${student.score === 2 ? '#20BF00' : student.score === 1 ? '#F4C10A' : '#FF0000'}`,
+                      color: student.score === 2 ? '#20BF00' : student.score === 1 ? '#E76F00' : '#FF0000',
+                     
+                      flex: 1,
+                      fontSize: '14px'
+                    }}>
+                      {student.response || "No response provided"}
+                    </div>
+                  )}
+
                 {/* Score Controls */}
                 <div style={{
                   display: 'flex',
-                  gap: '8px'
+                  gap: '2px'
                 }}>
+                    <button
+                  onClick={() => toggleResponse(student.id)}
+                  style={{
+                    padding: '4px',
+                    
+                    backgroundColor: 'transparent',
+                   border: 'none',
+                    cursor: 'pointer',
+                    color: '#9ca3af'
+                  }}
+                >
+                  {showResponseMap[student.id] ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+                </button>
                   <button
                     onClick={() => updateGrade(student.id, 2)}
                     style={{
@@ -642,15 +720,13 @@ const QuestionResults = ({ assignmentId, questionId, inModal = false, onClose })
                     style={{
 
 
-                      padding: '8px 8px',
+                      padding: '4px 4px',
                       borderRadius: '5px',
                       
-                      border: '2px solid ',
                       cursor: 'pointer',
-                      backgroundColor: student.score === 2 ? '#dcfce7' : 'transparent',
+                      background: 'white',
                       color: student.score === 2 ? '#16a34a' : '#9ca3af',
                       
-                      borderColor: student.score === 2 ? '#16a34a' : 'transparent'
 
 
                     }}
@@ -670,12 +746,11 @@ const QuestionResults = ({ assignmentId, questionId, inModal = false, onClose })
                     
                     style={{
 
-                      padding: '8px 8px',
+                      padding: '4px 4px',
                       borderRadius: '5px',
-                      border: '2px solid ',
                       cursor: 'pointer',
-                            borderColor: student.score === 1 ? '#FFD13B' : 'transparent',
-                      backgroundColor: student.score === 1 ? '#FFF7DB' : 'transparent',
+                      border: 'none',
+                      background: 'white',
                       color: student.score === 1 ? '#FFD13B' : '#9ca3af'
 
 
@@ -696,14 +771,12 @@ const QuestionResults = ({ assignmentId, questionId, inModal = false, onClose })
                   >
                     <SquareX size={20}  style={{  
 
-                      padding: '8px 8px',
+                      padding: '4px 4px',
                       borderRadius: '5px',
 
-                      border: '2px solid ',
+                      border: 'none',
                       cursor: 'pointer',
-
-                      borderColor: student.score === 0 ? '#dc2626' : 'transparent',
-                      backgroundColor: student.score === 0 ? '#fee2e2' : 'transparent',
+                      background: 'white',
                       color: student.score === 0 ? '#dc2626' : '#9ca3af'
 
 
@@ -720,28 +793,17 @@ const QuestionResults = ({ assignmentId, questionId, inModal = false, onClose })
                     cursor: 'pointer',
                     marginTop: '-4px',
                     borderRadius: '5px',
-                    border: '2px solid ',
-                    background: student.flagged ? '#DEE3FF' : 'white',
+                    border: 'none',
+                    background: 'white',
                     color: student.flagged ? '#020CFF' : '#9ca3af',
-                    borderColor: student.flagged ? '#020CFF' : 'white'
+                    
                   }}
                 >
                   <Flag size={20} />
                 </button>
 
                 {/* Chevron Toggle Button */}
-                <button
-                  onClick={() => toggleResponse(student.id)}
-                  style={{
-                    padding: '4px',
-                    backgroundColor: 'transparent',
-                    border: 'none',
-                    cursor: 'pointer',
-                    color: '#9ca3af'
-                  }}
-                >
-                  {showResponseMap[student.id] ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
-                </button>
+              
 
                 {/* Overall Percentage */}
                 <span style={{
@@ -774,118 +836,78 @@ const QuestionResults = ({ assignmentId, questionId, inModal = false, onClose })
 
             {/* Student Response and Feedback */}
             {showResponseMap[student.id] && (
-            <div style={{
-              marginTop: '0px',
-              padding: '16px',
-              width: '890px',
-              borderRadius: '8px',
-              display: 'flex',
-              gap: '16px'
-            }}>
-              {/* Student Response - Dynamic width based on content length */}
-              <div style={{ 
-                display: 'flex', 
-                border: '4px solid #f4f4f4', 
-                borderRadius: '15px', 
-                width: student.response && student.response.length < 100 ? '30%' : '43%',
-                marginLeft: '30px',
-                transition: 'width 0.3s ease' // Smooth transition for width changes
-              }}>
-                <div style={{
-                  margin: '-4px 20px -4px -40px',
-                  width: '60px',
-                  height: '100px',
-                  borderRadius: '15px 0px 0px 15px',
-                  border: '4px solid lightgrey',
-                  background: '#f4f4f4',
-                  color: 'grey',
-                  position: 'relative'
-                }}>
-                  <User style={{
-                    position: 'absolute',
-                    height: '30px',
-                    width: '30px',
-                    left: '50%',
-                    top: '50%',
-                    transform: 'translate(-50%, -50%)',
-                  }}/>
-                </div>
-               
-                <p style={{
-                  marginBottom: '16px',
-                  color: '#374151',
-                  flex: '1'
-                }}>
-                  {student.response || "No response provided"}
-                </p>
-              </div>
-
-              {/* Student Feedback - Dynamic width based on response length */}
-              <div style={{ 
-                display: 'flex', 
-                border: '4px solid #f4f4f4', 
-                borderRadius: '15px', 
-                width: student.response && student.response.length < 100 ? '58%' : '45%',
-                marginLeft: 'auto',
-                transition: 'width 0.3s ease' // Smooth transition for width changes
-              }}>
-                <div style={{
-                  margin: '-4px 20px -4px -40px',
-                  width: '60px',
-                  borderRadius: '15px 0px 0px 15px',
-                  border: '4px solid lightgrey',
-                  background: '#f4f4f4',
-                  color: 'grey',
-                  position: 'relative'
-                }}>
-                  <MessageSquareMore style={{
-                    position: 'absolute',
-                    height: '30px',
-                    width: '30px',
-                    left: '50%',
-                    top: '50%',
-                    transform: 'translate(-50%, -50%)',
-                  }}/>
-                </div>
-               
-                <textarea
-                  value={student.feedback || ''}
-                  onChange={(e) => handleFeedbackChange(student.id, e.target.value)}
-                  style={{
-                    width: '100%',
-                    border: 'none',
-                    padding: '16px',
-                    marginBottom: '16px',
-                    color: '#374151',
-                    flex: '1',
-                    resize: 'none',
-                    fontSize: '14px',
-                    background: 'transparent'
-                  }}
-                  placeholder="Add feedback..."
-                />
-              </div>
-            </div>
-          )}
-
-
-           {index !== students.length - 1 && (
+  <div style={{
+    marginTop: '10px',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '16px'
+  }}>
+    <div style={{
+      display: 'inline-block', // Changed to inline-block
+      maxWidth: 'calc(100% - 360px)',
+      marginLeft: '4%',
+    }}>
       <div style={{
-        width: '900px', 
-        height: '2px',
-        background: '#f4f4f4',
-        marginLeft: 'auto', 
-        marginRight: 'auto', 
-        marginTop: '10px'
-      }}></div>
-    )}
+        padding: '5px 10px',
+        width: 'fit-content', // Added to fit content
+        backgroundColor: student.score === 2 ? '#CCFFC3' : 
+                        student.score === 1 ? '#FFF5D2' : '#FFCDCD',
+        borderLeft: `4px solid ${
+          student.score === 2 ? '#20BF00' : 
+          student.score === 1 ? '#F4C10A' : '#FF0000'
+        }`,
+      }}>
+        <p style={{
+          margin: 0,
+          color: student.score === 2 ? '#20BF00' : 
+                 student.score === 1 ? '#E76F00' : '#FF0000',
+          fontWeight: '500',
+          whiteSpace: 'pre-wrap', // Added to preserve formatting
+          overflowWrap: 'break-word' // Added to handle long words
+        }}>
+          {student.response || "No response provided"}
+        </p>
+      </div>
+    </div>
+
+    <div style={{
+      display: 'flex',
+      alignItems: 'flex-start',
+      gap: '8px',
+      marginLeft: '4%',
+      maxWidth: 'calc(100% - 380px)',
+      padding: '16px',
+      backgroundColor: 'white',
+      borderRadius: '4px'
+    }}>
+      <MessageSquareMore size={20} style={{ color: 'grey', marginTop: '2px' }}/>
+      <textarea
+        value={student.feedback || ''}
+        onChange={(e) => handleFeedbackChange(student.id, e.target.value)}
+        style={{
+          width: '100%',
+          border: 'none',
+          padding: '0',
+          backgroundColor: 'transparent',
+          resize: 'none',
+          fontSize: '14px',
+          color: 'grey',
+          fontFamily: "'montserrat', sans-serif"
+        }}
+        placeholder="Add feedback..."
+      />
+    </div>
+  </div>
+)}
+
+
+       
         </div>
       ))}
 
         
       </div>
       </div>
-    </div>
   );
 };
 

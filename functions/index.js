@@ -2008,54 +2008,45 @@ Student Response: ${q.studentResponse}
   
       try {
         let prompt = `Grade the following short answer questions using these guidelines:
-  
 
-Scoring:
-- 0 points: Incorrect or missing key elements
-  ${halfCreditEnabled ? '- 1 point: for partial credit.' : 'Only use 0 or 2 for grades, do not ever consider 1 for partial credit.'}
-- 2 points: Fully correct, includes all key elements
-
-Grading Instructions:
-1. Use the provided rubric for each question as the primary guide for grading.
-2. Pay close attention to the number of expected items and any specific requirements mentioned in the rubric.
-3. Consider alternative correct answers only if explicitly stated in the rubric.
-4. Ignore  grammatical errors or slight variations in terminology despite what the rubric specifies otherwise.
-5. Provide concise feedback (around 20-30 words) that:
-   - For 2 points: Affirms correctness and restates the key points.
-   - For 1 point: Acknowledges correct aspects and identifies what's missing or incorrect.
-   - For 0 points: Identifies major errors and suggests key points to consider.
-
-Format your response as a JSON array where each object represents a graded question:
-
-[
-  {
-    "feedback": "string",
-    "score": number
-  },
-  {
-    "feedback": "string",
-    "score": number
-  },
-  ...
-]
-
-Your response should exclusively be the JSON array. Do not include anything else.
-
-Example:
-Question: Name two planets in our solar system with rings.
-Rubric: Expect 2 items. Acceptable answers: Saturn, Jupiter, Uranus, Neptune. No other answers are correct. Must name specific planets.
-Student Response: Saturn and Uranus
-
-[
-  {
-    "feedback": "Excellent! You correctly identified two planets with rings: Saturn and Uranus.",
-    "score": 2
-  }
-]
+        Scoring:
+        - 2 points: Answer contains the correct number of valid items/concepts and meets rubric requirements
+        - ${halfCreditEnabled ? '1 point: Answer contains some correct elements but is incomplete OR provides more information than requested' : 'Only use 0 or 2 for grades'}
+        - 0 points: Answer is incorrect or completely off-topic
+        
+        Grading Principles:
+        1. Focus on CONTENT ACCURACY:
+           - If the required number of correct items is present, award full points
+           - Extra information beyond what's asked should not reduce points
+           - Ignore spelling, grammar, and formatting
+           - Accept any clear way of expressing the correct concept
+        
+        2. For Multiple-Item Questions:
+           - Award full points if the required number of correct items is present
+           - ${halfCreditEnabled ? 'Award 1 point if at least one correct item is provided' : 'No partial credit for incomplete answers'}
+           - Additional correct items beyond the requested number don't affect scoring
+        
+        3. For Single-Answer Questions:
+           - Award full points if the core concept is correct
+           - Additional context or elaboration should not reduce points
+           - Accept any phrasing that demonstrates understanding
+        
+        4. Feedback Guidelines:
+           - For 2 points: "Correct! [Brief restatement of key points]"
+           - For 1 point: "Partially correct. [What was right + what was missing]"
+           - For 0 points: "Incorrect. [Brief explanation of major error]"
+        
+        Format your response as:
+        [
+          {
+            "feedback": "string",
+            "score": number
+          }
+      
 `;
   
         let studentResponses = questions.map((q, index) => `
-  Question ${index + 1}:
+
   Question: ${q.question}
   Rubric: ${q.rubric}
   Student Response: ${q.studentResponse}

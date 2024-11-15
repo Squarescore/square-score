@@ -1,11 +1,10 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import TextareaAutosize from 'react-textarea-autosize';
 import axios from 'axios';
-import { SquareX, CornerDownRight, Repeat, SquarePlus, ClipboardMinus, ClipboardList, SquareArrowLeft, Pencil, PencilOff, Trash, Trash2, ArrowRight } from 'lucide-react';
+import { SquareX, CornerDownRight, Repeat, SquarePlus, ClipboardMinus, ClipboardList, SquareArrowLeft, Pencil, PencilOff, Trash, Trash2, ArrowRight, ChevronUp, ArrowLeft } from 'lucide-react';
 import { collection, doc, getDocs, query, updateDoc, where } from 'firebase/firestore';
 import { db } from '../../Universal/firebase';
 import { useNavigate, useParams } from 'react-router-dom';
-import QuestionResultsModal from './QuestionResultsModal';
 import QuestionResults from './QuestionResultsSAQ';
 const QuestionBankSAQ = ({ questionsWithIds, setQuestionsWithIds, sourceText, questionCount, classId, teacherId, assignmentId }) => {
   const containerRef = useRef(null);
@@ -21,7 +20,8 @@ const QuestionBankSAQ = ({ questionsWithIds, setQuestionsWithIds, sourceText, qu
   const [showResponseMap, setShowResponseMap] = useState({});
   const [showRubric, setShowRubric] = useState(false);
   const [loading, setLoading] = useState(true);const [selectedQuestionId, setSelectedQuestionId] = useState(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);  const [isTransitioning, setIsTransitioning] = useState(false);
+
   const updateQuestionContent = async (newQuestion, newRubric) => {
     try {
       // Get all grade documents for this assignment
@@ -236,6 +236,7 @@ const QuestionBankSAQ = ({ questionsWithIds, setQuestionsWithIds, sourceText, qu
     };
   }, [calculateQuestionStats, questionsWithIds, classId, assignmentId]);
 
+
   const renderStatsBadge = (questionId) => {
     const percentage = questionStats[questionId];
     if (percentage === null) return null;
@@ -282,43 +283,81 @@ const QuestionBankSAQ = ({ questionsWithIds, setQuestionsWithIds, sourceText, qu
     );
   };
 
+  const handleQuestionSelect = (qId) => {
+    setIsTransitioning(true);
+    setTimeout(() => {
+      setSelectedQuestionId(qId);
+      setIsTransitioning(false);
+    }, 300);
+  };
+
+  const handleCloseResults = () => {
+    setIsTransitioning(true);
+    setTimeout(() => {
+      setSelectedQuestionId(null);
+      setIsTransitioning(false);
+    }, 300);
+  };
+
   const sortedQuestions = useMemo(() => {
     return [...questionsWithIds].sort((a, b) =>
       a.question.toLowerCase().localeCompare(b.question.toLowerCase())
     );
   }, [questionsWithIds]);
-
   
   return (
    
-      <div ref={containerRef} style={{ width: '100%', marginTop: '-20px'}}>
-
-<QuestionResultsModal
-      isOpen={isModalOpen}
-      onClose={() => {
-        setIsModalOpen(false);
-        setSelectedQuestionId(null);
-      }}
-    >
-      {selectedQuestionId && (
+    <div ref={containerRef} style={{ width: '100%', marginTop: '-40px' }}>
+    {selectedQuestionId && (
+      <div style={{
+        position: 'absolute',
+        top: '160px',
+        left: '200px',
+        right: '0',
+        bottom: '0',
+        backgroundColor: 'white',
+        zIndex: 10,
+        transition: 'opacity 0.3s ease-in-out',
+        opacity: isTransitioning ? 0 : 1,
+      }}>
+        <button
+          onClick={handleCloseResults}
+          style={{
+            top: '180px',
+            left: '210px',
+            position: "fixed",
+            zIndex: '10',
+            background: 'none',
+            border: 'none',
+            cursor: 'pointer'
+          }}
+        >
+          <ArrowLeft size={20} color="gray" />
+        </button>
         <QuestionResults
           assignmentId={assignmentId}
           questionId={selectedQuestionId}
-          inModal={true}
+          inModal={false}
         />
-      )}
-    </QuestionResultsModal>
-    
+      </div>
+    )}
+
+    <div style={{
+      opacity: selectedQuestionId ? 0 : 1,
+      transition: 'opacity 0.3s ease-in-out',
+      pointerEvents: selectedQuestionId ? 'none' : 'auto',
+      position: 'relative'
+    }}>
       {sortedQuestions.map((question, index) => {
-          const isEditing = editingQuestions[question.questionId];
-          const showRubric = showRubrics[question.questionId];
+        const isEditing = editingQuestions[question.questionId];
+        const showRubric = showRubrics[question.questionId];
 
           const textareaStyle = {
             padding: '15px',
             paddingRight: '8%',
             fontFamily:  isEditing ? "default": "'montserrat', sans-serif",
             fontWeight: '500',
-            fontSize: '20px',
+            fontSize: '16px',
             borderRadius: '0px 10px 10px 0px',
             width: 'calc(70% - 40px)',
             resize: 'none',
@@ -345,15 +384,14 @@ const QuestionBankSAQ = ({ questionsWithIds, setQuestionsWithIds, sourceText, qu
               padding: '0px',
               
 
-              marginTop: '20px',
+              marginTop: '10px',
               marginBottom: '20px',
               
-              paddingBottom: '10px',
+              paddingBottom: '5px',
               paddingLeft: '4%',
               
-              paddingRight: '4%',
               borderBottom: '1px solid lightgrey',
-              width: '92%',
+              width: '96%',
               position: 'relative',
               display: 'flex',
               flexDirection: 'column',
@@ -381,7 +419,7 @@ const QuestionBankSAQ = ({ questionsWithIds, setQuestionsWithIds, sourceText, qu
                   alignSelf: 'stretch',
                   position: 'relative',
                 }}>
-                  <h1 style={{ margin: 'auto', fontWeight: '600'}}>{index + 1}. </h1>
+                  <h1 style={{ margin: 'auto', fontWeight: '600', fontSize: '16px'}}>{index + 1}. </h1>
                 
                 </div>
                 
@@ -408,7 +446,7 @@ const QuestionBankSAQ = ({ questionsWithIds, setQuestionsWithIds, sourceText, qu
                     
                     right: '17%',
                     cursor: 'pointer', 
-                    fontSize: '20px',
+                    fontSize: '16px',
                     background: 'white',
                     border: '0px solid lightgrey',
                     borderRadius: '8px',
@@ -432,7 +470,7 @@ const QuestionBankSAQ = ({ questionsWithIds, setQuestionsWithIds, sourceText, qu
                     right: '14%',
                     transform: 'translatey(-50%)',
                     top: '50%',
-                    fontSize: '20px',
+                    fontSize: '16px',
                     zIndex: '1',
                     height: '25px',
                     width: '25px',
@@ -465,7 +503,7 @@ const QuestionBankSAQ = ({ questionsWithIds, setQuestionsWithIds, sourceText, qu
                         position: 'absolute',
                         right: '10px',
                         bottom: '-10px',
-                        fontSize: '20px',
+                        fontSize: '16px',
                         zIndex: '10',
                         height: '30px',
                         width: '30px',
@@ -518,7 +556,7 @@ const QuestionBankSAQ = ({ questionsWithIds, setQuestionsWithIds, sourceText, qu
             </div>
           );
         })}
-          
+             </div>
   </div>
   
  

@@ -230,7 +230,7 @@ const Navbar = ({ userType }) => {
       if (path === `/studentassignments/${classId}`) return "Dashboard";
     } else {
       // Existing teacher logic
-      if (path.includes("/teacherassignmenthome")) return "Assignments";
+      if (path.includes("/teacherassignmenthome")) return "Create";
       if (path === `/class/${classId}`) return "Dashboard";
       if (path.includes("/createassignment") || path.includes("/MCQ") || path.includes("/MCQA"))
         return "Create";
@@ -238,7 +238,7 @@ const Navbar = ({ userType }) => {
         return "Assignments";
       if (path.includes("/participants")) return "Students";
     }
-    if (path === "/home") return "Home";
+    if (path === "/teacherhome") return "Home";
     return "";
   };
   const renderNavigationLinks = () => {
@@ -633,52 +633,60 @@ const Navbar = ({ userType }) => {
 
         {/* User Profile */}
         <div
-          style={{
-            width: "90%",
-            padding: "10px",
-            marginLeft: '5%',
-            boxSizing: "border-box",
-            borderTop: "1px solid #ddd",
-          }}
-        >
-        
-            {/* Show full name instead of initials */}
-            <span
-              style={{
-                marginRight: "10px",
-                fontFamily: "'montserrat', sans-serif",
-                fontWeight: "600",
-                color: "#333",
-                flex: 1,
-                textAlign: 'left', marginLeft: "10px",
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-                whiteSpace: "nowrap",
-              }}
-            >
-              {userFullName || "User Name"} 
-            </span>
-     
-         
-              <button
-                onClick={handleLogout}
-                style={{
-                  width: "100%",
-                  padding: "10px",
-                  backgroundColor: "white",
-                  border: "none",
-                  textAlign: 'left',
-                  borderRadius: "5px",
-                  cursor: "pointer",
-                  fontFamily: "'montserrat', sans-serif",
-                  fontWeight: "600",
-                  color: "lightgrey",
-                }}
-              >
-                Sign Out
-              </button>
- 
-        </div>
+  style={{
+    width: "90%",
+    padding: "10px",
+    marginLeft: '5%',
+    boxSizing: "border-box",
+    borderTop: "1px solid #ddd",
+    display: "flex",
+    alignItems: "center",
+    gap: "10px"
+  }}
+>
+  {/* Initials Box */}
+  <div
+    style={{
+      width: "32px",
+      height: "32px",
+      backgroundColor: "#f4f4f4",
+      borderRadius: "6px",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      fontFamily: "'montserrat', sans-serif",
+      fontWeight: "600",
+      fontSize: "14px",
+      color: "#666",
+    }}
+  >
+    {userFullName
+      .split(" ")
+      .map(name => name[0])
+      .join("")
+      .toUpperCase()
+      .slice(0, 2)}
+  </div>
+
+  {/* Sign Out Button */}
+  <button
+    onClick={handleLogout}
+    style={{
+      flex: 1,
+      padding: "10px",
+      backgroundColor: "white",
+      border: "none",
+      textAlign: "left",
+      borderRadius: "5px",
+      cursor: "pointer",
+      fontFamily: "'montserrat', sans-serif",
+      fontWeight: "600",
+      color: "lightgrey",
+    }}
+  >
+    Sign Out
+  </button>
+</div>
       </div>
 
       {/* Create Dropdown Modal */}

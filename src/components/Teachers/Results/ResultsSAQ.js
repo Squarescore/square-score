@@ -826,17 +826,8 @@ const renderTabContent = () => {
                 height: '40px', marginBottom: '0px'}}>
 
                   <div style={{display: 'flex', marginLeft: '4%', marginRight: '4%', }}>
-             
             <h1 style={{  
-              fontSize: '25px', 
-              color: 'grey',
-              fontWeight: '600', 
-               marginBottom: '0px',
-              width: '260px',
-              fontFamily: "'montserrat', sans-serif",
-              wordWrap: 'break-word',
-              overflowWrap: 'break-word',
-              hyphens: 'auto',
+              fontWeight: '600', fontSize: '16px', marginBottom: '-20px', color: 'lightgrey', marginTop: '30px'
             }}>
               {submissionCount} Submissions 
             </h1>
@@ -997,13 +988,13 @@ const renderTabContent = () => {
   const getStatusIcon = (status) => {
     switch (status) {
       case 'completed':
-        return <SquareCheck color="#00DE09" size={30} strokeWidth={2.5}/>;
+        return <SquareCheck color="#00DE09" size={20} strokeWidth={2}/>;
       case 'In Progress':
-        return <SquareMinus color="#FFAA00" size={30} strokeWidth={2.5}/>;
+        return <SquareMinus color="#FFAA00" size={20} strokeWidth={2}/>;
       case 'not_started':
-        return <SquareX color="lightgrey" size={30} strokeWidth={2.5}/>;
+        return <SquareX color="lightgrey" size={20} strokeWidth={2}/>;
       case 'Paused':
-        return <SquareMinus color="#FFA500" size={30} strokeWidth={2.5}/>;
+        return <SquareMinus color="#FFA500" size={20} strokeWidth={2}/>;
       default:
         return null;
     }
@@ -1036,15 +1027,15 @@ const renderTabContent = () => {
 
         
     
-<h1 style={{position: 'absolute', fontSize: '25px', right: '50px',  bottom: '25px',color: 'blue', }}>SAQ</h1>
+<h1 style={{position: 'absolute', fontSize: '20px', left: '0px',  bottom: '-30px',color: 'blue', }}>SAQ</h1>
       </div>
       
-  <div style={{height: '100px', backgroundColor: 'white',  width: '100px', 
+  <div style={{height: '80px', backgroundColor: 'white',  width: '80px', 
               borderRadius: '20px', position: 'absolute', right: '4%' }}>
       <Tooltip text="Class Average">
       
-      <img style={{ width: '80px', marginLeft: '10px' , marginTop: '10px' }} src="/Score.svg" alt="logo" />
-      <div style={{fontSize: '23px', fontWeight: 'bold', width: '88px', position: 'absolute', background: 'transparent', height: '88px', borderRadius:  '10px', top: '3px', left: '5px', textAlign: 'center', lineHeight: '90px'}}> 
+      <img style={{ width: '80px',  marginTop: '10px' }} src="/Score.svg" alt="logo" />
+      <div style={{fontSize: '23px', fontWeight: 'bold', width: '68px', position: 'absolute', background: 'transparent', height: '88px', borderRadius:  '10px', top: '3px', left: '5px', textAlign: 'center', lineHeight: '90px'}}> 
       {averageGrade !== null ? averageGrade : '-'}
      
         </div>
