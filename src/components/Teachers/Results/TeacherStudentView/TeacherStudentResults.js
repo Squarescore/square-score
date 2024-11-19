@@ -29,10 +29,170 @@ function TeacherStudentResults() {
     const [feedbackStates, setFeedbackStates] = useState({});
     const textareaRefs = useRef({});
 
+    const pendingUpdateRef = useRef(null);
+    const getGradeColors = (grade) => {
+        if (grade === undefined || grade === null || grade === 0) return { color: '#858585', background: 'white' };
+        if (grade < 50) return { color: '#FF0000', background: '#FFCBCB' };
+        if (grade < 70) return { color: '#FF4400', background: '#FFC6A8' };
+        if (grade < 80) return { color: '#EFAA14', background: '#FFF4DC' };
+        if (grade < 90) return { color: '#9ED604', background: '#EDFFC1' };
+        if (grade > 99) return { color: '#E01FFF', background: '#F7C7FF' };
+        return { color: '#2BB514', background: '#D3FFCC' };
+      };
+      
+    // Add cleanup effect
+    useEffect(() => {
+      // Cleanup function that runs before component unmounts or re-renders
+      return () => {
+        // If there's a pending update in the debounce timer, execute it immediately
+        if (debouncedUpdateRef.current) {
+          debouncedUpdateRef.current.flush();
+        }
+    
+        // If there's a pending firestore update, execute it immediately
+        if (pendingUpdateRef.current) {
+          pendingUpdateRef.current();
+        }
+      };
+    }, []);
+    
+    // Modify handleFeedbackChange to track pending updates
+    const handleFeedbackChange = (index, newFeedback) => {
+      // Update local state immediately
+      setFeedbackStates(prev => ({
+        ...prev,
+        [index]: newFeedback
+      }));
+    
+      // Cancel any existing debounced update
+      if (debouncedUpdateRef.current) {
+        debouncedUpdateRef.current.cancel();
+      }
+    
+      // Create the update function
+      const updateFunction = async () => {
+        try {
+          const updatedQuestions = results.questions.map((q, i) => 
+            i === index ? { ...q, feedback: newFeedback } : q
+          );
+    
+          const hasFlaggedQuestions = updatedQuestions.some(q => q.flagged);
+    
+          await updateDoc(doc(db, 'grades', `${assignmentId}_${studentUid}`), {
+            questions: updatedQuestions,
+            hasFlaggedQuestions
+          });
+    
+          setResults(prev => ({
+            ...prev,
+            questions: updatedQuestions,
+            hasFlaggedQuestions
+          }));
+    
+          // Clear the pending update reference after successful update
+          pendingUpdateRef.current = null;
+        } catch (error) {
+          console.error('Error updating feedback:', error);
+        }
+      };
+    
+      // Store the update function in the ref
+      pendingUpdateRef.current = updateFunction;
+    
+      // Create a debounced version that clears the pending ref after execution
+      debouncedUpdateRef.current = debounce(() => {
+        updateFunction();
+      }, 1000);
+    
+      // Execute the debounced update
+      debouncedUpdateRef.current();
+    };
+    
+    // Modify the debounce function to include a flush method
+    const debounce = (func, wait) => {
+        let timeout;
+        let lastArgs;
+        let lastThis;
+      
+        const debouncedFunction = (...args) => {
+          lastArgs = args;
+          lastThis = this;
+      
+          const later = () => {
+            func.apply(lastThis, lastArgs);
+            timeout = null;
+            lastArgs = null;
+            lastThis = null;
+          };
+      
+          clearTimeout(timeout);
+          timeout = setTimeout(later, wait);
+        };
+      
+        debouncedFunction.cancel = () => {
+          clearTimeout(timeout);
+          timeout = null;
+          lastArgs = null;
+          lastThis = null;
+        };
+      
+        debouncedFunction.flush = () => {
+          if (timeout) {
+            func.apply(lastThis, lastArgs);
+            debouncedFunction.cancel();
+          }
+        };
+      
+        return debouncedFunction;
+      };
+      
+      // Update the cleanup effect
+      useEffect(() => {
+        return () => {
+          // Safely check if the debounced update ref exists and has a flush method
+          if (debouncedUpdateRef.current?.flush) {
+            debouncedUpdateRef.current.flush();
+          }
+      
+          // If there's a pending update, execute it immediately
+          if (pendingUpdateRef.current) {
+            pendingUpdateRef.current();
+          }
+        };
+      }, []);
+      
+      // Update how we create the debounced update reference
+      useEffect(() => {
+        const debouncedUpdate = debounce((index, newScore, newFeedback) => {
+          updateGradeAndFeedback(index, newScore, newFeedback);
+        }, 1000);
+      
+        debouncedUpdateRef.current = debouncedUpdate;
+      
+        return () => {
+          if (debouncedUpdateRef.current?.cancel) {
+            debouncedUpdateRef.current.cancel();
+          }
+        };
+      }, []);
+
+
+
     const scrollToQuestion = (index) => {
         setActiveQuestionIndex(index);
         questionRefs.current[index]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
     };
+
+    const handleQuestionClick = (questionId) => {
+        navigate(`/class/${classId}/assignment/${assignmentId}/TeacherResults/`, {
+          state: {
+            targetTab: 'questionBank',
+            targetQuestionId: questionId,
+            openQuestionResults: true
+          }
+        });
+      };
+
     const contentRef = useRef(null);
     const [isMapCollapsed, setIsMapCollapsed] = useState(false);
 
@@ -48,23 +208,7 @@ function TeacherStudentResults() {
             return <SquareSlash size={20} color="#FFD13B" />;
         }
     };
-    const debounce = (func, wait) => {
-        let timeout;
-        const debouncedFunction = (...args) => {
-            const later = () => {
-                clearTimeout(timeout);
-                func(...args);
-            };
-            clearTimeout(timeout);
-            timeout = setTimeout(later, wait);
-        };
 
-        debouncedFunction.cancel = () => {
-            clearTimeout(timeout);
-        };
-
-        return debouncedFunction;
-    };
     useEffect(() => {
         const checkContentHeight = () => {
           if (contentRef.current) {
@@ -79,49 +223,7 @@ function TeacherStudentResults() {
         return () => window.removeEventListener('resize', checkContentHeight);
       }, [results]);
 
-      // Add this function inside the TeacherStudentResults component
-
-const toggleFlag = async (index) => {
-    if (!results) return;
-
-    const updatedQuestions = [...results.questions];
-    updatedQuestions[index].flagged = !updatedQuestions[index].flagged;
-
-    try {
-        await updateDoc(doc(db, 'grades', `${assignmentId}_${studentUid}`), {
-            questions: updatedQuestions
-        });
-
-        setResults({
-            ...results,
-            questions: updatedQuestions
-        });
-    } catch (error) {
-        console.error('Error toggling flag:', error);
-    }
-};
-
-
-      useEffect(() => {
-        const updateHeight = () => {
-          if (contentRef.current) {
-            const headerHeight = 50; // Height of the header
-            const maxHeight = window.innerHeight - 230; // 230 = 180 (top) + 50 (header)
-            const contentScrollHeight = contentRef.current.scrollHeight + headerHeight;
-            
-            if (contentScrollHeight > maxHeight) {
-              setContentHeight(`${maxHeight}px`);
-            } else {
-              setContentHeight(`${contentScrollHeight}px`);
-            }
-          }
-        };
-    
-        updateHeight();
-        window.addEventListener('resize', updateHeight);
-        return () => window.removeEventListener('resize', updateHeight);
-      }, [results]);
-    // Create debouncedUpdate function
+    // Debounce Feedback Updates
     useEffect(() => {
         debouncedUpdateRef.current = debounce((index, newScore, newFeedback) => {
             updateGradeAndFeedback(index, newScore, newFeedback);
@@ -134,6 +236,7 @@ const toggleFlag = async (index) => {
             }
         };
     }, []);
+
     useEffect(() => {
         // Initialize feedback states from results
         if (results?.questions) {
@@ -144,61 +247,31 @@ const toggleFlag = async (index) => {
           setFeedbackStates(initialFeedback);
         }
       }, [results]);
-   // Initialize feedback states and set initial heights
-   useEffect(() => {
-    if (results?.questions) {
-      const initialFeedback = {};
-      results.questions.forEach((question, index) => {
-        initialFeedback[index] = question.feedback || '';
-      });
-      setFeedbackStates(initialFeedback);
-  
-      // Set initial heights after a short delay to ensure content is rendered
-      setTimeout(() => {
-        results.questions.forEach((_, index) => {
-          const textarea = textareaRefs.current[index];
-          if (textarea) {
-            textarea.style.height = '24px'; // Set to one line initially
-            textarea.style.height = textarea.value ? `${textarea.scrollHeight}px` : '24px';
-          }
-        });
-      }, 0);
-    }
-  }, [results]);
-  
-  const handleFeedbackChange = (index, newFeedback) => {
-    // Update local state immediately
-    setFeedbackStates(prev => ({
-      ...prev,
-      [index]: newFeedback
-    }));
-  
-    // Debounce the Firestore update
-    if (debouncedUpdateRef.current) {
-      debouncedUpdateRef.current.cancel();
-    }
-  
-    debouncedUpdateRef.current = debounce(async () => {
-      try {
-        const updatedQuestions = results.questions.map((q, i) => 
-          i === index ? { ...q, feedback: newFeedback } : q
-        );
-  
-        await updateDoc(doc(db, 'grades', `${assignmentId}_${studentUid}`), {
-          questions: updatedQuestions
-        });
-  
-        setResults(prev => ({
-          ...prev,
-          questions: updatedQuestions
-        }));
-      } catch (error) {
-        console.error('Error updating feedback:', error);
-      }
-    }, 1000);
-  
-    debouncedUpdateRef.current();
-  };
+
+    // Initialize feedback states and set initial heights
+    useEffect(() => {
+        if (results?.questions) {
+          const initialFeedback = {};
+          results.questions.forEach((question, index) => {
+            initialFeedback[index] = question.feedback || '';
+          });
+          setFeedbackStates(initialFeedback);
+      
+          // Set initial heights after a short delay to ensure content is rendered
+          setTimeout(() => {
+            results.questions.forEach((_, index) => {
+              const textarea = textareaRefs.current[index];
+              if (textarea) {
+                textarea.style.height = '24px'; // Set to one line initially
+                textarea.style.height = textarea.value ? `${textarea.scrollHeight}px` : '24px';
+              }
+            });
+          }, 0);
+        }
+      }, [results]);
+
+
+    // Fetch Results on Component Mount
     useEffect(() => {
         const fetchResults = async () => {
             try {
@@ -224,8 +297,8 @@ const toggleFlag = async (index) => {
                     
                     if (studentDoc.exists()) {
                         const studentData = studentDoc.data();
-                        setStudentName(studentData.firstName + ' ' +  studentData.lastName );
-                        console.log("Student Name:", studentData.firstName + ' ' +  studentData.lastName ); // Added log statement
+                        setStudentName(`${studentData.firstName} ${studentData.lastName}`);
+                        console.log("Student Name:", `${studentData.firstName} ${studentData.lastName}`); // Added log statement
                     } else {
                         console.log("Student document does not exist");
                     }
@@ -238,6 +311,7 @@ const toggleFlag = async (index) => {
         fetchResults();
     }, [assignmentId, studentUid]);
 
+    // Handle Regrading Assignment
     const handleRegrade = async () => {
         if (window.confirm("Are you sure you want to regrade this assignment? This will replace the current grades.")) {
             setIsRegrading(true);
@@ -264,8 +338,12 @@ const toggleFlag = async (index) => {
                     const updatedQuestions = results.questions.map((q, index) => ({
                         ...q,
                         score: newGrades[index].score,
-                        feedback: newGrades[index].feedback
+                        feedback: newGrades[index].feedback,
+                        flagged: false, // Reset flag after regrading
                     }));
+
+                    // Determine if any questions are still flagged
+                    const hasFlaggedQuestions = updatedQuestions.some(q => q.flagged);
 
                     const gradeDocRef = doc(db, 'grades', `${assignmentId}_${studentUid}`);
                     await updateDoc(gradeDocRef, {
@@ -273,6 +351,7 @@ const toggleFlag = async (index) => {
                         rawTotalScore: newTotalScore,
                         scaledScore: newScaledScore,
                         percentageScore: newPercentageScore,
+                        hasFlaggedQuestions: hasFlaggedQuestions,
                         halfCreditEnabled: halfCredit
                     });
 
@@ -282,6 +361,7 @@ const toggleFlag = async (index) => {
                         rawTotalScore: newTotalScore,
                         scaledScore: newScaledScore,
                         percentageScore: newPercentageScore,
+                        hasFlaggedQuestions: hasFlaggedQuestions,
                         halfCreditEnabled: halfCredit
                     }));
 
@@ -304,8 +384,7 @@ const toggleFlag = async (index) => {
         }
     };
 
-
-
+    // Function to update a student's grade and feedback
     const updateGradeAndFeedback = async (index, newScore, feedback) => {
         if (!results) return;
     
@@ -319,18 +398,23 @@ const toggleFlag = async (index) => {
         const newTotalScore = updatedQuestions.reduce((sum, question) => sum + question.score, 0);
         const newPercentageScore = (newTotalScore / (results.scaleMax * results.questions.length)) * 100;
     
+        // Determine if any questions are still flagged
+        const hasFlaggedQuestions = updatedQuestions.some(q => q.flagged);
+    
         try {
             await updateDoc(doc(db, 'grades', `${assignmentId}_${studentUid}`), {
                 questions: updatedQuestions,
                 rawTotalScore: newTotalScore,
-                percentageScore: newPercentageScore
+                percentageScore: newPercentageScore,
+                hasFlaggedQuestions: hasFlaggedQuestions // Update flag status
             });
 
             setResults({
                 ...results,
                 questions: updatedQuestions,
                 rawTotalScore: newTotalScore,
-                percentageScore: newPercentageScore
+                percentageScore: newPercentageScore,
+                hasFlaggedQuestions: hasFlaggedQuestions
             });
 
             const newCorrectCount = updatedQuestions.filter(q => q.score === results.scaleMax).length;
@@ -344,10 +428,45 @@ const toggleFlag = async (index) => {
             console.error('Error updating grade and feedback:', error);
         }
     };
-    if (!results) {
-        return <div>Loading...</div>;
-    }
 
+    // Toggle flag status for a specific question
+    const toggleFlag = async (index) => {
+        if (!results) return;
+
+        const updatedQuestions = [...results.questions];
+        updatedQuestions[index].flagged = !updatedQuestions[index].flagged;
+
+        // Determine if any questions are still flagged
+        const hasFlaggedQuestions = updatedQuestions.some(q => q.flagged);
+
+        try {
+            await updateDoc(doc(db, 'grades', `${assignmentId}_${studentUid}`), {
+                questions: updatedQuestions,
+                hasFlaggedQuestions: hasFlaggedQuestions // Update flag status
+            });
+
+            setResults({
+                ...results,
+                questions: updatedQuestions,
+                hasFlaggedQuestions: hasFlaggedQuestions
+            });
+        } catch (error) {
+            console.error('Error toggling flag:', error);
+        }
+    };
+
+    // Handle navigation clicks
+    const handleGradeClick = (studentUid) => {
+        navigate(`/teacherStudentResults/${assignmentId}/${studentUid}`);
+    };
+    const handleStudentClick = (studentUid) => {
+        navigate(`/class/${classId}/student/${studentUid}/grades`);
+    };
+    const handleAssignmentClick = () => {
+        navigate(`/class/${classId}/assignment/${assignmentId}/TeacherResults`);
+    };
+
+    // Determine letter grade based on percentage
     const getLetterGrade = (percentage) => {
         if (percentage >= 90) return 'A';
         if (percentage >= 80) return 'B';
@@ -356,6 +475,10 @@ const toggleFlag = async (index) => {
         return 'F';
     };
 
+    // Render Loading State
+    if (!results) {
+        return <div>Loading...</div>;
+    }
     const letterGrade = getLetterGrade(results.percentageScore);
 
     return (
@@ -428,9 +551,7 @@ const toggleFlag = async (index) => {
            </div>
            </div>
 
-           <div style={{width: '100%', background: ' lightgrey', height:'1px', marginTop:'-50px', marginBottom: '40px'}}></div>
-
-
+      
 
 
 
@@ -459,6 +580,8 @@ const toggleFlag = async (index) => {
       background: 'rgb(255,255,255,.9)',
       backdropFilter: 'blur(5px)',
       borderBottom: '1px solid lightgrey',
+      
+      borderTop: '1px solid lightgrey',
     marginTop: '-40px',
       transition: 'all 0.3s',
       zIndex: 50,
@@ -489,10 +612,19 @@ const toggleFlag = async (index) => {
           </div>
          ))}
            </div>  
-           <div style={{fontSize: '20px', marginRight: '4%', marginLeft: 'auto', borderLeft: '1px solid lightgrey', paddingLeft: '20px', lineHeight: '50px'}}>
-          
+           <div style={{fontSize: '20px', marginRight: '4%', marginLeft: 'auto', borderLeft: '1px solid lightgrey', paddingLeft: '20px', lineHeight: '50px',
+            
+           }}>
+          <div style={{width: '80px', textAlign: 'center', height: '30px',
+          marginTop :'10px',
+          lineHeight: '30px',
+          borderRadius: '5px',
+
+background: getGradeColors(results.percentageScore.toFixed(0)).background,
+color: getGradeColors(results.percentageScore.toFixed(0)).color 
+          }}>
 {results.percentageScore.toFixed(0)}%
-            </div> 
+            </div> </div>
             </div>
 
             
@@ -521,10 +653,10 @@ const toggleFlag = async (index) => {
         
         {/* Question Text */}
         <button
-    onClick={(e) => {
+      onClick={(e) => {
         e.preventDefault();
         e.stopPropagation();
-        navigate(`/questionResults/${assignmentId}/${question.questionId}`);
+        handleQuestionClick(question.questionId);
     }}
     style={{ 
         width: 'calc(100%)', 

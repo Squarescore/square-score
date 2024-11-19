@@ -461,7 +461,7 @@ const Participants = () => {
     <div style={{
       minHeight: '100vh',
 width: 'calc(100% - 200px)' ,marginLeft: '200px',
-      backgroundColor: '', border:'1px solid blue',
+      backgroundColor: '', 
       display: 'flex',
       flexDirection: 'column',
       position: 'relative'
@@ -645,7 +645,7 @@ width: 'calc(100% - 200px)' ,marginLeft: '200px',
               width: '33%',
               padding: '20px',
               background: 'white',
-              border: '1px solid #D2D2D2',
+              border: '1px solid #ededed',
               borderRadius: '15px',
               marginLeft: '-15px'
             }}>
@@ -670,7 +670,7 @@ width: 'calc(100% - 200px)' ,marginLeft: '200px',
               width: '33%',
               padding: '20px',
               background: 'white',
-              border: '1px solid #D2D2D2',
+              border: '1px solid #ededed',
               borderRadius: '15px'
             }}>
               <h1 style={{ fontSize: '20px', marginTop: '0px' }}>{secondColumnRange}</h1>
@@ -694,7 +694,7 @@ width: 'calc(100% - 200px)' ,marginLeft: '200px',
               width: '33%',
               padding: '20px',
               background: 'white',
-              border: '1px solid #D2D2D2',
+              border: '1px solid #ededed',
               borderRadius: '15px'
             }}>
               <h1 style={{ fontSize: '20px', marginTop: '0px' }}>{thirdColumnRange}</h1>
@@ -725,7 +725,7 @@ width: 'calc(100% - 200px)' ,marginLeft: '200px',
                 display: 'flex',
                 marginLeft: '-15px',
                 background: 'white',
-                borderBottom: '1px solid lightgrey',
+                borderBottom: '1px solid #ededed',
                 padding: '10px',
                 marginBottom: '10px',
                 height: '40px',

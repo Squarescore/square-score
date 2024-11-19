@@ -161,7 +161,7 @@ const StepCard = ({
           <div style={{
             position: 'absolute',
             left: '10px',
-            top: '120px',
+            top: '110px',
             zIndex: 2
           }}>
             <ChevronLeft color={arrowColor} size={40} />
@@ -170,7 +170,7 @@ const StepCard = ({
           <div style={{
             position: 'absolute',
             right: '10px',
-            top: '120px',
+            top: '110px',
             zIndex: 2
           }}>
             <ChevronRight color={arrowColor} size={40} />

@@ -193,11 +193,11 @@ const TeacherHomeWaitlist = () => {
           marginTop: '70px',
           display: 'flex',
          flexWrap:'wrap', 
-         width: '1000px',
+         width: 'calc(100% -200px)',
+         marginLeft: 'calc(200px + 4%)',
          fontFamily: "'montserrat', sans-serif",
           backgroundColor: 'white',
           
-          marginLeft: 'auto',
           marginRight: 'auto'
           }}>
            
@@ -206,11 +206,10 @@ const TeacherHomeWaitlist = () => {
   marginBottom: '100px',
 }}>
             <h4 style={{
-             fontSize: '55px'
+             fontSize: '40px'
             }}>You have successfully joined our waitlist!</h4>
-          <p style={{fontSize: '30px', fontFamily: '"montserrat", sans-serif', marginTop: '-40px'}}>We are rolling out access to a few teachers at a time by order of the waitlist, when it is your turn, our team will email you an access key that you can input here, if your school is a pilot school, enter your school code for access </p>
-         
-          <p style={{fontSize: '30px', fontFamily: '"montserrat", sans-serif', fontWeight: 'bold'}}>Thank you for your support! </p>
+       
+          <p style={{fontSize: '20px', fontFamily: '"montserrat", sans-serif', fontWeight: '600', width: '800px'}}>You will get an email from our team within 24 hours on whether or not you entered our early access program. </p>
         
           </div>  
        
@@ -300,28 +299,30 @@ zIndex: '100'
             right: '0',
             bottom: '0',
             backdropFilter: 'blur(15px)',
-            backgroundColor: 'rgba(255, 255, 255, 0.8)',
+            backgroundColor: 'rgba(255, 255, 255, 0.95)',
             display: 'flex',
             justifyContent: 'center',
             alignItems: 'center',
 zIndex: '100'
           }}>
             <div style={{
-              backgroundColor: 'transparent',
+              backgroundColor: 'white',
+              border: '1px solid lightgrey',
               padding: '20px',
               borderRadius: '10px',
-              textAlign: 'center',
+              textAlign: 'left',
             }}>
               <h3
              
-              style={{ fontSize: '80px', fontFamily: '"montserrat", sans-serif', marginTop:' -50px', marginBottom: '0px'}}
+              style={{ fontSize: '25px', fontFamily: '"montserrat", sans-serif', marginTop:' 0px', marginBottom: '10px'}}
               >Access Key</h3>
               <input
                 type="text"
+                placeholder='Paste key here'
                 value={accessKey}
                 onChange={(e) => setAccessKey(e.target.value)}
-              style={{  fontFamily: "'montserrat', sans-serif", fontSize: '30px',background: "white", borderRadius: '20px', border: '4px solid lightgrey',
-                 width: '500px',paddingLeft: '20px',paddingRight: '20px', paddingTop: '10px', paddingBottom: '10px', fontWeight: 'bold',
+              style={{  fontFamily: "'montserrat', sans-serif", fontSize: '14px',background: "white", borderRadius: '5px', border: '1px solid lightgrey',
+                 width: '500px',paddingLeft: '20px',paddingRight: '20px', paddingTop: '10px', paddingBottom: '10px', fontWeight: '600',
                   textAlign: 'Left', 
                    outline: 'none', }} />  
               <br />
@@ -330,13 +331,13 @@ zIndex: '100'
                 style={{ 
                   padding: '10px 20px', 
                   background: '#FFEC87', color: '#FC8518',
-                  border: '5px solid #FC8518',
-                    borderRadius: '15px',
+                  border: '1px solid #FC8518',
+                    borderRadius: '5px',
                      cursor: 'pointer', 
                     marginTop: '30px',
                      fontFamily: "'montserrat', sans-serif",
                      fontWeight: 'bold',
-                     fontSize: '30px',
+                     fontSize: '16px',
                      width: '45%',
                      marginRight: '10px' }}
               >
@@ -348,14 +349,14 @@ zIndex: '100'
 
                   padding: '10px 20px', 
                   backgroundColor: '#f4f4f4',
-              border: '5px solid lightgrey',
+              border: '1px solid lightgrey',
               color: 'grey',
-                    borderRadius: '15px',
+                    borderRadius: '5px',
                      cursor: 'pointer', 
                     marginTop: '30px',
                      fontFamily: "'montserrat', sans-serif",
                      fontWeight: 'bold',
-                     fontSize: '30px',
+                     fontSize: '16px',
                      width: '45%',
                      marginRight: '10px'
                  }}
@@ -372,33 +373,28 @@ zIndex: '100'
 
 
 
-<div style={{width: '1000px', marginLeft: 'auto', marginRight: 'auto',}}>
-<div style={{width: '400px', marginRight: 'auto',  marginTop: '300px', display: 'flex'}}>
+<div style={{
+         width: 'calc(100% -200px)',marginLeft: 'calc(200px + 4%)', marginRight: 'auto',}}>
+<div style={{width: '350px', marginRight: 'auto',  marginTop: '300px',  display: 'flex'}}>
 <button
             onClick={() => setAccessModalOpen(true)}
             style={{
               marginRight: 'auto',
-              background: '#FFEC87', color: '#FC8518',
-              border: '5px solid #FC8518',
-              borderRadius: '10px',
+              background: 'white', color: '#FC8518',
+              border: '1px solid lightgrey',
+              borderRadius: '5px',
               padding: '20px 20px',
               height: '40px',
-              fontWeight: 'bold',
+              fontWeight: '600',
               cursor: 'pointer',
              marginTop: '0px',
              lineHeight: '0px',
-             marginLeft: 'auto',
-              fontSize: '20px',
+             fontFamily: "'montserrat', sans-serif",
+           
+              fontSize: '16px',
               transition: '.3s',
             }}
-            onMouseEnter={(e) => {
-              e.target.style.opacity = '90%';
-              e.target.style.boxShadow = ' 0px 4px 4px 0px rgba(0, 0, 0, 0.25)';
-          }}
-          onMouseLeave={(e) => {
-              e.target.style.opacity = '100%';
-              e.target.style.boxShadow = ' none ';
-          }}
+          
           >
             Enter Access Key
           </button>
@@ -424,28 +420,22 @@ zIndex: '100'
             onClick={() => setModalOpen(true)}
             style={{
               marginRight: 'auto',
-              backgroundColor: '#9CACFF',
-              border: '4px solid #020CFF',
+              backgroundColor: 'white',
+              border: '1px solid lightgrey',
               color: '#020CFF',
-              borderRadius: '10px',
+              borderRadius: '5px',
               padding: '20px 20px',
               height: '40px',
-              fontWeight: 'bold',
+              fontWeight: '600',
               cursor: 'pointer',
              marginTop: '0px',
+             fontFamily: "'montserrat', sans-serif",
              lineHeight: '0px',
              marginLeft: 'auto',
-              fontSize: '20px',
+              fontSize: '16px',
               transition: '.3s',
             }}
-            onMouseEnter={(e) => {
-              e.target.style.opacity = '90%';
-              e.target.style.boxShadow = ' 0px 4px 4px 0px rgba(0, 0, 0, 0.25)';
-          }}
-          onMouseLeave={(e) => {
-              e.target.style.opacity = '100%';
-              e.target.style.boxShadow = ' none ';
-          }}
+          
           >
             Join School
           </button>

@@ -125,7 +125,7 @@ const Navbar = ({ userType }) => {
       let newPath =
         userType === "teacher"
           ? `/class/${newClassId}/`
-          : `/studentassignments/${newClassId}`;
+          : `/studentassignments/${newClassId}/active`;
       navigate(newPath);
       setShowClassDropdown(false);
     }
@@ -231,10 +231,11 @@ const Navbar = ({ userType }) => {
     } else {
       // Existing teacher logic
       if (path.includes("/teacherassignmenthome")) return "Create";
+      
       if (path === `/class/${classId}`) return "Dashboard";
       if (path.includes("/createassignment") || path.includes("/MCQ") || path.includes("/MCQA"))
         return "Create";
-      if (path.includes("/TeacherResults") || path.includes("/TeacherStudentResults") || path.includes("/Assignments"))
+      if (path.includes("/TeacherResults") || path.includes("/teacherStudentResults") || path.includes("/Assignments"))
         return "Assignments";
       if (path.includes("/participants")) return "Students";
     }
@@ -396,7 +397,8 @@ const Navbar = ({ userType }) => {
                 fontFamily: "'montserrat', sans-serif",
                 fontWeight: "600",
                 background: periodStyle.background,
-                height: '12px',
+                padding: '10px',
+                borderRadius: '5px',
                 lineHeight: '10px',
                 width: '120px',
                 paddingLeft: '4px',
@@ -426,7 +428,7 @@ const Navbar = ({ userType }) => {
             >
               {currentClassChoice || "Select Class"}
             </div>
-            <ChevronDown size={20} style={{position: 'absolute', right: '10px', top: '0px'}} />
+            <ChevronDown size={20} style={{position: 'absolute', right: '10px', top: '5px'}} />
           </div>
           {/* Dropdown Menu for Classes */}
           <AnimatePresence>
@@ -478,9 +480,10 @@ const Navbar = ({ userType }) => {
                           style={{
                             fontFamily: "'montserrat', sans-serif",
                             fontWeight: "600",
-                            lineHeight: '4px',
-                            margin: '10px 0px',
-                            padding: '0px 5px 0px 2px',
+                            lineHeight: '5px',
+                            margin: '5px 0px',
+                            borderRadius: '5px',
+                            padding: '10px',
                             height:'6px',
                             fontSize: '20px',
                             color: periodStyle.color,

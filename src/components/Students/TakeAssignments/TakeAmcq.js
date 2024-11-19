@@ -162,7 +162,7 @@ const TakeAmcq = () => {
       savedAt: new Date(),
     });
 
-    navigate(`/studentassignments/${classId}`);
+    navigate(`/studentassignments/${classId}/active`);
   };
 
   const handleAnswerSelect = (answer) => {
@@ -382,7 +382,7 @@ const TakeAmcq = () => {
     const progressRef = doc(db, 'assignments(progress)', `${assignmentId}_${auth.currentUser.uid}`);
     await deleteDoc(progressRef);
   
-    navigate(`/studentassignments/${classId}`);
+    navigate(`/studentassignments/${classId}/active`);
   };
   
   // Retype
@@ -455,13 +455,13 @@ const TakeAmcq = () => {
       key={choice}
       onClick={() => handleAnswerSelect(choice)}
       style={{
-        width: displayFormat === 'grid' ? '42%' : '90%',
-        margin: displayFormat === 'grid' ? '10px 2%' : '5px auto',
+        width:  '100%',
+        margin:  '5px 0px',
         padding: '0px',
-        background: style.background,
-        color: style.color,
-        border: selectedAnswer === choice ? `4px solid ${style.color}` : '4px solid transparent',
-        borderRadius: '10px',
+        background:  selectedAnswer === choice ? style.background : 'white',
+        color: selectedAnswer === choice ? style.color : 'grey',
+        border: selectedAnswer === choice ? `1px solid ${style.color}` : '1px solid lightgrey',
+        borderRadius: '5px',
         cursor: 'pointer',
         userSelect: 'none',
         position: 'relative',
@@ -475,17 +475,17 @@ const TakeAmcq = () => {
         ref={el => choiceRefs.current[choice] = el}
         style={{
           fontWeight: '600',
-          fontSize: displayFormat === 'grid' ? '16px' : '18px',
+          fontSize:  '16px',
           textAlign: 'left',
           margin: 0,
           padding: '0px 10px ',
-          color: selectedAnswer === choice ? 'grey' : style.color,
+          color: 'grey' ,
           userSelect: 'none',
           pointerEvents: 'none',
           overflow: 'hidden',
           textOverflow: 'ellipsis',
           display: '-webkit-box',
-          WebkitLineClamp: displayFormat === 'grid' ? 4 : 2,
+          WebkitLineClamp: 2,
           WebkitBoxOrient: 'vertical',
           wordBreak: 'break-word',
         }}
@@ -506,7 +506,7 @@ const TakeAmcq = () => {
             left: '0',
             width: '100%',
             height: '100%',
-            fontSize: displayFormat === 'grid' ? '16px' : '18px',
+            fontSize:  '16px',
             textAlign: 'left',
             border: 'none',
             outline: 'none',
@@ -532,7 +532,7 @@ const TakeAmcq = () => {
   }; 
   const onSaveAndExit = async () => {
     await handleSaveAndExit();
-    navigate(`/studentassignments/${classId}`);
+    navigate(`/studentassignments/${classId}/active`);
   };
   return (
     <div style={{
@@ -543,7 +543,7 @@ const TakeAmcq = () => {
       flexDirection: 'column',
       position: 'relative'
     }}>
-    <div style={{ marginTop: '100px', marginLeft: 'auto', marginRight: 'auto', fontFamily: "'montserrat', sans-serif", textAlign: 'center' }}>
+    <div style={{ marginTop: '100px', marginLeft: 'calc(200px + 4%)'}}>
   
   <TakeAssignmentNav
         saveAndExitEnabled={saveAndExit}
@@ -557,19 +557,28 @@ const TakeAmcq = () => {
         lockdownEnabled={lockdown}
       />
     
-      <div style={{ width: '1000px', marginLeft: 'auto', marginRight: 'auto' }}>
+    <div style={{position: 'fixed', top: '0px', left: '200px', right: '0px', height: '70px', borderBottom: '1px solid lightgrey', display: 'flex'}}>
+    <h1 style={{marginLeft: '4%', fontSize: '25px', marginTop: '20px', color: '#999999', }}>{assignmentName}</h1>
+    <div style={{marginRight: '4%', fontSize: '20px', marginTop: '20px',  marginLeft: 'auto', 
+    fontWeight: "500", lineHeight: '30px',
+       background: '#FFF6DA', color: '#FFAE00', borderLeft: '4px solid #FFAE00', display: 'flex', height: '30px'}}> 
+    <Zap size={20} color="#FCAE18" strokeWidth={2.5} style={{marginLeft: '5px', marginTop: '5px', }}/> <h1 style={{ fontSize: '16px', marginTop: '0px', marginLeft: '5px' }}>Streak</h1>
+    <span style={{marginLeft: '25px', marginRight: '10px', fontWeight: 'bold'}}>{streak}</span> 
+    </div>
+      </div>
+
+     
         <div
           style={{
             position: 'fixed',
-            right: '40px',
+            right: '4%',
             zIndex:'11',
-            width: '110px',
-            height: '110px',
+            width: '100px',
+            height: '100px',
             border: '10px solid white',
-            boxShadow: '1px 1px 5px 1px rgb(0,0,155,.07)',  
             background: 'white',
             borderRadius: '15px',
-            top: '165px',
+            top: '140px',
           }}
         >
                <img style={{ width: '100px', marginLeft: '0px' , marginTop: '8px' }} src="/Score.svg" alt="logo" />
@@ -583,7 +592,7 @@ const TakeAmcq = () => {
               position: 'absolute',
               borderRadius: '10px',
               top: '-5px',
-              left: '12px',
+              left: '10px',
               border: '2px solid transparent',
               textAlign: 'center',
               lineHeight: '80px',
@@ -596,87 +605,37 @@ const TakeAmcq = () => {
 
 
 
-        <div
-          style={{
-            position: 'fixed',
-            left: '40px',
-            zIndex:'11',
-            width: '110px',
-            height: '110px',
-            border: '10px solid white',
-            boxShadow: '1px 1px 5px 1px rgb(0,0,155,.07)',  
-            background: 'white',
-            borderRadius: '15px',
-            top: '165px',
-          }}
-        >
-          <div style={{ display: 'flex', background: '#FFDF75', margin: '-10px ', borderRadius: '15px 15px 0px 0px', border: '6px solid #FCAE18',
-            height: '30px'
-           }}>
-            <Zap size={20} color="#FCAE18" strokeWidth={2.5} style={{marginLeft: '10px', marginTop: '5px'}}/>
-            <h1 style={{
-              width: '80px',
-              marginLeft: '5px',
-              fontSize: '20px',
-              marginTop: '3px',
-              marginBottom: '-5px',
-              display: 'flex',
-              color: '#FCAE18',
-            }}>Streak</h1>
-            
-        </div>
-        
-          <h1
-            style={{
-              width: '80px',
-              fontSize: '40px',
-              height: '80px',
-              borderRadius: '10px',
-              marginLeft: 'auto',
-              marginRight: 'auto',
-              marginTop: '10px',
-              textAlign: 'center',
-              lineHeight: '80px',
-            }}
-          >
-            {streak}
-          </h1>
-
-          </div>
+    
        
 
 
 
-
-        <div style={{ padding: '20px', marginBottom: '30px' }}>
          
           <div
            style={{
             display: 'flex',
             flexWrap: 'wrap',
-            width: '940px',
+            width: '80%',
+            maxWidth: '900px',
+
             borderRadius: '30px',
-            border: '10px solid white',
             marginTop: '50px',
-            boxShadow: '1px 1px 5px 1px rgb(0,0,155,.07)',
             borderTop: 'none',
             position: 'relative',
           }}
         >
           <div
             style={{
-              width: '1000px',
-              border: '10px solid lightgrey',
-              color: 'grey',
-              margin: '-10px',
-              marginBottom: '30px',
+              width: '100%',
+              borderLeft: '5px solid #2BB514',
+              color: 'black',
+              marginBottom: '80px',
               position: 'relative',
               textAlign: 'left',
-              fontWeight: 'bold',
+
+              fontWeight: '600',
               fontSize: '25px',
-              padding: '20px 10px 20px 40px',
-              background: '#F5F5F5',
-              borderRadius: '30px 30px 0px 0px',
+              padding: '10px 5px 5px 20px',
             }}
             >
              
@@ -684,28 +643,29 @@ const TakeAmcq = () => {
            
             </div>
 
-            <div
-              style={{
-                display: 'flex',
-                marginBottom: '30px',
-                flexDirection: displayFormat === 'grid' ? 'row' : 'column',
-                flexWrap: displayFormat === 'grid' ? 'wrap' : 'nowrap',
-                justifyContent: 'center',
-                width: '100%',
-                position: 'relative',
-                margin: '0 10px',
-                marginTop: '30px',
-              }}
-            >
+            <p
+  style={{
+    color: 'lightgrey',
+    MarginBottom: '10px',
+
+    fontWeight: '600',
+    fontSize: '14px',
+  }}
+>
+  {selectedAnswer 
+    ? isTypedAnswerCorrect()
+      ? 'Ready to check your answer'
+      : 'Type the complete answer to continue'
+    : 'Click a choice to begin'}
+</p>
             <div
         style={{
           display: 'flex',
-          flexDirection: displayFormat === 'grid' ? 'row' : 'column',
-          flexWrap: displayFormat === 'grid' ? 'wrap' : 'nowrap',
+          flexDirection:  'column',
+          flexWrap:  'nowrap',
           justifyContent: 'center',
           width: '100%',
           position: 'relative',
-          margin: '0 auto',
         }}
       >
         {Object.keys(currentQuestion)
@@ -713,26 +673,25 @@ const TakeAmcq = () => {
           .map(renderChoice)}
       </div>
  
-            </div>
-            <div style={{display: 'flex', width: '900px', 
+            
+            <div style={{display: 'flex', width: '100%', 
                 marginTop: 'auto', }}>
             <button
   style={{
     width: '140px',
-    height: '40px',
-    color: selectedAnswer && isTypedAnswerCorrect() ? getChoiceStyle(selectedAnswer).color : 'transparent',
-    borderRadius: '10px',
-    fontSize: '20px',
+    height: '30px',
+    color: selectedAnswer && isTypedAnswerCorrect() ? '#FFAE00' : 'transparent',
+    borderRadius: '5px',
+    fontSize: '16px',
     fontFamily: "'montserrat', sans-serif",
     fontWeight: '600',
     cursor: isTypedAnswerCorrect() ? 'pointer' : 'default',
     marginTop: '20px',
     marginRight: 'auto',
-    marginLeft: '45px',
     marginBottom: '20px',
-    background: selectedAnswer && isTypedAnswerCorrect() ? getChoiceStyle(selectedAnswer).background : 'transparent',
+    background: selectedAnswer && isTypedAnswerCorrect() ? '#FFF5DE' : 'transparent',
     border: selectedAnswer && isTypedAnswerCorrect() 
-      ? `4px solid ${getChoiceStyle(selectedAnswer).color}` 
+      ? `1px solid #FFAE00` 
       : 'none',
     transition: '.2s'
   }}
@@ -755,41 +714,9 @@ const TakeAmcq = () => {
 >
   Check
 </button>
-        <div
-              style={{
-                width: '100%',
-                marginBottom: '10px',
-                display: 'flex',
-                justifyContent: 'space-between',
-              }}
-            >
-             <p
-  style={{
-    color: 'lightgrey',
-    position: 'absolute', 
-    bottom: '10px',
-    left: '50%',
-    transform: 'translatex(-50%)',
-    fontWeight: '600',
-    fontSize: '20px',
-  }}
->
-  {selectedAnswer 
-    ? isTypedAnswerCorrect()
-      ? 'Ready to check your answer'
-      : 'Type the complete answer to continue'
-    : 'Click a choice to begin'}
-</p>
-              <button onClick={toggleDisplayFormat} style={{ background: 'none', border: 'none', cursor: 'pointer', marginLeft: 'auto',  }}>
-              {displayFormat === 'grid' ? <Menu size={25} color="#969696" strokeWidth={2.5} /> : <LayoutGrid size={25} color="#969696" strokeWidth={2} />}
-             
-              </button>
-              
-            </div>
-            </div>
+       
           </div>
           
-        </div>
        
         <AnimatePresence>
         {showFeedback && (
@@ -798,7 +725,7 @@ const TakeAmcq = () => {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
             transition={{ duration: 0.2 }}
-            style={{ width: '1020px', position: 'fixed', top: '100px', background: '#white', height: '700px', padding: '20px' }}
+            style={{ width: 'calc(92% - 300px )', left: '200px', position: 'fixed', top: '100px', background: 'white', height: '700px', padding: '20px' }}
           >
             {assignment.feedback === 'instant' ? (
               // Existing instant feedback logic
@@ -827,9 +754,9 @@ const TakeAmcq = () => {
                     style={{
               
                       marginTop: '20%',
-                     
-                      marginLeft: 'auto',
-                      marginRight: 'auto',
+                     position: "absolute",
+                     left: '50%',
+                     transform: 'translatex(-50%)'
                     }}
                   >
                     <SquareCheck size={200} color="#00c721" strokeWidth={2} />
@@ -837,37 +764,36 @@ const TakeAmcq = () => {
                 </div>
               ) : (
                 <>
-                  <div style={{ marginTop: '150px' }}>
-                  <SquareX size={100} color="red" strokeWidth={2} />
-                  <h1 style={{ fontSize: '60px' }}>Almost there...</h1>
+                  <div style={{ marginTop: '150px', marginLeft: '4%' }}>
+                    <div style={{ display: 'flex', height: '60px', }}>
+                  <SquareX size={80} color="red" strokeWidth={2} />
+                  <h1 style={{ fontSize: '80px' , marginTop: '-5px', marginLeft: '30px', fontWeight: '600'}}>Almost there...</h1>
+                  </div>
                     <p
                       style={{
-                        width: '700px',
+                        width: '750px',
                         fontSize: '25px',
+                        marginTop: '80px',
                         color: 'grey',
                         fontWeight: '600',
-                        marginLeft: 'auto',
-                        marginRight: 'auto',
                       }}
                     >
                       {currentQuestion[`explanation_${selectedAnswer}`]}
                     </p>
                     <button
                       style={{
-                        width: '200px',
-                        backgroundColor: '#FFDF75',
-                        height: '50px',
-                        borderRadius: '10px',
-                        color: '#FFAE00',
-                        border: '4px solid #FFAE00',
+                        width: '170px',
+                        backgroundColor: '#FFF4D0',
+                        height: '40px',
+                        borderRadius: '5px',
+                        color: '#FFC400',
+                        border: '1px solid #FFAE00',
                         cursor: 'pointer',
                         fontFamily: "'montserrat', sans-serif",
                         fontWeight: '600',
-                        fontSize: '25px',
+                        fontSize: '20px',
                         position: 'absolute',
                         bottom: '60px',
-                        left: '50%',
-                        transform: 'translateX(-50%)',
                       }}
                       onClick={() => setShowExplanation(true)}
                     >
@@ -930,7 +856,7 @@ const TakeAmcq = () => {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.2 }}
-              style={{ width: '960px', position: 'fixed', top: '100px', background: '#white', height: '700px', padding: '20px' }}
+              style={{ width: '840px', position: 'fixed', top: '140px', background: 'white', height: '700px', padding: '0px', left: 'calc(200px + 4%)',  }}
             >
 
               
@@ -940,9 +866,7 @@ const TakeAmcq = () => {
               background: 'white',
               marginLeft: 'auto', marginRight: 'auto',
               borderRadius: '30px',
-              border: '0px solid white',
               
-               boxShadow: '1px 1px 5px 1px rgb(0,0,155,.07)' ,
               borderTop: 'none',
               position: 'relative', }}>
 
@@ -952,24 +876,22 @@ const TakeAmcq = () => {
 <div
               style={{
                 width: '830px',
-                border: '10px solid #FF2727',
-                color: '#FF2727',
+                borderLeft: '8px solid #FF2727',
+                color: 'black',
                 
                 position: 'relative',
                 textAlign: 'left',
-                fontWeight: 'bold',
+                fontWeight: '600',
                 fontSize: '25px', 
-                padding:'20px 10px 20px 40px ',
-                background: '#FFCCCC',
-                borderRadius: '30px 30px 0px 0px',
+                padding:'10px 20px ',
               }}
             >
              
                 {currentQuestion.question}
            
             </div>
-                <div style={{justifyContent:'left', alignItems: 'left', justifyItems: 'left', width: '90%', marginLeft: '5%'}}>
-              <h1 style={{ fontSize: '25px',fontWeight: '600', marginTop: '40px' }}>The Correct Answer is</h1>
+                <div style={{justifyContent:'left', alignItems: 'left', justifyItems: 'left', }}>
+              <h1 style={{ fontSize: '16px',fontWeight: '600', marginTop: '40px', color: 'lightgrey', marginBottom: '5px' }}>The Correct Answer is</h1>
               <div
                 style={{
                   width: '720px',
@@ -977,7 +899,7 @@ const TakeAmcq = () => {
                   color: 'black',
                   fontWeight: '600',
                   padding: '15px',
-                  border: '2px solid #F4F4F4',
+                  border: '1px solid lightgrey',
                   borderRadius: '10px',
                   position: 'relative',
                   minHeight: '60px',
@@ -1018,23 +940,23 @@ const TakeAmcq = () => {
                   }}
                 />
               </div>
-              <h1 style={{ fontSize: '25px',fontWeight: '600', marginTop: '30px' }}>Explanation:</h1>
-            
+             
               <p
                 style={{
                   width: '780px',
                   fontSize: '20px',
                   color: 'grey',
                   textAlign: 'left',
-                  fontWeight: '600',
-                  marginTop: '10px',
+                  
+                  fontWeight: '500',
+                  marginTop: '15px',
                   
                 }}
               >
                 {currentQuestion[`explanation_${currentQuestion.correct}`]}
               </p>
 
-              <div style={{ marginTop: '20px' }}>
+              <div style={{ marginTop: '40px' }}>
         <button
           onClick={() => setShowMyResponse(true)}
           style={{
@@ -1064,35 +986,38 @@ const TakeAmcq = () => {
               animate={{ height: 'auto', opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
               transition={{ duration: 0.2 }}
-              style={{ overflow: 'hidden' }}
+              style={{ width: '109%', borderTop: '1px solid lightgrey' }}
             >
-              <div style={{ display: 'flex', textAlign: 'left', marginBottom: '30px', border: '0px solid blue' }}>
-                <div style={{ width: '47%' }}>
-                  <h1 style={{ fontSize: '20px', fontWeight: '600' }}>Your Answer:</h1>
+              <div style={{  textAlign: 'left', marginBottom: '30px', marginTop: '30px'  }}>
+               
+                  <h1 style={{ fontSize: '16px', fontWeight: '600', color: 'lightgrey' }}>My Response</h1>
                   <p style={{
-                    width: '100%',
+                   
                     fontSize: '20px',
-                    color: 'grey',
+                    border: '1px solid red',
+                    borderRadius: '5px',
+                    padding: '10px',
+                    color: '#FF0000',
+                    
                     textAlign: 'left',
+                    background: '#FFB6B6',
                     fontWeight: '600',
-                    marginTop: '10px',
+                    marginTop: '-5px',
                   }}>
                     {currentQuestion[`${selectedAnswer}`]}
                   </p>
-                </div>
-                <div style={{ width: '47%', paddingLeft: '20px', borderLeft: '4px solid #f4f4f4' }}>
-                  <h1 style={{ fontSize: '20px', fontWeight: '600' }}>Explanation:</h1>
+              
                   <p style={{
                     width: '100%',
                     fontSize: '20px',
                     color: 'grey',
                     textAlign: 'left',
-                    fontWeight: '600',
-                    marginTop: '10px',
+                    fontWeight: '500',
+                    marginTop: '20px',
                   }}>
                     {currentQuestion[`explanation_${selectedAnswer}`]}
                   </p>
-                </div>
+               
               </div>
             </motion.div>
           )}
@@ -1103,17 +1028,17 @@ const TakeAmcq = () => {
         <button
           style={{
             width: '200px',
-            backgroundColor: isRetypedAnswerCorrect() ? '#FFE696' : '#CCCCCC',
+            backgroundColor: isRetypedAnswerCorrect() ? '#FFF4D0' : '#CCCCCC',
             height: '40px',
-            borderRadius: '10px',
-            border: isRetypedAnswerCorrect() ? '4px solid #FFAE00' : '4px solid grey',
-            color: isRetypedAnswerCorrect() ? '#FFAE00' : 'grey',
-            marginLeft: '560px',
+            borderRadius: '5px',
+            border: isRetypedAnswerCorrect() ? '1px solid #FFCF32' : '1px solid grey',
+            color: isRetypedAnswerCorrect() ? '#FFC400' : 'grey',
+        
             cursor: isRetypedAnswerCorrect() ? 'pointer' : 'not-allowed',
             fontFamily: "'montserrat', sans-serif",
             fontWeight: '600',
             fontSize: '20px',
-            marginTop: '-40px',
+            marginTop: '20px',
             marginBottom: '30px'
           }}
           onClick={() => {

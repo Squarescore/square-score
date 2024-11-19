@@ -1,8 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
 
-const JoinClassModal = ({ onSubmit, onClose }) => {
+const JoinClassModal = ({ onSubmit, onClose, error }) => {
   const [code, setCode] = useState(['', '', '', '', '', '']);
-  const [joinClassError, setJoinClassError] = useState('');
+  const [joinClassError, setJoinClassError] = useState(error || '');
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const inputRefs = useRef([]);
 
   useEffect(() => {
@@ -11,30 +12,64 @@ const JoinClassModal = ({ onSubmit, onClose }) => {
     }
   }, []);
 
+  useEffect(() => {
+    setJoinClassError(error);
+  }, [error]);
+
   const handleChange = (index, value) => {
-    if (value.length <= 1) {
+    // Only allow alphanumeric characters
+    const sanitizedValue = value.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+    
+    if (sanitizedValue.length <= 1) {
       const newCode = [...code];
-      newCode[index] = value;
+      newCode[index] = sanitizedValue;
       setCode(newCode);
-      if (value !== '' && index < 5) {
+      setJoinClassError(''); // Clear error when user starts typing
+      
+      if (sanitizedValue !== '' && index < 5) {
         inputRefs.current[index + 1].focus();
       }
     }
   };
 
   const handleKeyDown = (index, e) => {
-    if (e.key === 'Backspace' && index > 0 && code[index] === '') {
-      inputRefs.current[index - 1].focus();
+    if (e.key === 'Backspace') {
+      if (code[index] === '' && index > 0) {
+        inputRefs.current[index - 1].focus();
+        const newCode = [...code];
+        newCode[index - 1] = '';
+        setCode(newCode);
+      } else {
+        const newCode = [...code];
+        newCode[index] = '';
+        setCode(newCode);
+      }
     }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     const classCode = code.join('');
-    if (classCode.length === 6) {
-      onSubmit(classCode);
-    } else {
-      setJoinClassError('Please enter a 6-digit class code.');
+    setJoinClassError('');
+    
+    try {
+      if (classCode.length !== 6) {
+        throw new Error('Please enter a valid 6-character class code.');
+      }
+
+      if (!/^[A-Z0-9]{6}$/.test(classCode)) {
+        throw new Error('Class code can only contain letters and numbers.');
+      }
+
+      setIsSubmitting(true);
+      const success = await onSubmit(classCode);
+      if (success) {
+        onClose();
+      }
+    } catch (err) {
+      setJoinClassError(err.message);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -59,7 +94,15 @@ const JoinClassModal = ({ onSubmit, onClose }) => {
         background: 'white',
         border: '1px solid lightgrey'
       }}>
-        <h2 style={{ fontSize: '40px', fontFamily: '"montserrat", sans-serif', marginTop: '-10px', marginBottom: '60px', textAlign: 'left', fontWeight: '600', marginLeft: '-20px' }}>Join Class</h2>
+        <h2 style={{ 
+          fontSize: '40px', 
+          fontFamily: '"montserrat", sans-serif', 
+          marginTop: '-10px', 
+          marginBottom: '60px', 
+          textAlign: 'left', 
+          fontWeight: '600', 
+          marginLeft: '-20px' 
+        }}>Join Class</h2>
         <form onSubmit={handleSubmit}>
           <div style={{ display: 'flex', justifyContent: 'center', gap: '10px', marginBottom: '20px' }}>
             {code.map((digit, index) => (
@@ -77,24 +120,37 @@ const JoinClassModal = ({ onSubmit, onClose }) => {
                   textAlign: 'center',
                   fontFamily: "'montserrat', sans-serif",
                   fontWeight: 'bold',
-                  border: '1px solid lightgrey',
+                  border: joinClassError ? '1px solid #ff0000' : '1px solid lightgrey',
                   borderRadius: '10px',
                   outline: 'none',
+                  backgroundColor: isSubmitting ? '#f4f4f4' : 'white'
                 }}
                 maxLength={1}
+                disabled={isSubmitting}
               />
             ))}
           </div>
-          {joinClassError && <p style={{ color: 'red', marginBottom: '10px', textAlign: 'center' }}>{joinClassError}</p>}
+          {joinClassError && (
+            <p style={{ 
+              color: '#ff0000', 
+              marginBottom: '10px', 
+              textAlign: 'center',
+              fontFamily: "'montserrat', sans-serif",
+              fontSize: '14px'
+            }}>
+              {joinClassError}
+            </p>
+          )}
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '-20px' }}>
             <button
               type="submit"
+              disabled={isSubmitting || code.some(c => !c)}
               style={{ 
-                backgroundColor: '#AEF2A3',
+                backgroundColor: isSubmitting ? '#f4f4f4' : '#AEF2A3',
                 border: '1px solid #45B434',
-                color: '#45B434',
+                color: isSubmitting ? 'grey' : '#45B434',
                 borderRadius: '5px',
-                cursor: 'pointer', 
+                cursor: isSubmitting ? 'not-allowed' : 'pointer', 
                 marginTop: '30px',
                 height: "40px",
                 fontFamily: "'montserrat', sans-serif",
@@ -105,18 +161,19 @@ const JoinClassModal = ({ onSubmit, onClose }) => {
                 marginRight: '10px'
               }}
             >
-              Submit Request
+              {isSubmitting ? 'Submitting...' : 'Submit Request'}
             </button>
             <button
               type="button"
               onClick={onClose}
+              disabled={isSubmitting}
               style={{ 
                 backgroundColor: '#f4f4f4',
                 height: '50px',
                 border: '1px solid lightgrey',
                 color: 'grey',
                 borderRadius: '5px',
-                cursor: 'pointer', 
+                cursor: isSubmitting ? 'not-allowed' : 'pointer', 
                 marginTop: '30px',
                 height: "40px",
                 fontFamily: "'montserrat', sans-serif",

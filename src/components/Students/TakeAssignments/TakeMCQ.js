@@ -182,7 +182,7 @@ function TakeMCQ() {
   const handleLockdownViolation = async () => {
     await saveProgress('paused');
     setAssignmentStatus('paused');
-    navigate(`/studentassignments/${classId}?tab=completed`);
+    navigate(`/studentassignments/${classId}/active`);
   };
   
   const saveProgress = async (status = 'in_progress') => {
@@ -295,7 +295,7 @@ function TakeMCQ() {
       const progressRef = doc(db, 'assignments(progress)', `${assignmentId}_${studentUid}`);
       await deleteDoc(progressRef);
   
-      navigate(`/studentassignments/${classId}`);
+      navigate(`/studentassignments/${classId}/completed`);
     } catch (error) {
       console.error("Error submitting and grading assignment:", error);
     } finally {
@@ -390,7 +390,7 @@ function TakeMCQ() {
   };
   const onSaveAndExit = async () => {
     await saveProgress();
-    navigate(`/studentassignments/${classId}`);
+    navigate(`/studentassignments/${classId}/active`);
   };
   return (
     <div style={{ paddingBottom: '80px', marginLeft: '-3px', marginRight: '-3px', display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', width: '100%' }}>

@@ -174,7 +174,7 @@ const Auth = () => {
       {/* Main Content */}
       <div  style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
         <div style={{ 
-          position: 'fixed', top: 0, width: '100%', display: 'flex',boxShadow: '1px 1px 5px 1px rgb(0,0,155,.1)',
+          position: 'fixed', top: 0, width: '100%', display: 'flex',borderBottom: '1px solid lightgrey',
           padding: '0px 0', alignItems: 'center', height: '60px', color: 'grey', zIndex: 1000,
           backgroundColor: navbarBg, transition: 'background-color 0.3s ease',
           backdropFilter: 'blur(7px)',
@@ -186,7 +186,7 @@ const Auth = () => {
       left: '30px',
       top: '50%',
       transform: 'translateY( -50%)'}}>
-              <img style={{width: '25px',  }} src="/SquareScore.svg" alt="logo" />
+              <img style={{width: '25px',  }} src="/favicon.svg" alt="logo" />
               <h1 style={{fontWeight: '600', color: 'black', paddingLeft: '10px', borderLeft: '4px solid #f4f4f4', marginLeft: '10px', fontSize: '20px'}}>SquareScore</h1>
               </div>
 

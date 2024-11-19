@@ -49,7 +49,9 @@ const QuestionResults = ({ assignmentId, questionId, inModal = false, onClose })
       const newTimer = setTimeout(async () => {
         // Update Firestore
         await updateDoc(gradeRef, {
-          questions: updatedQuestions
+          questions: updatedQuestions,
+          // Update hasFlaggedQuestions based on the new flagged statuses
+          hasFlaggedQuestions: updatedQuestions.some(q => q.flagged),
         });
       }, 500); // 500ms debounce
   
@@ -100,9 +102,13 @@ const QuestionResults = ({ assignmentId, questionId, inModal = false, onClose })
           return q;
         });
 
+        // Determine if any questions are still flagged after updating question content
+        const hasFlaggedQuestions = updatedQuestions.some(q => q.flagged);
+
         // Update the document
         return updateDoc(doc(db, 'grades', gradeDoc.id), {
-          questions: updatedQuestions
+          questions: updatedQuestions,
+          hasFlaggedQuestions: hasFlaggedQuestions
         });
       });
 
@@ -154,6 +160,7 @@ const QuestionResults = ({ assignmentId, questionId, inModal = false, onClose })
       setShowRubric(true);
     }
   };
+
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -190,7 +197,6 @@ const QuestionResults = ({ assignmentId, questionId, inModal = false, onClose })
           const gradeData = doc.data();
           setAssignmentName(gradeData.assignmentName);
           
-        
 
           // Assuming rawMaxScore is the maximum possible score, e.g., 2 * number of questions
           if (!rawMaxScore && gradeData.rawMaxScore) {
@@ -216,8 +222,7 @@ const QuestionResults = ({ assignmentId, questionId, inModal = false, onClose })
               feedback: relevantQuestion.feedback,
               rawTotalScore: gradeData.rawTotalScore || 0, // Assuming rawTotalScore is available
               rawMaxScore: gradeData.rawMaxScore || 0,
-              
-  percentageScore: gradeData.percentageScore || 0, // Assuming rawMaxScore is available
+              percentageScore: gradeData.percentageScore || 0, // Assuming rawMaxScore is available
             });
           }
         });
@@ -244,8 +249,7 @@ const QuestionResults = ({ assignmentId, questionId, inModal = false, onClose })
     };
 
     fetchData();
-  }, [assignmentId, questionId, classId]);
-
+  }, [assignmentId, questionId]);
 
   // Function to update a student's grade
   const updateGrade = async (studentId, newScore) => {
@@ -272,11 +276,14 @@ const QuestionResults = ({ assignmentId, questionId, inModal = false, onClose })
       const maxScore = gradeData.rawMaxScore || (updatedQuestions.length * 2);
       const newPercentage = (newRawTotal / maxScore) * 100;
   
-      // Update the entire document
+      // Update the entire document, including hasFlaggedQuestions
+      const hasFlaggedQuestions = updatedQuestions.some(q => q.flagged);
+  
       await updateDoc(gradeRef, {
         questions: updatedQuestions,
         rawTotalScore: newRawTotal,
-        percentageScore: newPercentage
+        percentageScore: newPercentage,
+        hasFlaggedQuestions: hasFlaggedQuestions // Update flag status
       });
   
       // Update local state
@@ -296,6 +303,7 @@ const QuestionResults = ({ assignmentId, questionId, inModal = false, onClose })
       console.error("Error updating grade:", error);
     }
   };
+
   // Function to toggle flag status
   const toggleFlag = async (studentId) => {
     try {
@@ -315,9 +323,13 @@ const QuestionResults = ({ assignmentId, questionId, inModal = false, onClose })
         return q;
       });
   
-      // Update the entire document
+      // Determine if any questions are still flagged
+      const hasFlaggedQuestions = updatedQuestions.some(q => q.flagged);
+  
+      // Update the entire document, including hasFlaggedQuestions
       await updateDoc(gradeRef, {
-        questions: updatedQuestions
+        questions: updatedQuestions,
+        hasFlaggedQuestions: hasFlaggedQuestions // Update flag status
       });
   
       // Update local state
@@ -359,15 +371,19 @@ const QuestionResults = ({ assignmentId, questionId, inModal = false, onClose })
   if (loading) {
     return <div></div>;
   }
+  
   const handleGradeClick = (studentUid) => {
     navigate(`/teacherStudentResults/${assignmentId}/${studentUid}/${classId}`);
   };
+  
   const handleStudentClick = (studentUid) => {
     navigate(`/class/${classId}/student/${studentUid}/grades`);
   };
+  
   const handleAssignmentClick = () => {
     navigate(`/class/${classId}/assignment/${assignmentId}/TeacherResults`);
   };
+
   
   
   return (

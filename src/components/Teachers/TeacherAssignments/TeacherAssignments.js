@@ -9,6 +9,9 @@ import {
   getDoc,
   addDoc,
   updateDoc,
+  query,
+  where,
+  getCountFromServer,
 } from 'firebase/firestore';
 import { db } from '../../Universal/firebase';
 import Navbar from '../../Universal/Navbar';
@@ -24,6 +27,7 @@ import {
   SquareX,
   Folder,
   BookOpenText,
+  Flag,
 } from 'lucide-react';
 import CreateFolder from './CreateFolder';
 import SearchToggle from './SearchToggle';
@@ -129,6 +133,44 @@ function Assignments() {
     localStorage.setItem('activeTab', activeTab);
   }, [activeTab]);
 
+  const getGradeColors = (grade) => {
+    if (grade === undefined || grade === null || grade === 0) return { color: '#858585', background: 'white' };
+    if (grade < 50) return { color: '#FF0000', background: '#FFCBCB' };
+    if (grade < 70) return { color: '#FF4400', background: '#FFC6A8' };
+    if (grade < 80) return { color: '#EFAA14', background: '#FFF4DC' };
+    if (grade < 90) return { color: '#9ED604', background: '#EDFFC1' };
+    if (grade > 99) return { color: '#E01FFF', background: '#F7C7FF' };
+    return { color: '#2BB514', background: '#D3FFCC' };
+  };
+  
+  // Add state for flagged assignments
+  const [flaggedAssignments, setFlaggedAssignments] = useState(new Set());
+  
+  // Add the checkFlaggedAssignments function
+  const checkFlaggedAssignments = async (processedAssignments) => {
+    const gradesCollection = collection(db, 'grades');
+    const flaggedSet = new Set();
+    
+    for (const assignment of processedAssignments) {
+      const flaggedQuery = query(
+        gradesCollection,
+        where('assignmentId', '==', assignment.id),
+        where('classId', '==', classId),
+        where('hasFlaggedQuestions', '==', true)
+      );
+      try {
+        const snapshot = await getCountFromServer(flaggedQuery);
+        if (snapshot.data().count > 0) {
+          flaggedSet.add(assignment.id);
+        }
+      } catch (error) {
+        console.error("Error checking flagged responses:", error);
+      }
+    }
+    setFlaggedAssignments(flaggedSet);
+  };
+  
+  // Update the fetchAssignments function to include average and check for flagged
   const fetchAssignments = async () => {
     try {
       const classDocRef = doc(db, 'classes', classId);
@@ -137,29 +179,29 @@ function Assignments() {
       if (classDoc.exists()) {
         const data = classDoc.data();
         const assignmentsData = data.assignments || [];
-  
-        // Get the viewable assignments array
         const viewableAssignments = data.viewableAssignments || [];
   
-        const fetchedAssignments = assignmentsData.map((assignment) => {
+        const processedAssignments = assignmentsData.map((assignment) => {
           const id = assignment.id;
           const name = assignment.name;
           const timestamp = id.split('+')[1];
           const format = id.split('+')[2];
-  
           return {
             id,
-            name,
+            name: assignment.name,
+            
             type: format,
             timestamp,
             date: new Date(parseInt(timestamp)),
-            // Only set viewable to true if the ID is explicitly in the viewableAssignments array
-            viewable: viewableAssignments.includes(id),
+            average: assignment.average ? Number(assignment.average) : 0,
+            viewable: viewableAssignments.includes(id)
           };
         });
   
-        const sortedAssignments = fetchedAssignments.sort(
-          (a, b) => b.date - a.date
+        await checkFlaggedAssignments(processedAssignments);
+  
+        const sortedAssignments = processedAssignments.sort(
+          (a, b) => b.timestamp - a.timestamp
         );
   
         setAssignments(sortedAssignments);
@@ -529,11 +571,12 @@ function Assignments() {
     return (
       <div
         style={{
-          textAlign: 'center',
+          textAlign: 'left',
           color: '#666',
+          marginLeft: '4%',
           fontFamily: "'Montserrat', sans-serif",
           fontSize: '18px',
-          marginTop: '40px',
+          marginTop: '160px',
         }}
       >
         {message}
@@ -1053,18 +1096,15 @@ function Assignments() {
       {/* Search Bar */}
 
         </div>
-      </div>
 
 
-
-
-      {/* Active Tab Info and Action Button */}
-      <div
+        <div
         style={{
-          width: 'calc(100% - 200px)',
-          marginLeft: '200px',
-          marginTop: '150px',
-          display: 'flex',
+          width: '350px',
+          position: 'absolute',
+          top: '10px',
+          right: '4%',
+          marginTop: '10px',
           justifyContent: 'space-between',
           alignItems: 'center',
         }}
@@ -1079,12 +1119,13 @@ function Assignments() {
             onClick={() => setShowFolderForm(true)}
             style={{
               backgroundColor: 'white',
-              color: 'grey', marginTop: '10px',
+              color: '#29DB0B', marginTop: '10px',
               marginBottom: '-10px',
-              border: '1px solid lightgrey',
+              border: '1px solid white',
               padding: '8px 16px',
               borderRadius: '5px',
-              marginRight: '4%',
+              
+              marginLeft: 'auto',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
@@ -1093,21 +1134,21 @@ function Assignments() {
               fontSize: '16px',
             }}
           >
-            Create Folder <FolderPlus size={20} />
+          <FolderPlus size={20} />
           </button>
         ) : activeTab === 'published' ? (
           <button
             onClick={() => setShowCreateModal(true)}
             style={{
               backgroundColor: 'white',
-              color: 'grey',
-              border: '1px solid lightgrey',
-              marginTop: '10px',
+              color: '#29DB0B', marginTop: '10px',
               marginBottom: '-10px',
+              border: '1px solid white',
               padding: '8px 16px',
               borderRadius: '5px',
+              
+              marginLeft: 'auto',
               cursor: 'pointer',
-              marginRight: '4%',
               display: 'flex',
               alignItems: 'center',
               gap: '8px',
@@ -1115,7 +1156,7 @@ function Assignments() {
               fontSize: '16px',
             }}
           >
-            Create Assignment <SquarePlus size={20} />
+             <SquarePlus size={20} />
           </button>
         ) : activeTab === 'drafts' ? (
           <h1
@@ -1129,11 +1170,10 @@ function Assignments() {
               padding: '8px 0px',
               borderRadius: '5px',
               cursor: 'pointer',
-              marginRight: '4%',
               display: 'flex',
               fontWeight: '500',
-
-              alignItems: 'center',
+textAlign: 'right',
+              alignItems: 'right',
               gap: '8px',
               fontFamily: "'Montserrat', sans-serif",
               fontSize: '16px',
@@ -1144,6 +1184,17 @@ function Assignments() {
         ) : null}
 
       </div>
+
+
+
+
+      </div>
+
+
+
+
+      {/* Active Tab Info and Action Button */}
+    
 
       {/* Main Content */}
       {isLoading ? (
@@ -1174,7 +1225,7 @@ function Assignments() {
 
           {activeTab === 'folders' ? (
             folders.length > 0 ? (
-              <ul style={{ listStyleType: 'none', padding: 0, margin: 0 }}>
+              <ul style={{ listStyleType: 'none', padding: 0,  marginTop: '120px',  }}>
                 {folders.map((folder) => (
                   <li
                     key={folder.id}
@@ -1196,6 +1247,7 @@ function Assignments() {
                     <span
                       style={{
                         fontSize: '18px',
+                        marginLeft: 'calc(200px + 4%)',
                         fontFamily: "'Montserrat', sans-serif",
                         fontWeight: '500',
                       }}
@@ -1220,7 +1272,7 @@ function Assignments() {
                 ))}
               </ul>
             ) : (
-              <h1 style={{marginTop: '-20px', fontWeight: '500'}}>
+              <h1 style={{marginTop: '-20px', fontWeight: '500', marginLeft: '200px'}}>
                 {renderNoContentMessage()}</h1>
             )
           ) : (
@@ -1233,61 +1285,104 @@ function Assignments() {
 
 
 
-            <ul style={{ listStyleType: 'none', padding: 0,  width: 'calc(100% - 200px)', 
+            <ul style={{ listStyleType: 'none', padding: 0,  width: 'calc(100% - 200px)', marginTop: '120px', 
               marginLeft: '200px', }}>
               {filteredAssignments.length > 0 ? (
              filteredAssignments.map((item, index) => (
-                  <li
-                    key={item.id}
-                    onClick={() => handleItemClick(item)}
-                    style={{
-                  
-                      padding: ' 20px 4% ',
-                      width: '92%',
-                      borderBottom:  '2px solid #f4f4f4',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      position: 'relative',
-                      cursor: 'pointer',
-                      transition: 'background-color 0.3s, border-color 0.3s, box-shadow 0.3s',
-                    }}
-                  >
-                    <span
-                      style={{
-                        fontSize: '20px',
-                        fontFamily: "'Montserrat', sans-serif",
-                        fontWeight: '600',
-                      }}
-                    >
-                      {item.name}
-                    </span>
-                    <span
-                      style={{
-                        fontSize: '16px',
-                        color: 'lightgrey',
-                        marginLeft: 'auto',
-                        marginRight: '100px',
-                        fontWeight: '600',
-                        fontFamily: "'Montserrat', sans-serif",
-                      }}
-                    >
-                      {formatDate(item.id)}
-                    </span>
-                    <div style={{ marginRight: '0px', height: '30px', width: '50px', position: 'relative'}}>{getFormatDisplay(item.type)}</div>
-                    {item.viewable && (
-                      <Eye
-                        size={20}
-                        strokeWidth={3}
-                        color="#92A3FF"
-                        style={{
-                          position: 'absolute',
-                          right: '200px',
-                          bottom: '16px',
-                        }}
-                      />
-                    )}
-                  </li>
+<li
+  key={item.id}
+  onClick={() => handleItemClick(item)}
+  style={{
+    padding: '20px 4%',
+    width: '92%',
+    borderBottom: '1px solid #EDEDED',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    position: 'relative',
+    cursor: 'pointer',
+    transition: 'background-color 0.3s, border-color 0.3s, box-shadow 0.3s',
+  }}
+>
+  <span
+    style={{
+      fontSize: '20px',
+      fontFamily: "'Montserrat', sans-serif",
+      fontWeight: '600',
+    }}
+  >
+    {item.name}
+  </span>
+  <div style={{
+    display: 'flex',
+    alignItems: 'center',
+    gap: '20px',
+    marginLeft: 'auto',
+    position: 'relative'
+  }}>
+     {item.average ? (
+      <span style={{ 
+        right: 'calc(4% + 240px)',
+        fontWeight: '500',position: 'absolute',
+        background: getGradeColors(item.average).background,
+        color: getGradeColors(item.average).color,
+        padding: '5px',
+        borderRadius: '5px',
+        width: '40px',
+        textAlign: 'center',
+      }}>
+        {item.average}%
+      </span>
+    ) : (
+      <span style={{ 
+        right: 'calc(4% + 240px)',
+        fontWeight: '500',position: 'absolute',
+        background: 'white',
+        color: '#858585',
+        padding: '5px',
+        borderRadius: '5px',
+        width: '40px',
+        textAlign: 'center',
+      }}>
+        -
+      </span>
+    )}
+    <span
+      style={{
+        fontSize: '16px',
+        color: 'lightgrey',
+        right: 'calc(4% + 100px)',
+        fontWeight: '500',position: 'absolute',
+        fontFamily: "'Montserrat', sans-serif",
+      }}
+    >
+      {formatDate(item.id)}
+    </span>
+   
+
+    {/* Flag and Eye Icons */}
+    <div style={{ 
+      display: 'flex',
+      alignItems: 'center',
+      gap: '15px',
+      marginLeft: '10px'
+    }}>
+      {flaggedAssignments.has(item.id) && (
+        <Flag size={20} color="red" 
+        style={{position: 'absolute', right: 'calc(4% + 450px)'}}
+        />
+      )}
+      {item.viewable && (
+        <Eye size={20} color="#020CFF"
+        style={{position: 'absolute', right: 'calc(4% + 370px)'}}
+         />
+      )}
+    </div>
+
+    {/* Format Display */}
+    <div style={{ marginRight: '0px', height: '30px', width: '50px', position: 'relative'}}>{getFormatDisplay(item.type)}</div>
+  </div>
+</li>
                 ))
               ) : (
                 <h1 style={{marginTop: '-20px', fontWeight: '500'}}>

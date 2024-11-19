@@ -339,7 +339,7 @@ const [isConfirmPasswordFocused, setIsConfirmPasswordFocused] = useState(false);
         top: 0, 
         width: '100%', 
         display: 'flex',
-        boxShadow: '1px 1px 5px 1px rgb(0,0,155,.1)',
+        borderBottom: '1px solid lightgrey',
         padding: '0px 0', 
         alignItems: 'center', 
         height: '60px', 
@@ -368,7 +368,7 @@ const [isConfirmPasswordFocused, setIsConfirmPasswordFocused] = useState(false);
               top: '50%',
               transform: 'translateY(-50%)'
             }}>
-              <img style={{ width: '25px' }} src="/SquareScore.svg" alt="logo" />
+              <img style={{ width: '25px' }} src="/favicon.svg" alt="logo" />
               <h1 style={{
                 fontWeight: '600', 
                 color: 'black', 
@@ -779,7 +779,7 @@ const [isConfirmPasswordFocused, setIsConfirmPasswordFocused] = useState(false);
           )}
 
           {/* Create Account Button and Terms */}
-          <div style={{display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
+          <div style={{display: 'flex', flexDirection: 'column', alignItems: 'center', marginRight: '-25px'}}>
             {isFormComplete() && (
               <>
                 <button 
@@ -787,7 +787,6 @@ const [isConfirmPasswordFocused, setIsConfirmPasswordFocused] = useState(false);
                   type="submit"
                   style={{ 
                     width: '100%', 
-                    maxWidth: '400px',
                     height: '50px',
                     fontSize: '25px',
                     color: role === 'student' ? 'white' : 'white',
@@ -819,7 +818,6 @@ const [isConfirmPasswordFocused, setIsConfirmPasswordFocused] = useState(false);
                   color: 'black', 
                   fontSize: '14px', 
                   textAlign: 'left',
-                  maxWidth: '400px'
                 }}>
                   By signing up you agree to SquareScore's <a href="/TermsofService" style={{ color: 'blue' }}>Terms of Service</a> and <a href="/PrivacyPolicy" style={{ color: 'blue' }}>Privacy Policy</a>
                 </p>

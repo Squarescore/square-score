@@ -6,11 +6,12 @@ import PropTypes from 'prop-types';
 // Wrap the component with React.memo for performance optimization
 const getGradeColors = (grade) => {
   if (grade === undefined || grade === null) return { color: 'grey', background: '#f4f4f4' };
-  if (grade < 50) return { color: '#FF0000', background: '#FFECEC' };
-  if (grade < 70) return { color: '#FF8C00', background: '#FFF3E6' };
-  if (grade < 80) return { color: '#FFD700', background: '#FFFBE6' };
-  if (grade < 90) return { color: '#90EE90', background: '#F0FFF0' };
-  return { color: '#008000', background: '#E6FFE6' };
+  if (grade < 50) return { color: '#FF0000', background: '#FFCBCB' };
+  if (grade < 70) return { color: '#FF4400', background: '#FFC6A8' };
+  if (grade < 80) return { color: '#EFAA14', background: '#FFF4DC' };
+  if (grade < 90) return { color: '#9ED604', background: '#EDFFC1' };
+  if (grade > 99) return { color: '#E01FFF', background: '#F7C7FF' };
+  return { color: '#2BB514', background: '#D3FFCC' };
 };
 
 const StudentResultsList = React.memo(
@@ -59,7 +60,7 @@ const StudentResultsList = React.memo(
                 alignItems: 'center',
                 display: 'flex',
                 justifyContent: 'space-between',
-                borderBottom: '2px solid #f4f4f4',
+                borderBottom: '1px solid #EDEDED',
                 
                 position: 'relative',
                 minHeight: '80px',

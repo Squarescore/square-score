@@ -21,7 +21,8 @@ function TakeTests() {
   const [timerStarted, setTimerStarted] = useState(false);
   const [progressExists, setProgressExists] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
-
+  const [isLockdownSaving, setIsLockdownSaving] = useState(false);
+  const [onViolation, setOnViolation] = useState('pause');
   const saveIntervalRef = useRef(null);
   const [halfCredit, setHalfCredit] = useState(false);
 
@@ -46,37 +47,12 @@ const [scaleMax, setScaleMax] = useState(2);
   useEffect(() => {
     fetchUserName();
   }, []);
-
-  
-  const handleLockdownViolation = async () => {
-    if (isSubmitted) {
-      console.log('Assignment already submitted, ignoring lockdown violation.');
-      return;
-    }
-
-    try {
-      // Update the student's assignment status
-      const studentRef = doc(db, 'students', studentUid);
-      await updateDoc(studentRef, {
-        assignmentsToTake: arrayRemove(assignmentId),
-        assignmentsInProgress: arrayRemove(assignmentId),
-        assignmentsPaused: arrayUnion(assignmentId)
-      });
-
-      await saveProgress('paused');
-      setAssignmentStatus('paused');
-      navigate(`/studentassignments/${classId}?tab=completed`);
-    } catch (error) {
-      console.error("Error handling lockdown violation:", error);
-    }
-  };
-
   const saveProgress = async (status = 'in_progress') => {
     if (isSubmitted) {
       console.log('Assignment already submitted, not saving progress.');
       return;
     }
-
+  
     try {
       // First, check if the assignment is already submitted
       const gradeDocRef = doc(db, `grades`, `${assignmentId}_${studentUid}`);
@@ -86,11 +62,20 @@ const [scaleMax, setScaleMax] = useState(2);
         console.log('Assignment already has grades, canceling save.');
         return;
       }
-
+  
+      // Count completed questions
+      const completedCount = answers.filter(a => a.answer?.trim()).length;
+  
       const progressRef = doc(db, 'assignments(progress)', `${assignmentId}_${studentUid}`);
-      await setDoc(progressRef, {
+      
+      // Create complete progress data with all required fields
+      const progressData = {
         assignmentId,
         studentUid,
+        firstName,
+        lastName,
+        classId,
+        assignmentName,
         questions: questions.map(question => ({
           questionId: question.questionId,
           text: question.text,
@@ -99,36 +84,62 @@ const [scaleMax, setScaleMax] = useState(2);
         })),
         timeRemaining: secondsLeft,
         savedAt: serverTimestamp(),
-        status: status
-      }, { merge: true });
-
+        status: status,
+        halfCredit,
+        lockdown,
+        saveAndExit,
+        scaleMin,
+        scaleMax,
+        timeLimit,
+        completedQuestions: completedCount,
+        totalQuestions: questions.length
+      };
+  
+      await setDoc(progressRef, progressData, { merge: false }); // Use merge: false to ensure complete replacement
+  
       // Update student assignment status
       const studentRef = doc(db, 'students', studentUid);
-      const studentDoc = await getDoc(studentRef);
-      
-      if (studentDoc.exists()) {
-        const studentData = studentDoc.data();
-        
-        // Only update if the assignment isn't already in assignmentsTaken
-        if (!studentData.assignmentsTaken?.includes(assignmentId)) {
-          const updates = {
-            assignmentsToTake: arrayRemove(assignmentId),
-            assignmentsInProgress: arrayRemove(assignmentId),
-          };
-
-          if (status === 'paused') {
-            updates.assignmentsPaused = arrayUnion(assignmentId);
-          } else if (status === 'in_progress') {
-            updates.assignmentsInProgress = arrayUnion(assignmentId);
-          }
-
-          await updateDoc(studentRef, updates);
-        }
+      const updates = {
+        assignmentsToTake: arrayRemove(assignmentId),
+        assignmentsInProgress: arrayRemove(assignmentId),
+        assignmentsPaused: arrayRemove(assignmentId)
+      };
+  
+      if (status === 'paused') {
+        updates.assignmentsPaused = arrayUnion(assignmentId);
+      } else if (status === 'in_progress') {
+        updates.assignmentsInProgress = arrayUnion(assignmentId);
       }
-
-      console.log('Progress saved and status updated');
+  
+      await updateDoc(studentRef, updates);
+  
+      console.log('Progress saved with status:', status);
     } catch (error) {
       console.error("Error saving progress:", error);
+    }
+  };
+  const handleLockdownViolation = async () => {
+    if (isSubmitted) {
+      console.log('Assignment already submitted, ignoring lockdown violation.');
+      return;
+    }
+
+    setIsLockdownSaving(true);
+
+    try {
+      if (onViolation === 'submit') {
+        await handleSubmit();
+      } else {
+        // Default behavior is pause
+        await saveProgress('paused');
+        setAssignmentStatus('paused');
+        navigate(`/studentassignments/${classId}/active`);
+      }
+    } catch (error) {
+      console.error("Error handling lockdown violation:", error);
+      alert("An error occurred while saving your progress. Please try again.");
+    } finally {
+      setIsLockdownSaving(false);
     }
   };
 
@@ -214,7 +225,7 @@ const [scaleMax, setScaleMax] = useState(2);
         questions: combinedResults,
       });
 
-      navigate(`/studentassignments/${classId}`);
+      navigate(`/studentassignments/${classId}/completed`);
     } catch (error) {
       console.error("Error submitting and grading assignment:", error);
       alert("Your submission was saved, but we encountered an issue during grading. Your instructor has been notified.");
@@ -248,14 +259,21 @@ const [scaleMax, setScaleMax] = useState(2);
           setClassId(assignmentData.classId);
           setHalfCredit(assignmentData.halfCredit);
           setSaveAndExit(assignmentData.saveAndExit);
-          setLockdown(assignmentData.lockdown || false);
           const scaleMin = assignmentData.scale?.min ? Number(assignmentData.scale.min) : 0;
           const scaleMax = assignmentData.scale?.max ? Number(assignmentData.scale.max) : 2;
   
           // Check if there's saved data for the student
           const progressRef = doc(db, 'assignments(progress)', `${assignmentId}_${studentUid}`);
           const savedDataDoc = await getDoc(progressRef);
-
+          const hasLockdown = assignmentData.lockdown || false;
+          setLockdown(hasLockdown);
+          
+          // Only set onViolation if lockdown is enabled
+          if (hasLockdown) {
+            setOnViolation(assignmentData.onViolation || 'pause');
+          } else {
+            setOnViolation(null);
+          }
           if (savedDataDoc.exists()) {
             setProgressExists(true);
             const savedData = savedDataDoc.data();
@@ -276,7 +294,7 @@ const [scaleMax, setScaleMax] = useState(2);
               text: data.question,
               rubric: data.rubric
             }));
-
+        
             const studentQuestionCount = assignmentData.questionCount.student;
             const randomQuestions = getRandomSubset(allQuestions, studentQuestionCount);
             setScaleMin(scaleMin);
@@ -339,34 +357,39 @@ const [scaleMax, setScaleMax] = useState(2);
   };
   
 
-
-
   useEffect(() => {
+    if (loading || !lockdown || isSubmitted) return;
+  
+    // Set initial window size if not already set
+    if (!initialWindowSize.width && !initialWindowSize.height) {
+      setInitialWindowSize({ width: window.innerWidth, height: window.innerHeight });
+    }
+  
     const handleVisibilityChange = () => {
-      if (lockdown && document.hidden) {
+      if (document.hidden) {
         handleLockdownViolation();
       }
     };
   
     const handleResize = () => {
-      if (lockdown) {
-        const currentSize = { width: window.innerWidth, height: window.innerHeight };
-        if (currentSize.width !== initialWindowSize.width || currentSize.height !== initialWindowSize.height) {
-          handleLockdownViolation();
-        }
+      const currentSize = { width: window.innerWidth, height: window.innerHeight };
+      if (
+        currentSize.width !== initialWindowSize.width ||
+        currentSize.height !== initialWindowSize.height
+      ) {
+        handleLockdownViolation();
       }
     };
   
-    if (lockdown && !isSubmitted) {
-      document.addEventListener('visibilitychange', handleVisibilityChange);
-      window.addEventListener('resize', handleResize);
-    }
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('resize', handleResize);
   
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('resize', handleResize);
     };
-  }, [lockdown, initialWindowSize, isSubmitted]);
+  }, [lockdown, initialWindowSize, isSubmitted, loading]);
+  
   
   useEffect(() => {
     if (lockdown) {
@@ -602,10 +625,14 @@ const [scaleMax, setScaleMax] = useState(2);
   };
   const onSaveAndExit = async () => {
     await saveProgress();
-    navigate(`/studentassignments/${classId}`);
+    navigate(`/studentassignments/${classId}/active`);
   };
   return (
     <div style={{ paddingBottom: '80px', marginLeft: '-3px', marginRight: '-3px', display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', width: '100%' }}>
+      <div style={{position: 'fixed', top: '0px', left: '200px', right: '0px', height: '70px', borderBottom: '1px solid lightgrey', display: 'flex'}}>
+    <h1 style={{marginLeft: '4%', fontSize: '25px', marginTop: '20px', color: '#999999', }}>{assignmentName}</h1>
+    <h1 style={{marginRight: '4%', fontSize: '20px', marginTop: '25px', color: 'grey', marginLeft: 'auto', fontWeight: "500"}}> Question {currentQuestionIndex + 1} of {questions.length}</h1>
+      </div>
   <TakeAssignmentNav
         saveAndExitEnabled={saveAndExit}
         onSaveAndExit={onSaveAndExit}
@@ -620,40 +647,33 @@ const [scaleMax, setScaleMax] = useState(2);
       
     
      
-      {loading || isSubmitting ? (
-  <div style={loadingModalStyle}>
-    <div style={loadingModalContentStyle}>
-      <p style={{ fontSize: '30px', fontFamily: "'montserrat', sans-serif", fontWeight: 'bold', position: 'absolute', color: 'black', top: '25%', left: '50%', transform: 'translate(-50%, -30%)' }}>
-        {isSubmitting ? 'Grading in Progress' : 'Loading Assignment'}
-      </p>
-      <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-        <div className="lds-ripple"><div></div><div></div></div>
-      </div>
-    </div>
-  </div>
-) : null}
+      {(loading || isSubmitting || isLockdownSaving) && (
+        <div style={loadingModalStyle}>
+          <div style={loadingModalContentStyle}>
+            <p style={{ fontSize: '30px', fontFamily: "'montserrat', sans-serif", fontWeight: 'bold', position: 'absolute', color: 'black', top: '25%', left: '50%', transform: 'translate(-50%, -30%)' }}>
+              {isSubmitting ? 'Grading in Progress' : 
+               isLockdownSaving ? 'Saving Progress' : 
+               'Loading Assignment'}
+              <Loader/>
+            </p>
+            <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+              <div className="lds-ripple"><div></div><div></div></div>
+            </div>
+          </div>
+        </div>
+      )}
      
      {questions.length > 0 && (
-        <div style={{ width: '1000px', marginLeft: 'auto', marginRight: 'auto', marginTop: '150px', position: 'relative' }}>
-          <div style={{
-            backgroundColor: 'white',    left: '50%',
-            top: '45%',
-            
-            position: 'fixed',
-            transform: 'translate(-50%, -50%)',
-               boxShadow: '1px 1px 5px 1px rgb(0,0,155,.07)' , width: '700px', color: 'black', border: '10px solid white', 
-            textAlign: 'left', fontWeight: 'bold', padding: '40px', borderRadius: ' 20px', fontSize: '30px', 
-           fontFamily: "'montserrat', sans-serif", userSelect: 'none'
-          }}>
+        <div style={{ width: '60%', marginLeft: 'calc(200px + 4%)', marginRight: 'auto', marginTop: '150px', position: 'relative' }}>
+        
              <div style={{
-              width: '720px',
-              marginLeft :'-50px',
-              marginTop: '-50px',
-              backgroundColor: '#C1CBFF',
-              borderRadius: '20px 20px 0px 0px',
-              color: '#020CFF',
-              border: '10px solid #020CFF',
-              fontSize: '30px',
+              width: '100%',
+              marginTop: '0px',
+              backgroundColor: 'white',
+              color: 'black',
+              fontWeight: '600',
+              borderLeft: '5px solid #020CFF',
+              fontSize: '25px',
               padding: '10px 30px',
               textAlign: 'left',
             }}>
@@ -663,16 +683,16 @@ const [scaleMax, setScaleMax] = useState(2);
           
          <textarea
               style={{
-                width: '710px',
+                width: '100%',
                 minHeight: '100px',
-                borderRadius: '15px',
-                border: '0px solid #f4f4f4',
-                marginLeft: '-10px',
+                borderRadius: '10px',
+                border: '1px solid lightgrey',
+                padding: '20px',
                 outline: 'none',
                 textAlign: 'left',
                 fontSize: '20px',
                 fontFamily: "'montserrat', sans-serif",
-                marginTop: '40px'
+                marginTop: '160px'
               }}
               type="text"
               placeholder='Type your response here'
@@ -680,24 +700,24 @@ const [scaleMax, setScaleMax] = useState(2);
               onChange={handleAnswerChange}
             />
 
-          
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: '50px' }}>
+      
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: '80px' }}>
             <button
               onClick={() => currentQuestionIndex > 0 && setCurrentQuestionIndex(prev => prev - 1)}
               style={{
-                backgroundColor: 'transparent',
+                backgroundColor: currentQuestionIndex > 0 ? 'white' : '#f4f4f4',
                 cursor: currentQuestionIndex > 0 ? 'pointer' : 'default',
-                border: 'none',
-                width: '80px',
-                height: '80px',
-                position: 'fixed',
-                left: '50px',
-                top: '50%',
-                transform: 'translate(0%, -50%)'
+                fontSize: '16px',
+                width: '300px',
+                fontWeight: '600',
+                fontFamily: "'montserrat', sans-serif",
+                borderRadius: '5px' ,
+                color: currentQuestionIndex > 0 ? 'grey' : 'lightgrey',
+                border: '1px solid lightgrey',
+                height: '40px',
               }}
             >
-              <div><SquareArrowLeft size={60} color={currentQuestionIndex > 0 ? "#009919" : "#ababab"} /></div>
+              Previous Question
             </button>
             
           
@@ -705,37 +725,26 @@ const [scaleMax, setScaleMax] = useState(2);
             <button
               onClick={() => currentQuestionIndex < questions.length - 1 && setCurrentQuestionIndex(prev => prev + 1)}
               style={{
-                backgroundColor: 'transparent',
+               marginLeft: '40px',
+
+                backgroundColor: currentQuestionIndex < questions.length - 1 ? 'white' : '#f4f4f4',
                 cursor: currentQuestionIndex < questions.length - 1 ? 'pointer' : 'default',
-                border: 'none',
-                width: '80px',
-                height: '80px',
-                position: 'fixed',
-                right: '50px',
-                top: '50%',
-                transform: 'translate(0%, -50%)'
+                fontSize: '16px',
+                width: '300px',
+                fontWeight: '600',
+                fontFamily: "'montserrat', sans-serif",
+                borderRadius: '5px' ,
+                color: currentQuestionIndex < questions.length - 1 ? 'grey' : 'lightgrey',
+                border: '1px solid lightgrey',
+                height: '40px',
+                marginRight: 'auto'
+
               }}
             >
-              <div>       <SquareArrowRight size={60} color={currentQuestionIndex < questions.length - 1 ? "#009919" : "#ababab"} />
-              </div>
+            Next Question
             </button>
           </div>
 
-          <h3 style={{
-            width: '300px',
-            textAlign: 'center',
-            fontSize: '40px',
-            backgroundColor: 'transparent',
-            fontFamily: "'montserrat', sans-serif",
-            color: 'grey',
-            position: 'fixed',
-            bottom: '0px',
-            left: '50%',
-            transform: 'translateX(-50%)',
-            border: '2px solid transparent'
-          }}>
-            {currentQuestionIndex + 1} of {questions.length}
-          </h3>
         </div>
       )}
     </div>

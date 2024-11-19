@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { doc, collection, updateDoc, where, query, getDocs, writeBatch } from 'firebase/firestore';
 import { db } from '../../Universal/firebase';
 import { arrayUnion, arrayRemove, deleteDoc, getDoc, onSnapshot, documentId  } from 'firebase/firestore';
@@ -13,7 +13,7 @@ import axios from 'axios';
 import { serverTimestamp } from 'firebase/firestore';
 import CustomDateTimePicker from './CustomDateTimePickerResults';
 import Exports from './Exports';
-
+import { debounce } from 'lodash';
 import DeleteConfirmationModal from './DeleteConfirmationModal';
 import { Settings, ArrowRight, SquareArrowOutUpRight,  SquareDashedMousePointer, SquareX, SquareMinus, SquareCheck, Landmark, Eye, EyeOff, Flag, YoutubeIcon, Trash2 } from 'lucide-react';
 import 'react-datepicker/dist/react-datepicker.css';
@@ -21,7 +21,8 @@ import TeacherPreview from '../Create/PreviewSAQ';
 import QuestionBankSAQ from './QuesntionBankSAQ';
 import StudentResultsList from './StudentResultList';
 import TeacherReview from './TeacherReview';
-import SettingsSection from './SettingsSection';
+import SettingsSection from './SettingsSection';// At the top of your component
+
 const TeacherResults = () => {
   const [students, setStudents] = useState([]);
   const [grades, setGrades] = useState({});
@@ -38,7 +39,7 @@ const TeacherResults = () => {
   const [submissionCount, setSubmissionCount] = useState(0);
   const [assignedCount, setAssignedCount] = useState(0);
   const [averageGrade, setAverageGrade] = useState(null);
-
+  const location = useLocation();
   const navigate = useNavigate();
   const [reviewCount, setReviewCount] = useState(0);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -63,6 +64,12 @@ const TeacherResults = () => {
   const [showSettings, setShowSettings] = useState(false);
   const [studentsWithoutAssignment, setStudentsWithoutAssignment] = useState([]);
   const [activeTab, setActiveTab] = useState('submissions');
+  const studentDataCache = useRef({});
+
+  
+  const [autoOpenQuestionId, setAutoOpenQuestionId] = useState(null);
+
+  // In the useEffect that handles initial load, add:
 
   const handleTabClick = (tab) => {
     setActiveTab(tab);
@@ -74,6 +81,38 @@ const TeacherResults = () => {
     }
   };
 
+  const updateClassAssignmentAverage = useCallback(
+    debounce(async (newAverage) => {
+      try {
+        const classRef = doc(db, 'classes', classId);
+        const classDoc = await getDoc(classRef);
+        
+        if (classDoc.exists()) {
+          const classData = classDoc.data();
+          const assignments = classData.assignments || [];
+          
+          // Update the assignment entry with the new average
+          const updatedAssignments = assignments.map(assignment => {
+            if (assignment.id === assignmentId) {
+              return {
+                ...assignment,
+                average: newAverage
+              };
+            }
+            return assignment;
+          });
+          
+          await updateDoc(classRef, {
+            assignments: updatedAssignments
+          });
+        }
+      } catch (error) {
+        console.error("Error updating class assignment average:", error);
+      }
+    }, 1000),
+    [classId, assignmentId] // Include dependencies here
+  );
+  
   const [assignmentSettings, setAssignmentSettings] = useState({
     assignDate: null,
     dueDate: null,
@@ -111,7 +150,16 @@ const TeacherResults = () => {
     }
   }, [students, fetchStudentsWithoutAssignment]);
  
-
+  useEffect(() => {
+    if (location.state?.targetTab === 'questionBank') {
+      setActiveTab('questionBank');
+      setShowQuestionBank(true);
+      setShowOverlay(true);
+      if (location.state?.targetQuestionId && location.state?.openQuestionResults) {
+        setAutoOpenQuestionId(location.state.targetQuestionId);
+      }
+    }
+  }, [location.state]);
   useEffect(() => {
     const fetchTeacherId = async () => {
       const user = auth.currentUser;
@@ -439,36 +487,105 @@ const TeacherResults = () => {
       setAllViewable(!newViewableStatus);
     }
   };
- 
   const togglePauseAssignment = async (studentUid) => {
-    if (assignmentStatuses[studentUid] !== 'Paused') return;
+    const student = students.find(s => s.uid === studentUid);
+    if (!student) return;
   
     setResetStatus(prev => ({ ...prev, [studentUid]: 'updating' }));
   
     try {
       const studentRef = doc(db, 'students', studentUid);
       const progressRef = doc(db, 'assignments(progress)', `${assignmentId}_${studentUid}`);
-      const progressDoc = await getDoc(progressRef);
+      const studentDoc = await getDoc(studentRef);
   
-      if (progressDoc.exists()) {
-        await updateDoc(progressRef, { status: 'In Progress' });
+      if (!studentDoc.exists()) {
+        throw new Error("Student document not found");
+      }
+  
+      const studentData = studentDoc.data();
+      const isPaused = studentData.assignmentsPaused?.includes(assignmentId);
+  
+      if (isPaused) {
+        // Unpause
         await updateDoc(studentRef, {
+          assignmentsPaused: arrayRemove(assignmentId),
           assignmentsInProgress: arrayUnion(assignmentId)
         });
   
-        setAssignmentStatuses(prev => ({ ...prev, [studentUid]: 'In Progress' }));
-        setResetStatus(prev => ({ ...prev, [studentUid]: 'success' }));
+        await updateDoc(progressRef, { 
+          status: 'in_progress',
+          updatedAt: serverTimestamp()
+        });
+  
       } else {
-        console.error("Progress document does not exist");
-        setResetStatus(prev => ({ ...prev, [studentUid]: 'failed' }));
+        // Pause
+        await updateDoc(studentRef, {
+          assignmentsInProgress: arrayRemove(assignmentId),
+          assignmentsPaused: arrayUnion(assignmentId)
+        });
+  
+        await updateDoc(progressRef, { 
+          status: 'paused',
+          updatedAt: serverTimestamp()
+        });
       }
+  
+      // Fetch updated student data
+      const updatedStudentDoc = await getDoc(studentRef);
+      if (updatedStudentDoc.exists()) {
+        const updatedStudentData = updatedStudentDoc.data();
+        studentDataCache.current[studentUid] = {
+          data: updatedStudentData,
+          lastUpdate: Date.now()
+        };
+        setStudents(prevStudents => {
+          return prevStudents.map(student => {
+            if (student.uid === studentUid) {
+              return {
+                ...student,
+                firstName: updatedStudentData.firstName.trim(),
+                lastName: updatedStudentData.lastName.trim(),
+                name: `${updatedStudentData.firstName.trim()} ${updatedStudentData.lastName.trim()}`,
+                isAssigned: updatedStudentData.assignmentsToTake?.includes(assignmentId) ||
+                  updatedStudentData.assignmentsInProgress?.includes(assignmentId) ||
+                  updatedStudentData.assignmentsTaken?.includes(assignmentId) ||
+                  updatedStudentData.assignmentsPaused?.includes(assignmentId),
+                isPaused: updatedStudentData.assignmentsPaused?.includes(assignmentId)
+              };
+            }
+            return student;
+          });
+        });
+  
+        // **Update assignmentStatuses**
+        let status = 'not_started';
+  
+        if (updatedStudentData.assignmentsPaused?.includes(assignmentId)) {
+          status = 'paused';
+        } else if (updatedStudentData.assignmentsInProgress?.includes(assignmentId)) {
+          status = 'In Progress';
+        } else if (updatedStudentData.assignmentsTaken?.includes(assignmentId)) {
+          status = 'completed';
+        } else if (updatedStudentData.assignmentsToTake?.includes(assignmentId)) {
+          status = 'not_started';
+        }
+  
+        setAssignmentStatuses(prevStatuses => ({
+          ...prevStatuses,
+          [studentUid]: status
+        }));
+      }
+  
+      setResetStatus(prev => ({ ...prev, [studentUid]: 'success' }));
     } catch (error) {
-      console.error("Error unpausing assignment:", error);
+      console.error("Error toggling pause status:", error);
       setResetStatus(prev => ({ ...prev, [studentUid]: 'failed' }));
     } finally {
       setTimeout(() => setResetStatus(prev => ({ ...prev, [studentUid]: '' })), 1000);
     }
   };
+  
+  
   useEffect(() => {
     const fetchAssignmentName = async () => {
       try {
@@ -490,7 +607,6 @@ const TeacherResults = () => {
     fetchAssignmentName();
   }, [assignmentId]);
 
- 
   const handleReset = async (studentUid) => {
     if (window.confirm("Are you sure you want to reset this student's assignment? This action cannot be undone.")) {
       try {
@@ -513,10 +629,41 @@ const TeacherResults = () => {
         await updateDoc(studentRef, {
           assignmentsTaken: arrayRemove(assignmentId),
           assignmentsToTake: arrayUnion(assignmentId),
-          assignmentsInProgress: arrayRemove(assignmentId) // Remove from assignmentsInProgress
+          assignmentsInProgress: arrayRemove(assignmentId)
         });
   
-        // Update local state to reflect the reset
+        // Fetch updated student data
+        const studentDoc = await getDoc(studentRef);
+        if (studentDoc.exists()) {
+          const studentData = studentDoc.data();
+          // Update the studentDataCache
+          studentDataCache.current[studentUid] = {
+            data: studentData,
+            lastUpdate: Date.now()
+          };
+          // Update the students array
+          setStudents(prevStudents => {
+            return prevStudents.map(student => {
+              if (student.uid === studentUid) {
+                return {
+                  ...student,
+                  firstName: studentData.firstName.trim(),
+                  lastName: studentData.lastName.trim(),
+                  name: `${studentData.firstName.trim()} ${studentData.lastName.trim()}`,
+                  isAssigned: studentData.assignmentsToTake?.includes(assignmentId) ||
+                  studentData.assignmentsInProgress?.includes(assignmentId) ||
+                  studentData.assignmentsTaken?.includes(assignmentId) ||
+                  studentData.assignmentsPaused?.includes(assignmentId),
+                  isPaused: studentData.assignmentsPaused?.includes(assignmentId)
+                };
+              }
+              return student;
+            });
+            
+          });
+        }
+  
+        // Update local grades state
         setGrades(prevGrades => {
           const newGrades = { ...prevGrades };
           delete newGrades[studentUid];
@@ -528,13 +675,14 @@ const TeacherResults = () => {
           ...prevStatuses,
           [studentUid]: 'not_started'
         }));
-        
+  
         console.log(`Assignment reset for student ${studentUid}`);
       } catch (error) {
         console.error("Error resetting assignment:", error);
       }
     }
   };
+  
   const handleAssign = async (studentId) => {
     try {
       const batch = writeBatch(db);
@@ -545,12 +693,39 @@ const TeacherResults = () => {
       
       await batch.commit();
       
-      // Update local state
-      setAssignmentStatuses(prev => ({
-        ...prev,
+      // Fetch updated student data
+      const studentDoc = await getDoc(studentRef);
+      if (studentDoc.exists()) {
+        const studentData = studentDoc.data();
+        // Update the studentDataCache
+        studentDataCache.current[studentId] = {
+          data: studentData,
+          lastUpdate: Date.now()
+        };
+        // Update the students array
+        setStudents(prevStudents => {
+          return prevStudents.map(student => {
+            if (student.uid === studentId) {
+              return {
+                ...student,
+                firstName: studentData.firstName.trim(),
+                lastName: studentData.lastName.trim(),
+                name: `${studentData.firstName.trim()} ${studentData.lastName.trim()}`,
+                isAssigned: studentData.assignmentsToTake?.includes(assignmentId) ||
+                studentData.assignmentsInProgress?.includes(assignmentId) ||
+                studentData.assignmentsTaken?.includes(assignmentId) ||
+                studentData.assignmentsPaused?.includes(assignmentId),
+                isPaused: studentData.assignmentsPaused?.includes(assignmentId)
+              };
+            }
+            return student;
+          });
+        });
+      }
+      setAssignmentStatuses(prevStatuses => ({
+        ...prevStatuses,
         [studentId]: 'not_started'
       }));
-  
       // Show success message
       setResetStatus(prev => ({ ...prev, [studentId]: 'success' }));
       setTimeout(() => setResetStatus(prev => ({ ...prev, [studentId]: '' })), 2000);
@@ -563,6 +738,7 @@ const TeacherResults = () => {
       setTimeout(() => setResetStatus(prev => ({ ...prev, [studentId]: '' })), 2000);
     }
   };
+  
 
 
 
@@ -659,7 +835,6 @@ useEffect(() => {
   let unsubscribeClass;
   let unsubscribeGrades;
   let unsubscribeAssignment;
-  let studentDataCache = {}; // Cache student data
   let lastFetch = 0;
   const FETCH_COOLDOWN = 5000; // 5 seconds cooldown between fetches
 
@@ -731,15 +906,37 @@ useEffect(() => {
                 lastName: studentData.lastName.trim(),
                 name: `${studentData.firstName.trim()} ${studentData.lastName.trim()}`,
                 isAssigned: studentData.assignmentsToTake?.includes(assignmentId) ||
-                          studentData.assignmentsInProgress?.includes(assignmentId) ||
-                          studentData.assignmentsTaken?.includes(assignmentId)
-              };
+                studentData.assignmentsInProgress?.includes(assignmentId) ||
+                studentData.assignmentsTaken?.includes(assignmentId) ||
+                studentData.assignmentsPaused?.includes(assignmentId), // Add this line
+      isPaused: studentData.assignmentsPaused?.includes(assignmentId) // Add this line
+    };
             }
             return participant;
           })
           .sort((a, b) => a.lastName.localeCompare(b.lastName));
 
         setStudents(updatedParticipants);
+        const statuses = {};
+        updatedParticipants.forEach(student => {
+          const studentData = studentDataCache[student.uid]?.data;
+          if (studentData) {
+            let status = 'not_started';
+    
+            if (studentData.assignmentsPaused?.includes(assignmentId)) {
+              status = 'Paused';
+            } else if (studentData.assignmentsInProgress?.includes(assignmentId)) {
+              status = 'In Progress';
+            } else if (studentData.assignmentsTaken?.includes(assignmentId)) {
+              status = 'completed';
+            } else if (studentData.assignmentsToTake?.includes(assignmentId)) {
+              status = 'not_started';
+            }
+            statuses[student.uid] = status;
+          }
+        });
+    
+        setAssignmentStatuses(statuses);
         setAssignedCount(updatedParticipants.filter(s => s.isAssigned).length);
       });
 
@@ -773,14 +970,20 @@ useEffect(() => {
 
           setGrades(gradesData.grades);
           setSubmissionCount(gradesData.submissionsCount);
+          
           setReviewCount(gradesData.reviewCount);
 
           if (gradesData.validGradesCount > 0) {
             const calculatedAverage = (gradesData.totalScore / gradesData.validGradesCount).toFixed(0);
             setAverageGrade(calculatedAverage);
+          
+
+
+         
             updateDoc(doc(db, 'assignments', assignmentId), {
               classAverage: parseFloat(calculatedAverage)
             });
+            updateClassAssignmentAverage(parseFloat(calculatedAverage));
           }
         }
       );
@@ -798,10 +1001,10 @@ useEffect(() => {
     if (unsubscribeClass) unsubscribeClass();
     if (unsubscribeGrades) unsubscribeGrades();
     if (unsubscribeAssignment) unsubscribeAssignment();
-    studentDataCache = {};
+    updateClassAssignmentAverage.cancel(); // Cancel any pending updates
+    studentDataCache.current = {};
   };
-}, [classId, assignmentId]);
-
+}, [classId, assignmentId, updateClassAssignmentAverage]);
 
 
 
@@ -822,48 +1025,10 @@ const renderTabContent = () => {
     case 'submissions':
       return (
         <>
-          <div style={{width: 'calc(100% - 200px)', marginLeft: '200px', marginTop: '-30px',
+          <div style={{width: 'calc(100% - 200px)', marginLeft: '200px', marginTop: '-100px',
                 height: '40px', marginBottom: '0px'}}>
 
-                  <div style={{display: 'flex', marginLeft: '4%', marginRight: '4%', }}>
-            <h1 style={{  
-              fontWeight: '600', fontSize: '16px', marginBottom: '-20px', color: 'lightgrey', marginTop: '30px'
-            }}>
-              {submissionCount} Submissions 
-            </h1>
-            <button
-       
-            onClick={toggleAllViewable}
-            style={{
-              width: '160px',
-              height: '30px',
-
-              borderRadius: '5px',
-              cursor: 'pointer',
-              marginTop: '20px',
-              marginLeft: 'auto', fontFamily: "'montserrat', sans-serif",
-              transition: '.3s',
-              display: 'flex',
-              padding: '0px',
-              border: `1px solid ${
-                allViewable ? '#020CFF' : 'lightgrey'
-              }`,
-              background: allViewable ? '#B0BDFF' : 'transparent',
-              color: allViewable ? '#020CFF' : 'grey',
-              fontWeight: allViewable ? 'bold' : '600',
-            }}
-          >
-
-{allViewable ? (
-              <Eye size={20} style={{marginTop:'4px', marginLeft: '5px', marginRight: '5px'}}/>
-            ) : (
-              <EyeOff size={20}  style={{marginTop:'4px', marginLeft: '5px', marginRight: '5px'}} />
-            )}
-            <h1 style={{fontSize: '14px', marginTop: '5px', fontWeight: '600'}}>Student Review</h1>
-           
-          </button>
-       
-          </div>
+                
 
 
 
@@ -901,6 +1066,8 @@ const renderTabContent = () => {
             teacherId={teacherId}
             assignmentId={assignmentId}
             onRegenerateQuestions={handleRegenerateQuestions}
+            
+  autoOpenQuestionId={location.state?.targetQuestionId} 
           />
         </div>
       );
@@ -1002,7 +1169,15 @@ const renderTabContent = () => {
   const navigateToStudentResults = (studentUid) => {
     navigate(`/teacherStudentResults/${assignmentId}/${studentUid}/${classId}`);
   };
-  
+  const getGradeColors = (grade) => {
+    if (grade === undefined || grade === null || grade === 0) return { color: '#858585', background: 'white' };
+    if (grade < 50) return { color: '#FF0000', background: '#FFCBCB' };
+    if (grade < 70) return { color: '#FF4400', background: '#FFC6A8' };
+    if (grade < 80) return { color: '#EFAA14', background: '#FFF4DC' };
+    if (grade < 90) return { color: '#9ED604', background: '#EDFFC1' };
+    if (grade > 99) return { color: '#E01FFF', background: '#F7C7FF' };
+    return { color: '#2BB514', background: '#D3FFCC' };
+  };
   return (
     <div style={{  display: 'flex', flexDirection: 'column',  backgroundColor: 'white', position: 'absolute', left: 0, right: 0, bottom: 0, top: 0}}>
       <Navbar userType="teacher" />
@@ -1022,21 +1197,60 @@ const renderTabContent = () => {
                borderRadius: '20px', }}>
         <AdaptiveHeading text={assignmentName} />
 
+<div style={{display: 'flex', marginBottom: '-25px', color: 'lightgrey', marginTop: '5px'}}>
+        <h1 style={{  
+              fontWeight: '600', fontSize: '16px', 
+            }}>
+              {submissionCount} Submissions 
+            </h1>
+            <button
+       
+       onClick={toggleAllViewable}
+       style={{
+         width: '30px',
+         height: '20px',
+        marginTop: '-5px',
+         borderRadius: '5px',
+         cursor: 'pointer',
+         marginLeft: '10px', fontFamily: "'montserrat', sans-serif",
+         transition: '.3s',
+         display: 'flex',
+         padding: '0px',
+         border: `1px solid white`,
+         background: 'transparent',
+         color: allViewable ? '#020CFF' : 'lightgrey',
+       
+       }}
+     >
+
+{allViewable ? (
+         <Eye size={20} style={{marginTop:'4px', marginLeft: '5px', marginRight: '5px'}}/>
+       ) : (
+         <EyeOff size={20}  style={{marginTop:'4px', marginLeft: '5px', marginRight: '5px'}} />
+       )}
+      
+     </button>
+     </div>
 
 
 
-        
-    
-<h1 style={{position: 'absolute', fontSize: '20px', left: '0px',  bottom: '-30px',color: 'blue', }}>SAQ</h1>
+
+
       </div>
       
-  <div style={{height: '80px', backgroundColor: 'white',  width: '80px', 
+  <div style={{height: '80px', backgroundColor: 'white',  width: '90px', 
               borderRadius: '20px', position: 'absolute', right: '4%' }}>
       <Tooltip text="Class Average">
       
-      <img style={{ width: '80px',  marginTop: '10px' }} src="/Score.svg" alt="logo" />
-      <div style={{fontSize: '23px', fontWeight: 'bold', width: '68px', position: 'absolute', background: 'transparent', height: '88px', borderRadius:  '10px', top: '3px', left: '5px', textAlign: 'center', lineHeight: '90px'}}> 
-      {averageGrade !== null ? averageGrade : '-'}
+    <div style={{fontSize: '30px', fontWeight: '500', width: '90px', position: 'absolute',  height: '50px', 
+    borderRadius:  '10px', top: '3px', left: '5px', textAlign: 'center', lineHeight: '50px',
+
+background: averageGrade ? getGradeColors(averageGrade).background : 'white',
+
+  color: averageGrade ? getGradeColors(averageGrade).color : '#858585',
+
+    }}> 
+      {averageGrade !== null ? averageGrade : '-'}%
      
         </div>
 </Tooltip>
@@ -1144,8 +1358,9 @@ const renderTabContent = () => {
             )}
           </button>
         </div>
-
-        <Exports assignmentId={assignmentId} style={{ marginLeft: 'auto' }} />
+    
+      
+        <Exports assignmentId={assignmentId} style={{ marginLeft: 'auto', }} />
       </div>
 
 

@@ -46,7 +46,7 @@ function CreateAssignment() {
   const [scaleMax, setScaleMax] = useState('2');
   const [teacherId, setTeacherId] = useState(null);
   const [assignDate, setAssignDate] = useState(new Date());
-
+  const [isHovered, setIsHovered] = useState(false);
   const [dueDate, setDueDate] = useState(new Date(new Date().getTime() + 48 * 60 * 60 * 1000)); // 48 hours from now
   const [timerOn, setTimerOn] = useState(false);
   
@@ -169,7 +169,7 @@ function CreateAssignment() {
       setSelectedStudents(new Set(data.selectedStudents || []));
       setSaveAndExit(data.saveAndExit !== undefined ? data.saveAndExit : true);
       setLockdown(data.lockdown || false);
-      setOnViolation(data.onViolation || 'pause');
+      setOnViolation(data.onViolation || null);
       setQuestionBank(data.questionBank || '10');
       setQuestionStudent(data.questionStudent || '5');
       setAssignmentType(data.assignmentType || 'SAQ');
@@ -814,7 +814,23 @@ hasGeneratedQuestions={generatedQuestions.length > 0}
         classId={classId}
         teacherId={teacherId} // Hide the close button in stepper flow
      />
- 
+ <div
+       onClick={saveAssignment}
+ onMouseEnter={() => setIsHovered(true)}
+ onMouseLeave={() => setIsHovered(false)}
+  style={{height: '250px', width: '400px', border: '2px solid lightgreen', position: 'absolute', right: '0px', top: '0px ',     transform: `scale(${isHovered ? 1.1 : 1})`,
+            transition: 'transform 0.3s ease, opacity 0.3s ease',
+            
+            color: 'lightgreen',
+            cursor: 'pointer',
+            borderRadius: '20px 20px 20px 0px',
+            
+            alignItems: 'center',
+            
+            }}>
+  <SendHorizonal size={40} style={{position: 'absolute', right: '20px', top: '50%', transform: 'translatey(-50%)'}}/>
+  <h1>Publish</h1>
+  </div>
    </div>
  )}
 

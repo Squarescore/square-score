@@ -169,7 +169,7 @@ const Login = () => {
       left: '30px',
       top: '50%',
       transform: 'translateY( -50%)'}}>
-              <img style={{width: '25px',  }} src="/SquareScore.svg" alt="logo" />
+              <img style={{width: '25px',  }} src="/favicon.svg" alt="logo" />
               <h1 style={{fontWeight: '600', color: 'black', paddingLeft: '10px', borderLeft: '4px solid #f4f4f4', marginLeft: '10px', fontSize: '20px'}}>SquareScore</h1>
               </div>
             </div>
@@ -234,7 +234,7 @@ const Login = () => {
               style={{
                 width: '97%', 
                 padding: ' 10px 15px ', 
-                fontWeight: 'bold',
+                fontWeight: '500',
                 border: '1px solid lightgrey', 
                 color: 'black',
                 borderRadius: '5px', 

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { FileText, Landmark, Sparkles } from 'lucide-react';
-
+import Loader from '../../Universal/Loader';
 const SourcePreviewToggle = ({ 
   sourceText, 
   onSourceChange, 
@@ -59,7 +59,7 @@ const SourcePreviewToggle = ({
             Source Text:
             <div style={{
               backgroundColor: 'white',
-              border: '2px solid lightgrey',
+              border: '1px solid lightgrey',
               padding: '10px',
               height: '300px',
               width: '600px',
@@ -102,11 +102,11 @@ const SourcePreviewToggle = ({
           height: '200px',
           marginTop: '30px',
           fontSize: '16px',
-          border: '4px solid #f4f4f4',
+          border: '1px solid lightgrey',
           background: 'white',
           padding: '20px 20px',
           outline: 'none',
-          borderRadius: '10px 10px 0px 0px',
+          borderRadius: '10px',
           resize: 'vertical'
         }}
       />
@@ -124,12 +124,12 @@ const SourcePreviewToggle = ({
             padding: '1.5%',
             fontWeight: '600',
             fontSize: '14px',
-            background: '#F6F6F6',
-            marginTop: '-20px',
+            background: '#F4F4F4',
+            marginTop: '0px',
             paddingRight: '16%',
             fontFamily: "'montserrat', sans-serif",
-            borderRadius: '0px 0px 10px 10px',
-            border: '4px solid #d8D8D8',
+            borderRadius: ' 5px',
+            border: '0px solid #d8D8D8',
             outline: 'none'
           }}
           type="text"
@@ -139,11 +139,11 @@ const SourcePreviewToggle = ({
         />
         <p style={{ 
           fontSize: '12px', 
-          marginTop: '-6px', 
+          marginTop: '10px', 
           marginLeft: '10px', 
           color: 'lightgrey', 
           position: 'absolute', 
-          right: '20px' 
+          right: '30px' 
         }}>- optional</p>
       </div>
 
@@ -157,7 +157,7 @@ const SourcePreviewToggle = ({
             fontWeight: '600',
             height: '40px',
             fontFamily: "'montserrat', sans-serif",
-            fontSize: '24px',
+            fontSize: '20px',
             backgroundColor: generating ? '#f4f4f4' : 'white',
             color: 'grey',
             borderRadius: '5px',
@@ -181,22 +181,7 @@ const SourcePreviewToggle = ({
         </button>
         {generating && (
           <div style={{ width: '300px', marginLeft: '20px' }}>
-            <div style={{
-              height: '20px',
-              backgroundColor: '#e0e0e0',
-              borderRadius: '10px',
-              overflow: 'hidden'
-            }}>
-              <div style={{
-                width: `${Math.min(progress, 100)}%`,
-                height: '100%',
-                backgroundColor: '#020CFF',
-                transition: 'width 0.1s ease-in-out'
-              }}></div>
-            </div>
-            <div style={{ textAlign: 'center', marginTop: '5px', fontSize: '14px', color: '#666' }}>
-              {progressText}
-            </div>
+         <Loader/> 
           </div>
         )}
       </div>

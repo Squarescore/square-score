@@ -1,7 +1,7 @@
 import { doc, getDoc, writeBatch } from "firebase/firestore";
-import CustomDateTimePicker from "./CustomDateTimePickerResults";
 import { useState } from "react";
 import { db } from "../../Universal/firebase";
+import DateSettings, { formatDate } from "../Create/DateSettings";
 
 const SettingsSection = ({ 
   assignmentId, 
@@ -10,6 +10,7 @@ const SettingsSection = ({
   setAssignmentName,
   assignmentSettings,
   updateAssignmentSetting,
+  
   timer,
   setTimer,
   timerOn,
@@ -17,6 +18,8 @@ const SettingsSection = ({
   handleTimerChange
 }) => {
   const [localName, setLocalName] = useState(assignmentName);
+  const [assignDate, setAssignDate] = useState(new Date(assignmentSettings.assignDate));
+  const [dueDate, setDueDate] = useState(new Date(assignmentSettings.dueDate));
   
   const handleInputChange = (e) => {
     setLocalName(e.target.value);
@@ -61,33 +64,21 @@ const SettingsSection = ({
     }
   };
 
-  const formatDate = (date) => {
-    const options = {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: true,
-      timeZoneName: 'short'
-    };
-    
-    const formattedDate = date.toLocaleString('en-US', options)
-      .replace(',', '')
-      .replace(',', '')
-      .replace(' at ', ' ')
-      .replace(/(\d{1,2}):(\d{2}):00/, '$1:$2')
-      .replace(' PM', ' PM ')
-      .replace(' AM', ' AM ');
-      
-    return formattedDate;
+  // Update assignment settings when dates change
+  const handleAssignDateChange = (date) => {
+    setAssignDate(date);
+    updateAssignmentSetting('assignDate', formatDate(date));
+  };
+
+  const handleDueDateChange = (date) => {
+    setDueDate(date);
+    updateAssignmentSetting('dueDate', formatDate(date));
   };
 
   return (
     <div style={{
-      width: "100%",
-      padding: "24px",
+      width: "480px",
+      marginLeft: '4%',
       backgroundColor: "white",
       borderRadius: "8px"
     }}>
@@ -109,7 +100,7 @@ const SettingsSection = ({
             onChange={handleInputChange}
             onBlur={handleNameUpdate}
             style={{
-              width: "100%",
+              width: "calc(100% - 16px) ",
               padding: "8px",
               border: "1px solid #D1D5DB",
               borderRadius: "8px",
@@ -123,35 +114,13 @@ const SettingsSection = ({
           />
         </div>
 
-        {/* Dates */}
-        <div style={{
-          display: "grid",
-          gridTemplateColumns: "1fr 1fr",
-          gap: "16px"
-        }}>
-          <div>
-            <label style={{
-              fontSize: "14px",
-              fontWeight: "600",
-              color: "#4B5563"
-            }}>Assign Date:</label>
-            <CustomDateTimePicker
-              selected={new Date(assignmentSettings.assignDate)}
-              onChange={(date) => updateAssignmentSetting('assignDate', formatDate(date))}
-            />
-          </div>
-          <div>
-            <label style={{
-              fontSize: "14px",
-              fontWeight: "600",
-              color: "#4B5563"
-            }}>Due Date:</label>
-            <CustomDateTimePicker
-              selected={new Date(assignmentSettings.dueDate)}
-              onChange={(date) => updateAssignmentSetting('dueDate', formatDate(date))}
-            />
-          </div>
-        </div>
+        {/* Date Settings */}
+        <DateSettings
+          assignDate={assignDate}
+          setAssignDate={handleAssignDateChange}
+          dueDate={dueDate}
+          setDueDate={handleDueDateChange}
+        />
 
         {/* Timer Settings */}
         <div style={{
@@ -169,33 +138,55 @@ const SettingsSection = ({
             alignItems: "center",
             gap: "16px"
           }}>
-            <input
-              type="number"
-              value={timer}
-              onChange={handleTimerChange}
-              disabled={!timerOn}
-              style={{
-                width: "80px",
-                padding: "8px",
-                border: "1px solid #D1D5DB",
-                borderRadius: "4px"
-              }}
-            />
-            <div style={{
-              display: "flex",
-              alignItems: "center"
-            }}>
-              <span style={{ marginRight: "8px" }}>Enable Timer:</span>
+            {timerOn && (
+              <div style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                position: 'relative', 
+                marginLeft: '100px', 
+                background:'#f4f4f4', 
+                height: '26px', 
+                borderRadius: '5px', 
+                width:' 130px'
+              }}>
+                <input
+                  type="number"
+                  style={{
+                    marginLeft: '3px',
+                    height: '20px',
+                    width: '40px',
+                    fontFamily: "'montserrat', sans-serif",
+                    textAlign: 'center',
+                    fontWeight: '600',
+                    border: 'none',
+                    outline: 'none',
+                    borderRadius: '5px',
+                    fontSize: '12px',
+                    boxShadow: '1px 1px 5px 1px rgb(0,0,155,.03)'
+                  }}
+                  placeholder="10"
+                  value={timer}
+                  onChange={handleTimerChange}
+                />
+                <h1 style={{ 
+                  fontSize: '12px', 
+                  fontWeight: '600', 
+                  marginLeft: '10px', 
+                  color: 'grey' 
+                }}>
+                  Minutes
+                </h1>
+              </div>
+            )}
+            <div style={{ position: 'relative', marginLeft: "auto", marginRight: '-20px' }}>
               <input
                 type="checkbox"
+                className="greenSwitch"
                 checked={timerOn}
                 onChange={handleTimerToggle}
-                style={{
-                  width: "16px",
-                  height: "16px",
-                  cursor: "pointer"
-                }}
+                style={{ marginLeft: 'auto', marginRight: '14px' }}
               />
+              <span style={{marginRight: '16px'}}>On</span>
             </div>
           </div>
         </div>
@@ -219,8 +210,8 @@ const SettingsSection = ({
               student: e.target.value
             })}
             style={{
-              width: "80px",
-              padding: "8px",
+              width: "30px",
+                padding: "4px",
               border: "1px solid #D1D5DB",
               borderRadius: "4px"
             }}
@@ -231,50 +222,50 @@ const SettingsSection = ({
         <div style={{
           display: "flex",
           alignItems: "center",
-          justifyContent: "space-between"
+          justifyContent: "space-between",
+          marginTop: "-20px"
         }}>
           <label style={{
             fontSize: "14px",
             fontWeight: "600",
             color: "#4B5563"
           }}>Half Credit:</label>
-          <input
-            type="checkbox"
-            checked={assignmentSettings.halfCredit}
-            onChange={(e) => updateAssignmentSetting('halfCredit', e.target.checked)}
-            style={{
-              width: "16px",
-              height: "16px",
-              cursor: "pointer"
-            }}
-          />
+          <div style={{ position: "relative", marginRight: "4px" }}>
+            <input
+              type="checkbox"
+              className="greenSwitch"
+              checked={assignmentSettings.halfCredit}
+              onChange={(e) => updateAssignmentSetting('halfCredit', e.target.checked)}
+            />
+            <span>On</span>
+          </div>
         </div>
 
         {/* Save & Exit Toggle */}
         <div style={{
           display: "flex",
           alignItems: "center",
-          justifyContent: "space-between"
+          justifyContent: "space-between",
+          marginTop: "-20px"
         }}>
           <label style={{
             fontSize: "14px",
             fontWeight: "600",
             color: "#4B5563"
           }}>Save & Exit:</label>
-          <input
-            type="checkbox"
-            checked={assignmentSettings.saveAndExit}
-            onChange={(e) => updateAssignmentSetting('saveAndExit', e.target.checked)}
-            style={{
-              width: "16px",
-              height: "16px",
-              cursor: "pointer"
-            }}
-          />
+          <div style={{ position: "relative", marginRight: "4px" }}>
+            <input
+              type="checkbox"
+              className="greenSwitch"
+              checked={assignmentSettings.saveAndExit}
+              onChange={(e) => updateAssignmentSetting('saveAndExit', e.target.checked)}
+            />
+            <span>On</span>
+          </div>
         </div>
 
         {/* Grading Scale */}
-        <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+        <div style={{ display: "flex",  gap: "8px",  }}>
           <label style={{
             fontSize: "14px",
             fontWeight: "600",
@@ -282,6 +273,7 @@ const SettingsSection = ({
           }}>Grading Scale:</label>
           <div style={{
             display: "flex",
+            marginLeft: 'auto',
             alignItems: "center",
             gap: "16px"
           }}>
@@ -290,8 +282,8 @@ const SettingsSection = ({
               value={assignmentSettings.scale?.min || '0'}
               onChange={(e) => updateAssignmentSetting('scaleMin', e.target.value)}
               style={{
-                width: "80px",
-                padding: "8px",
+                width: "30px",
+                padding: "4px",
                 border: "1px solid #D1D5DB",
                 borderRadius: "4px"
               }}
@@ -302,8 +294,8 @@ const SettingsSection = ({
               value={assignmentSettings.scale?.max || '2'}
               onChange={(e) => updateAssignmentSetting('scaleMax', e.target.value)}
               style={{
-                width: "80px",
-                padding: "8px",
+                width: "30px",
+                padding: "4px",
                 border: "1px solid #D1D5DB",
                 borderRadius: "4px"
               }}

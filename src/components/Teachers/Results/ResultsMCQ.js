@@ -14,7 +14,6 @@ import {
   arrayRemove,
 } from 'firebase/firestore';
 import Navbar from '../../Universal/Navbar';
-import { db } from '../../Universal/firebase';
 import { motion, AnimatePresence } from 'framer-motion';
 import CustomDateTimePicker from './CustomDateTimePickerResults';
 import 'react-datepicker/dist/react-datepicker.css';
@@ -31,8 +30,9 @@ import {
   CheckSquare,
 } from 'lucide-react';
 import Tooltip from './ToolTip';
-import QuestionBankAMCQ from './QuestionBankAMCQ';
 import QuestionBankMCQ from './QuestionBankMCQ';
+
+import { db } from '../../Universal/firebase';
 
 const TeacherResultsMCQ = () => {
   // State hooks
@@ -54,12 +54,10 @@ const TeacherResultsMCQ = () => {
   const [isHovered, setIsHovered] = useState(false);
   const [selectedStudents, setSelectedStudents] = useState([]);
   const [isVisible, setIsVisible] = useState(false);
-  const [teacherClasses, setTeacherClasses] = useState([]);
-  const [showQuestionBank, setShowQuestionBank] = useState(false);
   const [students, setStudents] = useState([]);
   const { classId, assignmentId } = useParams();
-  const { teacherId } = useParams(); // Assuming you have teacherId from URL params
 
+  const [showQuestionBank, setShowQuestionBank] = useState(false);
   const [showOverlay, setShowOverlay] = useState(false);
 
   const [showSettings, setShowSettings] = useState(false);
@@ -96,45 +94,37 @@ const TeacherResultsMCQ = () => {
   };
 
   useEffect(() => {
-    const fetchTeacherClasses = async () => {
+    const fetchAssignmentDetails = async () => {
       try {
-        const classesRef = collection(db, 'classes');
-        const q = query(classesRef, where('teacherId', '==', teacherId)); // Adjust field name as per your DB
-        const querySnapshot = await getDocs(q);
-        const classes = [];
-        querySnapshot.forEach((doc) => {
-          classes.push({ id: doc.id, ...doc.data() });
-        });
-        setTeacherClasses(classes);
+        const assignmentRef = doc(db, 'assignments', assignmentId);
+        const assignmentDoc = await getDoc(assignmentRef);
+        if (assignmentDoc.exists()) {
+          const data = assignmentDoc.data();
+          setAssignmentData(data);
+          setAllViewable(data.viewable || false);
+          assignmentDataRef.current = data;
+          setEditedQuestions(data.questions || []);
+          setAssignmentName(data.assignmentName);
+          setAssignDate(data.assignDate ? new Date(data.assignDate) : null);
+          setDueDate(data.dueDate ? new Date(data.dueDate) : null);
+          setAssignmentSettings({
+            assignDate: data.assignDate ? new Date(data.assignDate) : null,
+            dueDate: data.dueDate ? new Date(data.dueDate) : null,
+            halfCredit: data.halfCredit || false,
+            lockdown: data.lockdown || false,
+            saveAndExit: data.saveAndExit !== undefined ? data.saveAndExit : true,
+            scaleMin: data.scale?.min || '0',
+            scaleMax: data.scale?.max || '2',
+            timer: data.timer || '0',
+            timerOn: data.timer > 0,
+          });
+        }
       } catch (error) {
-        console.error('Error fetching teacher classes:', error);
+        console.error('Error fetching assignment details:', error);
       }
     };
 
-    fetchTeacherClasses();
-  }, [teacherId]);
-
-  useEffect(() => {
-    const fetchAssignmentSettings = async () => {
-      const assignmentRef = doc(db, 'assignments', assignmentId);
-      const assignmentDoc = await getDoc(assignmentRef);
-      if (assignmentDoc.exists()) {
-        const data = assignmentDoc.data();
-        setAssignmentSettings({
-          assignDate: data.assignDate ? new Date(data.assignDate) : null,
-          dueDate: data.dueDate ? new Date(data.dueDate) : null,
-          halfCredit: data.halfCredit || false,
-          lockdown: data.lockdown || false,
-          saveAndExit: data.saveAndExit !== undefined ? data.saveAndExit : true,
-          scaleMin: data.scale?.min || '0',
-          scaleMax: data.scale?.max || '2',
-          timer: data.timer || '0',
-          timerOn: data.timer > 0,
-        });
-      }
-    };
-
-    fetchAssignmentSettings();
+    fetchAssignmentDetails();
   }, [assignmentId]);
 
   const updateAssignmentSetting = async (setting, value) => {
@@ -287,169 +277,8 @@ const TeacherResultsMCQ = () => {
             </div>
           </div>
 
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              marginBottom: '10px',
-            }}
-          >
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                border: '4px solid #f4f4f4',
-                borderRadius: '10px',
-                width: '400px',
-                height: '70px',
-              }}
-            >
-              <h3
-                style={{
-                  lineHeight: '30px',
-                  marginLeft: '20px',
-                  marginRight: '20px',
-                  fontFamily: "'montserrat', sans-serif",
-                }}
-              >
-                Timer
-              </h3>
-              <div style={{ display: 'flex', alignItems: 'center' }}>
-                <input
-                  type="checkbox"
-                  className="greenSwitch"
-                  checked={assignmentSettings.timerOn}
-                  onChange={(e) => {
-                    updateAssignmentSetting('timerOn', e.target.checked);
-                    if (!e.target.checked) {
-                      updateAssignmentSetting('timer', '0');
-                    }
-                  }}
-                />
-                {assignmentSettings.timerOn ? (
-                  <>
-                    <input
-                      type="number"
-                      value={assignmentSettings.timer}
-                      onChange={(e) =>
-                        updateAssignmentSetting('timer', e.target.value)
-                      }
-                      style={{
-                        width: '50px',
-                        marginLeft: '10px',
-                        padding: '5px',
-                        outline: 'none',
-                        border: 'none',
-                        background: '#f4f4f4',
-                        fontSize: '20px',
-                        borderRadius: '5px',
-                      }}
-                    />
-                    <span
-                      style={{
-                        marginLeft: '5px',
-                        fontFamily: "'montserrat', sans-serif",
-                      }}
-                    >
-                      minutes
-                    </span>
-                  </>
-                ) : (
-                  <span
-                    style={{
-                      marginLeft: '10px',
-                      color: 'grey',
-                      fontFamily: "'montserrat', sans-serif",
-                    }}
-                  >
-                    Off
-                  </span>
-                )}
-              </div>
-            </div>
+          {/* Additional settings here */}
 
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                border: '4px solid #f4f4f4',
-                borderRadius: '10px',
-                width: '275px',
-                height: '70px',
-                padding: '0 20px',
-              }}
-            >
-              <h3 style={{ fontFamily: "'montserrat', sans-serif" }}>
-                Half Credit
-              </h3>
-              <input
-                type="checkbox"
-                className="greenSwitch"
-                checked={assignmentSettings.halfCredit}
-                onChange={(e) =>
-                  updateAssignmentSetting('halfCredit', e.target.checked)
-                }
-              />
-            </div>
-          </div>
-
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              marginTop: '10px',
-            }}
-          >
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                border: '4px solid #f4f4f4',
-                borderRadius: '10px',
-                width: '50%',
-                height: '60px',
-                padding: '0 20px',
-              }}
-            >
-              <h3 style={{ fontFamily: "'montserrat', sans-serif" }}>
-                Lockdown
-              </h3>
-              <input
-                type="checkbox"
-                className="greenSwitch"
-                checked={assignmentSettings.lockdown}
-                onChange={(e) =>
-                  updateAssignmentSetting('lockdown', e.target.checked)
-                }
-              />
-            </div>
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                border: '4px solid #f4f4f4',
-                borderRadius: '10px',
-                width: '35%',
-                height: '60px',
-                padding: '0 20px',
-              }}
-            >
-              <h3 style={{ fontFamily: "'montserrat', sans-serif" }}>
-                Save & Exit
-              </h3>
-              <input
-                type="checkbox"
-                className="greenSwitch"
-                checked={assignmentSettings.saveAndExit}
-                onChange={(e) =>
-                  updateAssignmentSetting('saveAndExit', e.target.checked)
-                }
-              />
-            </div>
-          </div>
         </div>
       </div>
     </div>
@@ -459,174 +288,165 @@ const TeacherResultsMCQ = () => {
     navigate(`/class/${classId}/student/${studentUid}/grades`);
   };
 
-  // Fetch assignment data
-  const fetchAssignmentData = async () => {
+  const fetchClassAndGrades = async () => {
+    setLoading(true);
     try {
-      const assignmentRef = doc(db, 'assignments', assignmentId);
-      const assignmentDoc = await getDoc(assignmentRef);
-      if (assignmentDoc.exists()) {
-        const data = assignmentDoc.data();
-        setAssignmentData(data);
-        setAllViewable(data.viewable || false);
-        assignmentDataRef.current = data;
-        setEditedQuestions(data.questions || []);
-      } else {
-        console.log('No such document!');
+      const classDocRef = doc(db, 'classes', classId);
+      const classDoc = await getDoc(classDocRef);
+      const classData = classDoc.data();
+
+      if (classData && classData.participants) {
+        const participants = classData.participants;
+        const studentUids = participants.map((p) => p.uid);
+
+        // Batch fetch student documents
+        const studentChunks = [];
+        for (let i = 0; i < studentUids.length; i += 10) {
+          studentChunks.push(studentUids.slice(i, i + 10));
+        }
+
+        const studentsPromises = studentChunks.map(async (chunk) => {
+          const studentsQuery = query(
+            collection(db, 'students'),
+            where('__name__', 'in', chunk)
+          );
+          const studentsSnapshot = await getDocs(studentsQuery);
+          return studentsSnapshot.docs.map((doc) => ({
+            uid: doc.id,
+            ...doc.data(),
+          }));
+        });
+
+        const studentsArrays = await Promise.all(studentsPromises);
+        const allStudents = studentsArrays.flat();
+
+        const updatedParticipants = allStudents.map((studentData) => {
+          const firstName = studentData.firstName.trim();
+          const lastName = studentData.lastName.trim();
+          return {
+            uid: studentData.uid,
+            firstName,
+            lastName,
+            name: `${firstName} ${lastName}`,
+            isAssigned:
+              studentData.assignmentsToTake?.includes(assignmentId) ||
+              studentData.assignmentsInProgress?.includes(assignmentId) ||
+              studentData.assignmentsTaken?.includes(assignmentId),
+          };
+        });
+
+        // Sort students by last name
+        const sortedStudents = updatedParticipants.sort((a, b) =>
+          a.lastName.localeCompare(b.lastName)
+        );
+
+        setStudents(sortedStudents);
+        const assignedStudents = sortedStudents.filter(
+          (student) => student.isAssigned
+        );
+        setAssignedCount(assignedStudents.length);
+
+        // Fetch grades
+        const gradesCollection = collection(db, 'grades(mcq)');
+        const gradesQuery = query(
+          gradesCollection,
+          where('assignmentId', '==', assignmentId)
+        );
+        const gradesSnapshot = await getDocs(gradesQuery);
+        const fetchedGrades = {};
+        let totalScorePercentage = 0;
+        let validGradesCount = 0;
+        let submissionsCount = 0;
+
+        gradesSnapshot.forEach((doc) => {
+          const gradeData = doc.data();
+          // Calculate percentage score from raw scores
+          const scorePercentage =
+            gradeData.maxRawScore > 0
+              ? Math.round(
+                  (gradeData.rawTotalScore / gradeData.maxRawScore) * 100
+                )
+              : 0;
+
+          fetchedGrades[gradeData.studentUid] = {
+            submittedAt: gradeData.submittedAt,
+            SquareScore: scorePercentage, // Store percentage as SquareScore
+            rawTotalScore: gradeData.rawTotalScore,
+            maxRawScore: gradeData.maxRawScore,
+            viewable: gradeData.viewable || false,
+          };
+
+          if (gradeData.submittedAt) {
+            submissionsCount++;
+          }
+          if (gradeData.maxRawScore > 0) {
+            totalScorePercentage += scorePercentage;
+            validGradesCount++;
+          }
+        });
+
+        setGrades(fetchedGrades);
+        setSubmissionCount(submissionsCount);
+
+        const calculatedAverage =
+          validGradesCount > 0
+            ? Math.round(totalScorePercentage / validGradesCount)
+            : null;
+        setAverageGrade(calculatedAverage);
+
+        // Update assignment document with new class average
+        if (calculatedAverage !== null) {
+          const assignmentRef = doc(db, 'assignments', assignmentId);
+          await updateDoc(assignmentRef, {
+            classAverage: calculatedAverage,
+          });
+        }
+
+        // Fetch progress documents
+        const progressCollection = collection(db, 'assignments(progress)');
+        const progressQuery = query(
+          progressCollection,
+          where('assignmentId', '==', assignmentId)
+        );
+        const progressSnapshot = await getDocs(progressQuery);
+
+        // Create assignmentStatuses
+        const assignmentStatuses = {};
+        progressSnapshot.forEach((doc) => {
+          const progressData = doc.data();
+          const studentUid = progressData.studentUid;
+          const status =
+            progressData.status === 'paused' ? 'Paused' : 'In Progress';
+          assignmentStatuses[studentUid] = status;
+        });
+
+        // For students with grades, set status to 'completed'
+        for (const studentUid of Object.keys(fetchedGrades)) {
+          assignmentStatuses[studentUid] = 'completed';
+        }
+
+        // For students without progress or grades, status is 'not_started'
+        for (const student of sortedStudents) {
+          if (!assignmentStatuses[student.uid]) {
+            assignmentStatuses[student.uid] = 'not_started';
+          }
+        }
+
+        setAssignmentStatuses(assignmentStatuses);
       }
     } catch (error) {
-      console.error('Error fetching assignment data:', error);
+      console.error('Error fetching class and grades:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchAssignmentData();
-  }, [assignmentId]);
-
-  useEffect(() => {
-    const timer = setTimeout(() => setIsVisible(true), 300);
-    return () => clearTimeout(timer);
-  }, []);
-
-  // Fetch assignment name and dates
-  useEffect(() => {
-    const fetchAssignmentName = async () => {
-      try {
-        console.log('Fetching assignment with ID:', assignmentId);
-
-        const assignmentRef = doc(db, 'assignments', assignmentId);
-        const assignmentDoc = await getDoc(assignmentRef);
-
-        if (assignmentDoc.exists()) {
-          const assignmentData = assignmentDoc.data();
-          const name = assignmentData.assignmentName;
-          const dueDate = assignmentData.dueDate;
-          const assignDate = assignmentData.assignDate;
-          console.log('Assignment found:', assignmentData);
-          setAssignmentName(name);
-          setAssignDate(assignDate ? new Date(assignDate) : null);
-          setDueDate(dueDate ? new Date(dueDate) : null);
-        } else {
-          console.log('No such document!');
-        }
-      } catch (error) {
-        console.error('Error fetching assignment name:', error);
-      }
-    };
-
-    fetchAssignmentName();
-  }, [assignmentId]);
-
-  // Fetch class and grades data
-  useEffect(() => {
-    const fetchClassAndGrades = async () => {
-      setLoading(true);
-      try {
-        const classDocRef = doc(db, 'classes', classId);
-        const classDoc = await getDoc(classDocRef);
-        const classData = classDoc.data();
-  
-        if (classData && classData.participants) {
-          // Fetch full names for all participants
-          const updatedParticipants = await Promise.all(
-            classData.participants.map(async (participant) => {
-              const studentDocRef = doc(db, 'students', participant.uid);
-              const studentDoc = await getDoc(studentDocRef);
-              if (studentDoc.exists()) {
-                const studentData = studentDoc.data();
-                const firstName = studentData.firstName.trim();
-                const lastName = studentData.lastName.trim();
-                return {
-                  ...participant,
-                  firstName,
-                  lastName,
-                  name: `${firstName} ${lastName}`,
-                  isAssigned:
-                    studentData.assignmentsToTake?.includes(assignmentId) ||
-                    studentData.assignmentsInProgress?.includes(assignmentId) ||
-                    studentData.assignmentsTaken?.includes(assignmentId),
-                };
-              }
-              return participant;
-            })
-          );
-  
-          // Sort students by last name
-          const sortedStudents = updatedParticipants.sort((a, b) =>
-            a.lastName.localeCompare(b.lastName)
-          );
-  
-          setStudents(sortedStudents);
-          const assignedStudents = sortedStudents.filter(
-            (student) => student.isAssigned
-          );
-          setAssignedCount(assignedStudents.length);
-  
-          const gradesCollection = collection(db, 'grades(mcq)');
-          const gradesQuery = query(
-            gradesCollection,
-            where('assignmentId', '==', assignmentId)
-          );
-          const gradesSnapshot = await getDocs(gradesQuery);
-          const fetchedGrades = {};
-          let totalScorePercentage = 0;
-          let validGradesCount = 0;
-          let submissionsCount = 0;
-  
-          gradesSnapshot.forEach((doc) => {
-            const gradeData = doc.data();
-            // Calculate percentage score from raw scores
-            const scorePercentage = gradeData.maxRawScore > 0 
-              ? Math.round((gradeData.rawTotalScore / gradeData.maxRawScore) * 100)
-              : 0;
-  
-            fetchedGrades[gradeData.studentUid] = {
-              submittedAt: gradeData.submittedAt,
-              SquareScore: scorePercentage, // Store percentage as SquareScore
-              rawTotalScore: gradeData.rawTotalScore,
-              maxRawScore: gradeData.maxRawScore,
-              viewable: gradeData.viewable || false,
-            };
-  
-            if (gradeData.submittedAt) {
-              submissionsCount++;
-            }
-            if (gradeData.maxRawScore > 0) {
-              totalScorePercentage += scorePercentage;
-              validGradesCount++;
-            }
-          });
-  
-          setGrades(fetchedGrades);
-          setSubmissionCount(submissionsCount);
-  
-          const calculatedAverage =
-            validGradesCount > 0
-              ? Math.round(totalScorePercentage / validGradesCount)
-              : null;
-          setAverageGrade(calculatedAverage);
-  
-          // Update assignment document with new class average
-          if (calculatedAverage !== null) {
-            const assignmentRef = doc(db, 'assignments', assignmentId);
-            await updateDoc(assignmentRef, {
-              classAverage: calculatedAverage
-            });
-          }
-        }
-      } catch (error) {
-        console.error('Error fetching class and grades:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-  
     fetchClassAndGrades();
     const classAndGradesInterval = setInterval(fetchClassAndGrades, 10000);
-  
-    return () => clearInterval(classAndGradesInterval);
-  }, [classId, assignmentId]);
 
-  
+    return () => clearInterval(classAndGradesInterval);
+  }, [classId, assignmentId])
 
   // Fetch assignment status for each student
   useEffect(() => {

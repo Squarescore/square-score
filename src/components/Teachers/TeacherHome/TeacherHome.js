@@ -30,45 +30,43 @@ const TeacherHome = () => {
 
   const [showCreateClassModal, setShowCreateClassModal] = useState(false); // Add this line
 
-
-const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
-const handleCreateClass = async (e, period, classChoice) => {
-  e.preventDefault();
-  
-  try {
-    const className = `Period ${period}`;
-    const classId = uuidv4(); // Generate unique classId
-    const classCode = Math.random().toString(36).substr(2, 6).toUpperCase(); // Generate unique classCode
-    const teacherUID = auth.currentUser.uid;
-    const periodStyle = periodStyles[period];
-
-    const classData = {
-      teacherUID: teacherUID,
-      classId, // Unique UUID
-      classCode, // Separate code
-      className,
-      classChoice,
-      background: periodStyle.background,
-      color: periodStyle.color,
-      period
-    };
-
-    // Call the 'createClass' Cloud Function
-    const result = await safeClassUpdate('createClass', classData);
+  const handleCreateClass = async (e, period, classChoice) => {
+    e.preventDefault();
     
-    if (result.data && result.data.success) {
-      setSuccessMessage(`${classChoice}, ${className}, was successfully added to your roster`);
-      setNewClassId(classId); // Use classId, not classCode
-      setShowCreateClassModal(false);
-    } else {
-      throw new Error('Class creation failed');
+    try {
+      const className = `Period ${period}`;
+      const classId = uuidv4();
+      const classCode = Math.random().toString(36).substr(2, 6).toUpperCase();
+      const teacherUID = auth.currentUser.uid;
+      const periodStyle = periodStyles[period];
+  
+      const classData = {
+        teacherUID: teacherUID,
+        classId,
+        classCode,
+        className,
+        classChoice,
+        background: periodStyle.background,
+        color: periodStyle.color,
+        period
+      };
+  
+      const result = await safeClassUpdate('createClass', classData);
+      
+      if (result.data && result.data.success) {
+        setSuccessMessage(`${classChoice}, ${className}, was successfully added to your roster`);
+        setNewClassId(classId);
+        setShowCreateClassModal(false);  // Close modal immediately after successful creation
+        return true;  // Indicate success to the modal
+      } else {
+        throw new Error('Class creation failed');
+      }
+    } catch (err) {
+      console.error('Error creating class:', err);
+      alert(`Error creating class: ${err.message}. Please try again.`);
+      throw err;  // Propagate error to modal
     }
-  } catch (err) {
-    console.error('Error creating class:', err);
-    alert(`Error creating class: ${err.message}. Please try again.`);
-  }
-};
-
+  };
 
 
   useEffect(() => {
@@ -159,14 +157,14 @@ const handleCreateClass = async (e, period, classChoice) => {
   ];
   
   const periodStyles = {
-    1: { background: '#A3F2ED', color: '#1CC7BC' },
-        2: { background: '#F8CFFF', color: '#E01FFF' },
-        3: { background: '#FFCEB2', color: '#FD772C' },
-        4: { background: '#FFECA9', color: '#F0BC6E' },
-        5: { background: '#AEF2A3', color: '#4BD682' },
-        6: { background: '#BAA9FF', color: '#8364FF' },
-        7: { background: '#8296FF', color: '#3D44EA' },
-        8: { background: '#FF8E8E', color: '#D23F3F' }
+    1: { background: "#D4FFFD", color: "#1CC7BC", borderColor: "#1CC7BC" },
+    2: { background: "#FCEDFF", color: "#E01FFF", borderColor: "#E01FFF" },
+    3: { background: "#FFCEB2", color: "#FD772C", borderColor: "#FD772C" },
+    4: { background: "#FFECA9", color: "#F0BC6E", borderColor: "#F0BC6E" },
+    5: { background: "#DBFFD6", color: "#4BD682", borderColor: "#4BD682" },
+    6: { background: "#F0EDFF", color: "#8364FF", borderColor: "#8364FF" },
+    7: { background: "#8296FF", color: "#3D44EA", borderColor: "#3D44EA" },
+    8: { background: "#FF8E8E", color: "#D23F3F", borderColor: "#D23F3F" },
   };
 
 
@@ -470,12 +468,14 @@ zIndex: '100'
                       width: "30%",
                       maxWidth: '30%',
                       marginTop: '20px', 
-                      height: '130px',
+                      height: '150px',
                       display: 'flex',
                       backgroundColor: 'transparent',  
                       color: 'grey', 
                       cursor: 'pointer',
-                      border: '1px solid lightgrey', 
+                      
+                      border: '1px solid #ededed',
+                      boxShadow: 'rgba(50, 50, 205, 0.05) 0px 2px 5px 0px, rgba(0, 0, 0, 0.05) 0px 1px 1px 0px',
                       borderRadius: '15px', 
                       textAlign: 'left',
                       flexDirection: 'column',
@@ -490,7 +490,7 @@ zIndex: '100'
                       e.target.style.borderColor = '#dddddd';
                     }}
                     onMouseLeave={(e) => {
-                      e.target.style.borderColor = 'lightgrey';
+                      e.target.style.borderColor = '#ededed';
                     }}
                     className="hoverableButton"
                   >
@@ -500,18 +500,19 @@ zIndex: '100'
                     backgroundColor: periodStyle.background,
                     
                     color: periodStyle.color,
-                    marginLeft: '15%',
-                    height: '16px',
+                    marginLeft: '4%',
+                    padding: '18px 10px',
                     lineHeight: '16px',
-                    marginTop: '40px', width: '180px',  textAlign: 'left',
-                    paddingLeft: '5px', fontSize: '40px',
+                    borderRadius: '5px',
+                    marginTop: '20px', width: '190px',  textAlign: 'left',
+                   fontSize: '40px',
                       fontWeight: '600',}}>{classItem.className}</h1>
                 
                 
                 <p style={{marginTop: '0px',  overflow: 'hidden',
-                    textOverflow: 'ellipsis', marginLeft: '15%',
+                    textOverflow: 'ellipsis', marginLeft: '4%',
                     textAlign: 'left',color: 'lightgrey', fontWeight: '600', 
-                    marginTop: '-10px',fontSize: '16px',
+                    marginTop: '5px',fontSize: '16px',
                     whiteSpace: 'nowrap',width: '268px', background: 'tranparent',   }}>{classItem.classChoice} </p>
                     
                 

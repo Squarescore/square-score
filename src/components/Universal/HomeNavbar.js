@@ -73,7 +73,7 @@ const HomeNav = ({ userType }) => {
     let newPath =
       userType === "teacher"
         ? `/class/${newClassId}/`
-        : `/studentassignments/${newClassId}`;
+        : `/studentassignments/${newClassId}/active`;
     navigate(newPath);
     setShowClassDropdown(false);
   };

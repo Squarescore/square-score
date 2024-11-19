@@ -9,6 +9,7 @@ const CreateClassModal = ({ handleCreateClass, setShowCreateClassModal }) => {
   const [isClassSelectorOpen, setIsClassSelectorOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [isCustomMode, setIsCustomMode] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);  // Add this line
 
   const classOptions = [
     'AP African American Studies', 'AP Art History', 'AP Biology',
@@ -118,10 +119,19 @@ const CreateClassModal = ({ handleCreateClass, setShowCreateClassModal }) => {
   };
   const isFormValid = period !== null && (classChoice !== '' || customClass.trim() !== '');
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (isFormValid) {
-      handleCreateClass(e, period, classChoice || customClass);
+    if (isFormValid && !isSubmitting) {
+      setIsSubmitting(true);  // Prevent multiple submissions
+      try {
+        await handleCreateClass(e, period, classChoice || customClass);
+        setShowCreateClassModal(false);  // Close modal after successful creation
+      } catch (error) {
+        console.error('Error creating class:', error);
+        alert('Failed to create class. Please try again.');
+      } finally {
+        setIsSubmitting(false);  // Reset submission state
+      }
     }
   };
   const selectPeriod = (selectedPeriod) => {
@@ -189,13 +199,15 @@ const CreateClassModal = ({ handleCreateClass, setShowCreateClassModal }) => {
           marginTop: '-10px' ,
           marginLeft: '0px',
           fontSize: '40px',
-          
-
-        }}>Create Class</h2>
+          color: isFormValid && !isSubmitting ? '#348900' : '#a3a3a3',
+          cursor: isFormValid && !isSubmitting ? 'pointer' : 'not-allowed',
+        }}
+      >
+        {isSubmitting ? 'Creating...' : 'Create Class'}</h2>
        
         <form onSubmit={handleSubmit}>
           {/* Period Selector */}
-          <div style={{ border: '2px solid #f4f4f4', borderRadius: '10px', marginBottom: '20px' }}>
+          <div style={{   marginBottom: '20px' }}>
             <div 
               onClick={togglePeriodDropdown}
               style={{

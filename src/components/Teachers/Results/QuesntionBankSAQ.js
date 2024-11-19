@@ -6,7 +6,16 @@ import { collection, doc, getDocs, query, updateDoc, where } from 'firebase/fire
 import { db } from '../../Universal/firebase';
 import { useNavigate, useParams } from 'react-router-dom';
 import QuestionResults from './QuestionResultsSAQ';
-const QuestionBankSAQ = ({ questionsWithIds, setQuestionsWithIds, sourceText, questionCount, classId, teacherId, assignmentId }) => {
+const QuestionBankSAQ = ({ 
+  questionsWithIds, 
+  setQuestionsWithIds, 
+  sourceText, 
+  questionCount, 
+  classId, 
+  teacherId, 
+  assignmentId,
+  autoOpenQuestionId // Add this prop
+}) => {
   const containerRef = useRef(null);
   const [questionStats, setQuestionStats] = useState({});
   const [editingQuestions, setEditingQuestions] = useState({});
@@ -22,6 +31,14 @@ const QuestionBankSAQ = ({ questionsWithIds, setQuestionsWithIds, sourceText, qu
   const [loading, setLoading] = useState(true);const [selectedQuestionId, setSelectedQuestionId] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);  const [isTransitioning, setIsTransitioning] = useState(false);
 
+
+
+  useEffect(() => {
+    if (autoOpenQuestionId) {
+      setSelectedQuestionId(autoOpenQuestionId);
+      setIsModalOpen(true);
+    }
+  }, [autoOpenQuestionId]);
   const updateQuestionContent = async (newQuestion, newRubric) => {
     try {
       // Get all grade documents for this assignment

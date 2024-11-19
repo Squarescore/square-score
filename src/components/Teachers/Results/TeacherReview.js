@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { db } from '../../Universal/firebase';
-import { doc, collection, updateDoc, where, query, getDocs, getDoc } from 'firebase/firestore';
+import { doc, collection, updateDoc, where, query, getDocs, getDoc, arrayUnion, writeBatch } from 'firebase/firestore';
 import Navbar from '../../Universal/Navbar';
-import { ClipboardList, MessageSquareMore, SquareCheck, SquareSlash, SquareX } from 'lucide-react';
+import { Brain, ClipboardList, MessageSquareMore, SquareCheck, SquareSlash, SquareX } from 'lucide-react';
 
 const AutoResizeTextarea = ({ value, onChange, placeholder }) => {
   const textareaRef = useRef(null);
@@ -53,6 +53,16 @@ const TeacherReview = () => {
   const [assignmentName, setAssignmentName] = useState('');
   const [showRubric, setShowRubric] = useState(false);
 
+  const handleQuestionClick = (questionId) => {
+    navigate(`/class/${classId}/assignment/${assignmentId}/TeacherResults/`, {
+      state: {
+        targetTab: 'questionBank',
+        targetQuestionId: questionId,
+        openQuestionResults: true
+      }
+    });
+  };
+
   useEffect(() => {
     const fetchAssignmentName = async () => {
       const assignmentRef = doc(db, 'assignments', assignmentId);
@@ -72,7 +82,6 @@ const TeacherReview = () => {
             a.name.split(' ').pop().localeCompare(b.name.split(' ').pop())
           );
           setStudents(sortedStudents);
-          // Removed fetchReviewsNeedingAttention call from here
         }
       }
     };
@@ -100,10 +109,19 @@ const TeacherReview = () => {
       gradeData.questions.forEach((question) => {
         if (question.flagged) {
           const questionText = question.question;
-          if (!questionGroups[questionText]) {
-            questionGroups[questionText] = [];
+          const questionId = question.questionId || question.id || question.Id; // Try different possible ID fields
+          
+          const key = `${questionText}_${questionId}`; // Create unique key combining text and ID
+          
+          if (!questionGroups[key]) {
+            questionGroups[key] = {
+              questionText,
+              questionId,
+              responses: []
+            };
           }
-          questionGroups[questionText].push({
+          
+          questionGroups[key].responses.push({
             ...question,
             studentUid: gradeData.studentUid,
             studentName:
@@ -114,19 +132,14 @@ const TeacherReview = () => {
       });
     });
 
-    // Convert the questionGroups object to an array and sort alphabetically by question text
-    const sortedQuestionGroups = Object.keys(questionGroups)
-      .sort((a, b) => a.localeCompare(b))
-      .map((questionText) => ({
-        questionText,
-        responses: questionGroups[questionText],
-      }));
+    // Convert to array and sort
+    const sortedQuestionGroups = Object.values(questionGroups)
+      .sort((a, b) => a.questionText.localeCompare(b.questionText));
 
     setGroupedFlaggedQuestions(sortedQuestionGroups);
     setCurrentQuestionGroupIndex(0);
     setCurrentResponseIndex(0);
 
-    // Update review count
     const totalFlaggedResponses = sortedQuestionGroups.reduce(
       (acc, group) => acc + group.responses.length,
       0
@@ -157,22 +170,53 @@ const TeacherReview = () => {
 
         await updateDoc(reviewRef, {
           questions: updatedQuestions,
+          // Update hasFlaggedQuestions based on the new flagged statuses
+          hasFlaggedQuestions: updatedQuestions.some(q => q.flagged),
         });
       }, 500);
     }
     return () => clearTimeout(timeoutId);
   }, [groupedFlaggedQuestions, currentQuestionGroupIndex, currentResponseIndex]);
 
+  const [isTrainingAI, setIsTrainingAI] = useState(false);
+  const [trainingCount, setTrainingCount] = useState(0);
+  
+  // Add after initial useEffect
+  useEffect(() => {
+    const fetchTrainingCount = async () => {
+      const classDocRef = doc(db, 'classes', classId);
+      const classDoc = await getDoc(classDocRef);
+      if (classDoc.exists()) {
+        const data = classDoc.data();
+        setTrainingCount(data.aiTrainingData?.length || 0);
+      }
+    };
+    
+    fetchTrainingCount();
+  }, [classId]);
+  useEffect(() => {
+    if (isTrainingAI) {
+      // Clear feedback when entering training mode
+      setGroupedFlaggedQuestions(prev => {
+        const newGroups = [...prev];
+        if (newGroups[currentQuestionGroupIndex]?.responses[currentResponseIndex]) {
+          newGroups[currentQuestionGroupIndex].responses[currentResponseIndex].feedback = '';
+        }
+        return newGroups;
+      });
+    }
+  }, [isTrainingAI, currentQuestionGroupIndex, currentResponseIndex]);
+  
+  // Update handleGradeChange to include feedback in training data
   const handleGradeChange = async (newGrade) => {
     const currentQuestionGroup = groupedFlaggedQuestions[currentQuestionGroupIndex];
     const currentResponse = currentQuestionGroup.responses[currentResponseIndex];
-
+  
     const { gradeDocId } = currentResponse;
     const reviewRef = doc(db, 'grades', gradeDocId);
     const reviewDoc = await getDoc(reviewRef);
     const reviewData = reviewDoc.data();
-
-    // Update the specific question in the student's grade
+  
     const updatedQuestions = reviewData.questions.map((q) => {
       if (q.question === currentResponse.question && q.flagged) {
         return {
@@ -184,39 +228,80 @@ const TeacherReview = () => {
       }
       return q;
     });
-
-    // Recalculate total scores
+  
+    const hasFlaggedQuestions = updatedQuestions.some(q => q.flagged);
     const totalScore = updatedQuestions.reduce((accum, current) => accum + current.score, 0);
-    const maxScore = updatedQuestions.length * 2; // Assuming max score per question is 2
-
-    await updateDoc(reviewRef, {
-      questions: updatedQuestions,
-      totalScore,
-      maxScore,
-      percentageScore: (totalScore / maxScore) * 100,
-    });
-
-    // Navigate to the next response
-    if (currentResponseIndex < currentQuestionGroup.responses.length - 1) {
-      setCurrentResponseIndex(currentResponseIndex + 1);
-    } else if (currentQuestionGroupIndex < groupedFlaggedQuestions.length - 1) {
-      setCurrentQuestionGroupIndex(currentQuestionGroupIndex + 1);
-      setCurrentResponseIndex(0);
-    } else {
-      // Refresh data if all responses are reviewed
-      fetchReviewsNeedingAttention();
+    const maxScore = updatedQuestions.length * 2;
+  
+    try {
+      const batch = writeBatch(db);
+  
+      batch.update(reviewRef, {
+        questions: updatedQuestions,
+        hasFlaggedQuestions: hasFlaggedQuestions,
+        totalScore,
+        maxScore,
+        percentageScore: (totalScore / maxScore) * 100,
+      });
+  
+      if (isTrainingAI && trainingCount < 50) {
+        const classRef = doc(db, 'classes', classId);
+        const trainingData = {
+          question: currentQuestionGroup.questionText,
+          rubric: currentResponse.rubric,
+          studentResponse: currentResponse.studentResponse,
+          score: newGrade,
+          feedback: currentResponse.feedback || '', // Include feedback in training data
+          timestamp: new Date().getTime()
+        };
+  
+        batch.update(classRef, {
+          aiTrainingData: arrayUnion(trainingData)
+        });
+  
+        setTrainingCount(prev => prev + 1);
+      }
+  
+      await batch.commit();
+  
+      // Decrement review count
+      setReviewCount(prevCount => prevCount - 1);
+  
+      // Navigation logic with feedback clearing for training mode
+      if (currentResponseIndex < currentQuestionGroup.responses.length - 1) {
+        setCurrentResponseIndex(currentResponseIndex + 1);
+        // Clear feedback for next question if in training mode
+        if (isTrainingAI) {
+          setGroupedFlaggedQuestions(prev => {
+            const newGroups = [...prev];
+            if (newGroups[currentQuestionGroupIndex]?.responses[currentResponseIndex + 1]) {
+              newGroups[currentQuestionGroupIndex].responses[currentResponseIndex + 1].feedback = '';
+            }
+            return newGroups;
+          });
+        }
+      } else if (currentQuestionGroupIndex < groupedFlaggedQuestions.length - 1) {
+        setCurrentQuestionGroupIndex(currentQuestionGroupIndex + 1);
+        setCurrentResponseIndex(0);
+        // Clear feedback for next question if in training mode
+        if (isTrainingAI) {
+          setGroupedFlaggedQuestions(prev => {
+            const newGroups = [...prev];
+            if (newGroups[currentQuestionGroupIndex + 1]?.responses[0]) {
+              newGroups[currentQuestionGroupIndex + 1].responses[0].feedback = '';
+            }
+            return newGroups;
+          });
+        }
+      } else {
+        fetchReviewsNeedingAttention();
+      }
+    } catch (error) {
+      console.error("Error updating grade:", error);
     }
   };
-
-  const handleFeedbackChange = (e) => {
-    const feedback = e.target.value;
-    setGroupedFlaggedQuestions((prevGroups) => {
-      const newGroups = [...prevGroups];
-      newGroups[currentQuestionGroupIndex].responses[currentResponseIndex].feedback = feedback;
-      return newGroups;
-    });
-  };
-
+  
+  // Update handleBack to increment review count
   const handleBack = () => {
     if (currentResponseIndex > 0) {
       setCurrentResponseIndex(currentResponseIndex - 1);
@@ -227,8 +312,21 @@ const TeacherReview = () => {
       setCurrentResponseIndex(previousGroup.responses.length - 1);
     } else {
       navigate(-1);
+      return;
     }
+    // Increment review count when going back
+    setReviewCount(prevCount => prevCount + 1);
   };
+  const handleFeedbackChange = (e) => {
+    const feedback = e.target.value;
+    setGroupedFlaggedQuestions((prevGroups) => {
+      const newGroups = [...prevGroups];
+      newGroups[currentQuestionGroupIndex].responses[currentResponseIndex].feedback = feedback;
+      return newGroups;
+    });
+  };
+
+
 
   if (groupedFlaggedQuestions.length === 0) {
     return <div>No responses are currently for review</div>;
@@ -251,7 +349,9 @@ const TeacherReview = () => {
     left: 'calc(200px + 4%)',
     marginTop: '20px',
   };
-
+  const navigateToStudentResults = (studentUid) => {
+    navigate(`/teacherStudentResults/${assignmentId}/${studentUid}/${classId}`);
+  };
   return (
     <div
       style={{
@@ -281,6 +381,36 @@ const TeacherReview = () => {
           >
             {reviewCount} Flagged Responses
           </h2>
+
+          {trainingCount < 50 && (
+      <div style={{ 
+        position: 'fixed',
+        bottom: '150px',
+        left: 'calc(200px + 4%)',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '10px',
+        background: isTrainingAI ? '#f0fdf4' : 'white',
+        padding: '8px 16px',
+        borderRadius: '10px',
+        border: `1px solid ${isTrainingAI ? '#86efac' : '#e5e7eb'}`,
+        cursor: 'pointer'
+      }}
+      onClick={() => setIsTrainingAI(!isTrainingAI)}
+      >
+        <Brain
+          size={20} 
+          color={isTrainingAI ? '#22c55e' : '#9ca3af'}
+        />
+        <span style={{
+          fontSize: '14px',
+          fontWeight: '500',
+          color: isTrainingAI ? '#22c55e' : '#9ca3af'
+        }}>
+          Train AI Grader ({trainingCount}/50)
+        </span>
+      </div>
+    )}
           <button
             style={{
               background: 'white',
@@ -313,9 +443,16 @@ const TeacherReview = () => {
           }}
         >
           <h1
+           onClick={() => {
+            if (currentResponse && currentResponse.studentUid) {
+              navigateToStudentResults(currentResponse.studentUid);
+            }  }}
+            onMouseEnter={(e) => { e.target.style.textDecoration = 'underline'; }}
+            onMouseLeave={(e) => { e.target.style.textDecoration = 'none'; }}
             style={{
               fontSize: '14px',
               marginTop: '50px',
+              cursor: 'pointer',
               color: 'lightgray',
             }}
           >
@@ -337,9 +474,16 @@ const TeacherReview = () => {
           </button>
 
           <p
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              handleQuestionClick(currentQuestionGroup.questionId);
+          }} onMouseEnter={(e) => { e.target.style.textDecoration = 'underline'; }}
+          onMouseLeave={(e) => { e.target.style.textDecoration = 'none'; }}
             style={{
               width: '630px',
               marginTop: '15px',
+              cursor: 'pointer',
               fontSize: '18px',
               fontFamily: "'montserrat', sans-serif",
               fontWeight: '600',

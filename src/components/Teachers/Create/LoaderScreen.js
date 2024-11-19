@@ -20,6 +20,7 @@ const LoaderScreen = () => {
       <div style={{
         fontFamily: "'montserrat', sans-serif",
         fontSize: '20px',
+        marginTop: '20px',
         color: 'lightgrey',
         fontWeight: '600'
       }}>

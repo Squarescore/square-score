@@ -23,7 +23,7 @@ const SearchToggle = ({ searchTerm, handleSearchChange, activeTab }) => {
   };
 
   return (
-    <div style={{ width: '350px', height: '40px', position: 'relative', marginLeft: '4%'}}>
+    <div style={{ width: '350px', height: '30px', position: 'relative', }}>
   
         <div style={{ 
           position: 'relative', 
@@ -37,14 +37,14 @@ const SearchToggle = ({ searchTerm, handleSearchChange, activeTab }) => {
             onChange={handleSearchChange}
             style={{
               width: '300px',
-              height: '40px',
-              fontSize: '16px',
+              height: '30px',
+              fontSize: '14px',
               border: '1px solid lightgrey',
               fontFamily: "'Montserrat', sans-serif",
-              padding: '0px 10px 0px 40px',
+              padding: '0px 40px 0px 10px',
               backgroundColor: 'white',
               color: getSearchBarStyle().color,
-              borderRadius: '10px',
+              borderRadius: '5px',
               outline: 'none',
             }}
           />
@@ -55,8 +55,8 @@ const SearchToggle = ({ searchTerm, handleSearchChange, activeTab }) => {
             }}
             style={{
               position: 'absolute',
-              top: '10px',
-              left: '5px',
+              top: '5px',
+              right: '-5px',
               height: '25px',
               width: '35px',
               borderRadius: '0 10px 10px 0',
@@ -67,7 +67,7 @@ const SearchToggle = ({ searchTerm, handleSearchChange, activeTab }) => {
             }}
           >
             <Search 
-              size={20} 
+              size={16} 
               strokeWidth={2.8} 
               color={getSearchBarStyle().color} 
             />

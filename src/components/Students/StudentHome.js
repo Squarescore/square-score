@@ -14,6 +14,7 @@ const loaderStyle = `
   .loader {
     height: 4px;
     width: 130px;
+    top: 25px;
     --c: no-repeat linear-gradient(#020CFF 0 0);
     background: var(--c), var(--c), #627BFF;
     background-size: 60% 100%;
@@ -73,34 +74,35 @@ const inputRefs = useRef([]);
       inputRefs.current[0].focus();
     }
   }, []);
-
-
   const handleJoinClass = async (classCode) => {
-    setJoinClassError('');
     try {
       const classesRef = collection(db, 'classes');
       const classQuery = query(classesRef, where('classCode', '==', classCode));
       const classQuerySnapshot = await getDocs(classQuery);
   
       if (classQuerySnapshot.empty) {
-        throw new Error('Class not found.');
+        throw new Error('Invalid class code. Please check the code and try again.');
       }
+  
       const classDoc = classQuerySnapshot.docs[0];
       const existingStudents = classDoc.data().students || [];
       const existingJoinRequests = classDoc.data().joinRequests || [];
   
-      if (existingStudents.includes(studentUID) || existingJoinRequests.includes(studentUID)) {
-        throw new Error('You have already joined or requested to join this class.');
+      if (existingStudents.includes(studentUID)) {
+        throw new Error('You are already enrolled in this class.');
+      }
+  
+      if (existingJoinRequests.includes(studentUID)) {
+        throw new Error('You have already requested to join this class. Please wait for teacher approval.');
       }
   
       const joinRequests = [...existingJoinRequests, studentUID];
       await updateDoc(doc(db, 'classes', classDoc.id), { joinRequests });
   
-      setShowJoinClassModal(false);
-      // Optionally, you can update the UI to show the pending request
       setPendingRequests(prev => [...prev, classDoc.data()]);
+      return true;
     } catch (err) {
-      setJoinClassError(err.message);
+      throw err;
     }
   };
   
@@ -227,14 +229,13 @@ const inputRefs = useRef([]);
     alignItems: 'center'
           
         }}>
-          <div style={{width: '100%', background: '#F4C10A', height: '6px'}}></div>
           <div style={{
             width: "400px", marginLeft: '0%',
             marginRight: 'auto',
             backgroundColor: '#FFECA8',
-            border: '4px solid #F4C10A',
+            border: '1px solid #F4C10A',
             borderRadius: '10px',
-      borderTop: '0px',
+   
       padding: '0px 20px',
       height: '50px',
       display: 'flex',
@@ -243,7 +244,7 @@ const inputRefs = useRef([]);
       marginBottom: '20px',
       whiteSpace: 'nowrap'
           }}>
-            <p style={{ color: 'grey', fontWeight: 'bold', marginRight: '20px' }}>
+            <p style={{ color: '#F4C10A', fontWeight: '600', marginRight: '20px' }}>
               Waiting for teacher to accept request
             </p>
             <div className="loader"></div>
@@ -372,83 +373,85 @@ marginLeft: 'calc(4% + 200px)',
           </button>
           
             </div>
-          {classes.map(classItem => {
+            {classes.map(classItem => {
             const periodNumber = parseInt(classItem.className.split(' ')[1]);
             const periodStyle = periodStyles[periodNumber] || { background: '#F4F4F4', color: 'grey' };
+            
             return (
-             
               <button 
-              key={classItem.id}
-                  onClick={() => navigate(`/studentassignments/${classItem.id}/active`)} 
-                  style={{ 
-                    marginRight: '3%',
-                    flex: 1,
-                    width: "30%",
-                    maxWidth: '30%',
-                    marginTop: '20px', 
-                    height: '130px',
-                    display: 'flex',
-                    backgroundColor: 'transparent',  
-                    color: 'grey', 
-                    cursor: 'pointer',
-                    border: '1px solid lightgrey', 
-                    borderRadius: '15px', 
-                    textAlign: 'left',
-                    flexDirection: 'column',
-                    alignItems: 'left',
-                    transition: '.2s', 
-                    position: 'relative',
-                    zIndex: '1',
-                    fontFamily: "'montserrat', sans-serif",
-                    transform: 'scale(1)',
-                  }}
-                  onMouseEnter={(e) => {
-                    e.target.style.borderColor = '#dddddd';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.target.style.borderColor = 'lightgrey';
-                  }}
-                  className="hoverableButton"
-                >
-                  <h1 style={{fontSize: '35px', 
+                key={classItem.id}
+                onClick={() => navigate(`/studentassignments/${classItem.id}/active`)}
+                style={{
+                  height: '130px',
+                  marginRight: '3%',
                   
-                  
+                  marginTop: '30px',
+                  display: 'flex',
+                  backgroundColor: 'transparent',
+                  color: 'grey',
+                  cursor: 'pointer',
+                  border: '1px solid #ededed',
+                  boxShadow: 'rgba(50, 50, 205, 0.05) 0px 2px 5px 0px, rgba(0, 0, 0, 0.05) 0px 1px 1px 0px',
+                  borderRadius: '15px',
+                  textAlign: 'left',
+                  flexDirection: 'column',
+                  alignItems: 'left',
+                  transition: '.2s',
+                  position: 'relative',
+                  fontFamily: "'montserrat', sans-serif",
+                  width: '30%'
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.borderColor = '#dddddd';
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.borderColor = '#ededed';
+                }}
+                className="hoverableButton"
+              >
+                <h1 style={{
                   backgroundColor: periodStyle.background,
-                  
                   color: periodStyle.color,
                   marginLeft: '15%',
                   height: '16px',
                   lineHeight: '16px',
-                  marginTop: '40px', width: '180px',  textAlign: 'left',
-                  paddingLeft: '5px', fontSize: '40px',
-                    fontWeight: '600',}}>{classItem.className}</h1>
-              
-              
-              <p style={{marginTop: '0px',  overflow: 'hidden',
-                  textOverflow: 'ellipsis', marginLeft: '15%',
-                  textAlign: 'left',color: 'lightgrey', fontWeight: '600', 
-                  marginTop: '-10px',fontSize: '16px',
-                  whiteSpace: 'nowrap',width: '268px', background: 'tranparent',   }}>{classItem.classChoice} </p>
-                  
-              
-              
-                </button>
+                  marginTop: '40px',
+                  width: '180px',
+                  textAlign: 'left',
+                  paddingLeft: '5px',
+                  fontSize: '40px',
+                  fontWeight: '600'
+                }}>
+                  {classItem.className}
+                </h1>
+                
+                <p style={{
+                  marginTop: '-10px',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  marginLeft: '15%',
+                  textAlign: 'left',
+                  color: 'lightgrey',
+                  fontWeight: '600',
+                  fontSize: '16px',
+                  whiteSpace: 'nowrap',
+                  width: '268px',
+                  background: 'transparent'
+                }}>
+                  {classItem.classChoice}
+                </p>
+              </button>
             );
           })}
-        </div>
-
-        <div style={{width: '1000px', marginRight: 'auto', marginLeft: 'auto', marginTop: '30px'}}>
-          
-   
-     
         </div>
       </main>
 
       {showJoinClassModal && (
   <JoinClassModal
     onSubmit={handleJoinClass}
-    onClose={() => setShowJoinClassModal(false)}
-  />
+    onClose={() => setShowJoinClassModal(false)} error={joinClassError}  // Add this line to pass the error
+    />
+
 )}
 
       <FooterAuth style={{marginTop: '100px'}}/>

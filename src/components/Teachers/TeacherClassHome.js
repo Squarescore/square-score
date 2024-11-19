@@ -1,581 +1,765 @@
-
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate, useParams, useLocation } from 'react-router-dom';
-import { doc, getDoc } from 'firebase/firestore';
+import { useNavigate, useParams } from 'react-router-dom';
+import { doc, getDoc, updateDoc, collection, query, where, getCountFromServer } from 'firebase/firestore'; // Updated imports
 import { db } from '../Universal/firebase';
+import { ChevronLeft, ChevronRight, Eye, Flag, SquareCheck, SquareX } from 'lucide-react';
+import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import Navbar from '../Universal/Navbar';
-import Footer from '../Universal/Footer';
-import { deleteDoc } from 'firebase/firestore';
-import { User, BookOpenText } from 'lucide-react';
-const TeacherClassHome = ({ currentPage }) => {
-  const navigate = useNavigate();
-  const location = useLocation();
-  const { classId } = useParams(); // Extract classId from the URL
-  const [className, setClassName] = useState(''); // State to store the class name
-  const [classTheme, setClassTheme] = useState(null);
-  const [recentAverage, setRecentAverage] = useState('N/A');
-  const [overallAverage, setOverallAverage] = useState('N/A');
-  const [classChoice, setClassChoice] = useState('');
-  const [classChoiceStyle, setClassChoiceStyle] = useState({});
-  const [assignmentFormat, setAssignmentFormat] = useState('');
 
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [successMessage, setSuccessMessage] = useState('');
-  const [newAssignmentId, setNewAssignmentId] = useState('');
+const TeacherClassHome = () => {
+  // Existing States
+  const [activeTab, setActiveTab] = useState('recent');
+  const [assignments, setAssignments] = useState([]);
+  const [classPerformance, setClassPerformance] = useState([]);
+  const [recentAssignments, setRecentAssignments] = useState([]);
+  const { classId } = useParams();
+  const [joinRequests, setJoinRequests] = useState([]);
+  const [classData, setClassData] = useState({});
+  const [classAverage, setClassAverage] = useState(0);
+  const [assignmentsPerPage, setAssignmentsPerPage] = useState(4);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [flaggedAssignments, setFlaggedAssignments] = useState(new Set());
+  const getGradeColors = (grade) => {
+    if (grade === undefined || grade === null || grade === 0) return { color: '#858585', background: 'white' };
+    if (grade < 50) return { color: '#FF0000', background: '#FFCBCB' };
+    if (grade < 70) return { color: '#FF4400', background: '#FFC6A8' };
+    if (grade < 80) return { color: '#EFAA14', background: '#FFF4DC' };
+    if (grade < 90) return { color: '#9ED604', background: '#EDFFC1' };
+    if (grade > 99) return { color: '#E01FFF', background: '#F7C7FF' };
+    return { color: '#2BB514', background: '#D3FFCC' };
+  };
+  
+  const navigate = useNavigate();
+
+  const formatDate = (timestamp) => {
+    const date = new Date(timestamp);
+    return date.toLocaleDateString('en-US', {
+      month: '2-digit',
+      day: '2-digit',
+      year: 'numeric'
+    });
+  };
 
   useEffect(() => {
-    if (location.state?.successMessage) {
-      setSuccessMessage(location.state.successMessage);
-      setNewAssignmentId(location.state.assignmentId);
-      setAssignmentFormat(location.state.format);
-      // Clear the message from location state
-      navigate(location.pathname, { replace: true, state: {} });
-    }
-  }, [location, navigate]);
+    fetchAssignments();
+  }, [classId]);
 
-  const handleDismiss = () => {
-    setSuccessMessage('');
-    setNewAssignmentId('');
-    setAssignmentFormat('');
-  };
-  
-  const handleResults = () => {
-    setSuccessMessage('');
-    setNewAssignmentId('');
-    setAssignmentFormat('');
-    
-    // Extract classId and assignmentId from the newAssignmentId
-    let [classId, uid, assignmentId] = newAssignmentId.split('+');
-    
-    // Remove "DRAFT" from the beginning of the assignmentId if present
-    if (assignmentId.startsWith('DRAFT')) {
-      assignmentId = assignmentId.slice(5); // Remove the first 5 characters ("DRAFT")
+  // Function to Check for Flagged Assignments
+  const checkFlaggedAssignments = async (processedAssignments) => {
+    const gradesCollection = collection(db, 'grades');
+    const flaggedSet = new Set();
+    for (const assignment of processedAssignments) {
+      const flaggedQuery = query(
+        gradesCollection,
+        where('assignmentId', '==', assignment.id),
+        where('classId', '==', classId),
+        
+      where('hasFlaggedQuestions', '==', true)
+      );
+      try {
+        const snapshot = await getCountFromServer(flaggedQuery);
+        if (snapshot.data().count > 0) {
+          flaggedSet.add(assignment.id);
+        }
+      } catch (error) {
+        console.error("Error checking flagged responses:", error);
+      }
     }
-    
-    const fullAssignmentId = `${classId}+${uid}+${assignmentId}`;
-  
-    switch(assignmentFormat) {
-      case 'AMCQ':
-    
-        navigate(`/class/${classId}/assignment/${fullAssignmentId}/TeacherResultsAMCQ`);
-        break;
-      
-          case 'MCQ':
-            navigate(`/class/${classId}/assignment/${fullAssignmentId}/TeacherResultsMCQ`);
-            break;
-            
-          case 'ASAQ':
-            navigate(`/class/${classId}/assignment/${fullAssignmentId}/TeacherResultsASAQ`);
-            break;
-      case 'SAQ':
-        navigate(`/class/${classId}/assignment/${fullAssignmentId}/TeacherResults`);
-        break;
-      default:
-        console.error('Unknown assignment format');
-    }
+    setFlaggedAssignments(flaggedSet);
   };
 
-  const getNotificationStyles = (format) => {
-    switch(format) {
-      case 'AMCQ':
-      case 'MCQ':
-        return {
-          background: '#AEF2A3',
-          border: '#4BD682',
-          color: '#45B434',
-          buttonBg: '#FFECA9',
-          buttonColor: '#CE7C00',
-          buttonBorder: '#CE7C00'
-        };
-      case 'SAQ':
-      case 'ASAQ':
-        return {
-          background: '#9DA6FF',
-          border: '#020CFF',
-          color: '#020CFF',
-          buttonBg: '#627BFF',
-          buttonColor: '#FFFFFF',
-          buttonBorder: '#020CFF'
-        };
-      default:
-        return {
-          background: '#F4F4F4',
-          border: '#CCCCCC',
-          color: '#666666',
-          buttonBg: '#CCCCCC',
-          buttonColor: '#666666',
-          buttonBorder: '#666666'
-        };
-    }
-  };
-  const periodStyles = {
-    1: { background: '#A3F2ED', color: '#1CC7BC' },
-        2: { background: '#F8CFFF', color: '#E01FFF' },
-        3: { background: '#FFCEB2', color: '#FD772C' },
-        4: { background: '#FFECA9', color: '#F0BC6E' },
-        5: { background: '#AEF2A3', color: '#4BD682' },
-        6: { background: '#BAA9FF', color: '#8364FF' },
-        7: { background: '#8296FF', color: '#3D44EA' },
-        8: { background: '#FF8E8E', color: '#D23F3F' }
-  };
-  
-  const handleDeleteClass = () => {
-    if (!classId) {
-      console.error("Invalid classId");
-      return;
-    }
-  
-    if (typeof classId !== 'string' || !classId.trim()) {
-      console.error("classId must be a non-empty string");
-      return;
-    }
-  
-    setShowDeleteConfirm(true);
-  };
-  const confirmDeleteClass = async () => {
+  // Updated fetchAssignments Function
+  const fetchAssignments = async () => {
     try {
       const classDocRef = doc(db, 'classes', classId);
-      await deleteDoc(classDocRef);
-      setShowDeleteConfirm(false);
-      navigate('/teacherhome');
+      const classDoc = await getDoc(classDocRef);
+
+      if (classDoc.exists()) {
+        const data = classDoc.data();
+        const assignmentsData = data.assignments || [];
+        const viewableAssignments = data.viewableAssignments || [];
+
+        // Process assignments with all needed data
+        const processedAssignments = assignmentsData.map((assignment) => {
+          const id = assignment.id;
+          const [baseId, timestamp, format] = id.split('+');
+          const parsedTimestamp = parseInt(timestamp);
+
+          return {
+            id,
+            name: assignment.name,
+            format,
+            timestamp: parsedTimestamp,
+            date: formatDate(parsedTimestamp),
+            average: assignment.average ? Number(assignment.average) : 0,
+            viewable: viewableAssignments.includes(id)
+          };
+        });
+
+        // Check for flagged assignments
+        await checkFlaggedAssignments(processedAssignments);
+
+        // Calculate overall class average
+        const assignmentsWithAverages = processedAssignments.filter(a => a.average > 0);
+        const totalAverage = assignmentsWithAverages.length > 0
+          ? assignmentsWithAverages.reduce((sum, curr) => sum + curr.average, 0) / assignmentsWithAverages.length
+          : 0;
+
+        setClassAverage(Math.round(totalAverage));
+
+        // Sort assignments by timestamp descending
+        const sortedAssignments = processedAssignments.sort(
+          (a, b) => b.timestamp - a.timestamp
+        );
+
+        setAssignments(sortedAssignments);
+        setRecentAssignments(sortedAssignments.slice(0, 3));
+
+        const performanceData = sortedAssignments
+          .filter(assignment => assignment.average > 0)
+          .map(assignment => ({
+            name: assignment.name,
+            average: Number(assignment.average),
+            date: formatDate(assignment.timestamp)
+          }));
+
+        setClassPerformance(performanceData);
+
+        // Process join requests...
+        if (Array.isArray(data.joinRequests)) {
+          const joinRequestPromises = data.joinRequests.map(async (requestUID) => {
+            const studentDoc = await getDoc(doc(db, 'students', requestUID));
+            if (studentDoc.exists()) {
+              const studentData = studentDoc.data();
+              return {
+                uid: requestUID,
+                name: `${studentData.firstName.trim()} ${studentData.lastName.trim()}`,
+                email: studentData.email
+              };
+            }
+            return null;
+          });
+
+          const processedJoinRequests = (await Promise.all(joinRequestPromises))
+            .filter(Boolean);
+
+          setClassData(prev => ({
+            ...prev,
+            ...data,
+            joinRequests: processedJoinRequests
+          }));
+        } else {
+          setClassData(prev => ({
+            ...prev,
+            ...data,
+            joinRequests: []
+          }));
+        }
+      }
     } catch (error) {
-      console.error("Error deleting class:", error);
+      console.error("Error fetching data:", error);
     }
   };
-  const RetroConfirm = ({ onConfirm, onCancel, className }) => (
+
+  // Updated getDisplayedAssignments Function
+  const getDisplayedAssignments = () => {
+    switch(activeTab) {
+      case 'recent':
+        return assignments.slice(0, 3);
+      case 'reviewable':
+        return assignments.filter(a => a.viewable);
+      case 'flagged':
+        return assignments.filter(a => flaggedAssignments.has(a.id));
+      default:
+        return [];
+    }
+  };
+  // Updated Tab Count Logic in Rendering
+  const renderTabs = () => (
     <div style={{
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      width: '100%',
-      height: '100%',
-      backdropFilter: 'blur(5px)',
-      background: 'rgba(255,255,255,0.8)',
-      zIndex: 100
+      display: 'flex',
+      zIndex: '10',
+      gap: '20px',
+      marginTop: '0px',
+      marginBottom: '0px',
     }}>
-      <div style={{
-        position: 'fixed',
-        top: '50%',
-        left: '50%',
-        borderRadius: '20px',
-        backdropFilter: 'blur(5px)',
-        transform: 'translate(-50%, -50%)',
-        width: '500px',
-        backgroundColor: 'rgb(255,255,255,.001)',
-        border: '0px solid transparent',
-        boxShadow: '0px 4px 4px 0px rgba(0, 0, 0, 0.25)',
-        fontFamily: 'Arial, sans-serif',
-        zIndex: 100000
-      }}>
-        <div style={{
-          backgroundColor: '#FF6B6B',
-          color: '#980000',
-          fontFamily: '"montserrat", sans-serif',
-          border: '10px solid #980000', 
-          borderTopRightRadius: '30px',
-          borderTopLeftRadius: '30px',
-          opacity: '80%',
-          textAlign: 'center',
-          fontSize: '40px',
-          padding: '12px 4px',
-          fontWeight: 'bold'
-        }}>
-          Confirm Deletion
-        </div>
-        <div style={{ padding: '20px', textAlign: 'center', fontWeight: 'bold', fontFamily: '"montserrat", sans-serif', fontSize: '30px' }}>
-          Are you sure you want to delete  {classChoice} - {className}?<br />
-          This action cannot be undone.
-        </div>
-        <div style={{ 
-          display: 'flex', 
-          justifyContent: 'center', 
-          padding: '10px'
-        }}>
-          <button 
-            onClick={onConfirm}
+      {['recent', 'reviewable', 'flagged'].map(tab => {
+        // Get count based on tab type
+        let count = 0;
+        if (tab !== 'recent') { // Don't show count for recent tab
+          switch(tab) {
+            case 'reviewable':
+              count = assignments.filter(a => a.viewable).length;
+              break;
+            case 'flagged':
+              count = flaggedAssignments.size;
+              break;
+            default:
+              count = 0;
+          }
+        }
+
+        return (
+          <button
+            key={tab}
+            onClick={() => setActiveTab(tab)}
             style={{
-              width: '200px',
-              marginRight: '10px',
-              height: '40PX',
-              lineHeight: '10PX',
-              padding: '5px 5px',
-              fontWeight: 'bold',
-              fontSize: '24px',
-              borderRadius: '10px',
-              color: '#980000',
-              fontFamily: '"montserrat", sans-serif',
-              border: '0px solid lightgrey',
-              backgroundColor: 'white',
+              background: 'none',
+              border: 'none',
+              fontSize: '14px',
               cursor: 'pointer',
-              transition: '.3s'
+              fontWeight: '600',
+              padding: '12px 10px',
+              fontFamily: "'Montserrat', sans-serif",
+              borderBottom: activeTab === tab ? '2px solid #E01FFF' : '2px solid transparent',
+              color: activeTab === tab ? '#E01FFF' : 'grey',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px'
             }}
-            onMouseEnter={(e) => { e.target.style.boxShadow = '0px 4px 4px 0px rgba(0, 0, 0, 0.25)'; }}
-            onMouseLeave={(e) => { e.target.style.boxShadow = 'none'; }} 
           >
-            Delete
+            <span>
+            {tab === 'recent' ? 'Recent' :
+               tab === 'reviewable' ? 'Open For Review' :
+               tab === 'flagged' ? 'Flagged Questions' : 
+               ''}
+            </span>
+            {count > 0 && (
+              <span style={{
+                background: 'red',
+                color:  'white',
+                padding: '0px 2px',
+                borderRadius: '4px',
+                fontSize: '12px',
+                fontWeight: '600',
+                minWidth: '20px',
+                textAlign: 'center',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}>
+                {count}
+              </span>
+            )}
           </button>
-          <button 
-            onClick={onCancel}
-            style={{
-              width: '200px',
-              marginRight: '10px',
-              height: '40PX',
-              lineHeight: '10PX',
-              padding: '5px 5px',
-              fontWeight: 'bold',
-              fontSize: '24px',
-              borderRadius: '10px',
-              color: '#2BB514',
-              marginBottom: '10px',
-              fontFamily: '"montserrat", sans-serif',
-              border: '0px solid lightgrey',
-              backgroundColor: 'white',
-              cursor: 'pointer',
-              transition: '.3s'
-            }}
-            onMouseEnter={(e) => { e.target.style.boxShadow = '0px 4px 4px 0px rgba(0, 0, 0, 0.25)'; }}
-            onMouseLeave={(e) => { e.target.style.boxShadow = 'none'; }} 
-          >
-            Cancel
-          </button>
-        </div>
-      </div>
+        );
+      })}
     </div>
   );
 
-  console.log('Current classChoice:', classChoice);
-console.log('Current classChoiceStyle:', classChoiceStyle);
-   // Re-run the effect whenever classId changes
-
-  const handleBack = () => {
-    navigate('/teacherhome');
-  };
-
-  useEffect(() => {
-    const fetchClassData = async () => {
-      const classDocRef = doc(db, 'classes', classId);
-      const classDoc = await getDoc(classDocRef);
-  
-      if (classDoc.exists()) {
-        const data = classDoc.data();
-        console.log('Fetched class data:', data);
-        
-        setClassName(data.classChoice); // This is the full class name
-        setClassChoice(data.className); // This is the period
-        setRecentAverage(data.mostRecentAssignmentAverage || 'N/A');
-        setOverallAverage(data.overallClassAverage || 'N/A');
-  
-        // Use the color and background directly from the class data
-        setClassChoiceStyle({
-          background: data.background,
-          color: data.color
-        });
-      }
-    };
-  
-    fetchClassData();
-  }, [classId]);
-
-  const getGradientStyle = (type, index) => {
-    if (!classTheme) return {};
-    const gradient = type === 'main' ? classTheme.main : classTheme.sub[index];
-  
-    return { 
-      position: 'relative',
-      border: '8px solid transparent',
-      borderRadius: '10px',
-      
-      '&::before': {
-        content: '""',
-        position: 'absolute',
-        top: -8, right: -8, bottom: -8, left: -8,
-        background: gradient,
-        borderRadius: 'inherit',
-        zIndex: -1
-      }
-    };
-  };
-  const linkStyle = {
-    width: '354px', 
-    marginLeft: '60px',
-    fontFamily: "'montserrat', sans-serif", 
+  // Handle Assignment Click
+  const handleAssignmentClick = (assignment) => {
+    const path = `/class/${classId}/assignment/${assignment.id}/`;
     
-               boxShadow: '1px 1px 5px 1px rgb(0,0,155,.07)',
-    marginBottom: '0px', 
-    height: '270px', 
- border: '0px solid ',
-fontWeight: 'bold',
-   
-    textAlign: 'center', 
-    fontSize: '55px', 
-    textDecoration: 'none', 
-backgroundColor: 'rgb(50,50,50)',
-    color: 'white',
-    borderRadius: '15px',
-    transition: '.3s', 
-    cursor: 'pointer',
-    transform: 'scale(1)',
-    opacity: '100%', 
+    switch(assignment.format) {
+      case 'AMCQ':
+        navigate(path + 'TeacherResultsAMCQ');
+        break;
+      case 'MCQ':
+        navigate(path + 'TeacherResultsMCQ');
+        break;
+      case 'ASAQ':
+        navigate(path + 'TeacherResultsASAQ');
+        break;
+      case 'SAQ':
+        navigate(path + 'TeacherResults');
+        break;
+      default:
+        console.error('Unknown format:', assignment.format);
+    }
+  };
+  const renderAssignmentList = (assignmentsList) => {
+    return (
+      <div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0px', flexWrap: 'wrap', marginTop: '' }}>
+        {assignmentsList.map((assignment, index) => {
+            const gradeStyle = getGradeColors(assignment.average);
+            const hasFlaggedResponses = flaggedAssignments.has(assignment.id);
+          
+            return (
+              <div
+                key={assignment.id}
+                onClick={() => handleAssignmentClick(assignment)}
+                style={{
+                  padding: '25px 0px',
+                  backgroundColor: 'white',
+                  width: '100%',
+                  borderBottom: '1px solid #ededed',
+                  position: 'relative',
+                  cursor: 'pointer',
+                  transition: 'all 0.3s ease',
+                  
+                animationDelay: `${index * 0.1}s`
+                  
+                }}
+              >
+                <span style={{
+                  fontWeight: '600',
+                  marginLeft: '6.15%',
+                  fontFamily: "'Montserrat', sans-serif"
+                }}>
+                  {assignment.name}
+                </span>
+                <span style={{position: 'absolute', right: 'calc(6.15% + 70px)', color: 'lightgrey'}}>{assignment.date ? `${assignment.date}` : 'N/A'}</span>
+                <span style={{
+                  fontSize: '16px',
+                  fontWeight: '700',
+                  position: 'absolute', right: 'calc(6.15%)',
+                  color: assignment.format.includes('MCQ') ? '#29DB0B' : '#020CFF'
+                }}>
+                  {assignment.format}
+                </span>
+                {hasFlaggedResponses && <Flag size={16} color="red"  style={{position: 'absolute', right: 'calc(6.15% + 300px)'}}/>}
+                {assignment.viewable && <Eye size={16} color="#020CFF" style={{position: 'absolute', right: 'calc(6.15% + 250px)'}}/>}
+                <span style={{ 
+  fontWeight: '500',
+  position: 'absolute', 
+  right: 'calc(6.15% + 180px)',
+  background: assignment.average ? gradeStyle.background : 'white',
+  padding: '5px',
+  borderRadius: '5px',
+  width: '40px',
+  textAlign: 'center',
+  marginTop: '-5px',
+  color: assignment.average ? gradeStyle.color : '#858585'
+}}>
+  {assignment.average ? `${assignment.average}%` : '-'}
+</span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
   };
 
+  // Handle Admitting a Student
+  const handleAdmitStudent = async (student) => {
+    try {
+      const classRef = doc(db, 'classes', classId);
+      const classDoc = await getDoc(classRef);
   
-
-  const getBorderColor = (average) => {
-    if (average < 60) return 'crimson';
-    if (average < 80) return 'khaki';
-    return 'lightgreen';
+      if (!classDoc.exists()) {
+        console.error("Class document does not exist");
+        return;
+      }
+  
+      const currentData = classDoc.data();
+  
+      const isAlreadyParticipant = currentData.participants?.some(p => p.uid === student.uid);
+      if (isAlreadyParticipant) {
+        console.log("Student is already a participant");
+        return;
+      }
+  
+      // Add student to participants
+      const updatedParticipants = [...(currentData.participants || []), {
+        uid: student.uid,
+        name: student.name,
+        email: student.email
+      }];
+  
+      // Update students array
+      const updatedStudents = [...(currentData.students || []), student.uid];
+  
+      // Update joinRequests
+      const updatedJoinRequests = (currentData.joinRequests || [])
+        .filter(uid => uid !== student.uid);
+  
+      // Sort participants by last name
+      updatedParticipants.sort((a, b) => 
+        a.name.split(' ').pop().localeCompare(b.name.split(' ').pop())
+      );
+  
+      await updateDoc(classRef, {
+        participants: updatedParticipants,
+        joinRequests: updatedJoinRequests,
+        students: updatedStudents
+      });
+  
+      // Update local state
+      setClassData(prev => ({
+        ...prev,
+        participants: updatedParticipants,
+        joinRequests: prev.joinRequests.filter(req => req.uid !== student.uid),
+        students: updatedStudents
+      }));
+  
+    } catch (error) {
+      console.error("Error admitting student:", error);
+    }
   };
 
+  // Handle Rejecting a Student
+  const handleRejectStudent = async (studentUID) => {
+    try {
+      const classRef = doc(db, 'classes', classId);
+      const updatedJoinRequests = classData.joinRequests.filter(req => req.uid !== studentUID);
+
+      await updateDoc(classRef, {
+        joinRequests: updatedJoinRequests.map(req => req.uid)
+      });
+
+      setClassData(prev => ({
+        ...prev,
+        joinRequests: updatedJoinRequests
+      }));
+    } catch (error) {
+      console.error("Error rejecting student:", error);
+    }
+  };
+
+  // Render Content Based on Active Tab
+  const renderContent = () => {
+    if (activeTab === 'joinRequests') {
+      return (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          {classData.joinRequests?.length > 0 ? (
+            classData.joinRequests.map(student => (
+          ''
+            ))
+          ) : (
+           ''
+          )}
+        </div>
+      );
+    }
+    
+    return renderAssignmentList(getDisplayedAssignments());
+  };
 
   return (
-    <div style={{  display: 'flex', flexDirection: 'column', backgroundColor: '#white', position: 'absolute', top: 0, left: 0, bottom: 0, right: 0}}>
+    <div style={{
+      display: 'flex',
+      flexDirection: 'column',
+      width: '100%',
+      height: '100%',
+      backgroundColor: 'white',
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0
+    }}>
+      <Navbar userType="teacher" />
 
-      <Navbar userType="teacher" currentPage={currentPage}  />
-     
-{showDeleteConfirm && (
-  <RetroConfirm 
-    onConfirm={confirmDeleteClass}
-    onCancel={() => setShowDeleteConfirm(false)}
-    className={className}
-  />
-)}
-      <main style={{ flexGrow: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', marginTop: '60px' }}>
-     
-      {successMessage && (
-          <div style={{
-            position: 'fixed',
-            bottom: '60px',
-            zIndex: '10000',
-            right: '4%',
-            display: 'flex',
-            flexDirection: 'column',
-             height: '6px'
-          }}>
-           <div style={{
-              backgroundColor: '#CCFFC3',
-              marginLeft: '0%',
-              marginRight: 'auto',
-              border: '1px solid #4BD682',
-              borderRadius: '10px',
-              padding: '0px 20px',
-              height: '50px',
-              display: 'flex',
-              alignItems: 'left',
-              marginTop: '0px',
-              marginBottom: '20px',
-              whiteSpace: 'nowrap'
-            }}>
-      <p style={{ color: '#45B434', fontWeight: '600', marginRight: '20px' }}>{successMessage}</p>
-              <button
-                onClick={handleResults}
-                style={{
-                  backgroundColor: getNotificationStyles(assignmentFormat).buttonBg,
-                  color: getNotificationStyles(assignmentFormat).buttonColor,
-                  fontSize: '16px',
-                  fontFamily: "'montserrat', sans-serif",
-                  fontWeight: 'BOLD',
-                  height: '30px',
-                  
-          marginTop: '10px',
-                  border: `1px solid ${getNotificationStyles(assignmentFormat).buttonBorder}`,
-                  borderRadius: '5px',
-                  marginRight: '10px',
-                  cursor: 'pointer'
-                }}
-              >
-                Grades
-              </button>
-              <button
-                onClick={handleDismiss}
-                style={{
-                  backgroundColor: '#FFFFFF',
-          color: 'lightgrey',
-          marginTop: '10px',
-          fontSize: '16px',
-          fontFamily: "'montserrat', sans-serif",
-          fontWeight: '500',
-          marginBottom: '10px',
-          height: '30px',
-          border: '1px solid lightgrey',
-          borderRadius: '5px',
-          cursor: 'pointer'
-                }}
-              >
-                Dismiss
-              </button>
-            </div>
-            
-          </div>
-        )}
-     <div  style={{ flexGrow: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', marginTop: '-60px', width: '1000px'}}>
-
-
-      <div style={{width: '100%', display: 'flex', justifyContent: 'space-between', marginTop: '-100px', marginBottom: '190px'}}>
-     
-
-
-
-
-
-
-      <div style={{fontSize: '36px',
-  height: '160px',
- marginLeft: '110px',
-  fontFamily: "'montserrat', sans-serif",
- width: '730px',
- borderRadius: '15px',
- paddingLeft: '40px',
-  zIndex: '20',
-  marginTop: '180px',
-  paddingBottom: '20px',  paddingTop: '20px',
-  background: 'white',
-  backgroundColor: 'transparent',
-  alignItems: 'center',
- 
-  
-               boxShadow: '1px 1px 5px 1px rgb(0,0,155,.07)',
-  justifyContent: 'center'
-}}>
-  
-  <h1 style={{ textAlign: 'left', textShadow: 'none', marginTop: '10px', marginRight: '40px',
-     fontSize: '60px', fontWeight: 'bold', color: 'black',fontFamily: "'montserrat', sans-serif", }}>
-      {classChoice}</h1>
-<h1 style={{
-marginLeft: '4px',
- marginTop: '-30px',
- fontWeight: '600',
- height: '40px',
- lineHeight: '40px',
- color:'grey',
-  fontSize: '30px', 
-
-}}>
-  {className}
-</h1>
-
-
-</div>
-     
- 
-    
-
-</div>
-
-    <div style={{ 
-          width: '100%', 
-          
-          display: 'flex', 
-          justifyContent: 'space-around', 
-          alignItems: 'center', 
-          position: 'relative',
-          bottom: '0',
-          paddingBottom: '20px', 
-          marginBottom: '-35px'
+      {/* Header */}
+      <div style={{
+        width: 'calc(100% - 200px)',
+        marginLeft: '200px',
+        borderBottom: '1px solid lightgrey',
+        height: '100px',
+        position: 'fixed',
+        top: '0px',
+        zIndex: '50',
+        background: 'rgb(255,255,255,.9)',
+        backdropFilter: 'blur(5px)'
+      }}>
+        <h1 style={{
+          fontSize: '30px',
+          fontFamily: "'Montserrat', sans-serif",
+          color: 'black',
+          marginBottom: '20px',
+          marginLeft: '4%',
         }}>
+          Dashboard
+        </h1>
 
-  
-<div style={{display: 'flex',  marginTop: '-150px',width: '900px'}}>
-<Link 
-  to={`./Assignments`} 
-  style={{ 
-    ...linkStyle,
-    backgroundColor: 'white',
-    marginTop: '20px',
-    border: '2px solid ',
-    textDecoration: 'none',
-  }}
-  onMouseEnter={(e) => {
-    e.currentTarget.style.borderColor = '#f4f4f4';
-    const subdiv = e.currentTarget.querySelector('.subdiv');
-    if (subdiv) {
-      subdiv.style.borderColor = '#2F37FF';
-    }
-  }}
-  onMouseLeave={(e) => {
-    e.currentTarget.style.borderColor = 'white';
-    const subdiv = e.currentTarget.querySelector('.subdiv');
-    if (subdiv) {
-      subdiv.style.borderColor = '#020CFF';
-    }
-  }}
->
-  <div style={{marginTop: '30px', }} >
-    <BookOpenText size={150} color="grey" strokeWidth={1.8} />
-  </div>  
-
-  <div
-    className="subdiv"
-    style={{
-      backgroundColor: '#99B6FF',
-      marginTop: '20px',
-      color: '#020CFF',
-      border: '10px solid #0009D9',
-      height: '60px',
-      width: '338px',
-      marginLeft: '-2px',
-      borderBottomLeftRadius: '15px',
-      borderBottomRightRadius: '15px',
-    }}
-  >
-    <h1 style={{fontSize: '30px', marginTop: '12px'}}>Assignments</h1>
-  </div>
-</Link>
-
-<Link 
-  to={`./participants`} 
-  style={{ 
-    ...linkStyle,
-    backgroundColor: 'white',
-    marginTop: '20px',
-    border: '2px solid ',
-    textDecoration: 'none',
-  }}
-  onMouseEnter={(e) => {
-    e.currentTarget.style.borderColor = '#f4f4f4';
-    const subdiv = e.currentTarget.querySelector('.subdiv');
-    if (subdiv) {
-      subdiv.style.borderColor = '#FFAA00';
-    }
-  }}
-  onMouseLeave={(e) => {
-    e.currentTarget.style.borderColor = 'white';
-    const subdiv = e.currentTarget.querySelector('.subdiv');
-    if (subdiv) {
-      subdiv.style.borderColor = '#FCBB18';
-    }
-  }}
->
-  <div style={{marginTop: '30px'}}>
-    <User size={150} color="grey" strokeWidth={1.8} />
-  </div>  
-
-  <div
-    className="subdiv"
-    style={{
-      backgroundColor: '#FFF0A1',
-      marginTop: '20px',
-      color: '#FCBB18',
-      border: '10px solid #FCBB18',
-      height: '60px',
-      width: '338px',
-      marginLeft: '-2px',
-      borderBottomLeftRadius: '15px',
-      borderBottomRightRadius: '15px',
-    }}
-  >
-    <h1 style={{fontSize: '30px', marginTop: '12px'}}>Students</h1>
-  </div>
-</Link> 
-
-
-
-      </div>
-        </div>
-        <button onClick={handleDeleteClass} style={{marginTop: '90px', backgroundColor: 'transparent', borderColor: 'transparent', marginRight: 'auto', fontWeight: 'bold',  marginBottom: '-90px',      fontFamily: "'montserrat', sans-serif", color: 'darkgrey', cursor: 'pointer',fontSize: '20px' }}>Delete Class</button>
+        {/* Class Average Display */}
      
+
+        {/* Tabs */}
+       
+      </div>
+
+      {/* Main Content */}
+   
+
+      {/* Additional Main Content Sections */}
+      <div style={{
+        display: 'flex',
+        padding: '0px 0px 0px 4%',
+        gap: '40px',
+        marginTop: '100px',
+        borderBottom: '1px solid #ededed',
+        marginLeft: '200px',
+        width: 'calc(96% - 200px)'
+      }}>
+        {/* Recent Assignments */}
+      
+        {/* Right Side - Performance Graph */}
+        <div style={{   
+          width: '75%', 
+          borderRight: '1px solid #ededed', 
+          position: 'relative',  
+          paddingTop: '10px'
+        }}>
+          <h2 style={{
+            fontSize: '18px',
+            fontWeight: '600',
+            marginBottom: '30px',
+            fontFamily: "'Montserrat', sans-serif",
+            color: '#E01FFF',
+            borderLeft: '4px solid #E01FFF', 
+            paddingLeft: '10px'
+          }}>
+            Class Performance
+          </h2>
+          <div style={{ height: '300px', width: '95%', marginLeft: '-30px',  }}>
+
+          <div style={{
+  fontSize: '25px',
+  fontWeight: '600',
+  width: '80px',
+  height: '40px',
+  position: 'absolute',
+  background: classAverage ? getGradeColors(classAverage).background : 'white',
+  borderRadius: '10px',
+  top: '20px',
+  right: '20px',
+  textAlign: 'center',
+  lineHeight: '40px',
+  color: classAverage ? getGradeColors(classAverage).color : '#858585'
+}}> 
+  {classAverage ? `${classAverage}%` : '-'}
+</div>
+  <ResponsiveContainer>
+    <LineChart data={classPerformance}>
+      <CartesianGrid strokeDasharray="3 3" stroke="#ededed" />
+      <XAxis
+        dataKey="name"
+        tick={false}  // This removes the bottom labels
+        stroke="lightgrey"
+        height={20}   // Reduced height since we don't need space for labels
+      />
+      <YAxis
+        domain={[40, 100]}
+        stroke="lightgrey"
+        ticks={[40, 50, 60, 70, 80, 90, 100]}
+        axisLine={true}
+      />
+      <Tooltip
+        content={({ active, payload }) => {
+          if (active && payload && payload.length) {
+            const data = payload[0].payload;
+            const gradeStyle = getGradeColors(data.average);
+            return (
+              <div style={{
+                padding: '5px 15px',
+                borderRadius: '10px',
+                backgroundColor: 'white',
+                cursor: 'pointer',
+                border: '1px solid #ededed',
+                boxShadow: 'rgba(50, 50, 205, 0.10) 0px 2px 5px 0px, rgba(0, 0, 0, 0.05) 0px 1px 1px 0px',
+              }}>
+              <p style={{ fontWeight: '600', marginBottom: '5px' }}>{data.name}</p>
+          <div style={{display: 'flex'}}>
+            <p style={{ color: 'grey', marginBottom: '5px' }}>{data.date}</p>
+            <p style={{ 
+              marginLeft: '20px',
+              color: data.average ? gradeStyle.color : '#858585',
+              background: data.average ? gradeStyle.background : 'white',
+              padding: '2px 8px',
+              borderRadius: '5px',
+            }}>
+              {data.average ? `${data.average}%` : '-'}
+            </p> </div>
+              </div>
+            );
+          }
+          return null;
+        }}
+      />
+      <Line
+        type="monotone"
+        dataKey="average"
+        stroke="#E01FFF"
+        strokeWidth={2}
+        dot={{ r: 4 }}
+        activeDot={{ r: 6 }}
+        connectNulls={true}
+      />
+    </LineChart>
+  </ResponsiveContainer>
+
+          </div>
+          {renderTabs()}
+         
+
+
+
+
+
+
+
         </div>
-      </main>
-      <Footer></Footer>
+
+
+        <div style={{width: '30%',  marginLeft: '-40px'}}>
+  <div style={{  width: '77%', alignItems: 'center', gap: '20px', marginLeft: '7%',   }}>
+    <div
+    onClick={() => navigate(`/class/${classId}/assignments`)} 
+    
+    style={{display: 'flex', alignItems: 'center', gap: '10px',  border: '1px solid #ededed', position: 'relative',padding: '15px 15px', marginTop: '20px', borderRadius: '15px',
+      
+      boxShadow: 'rgba(50, 50, 205, 0.05) 0px 2px 5px 0px, rgba(0, 0, 0, 0.05) 0px 1px 1px 0px',cursor: 'pointer'
+    }}>
+      <span style={{color: '#020CFF', background: '#CAD2FF',  padding: '5px 10px', fontWeight: '600', fontSize: '30px', borderRadius: '10px'}}>{assignments?.length || 0}</span>
+      <span style={{color: 'grey', fontWeight: '600', fontSize: '20px', marginLeft: '40px', position: 'absolute', left: '20%'}}>Assignments</span>
+    </div>
+    <div
+    
+    onClick={() => navigate(`/class/${classId}/participants`)} 
+    
+    style={{display: 'flex', alignItems: 'center', gap: '10px',  border: '1px solid #ededed', position: 'relative',padding: '15px 15px', marginTop: '20px', borderRadius: '15px',
+      
+      boxShadow: 'rgba(50, 50, 205, 0.05) 0px 2px 5px 0px, rgba(0, 0, 0, 0.05) 0px 1px 1px 0px',cursor: 'pointer'
+    }}>  <span style={{color: '#FFAE00', background: '#FFEFCC', padding: '5px 10px', fontWeight: '600', fontSize: '30px', borderRadius: '10px'}}>{(classData.students?.length || 0)}</span>
+      <span style={{color: 'grey', fontWeight: '600', fontSize: '20px', marginLeft: '40px', position: 'absolute', left: '20%'}}>Students</span>
+    </div>
+    <div 
+    
+    onClick={() => navigate(`/class/${classId}/assignments`)} 
+    
+    style={{display: 'flex', alignItems: 'center', gap: '10px',  border: '1px solid #ededed', position: 'relative',padding: '15px 15px', marginTop: '20px', borderRadius: '15px',
+      
+      boxShadow: 'rgba(50, 50, 205, 0.05) 0px 2px 5px 0px, rgba(0, 0, 0, 0.05) 0px 1px 1px 0px', cursor: 'pointer'
+    }}>  <span style={{color: 'grey', background: '#F2F2F2',  padding: '5px 10px', fontWeight: '600', fontSize: '30px', borderRadius: '10px'}}>{(classData.drafts?.length || 0)}</span>
+      <span style={{color: 'grey', fontWeight: '600', fontSize: '20px', marginLeft: '40px', position: 'absolute', left: '20%'}}>Drafts</span>
+    </div>
+
+    <div 
+    
+    onClick={() => navigate(`/class/${classId}/assignments`)} 
+    
+    style={{display: 'flex', alignItems: 'center', gap: '10px',  border: '1px solid #ededed', position: 'relative',padding: ' 15px 15px', marginTop: '20px', borderRadius: '15px',
+      
+      boxShadow: 'rgba(50, 50, 205, 0.05) 0px 2px 5px 0px, rgba(0, 0, 0, 0.05) 0px 1px 1px 0px',cursor: 'pointer'
+    }}>  <span style={{color: '#38BFB8', background: '#D7FFFD',  padding: '5px 10px', fontWeight: '600', fontSize: '30px', borderRadius: '10px'}}>{(classData.Folders?.length || 0)}</span>
+      <span style={{color: 'grey', fontWeight: '600', fontSize: '20px', marginLeft: '40px', position: 'absolute', left: '20%'}}>Folders</span>
+    </div>
+
+  </div>
+</div>
+
+
+
+        
+      </div>
+
+      <div style={{width: 'calc(100% - 200px)', marginLeft: '200px', borderTop: '1px solid lightgrey', display: 'flex', height: '500px'}}>
+           
+            <div style={{ width: '65%', borderRight: '1px solid lightgrey',}}>
+            
+          {renderContent()}
+          </div>
+
+
+
+
+          <div style={{ width: '35%', }}>
+           <h2 style={{
+            fontSize: '18px',
+            fontWeight: '600',
+            marginLeft: '20px',
+            marginBottom: '30px',
+            display: 'flex',
+            fontFamily: "'Montserrat', sans-serif",
+            color: '#E01FFF',
+            borderLeft: '4px solid #E01FFF', 
+            paddingLeft: '10px'
+          }}>
+            Join Requests   
+            
+            {classData.joinRequests?.length > 0 && (
+              <span style={{
+                background: 'red',
+                color:  'white',
+                padding: '0px 2px',
+                borderRadius: '4px',
+                height:" 20px",
+                fontSize: '12px',
+                fontWeight: '600',
+                marginLeft: '20px',
+                minWidth: '20px',
+                textAlign: 'center',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}>
+                {classData.joinRequests?.length}
+              </span>
+            )}
+          </h2>
+
+
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          {classData.joinRequests?.length > 0 ? (
+            classData.joinRequests.map(student => (
+              <div key={student.uid} style={{
+                display: 'flex',
+                alignItems: 'center',
+                padding: '15px 20px',
+                backgroundColor: 'white',
+
+                border: '1px solid #ededed',
+                margin: '5px 0',
+                position: 'relative'
+              }}>
+                <div>
+                <div style={{ fontWeight: '600' }}>{student.name}</div>
+                <div style={{ color: 'grey', fontSize: '14px', marginTop: '10px'}}>{student.email}</div>
+                  </div>
+
+                <div style={{ display: 'flex', gap: '10px', marginLeft: 'auto', marginRight: '8%' }}>
+                  <button
+                    onClick={() => handleAdmitStudent(student)}
+                    style={{
+                      padding: '0px 5px',
+                      backgroundColor: 'white',
+                      border: 'none',
+                      borderRadius: '5px',
+                      color: '#00b303',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <SquareCheck/>
+                  </button>
+                  <button
+                    onClick={() => handleRejectStudent(student.uid)}
+                    style={{
+                      padding: '0px 5px',
+                      backgroundColor: 'white',
+                      border: 'none',
+                      borderRadius: '5px',
+                      color: '#e60000',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <SquareX/>
+                  </button>
+                </div>
+              </div>
+            ))
+          ) : (
+            <div style={{
+              padding: '10px 20px',
+              textAlign: 'left',
+              color: 'grey'
+            }}>
+              No join requests available
+            </div>
+          )}
+        </div>
+
+
+
+          </div>
+
+          </div>
+
+
     </div>
   );
 };

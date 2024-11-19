@@ -369,7 +369,7 @@ const [showIncorrectScreen, setShowIncorrectScreen] = useState(false);
       const progressRef = doc(db, 'assignments(progress', `${assignmentId}_${studentUid}`);
       await deleteDoc(progressRef);
 
-      navigate(`/studentassignments/${classId}`);
+      navigate(`/studentassignments/${classId}/active`);
     } catch (error) {
       console.error("Error submitting assignment:", error);
     } finally {
@@ -490,7 +490,7 @@ const [showIncorrectScreen, setShowIncorrectScreen] = useState(false);
 
   const onSaveAndExit = async () => {
     await saveProgress();
-    navigate(`/studentassignments/${classId}`);
+    navigate(`/studentassignments/${classId}/active`);
   };
   const toggleTimer = () => {
     setShowTimer((prevShowTimer) => !prevShowTimer);
