@@ -123,7 +123,11 @@ const TeacherResults = () => {
     scaleMax: '2',
     timer: '0',
     timerOn: false,
+    onViolation: 'pause' // Add this default value
   });
+
+
+  
   const fetchStudentsWithoutAssignment = useCallback(async () => {
     const studentsWithoutAssignment = [];
     for (const student of students) {
@@ -332,8 +336,8 @@ const TeacherResults = () => {
         scaleMax: data.scale?.max || '2',
         timer: data.timer || '0',
         timerOn: data.timer > 0,
-
-      assignmentName: data.assignmentName || '',
+        onViolation: data.onViolation || 'pause', // Add this line
+        assignmentName: data.assignmentName || '',
         questionCount: {
           student: data.questionCount?.student || '5',
           bank: data.questionCount?.bank || '10'
@@ -351,29 +355,59 @@ const TeacherResults = () => {
 
   const updateAssignmentSetting = async (setting, value) => {
     const assignmentRef = doc(db, 'assignments', assignmentId);
-    const updateData = { [setting]: value };
-        
-    if (setting === 'timer') {
-      updateData.timerOn = value !== '0';
-      setTimerOn(value !== '0');
-    }
-    if (setting === 'scaleMin' || setting === 'scaleMax') {
-      updateData.scale = {
-        min: setting === 'scaleMin' ? value : assignmentSettings.scaleMin,
-        max: setting === 'scaleMax' ? value : assignmentSettings.scaleMax,
+    let updateData = {};
+  
+    if (setting === 'lockdown') {
+      // When lockdown is turned off, reset onViolation to pause
+      updateData = { 
+        lockdown: value,
+        onViolation: value ? assignmentSettings.onViolation : 'pause'
       };
+      setAssignmentSettings(prev => ({
+        ...prev,
+        lockdown: value,
+        onViolation: value ? prev.onViolation : 'pause'
+      }));
+    } else if (setting === 'onViolation') {
+      updateData = { onViolation: value };
+      setAssignmentSettings(prev => ({
+        ...prev,
+        onViolation: value
+      }));
+    } else {
+      updateData = { [setting]: value };
+      
+      if (setting === 'timer') {
+        updateData.timerOn = value !== '0';
+        setTimerOn(value !== '0');
+      }
+      if (setting === 'scaleMin' || setting === 'scaleMax') {
+        updateData.scale = {
+          min: setting === 'scaleMin' ? value : assignmentSettings.scaleMin,
+          max: setting === 'scaleMax' ? value : assignmentSettings.scaleMax,
+        };
+      }
+      if (setting === 'assignmentName') {
+        setAssignmentName(value);
+      }
+      if (setting === 'questionCount') {
+        updateData.questionCount = value;
+      }
+      setAssignmentSettings(prev => ({ ...prev, [setting]: value }));
     }
-    if (setting === 'assignmentName') {
-      setAssignmentName(value);
+  
+    try {
+      await updateDoc(assignmentRef, updateData);
+    } catch (error) {
+      console.error('Error updating assignment setting:', error);
+      // Revert the state on error
+      if (setting === 'lockdown' || setting === 'onViolation') {
+        setAssignmentSettings(prev => ({
+          ...prev,
+          [setting]: prev[setting]
+        }));
+      }
     }
-    if (setting === 'questionCount') {
-      updateData.questionCount = value;
-    }
-    await updateDoc(assignmentRef, updateData);
-    setAssignmentSettings(prev => ({ ...prev, [setting]: value }));
-    
-    // Refresh settings after update
-    fetchAssignmentSettings();
   };
   
 

@@ -115,7 +115,13 @@ const Exports = ({ assignmentId, style }) => {
     setIsHovered(false);
     setShowDropdown(false);
   };
-
+  const getOrdinalSuffix = (num) => {
+    const number = parseInt(num);
+    if (number === 1) return "st";
+    if (number === 2) return "nd";
+    if (number === 3) return "rd";
+    return "th";
+  };
   return (
     <div 
       ref={containerRef} 
@@ -183,9 +189,10 @@ const Exports = ({ assignmentId, style }) => {
             gap: '5px',
           }}>
             {teacherClasses.map((classItem) => {
-              const periodNumber = getPeriodNumber(classItem.className);
-              const periodStyle = periodStyles[periodNumber] || { background: '#F4F4F4', color: 'grey', hoverBg: '#FAFAFA' };
-              
+              const periodNumber = parseInt(classItem.className.split(' ')[1]);
+              const periodStyle = periodStyles[periodNumber] || { background: '#F4F4F4', color: 'grey' };
+              const suffix = getOrdinalSuffix(periodNumber);
+               
               return (
                 <div 
                   key={classItem.id}
@@ -198,7 +205,7 @@ const Exports = ({ assignmentId, style }) => {
                   }}
                   style={{
                     width: '150px',
-                    height: '60px',
+                    height: '70px',
                     cursor: 'pointer',
                     borderRadius: '10px',
                     position: 'relative',
@@ -206,30 +213,52 @@ const Exports = ({ assignmentId, style }) => {
                     background: 'white',
                     padding: '5px'
                   }}>
-                  <div style={{
-                    fontFamily: "'montserrat', sans-serif",
-                    fontWeight: "600",
-                    background: periodStyle.background,
-                    height: '12px',
-                    marginLeft: '15px',
-                    lineHeight: '10px',
-                    width: '120px',
-                    paddingLeft: '4px',
-                    marginBottom: '15px',
-                    marginTop: '10px',
+                    <div style={{display: 'flex'}}>
+                  <h1 style={{
+                    fontSize: '20px',
+                    borderRadius: '5px',
+                    backgroundColor: periodStyle.background,
+                    width: '40px',
                     color: periodStyle.color,
-                    fontSize: '25px',
-                    whiteSpace: "nowrap"
+                    height: '30px',
+                    marginTop: '6px',
+                    lineHeight: '30px',
+                    fontWeight: '600',
+                   
+                    padding: '0px 5px',
                   }}>
-                    {classItem.className}
-                  </div>
+                    {periodNumber}
+                    <span style={{
+                    fontSize: '20px',
+                    fontWeight: '600',
+                    marginLeft: '2px',
+                  }}>
+                    {suffix}
+                  </span>
+                  </h1>
+                
+                  <h1 style={{
+                    fontSize: '25px',
+                    
+                    color: periodStyle.color,
+                  marginTop: '6px',
+                    fontWeight: '600',
+                    marginLeft: '10px',
+                  }}>
+                    Period
+                  </h1>
+</div>
+
+
                   <div style={{
                     fontFamily: "'montserrat', sans-serif",
                     fontWeight: "600",
                     color: 'lightgrey',
-                    marginLeft: '15px',
+                    marginLeft: '5px',
                     overflow: "hidden",
-                    textOverflow: "ellipsis",
+                    marginTop: '-10px',
+                    textOverflow: "ellipsis"
+                    , textAlign:  'left',
                     whiteSpace: "nowrap",
                     fontSize: '14px'
                   }}>

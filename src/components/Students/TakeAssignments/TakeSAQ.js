@@ -3,7 +3,7 @@ import { arrayRemove, arrayUnion, doc, getDoc, setDoc, updateDoc, serverTimestam
 import { useParams, useNavigate } from 'react-router-dom';
 import { db, auth } from '../../Universal/firebase';
 import Loader from '../../Universal/Loader';
-import { SquareArrowLeft, SquareArrowRight, Eye, EyeOff } from 'lucide-react';
+import { SquareArrowLeft, SquareArrowRight, Eye, EyeOff, LayoutGrid, List } from 'lucide-react';
 import TakeAssignmentNav from './TakeAssignmentNav';
 function TakeTests() {
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -25,6 +25,8 @@ function TakeTests() {
   const [onViolation, setOnViolation] = useState('pause');
   const saveIntervalRef = useRef(null);
   const [halfCredit, setHalfCredit] = useState(false);
+  const [timeMultiplier, setTimeMultiplier] = useState(1); // Add this state
+  const [isListView, setIsListView] = useState(false);
 
   const studentUid = auth.currentUser.uid;
   const navigate = useNavigate();
@@ -247,6 +249,17 @@ const [scaleMax, setScaleMax] = useState(2);
     const fetchAssignmentAndProgress = async () => {
       setLoading(true);
       try {
+        // First fetch the student's time multiplier
+        const studentRef = doc(db, 'students', studentUid);
+        const studentDoc = await getDoc(studentRef);
+        let multiplier = 1; // Default value
+        
+        if (studentDoc.exists()) {
+          // Use the timeMultiplier if it exists, otherwise use default
+          multiplier = studentDoc.data().timeMultiplier || 1;
+          setTimeMultiplier(multiplier);
+        }
+
         console.log('Fetching assignment:', assignmentId);
         const assignmentRef = doc(db, 'assignments', assignmentId);
         const assignmentDoc = await getDoc(assignmentRef);
@@ -255,7 +268,9 @@ const [scaleMax, setScaleMax] = useState(2);
           const assignmentData = assignmentDoc.data();
           console.log('Assignment data:', assignmentData);
           setAssignmentName(assignmentData.assignmentName);
-          setTimeLimit(assignmentData.timer * 60);
+          // Apply the time multiplier to the timer
+          const adjustedTime = Math.round(assignmentData.timer * multiplier * 60);
+          setTimeLimit(adjustedTime);
           setClassId(assignmentData.classId);
           setHalfCredit(assignmentData.halfCredit);
           setSaveAndExit(assignmentData.saveAndExit);
@@ -274,6 +289,7 @@ const [scaleMax, setScaleMax] = useState(2);
           } else {
             setOnViolation(null);
           }
+          
           if (savedDataDoc.exists()) {
             setProgressExists(true);
             const savedData = savedDataDoc.data();
@@ -445,25 +461,6 @@ const [scaleMax, setScaleMax] = useState(2);
     }
   };
  
-
-  const gradeAssignmentWithRetries = async (questions, answers,halfCredit,  maxRetries = 2) => {
-    for (let attempt = 0; attempt <= maxRetries; attempt++) {
-      try {
-        const gradingResults = await gradeAssignment(questions, answers, halfCredit);
-
-        return gradingResults; // If successful, return the results
-      } catch (error) {
-        console.error(`Grading attempt ${attempt + 1} failed:`, error);
-        if (attempt === maxRetries) {
-          // If all retries failed, return fallback grading
-          return questions.map(() => ({
-            feedback: "Question not graded successfully due to technical issues.",
-            score: 0
-          }));
-        }
-      }
-    }
-  };
   const gradeAssignment = async (questions, answers, halfCredit) => {
     const questionsToGrade = questions.map((question, index) => ({
       questionId: question.questionId,
@@ -479,7 +476,8 @@ const [scaleMax, setScaleMax] = useState(2);
       },
       body: JSON.stringify({
         questions: questionsToGrade,
-        halfCreditEnabled: halfCredit, // Corrected parameter name
+        halfCreditEnabled: halfCredit,
+        classId: classId  // Add this line
       })
     });
   
@@ -489,6 +487,23 @@ const [scaleMax, setScaleMax] = useState(2);
   
     const gradingResults = await response.json();
     return gradingResults;
+  };
+  
+  const gradeAssignmentWithRetries = async (questions, answers, halfCredit, maxRetries = 2) => {
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      try {
+        const gradingResults = await gradeAssignment(questions, answers, halfCredit);
+        return gradingResults;
+      } catch (error) {
+        console.error(`Grading attempt ${attempt + 1} failed:`, error);
+        if (attempt === maxRetries) {
+          return questions.map(() => ({
+            feedback: "Question not graded successfully due to technical issues.",
+            score: 0
+          }));
+        }
+      }
+    }
   };
   
 
@@ -629,10 +644,45 @@ const [scaleMax, setScaleMax] = useState(2);
   };
   return (
     <div style={{ paddingBottom: '80px', marginLeft: '-3px', marginRight: '-3px', display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', width: '100%' }}>
-      <div style={{position: 'fixed', top: '0px', left: '200px', right: '0px', height: '70px', borderBottom: '1px solid lightgrey', display: 'flex'}}>
+      <div style={{position: 'fixed', top: '0px', left: '200px', right: '0px', height: '70px', borderBottom: '1px solid lightgrey', display: 'flex', zIndex: '6', backdropFilter: 'blur(5px)', 
+        background: 'rgb(255,255,255,.8)'
+      }}>
     <h1 style={{marginLeft: '4%', fontSize: '25px', marginTop: '20px', color: '#999999', }}>{assignmentName}</h1>
-    <h1 style={{marginRight: '4%', fontSize: '20px', marginTop: '25px', color: 'grey', marginLeft: 'auto', fontWeight: "500"}}> Question {currentQuestionIndex + 1} of {questions.length}</h1>
+    <h1 style={{marginRight: '4%', fontSize: '20px', marginTop: '25px', color: 'grey', marginLeft: 'auto', fontWeight: "500"}}>
+
+    {isListView ? 
+            `${questions.length} Questions` : 
+            `Question ${currentQuestionIndex + 1} of ${questions.length}`
+          }
+
+    </h1>
       </div>
+
+      <button
+        onClick={() => setIsListView(prev => !prev)}
+        style={{
+          position: 'fixed',
+          top: '90px',
+          right: '4%',
+          zIndex: 10,
+          backgroundColor: 'white',
+          border: '1px solid lightgrey',
+          borderRadius: '5px',
+          padding: '8px 16px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+          cursor: 'pointer',
+          color: 'grey',
+          fontFamily: "'montserrat', sans-serif",
+          fontWeight: '600'
+        }}
+      >
+        {isListView ? <LayoutGrid size={20} /> : <List size={20} />}
+        {isListView ? 'Page View' : 'List View'}
+      </button>
+
+
   <TakeAssignmentNav
         saveAndExitEnabled={saveAndExit}
         onSaveAndExit={onSaveAndExit}
@@ -650,12 +700,12 @@ const [scaleMax, setScaleMax] = useState(2);
       {(loading || isSubmitting || isLockdownSaving) && (
         <div style={loadingModalStyle}>
           <div style={loadingModalContentStyle}>
-            <p style={{ fontSize: '30px', fontFamily: "'montserrat', sans-serif", fontWeight: 'bold', position: 'absolute', color: 'black', top: '25%', left: '50%', transform: 'translate(-50%, -30%)' }}>
+            <p style={{ fontSize: '30px', fontFamily: "'montserrat', sans-serif", fontWeight: 'bold', position: 'absolute', color: 'black', top: '25%', left: '50%', transform: 'translate(-50%, -30%)', marginBottom: '0px' }}>
               {isSubmitting ? 'Grading in Progress' : 
                isLockdownSaving ? 'Saving Progress' : 
-               'Loading Assignment'}
+               'Loading Assignment'} </p>
               <Loader/>
-            </p>
+           
             <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
               <div className="lds-ripple"><div></div><div></div></div>
             </div>
@@ -663,16 +713,81 @@ const [scaleMax, setScaleMax] = useState(2);
         </div>
       )}
      
-     {questions.length > 0 && (
-        <div style={{ width: '60%', marginLeft: 'calc(200px + 4%)', marginRight: 'auto', marginTop: '150px', position: 'relative' }}>
-        
+    {questions.length > 0 && (
+        <div style={{ 
+          width: 'calc(100% - 200px)', 
+
+          marginLeft: 'calc(200px)', 
+          overflow: 'hidden',
+          marginRight: 'auto', zIndex: '1',
+          marginTop: '150px', 
+          position: 'relative' 
+        }}>
+          {isListView ? (
+            // List View
+            <div>
+              {questions.map((question, index) => (
+                <div key={question.questionId} style={{ marginBottom: '40px', width: '100%', 
+                  borderBottom: '1px solid lightgrey', paddingBottom: '40px'
+                 }}>
+                  <div style={{
+                    width: '60%',
+                    backgroundColor: 'white',
+                    color: 'black',
+                    fontWeight: '600',
+                    borderLeft: '5px solid #2BB514',
+                    fontSize: '25px',
+                    padding: '10px 30px',
+                    textAlign: 'left',
+                    marginLeft: '5%'
+                  }}>
+                    {question.text}
+                  </div>
+                  
+                  <textarea
+                    style={{
+                      width: '60%',
+                      minHeight: '100px',
+                      borderRadius: '10px',
+                      border: '1px solid lightgrey',
+                      padding: '20px',
+                      outline: 'none',
+
+                    marginLeft: '5%',
+                      textAlign: 'left',
+                      fontSize: '20px',
+                      fontFamily: "'montserrat', sans-serif",
+                      marginTop: '40px'
+                    }}
+                    type="text"
+                    placeholder='Type your response here'
+                    value={answers.find(a => a.questionId === question.questionId)?.answer || ''}
+                    onChange={(e) => {
+                      const updatedAnswers = answers.map(answer => 
+                        answer.questionId === question.questionId
+                          ? { ...answer, answer: e.target.value }
+                          : answer
+                      );
+                      setAnswers(updatedAnswers);
+                    }}
+                  />
+                  
+                  
+                </div>
+              ))}
+            </div>
+          ) : (
+            // Paginated View (existing view)
+            <>
+              
              <div style={{
-              width: '100%',
+              width: '60%',
               marginTop: '0px',
               backgroundColor: 'white',
               color: 'black',
               fontWeight: '600',
-              borderLeft: '5px solid #020CFF',
+              marginLeft: '5%',
+              borderLeft: '5px solid #2BB514',
               fontSize: '25px',
               padding: '10px 30px',
               textAlign: 'left',
@@ -683,12 +798,13 @@ const [scaleMax, setScaleMax] = useState(2);
           
          <textarea
               style={{
-                width: '100%',
+                width: '60%',
                 minHeight: '100px',
                 borderRadius: '10px',
                 border: '1px solid lightgrey',
                 padding: '20px',
                 outline: 'none',
+                marginLeft: '5%',
                 textAlign: 'left',
                 fontSize: '20px',
                 fontFamily: "'montserrat', sans-serif",
@@ -710,6 +826,7 @@ const [scaleMax, setScaleMax] = useState(2);
                 fontSize: '16px',
                 width: '300px',
                 fontWeight: '600',
+                marginLeft: '5%',
                 fontFamily: "'montserrat', sans-serif",
                 borderRadius: '5px' ,
                 color: currentQuestionIndex > 0 ? 'grey' : 'lightgrey',
@@ -745,6 +862,9 @@ const [scaleMax, setScaleMax] = useState(2);
             </button>
           </div>
 
+        
+            </>
+          )}
         </div>
       )}
     </div>

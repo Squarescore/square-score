@@ -150,7 +150,7 @@ const Navbar = ({ userType }) => {
   };
   // Define link routes
   const teacherLinkRoutes = {
-    Dashboard: `/class/${classId}`,
+    Dashboard: `/class/${classId}/`,
     Create: `/class/${classId}/teacherassignmenthome`,
     Assignments: `/class/${classId}/Assignments`,
     Students: `/class/${classId}/participants`,
@@ -232,7 +232,7 @@ const Navbar = ({ userType }) => {
       // Existing teacher logic
       if (path.includes("/teacherassignmenthome")) return "Create";
       
-      if (path === `/class/${classId}`) return "Dashboard";
+      if (path === `/class/${classId}/`) return "Dashboard";
       if (path.includes("/createassignment") || path.includes("/MCQ") || path.includes("/MCQA"))
         return "Create";
       if (path.includes("/TeacherResults") || path.includes("/teacherStudentResults") || path.includes("/Assignments"))
@@ -333,7 +333,13 @@ const Navbar = ({ userType }) => {
     7: { background: "#8296FF", color: "#3D44EA", borderColor: "#3D44EA" },
     8: { background: "#FF8E8E", color: "#D23F3F", borderColor: "#D23F3F" },
   };
-
+  const getOrdinalSuffix = (num) => {
+    const number = parseInt(num);
+    if (number === 1) return "st";
+    if (number === 2) return "nd";
+    if (number === 3) return "rd";
+    return "th";
+  };
   // Get period number from class name
   const getPeriodNumber = (className) => {
     const match = className.match(/Period (\d)/);
@@ -385,50 +391,71 @@ const Navbar = ({ userType }) => {
               justifyContent: "space-between",
               cursor: "pointer",
               marginBottom: '20px',
+              marginLeft: '10px',
               width: '180px',
               backgroundColor: "white",
               borderRadius: "5px",
               position: "relative",
             }}
           >
-           
-            <div
-              style={{
+            <div style={{display: 'flex'}}>
+            <div style={{
+              display: 'flex',
+              alignItems: 'baseline',
+              background: periodStyle.background,
+              padding: '3px 8px',
+              userSelect: 'none',
+              borderRadius: '5px',
+              marginBottom: '15px',
+              marginTop: '-0px',
+              width: '25px',
+              textAlign: 'center',
+              height:'20px'
+            }}>
+              <span style={{
                 fontFamily: "'montserrat', sans-serif",
                 fontWeight: "600",
-                background: periodStyle.background,
-                padding: '10px',
-                borderRadius: '5px',
-                lineHeight: '10px',
-                width: '120px',
-                paddingLeft: '4px',
-                marginBottom: '15px',
-                color: periodStyle.color, 
+                color: periodStyle.color,
+                fontSize: '16px',
+              }}>
+                {periodNumber}
+              </span>
+              <span style={{
+                fontFamily: "'montserrat', sans-serif",
+                fontWeight: "600",
+                color: periodStyle.color,
+                fontSize: '16px',
+                marginLeft: '2px',
+              }}>
+                {getOrdinalSuffix(periodNumber)}
+              </span> </div>
+              <span style={{
+                fontFamily: "'montserrat', sans-serif",
+                fontWeight: "600",
+                color: periodStyle.color,
                 fontSize: '25px',
-                whiteSpace: "nowrap",
-                flex: 1,
-                marginRight: "10px",
-              }}
-            >
-              {currentClass || ""}
-            </div>
+                userSelect: 'none',
+                marginTop: '-5px',
+                marginLeft: '10px',
+              }}>
+                Period
+              </span>
+              </div>
 
-            <div
-              style={{
-                fontFamily: "'montserrat', sans-serif",
-                fontWeight: "600",
-                color: "lightgrey",
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-                whiteSpace: "nowrap",
-                flex: 1,
-                marginRight: "10px",
-                fontSize: '14px'
-              }}
-            >
+            <div style={{
+              fontFamily: "'montserrat', sans-serif",
+              fontWeight: "600",
+              color: "lightgrey",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+              flex: 1,
+              marginRight: "10px",
+              fontSize: '14px'
+            }}>
               {currentClassChoice || "Select Class"}
             </div>
-            <ChevronDown size={20} style={{position: 'absolute', right: '10px', top: '5px'}} />
+            <ChevronDown size={20} style={{position: 'absolute', right: '15px', top: '5px'}} />
           </div>
           {/* Dropdown Menu for Classes */}
           <AnimatePresence>
@@ -437,10 +464,13 @@ const Navbar = ({ userType }) => {
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: "auto" }}
                 exit={{ opacity: 0, height: 0 }}
-                transition={{ duration: 0.3 }}
+                transition={{ duration: 0.1 }}
                 style={{
                   overflow: "hidden",
-                  backgroundColor: "#white",
+                  position: 'absolute',
+                  userSelect: 'none',
+                  width: '200px',
+                  backgroundColor: "#fcfcfc",
                   borderRadius: "5px",
                   marginTop: "0px",
                   zIndex: 1000,
@@ -450,14 +480,10 @@ const Navbar = ({ userType }) => {
                   .filter((cls) => cls.id !== classId)
                   .sort((a, b) => a.className.localeCompare(b.className))
                   .map((cls, index) => {
-                    const periodNumber = getPeriodNumber(cls.className);
-                    const periodStyle =
-                      periodStyles[periodNumber] || {
-                        background: "#F4F4F4",
-                        color: "grey",
-                        borderColor: "grey",
-                      };
-
+                   
+                      const periodNumber = parseInt(cls.className.split(' ')[1]);
+                      const periodStyle = periodStyles[periodNumber] || { background: '#F4F4F4', color: 'grey' };
+                      const suffix = getOrdinalSuffix(periodNumber);
                     return (
                       <div
                         key={cls.id}
@@ -476,23 +502,46 @@ const Navbar = ({ userType }) => {
                       >
                     
                         {/* Class Name */}
-                        <span
-                          style={{
-                            fontFamily: "'montserrat', sans-serif",
-                            fontWeight: "600",
-                            lineHeight: '5px',
-                            margin: '5px 0px',
-                            borderRadius: '5px',
-                            padding: '10px',
-                            height:'6px',
-                            fontSize: '20px',
-                            color: periodStyle.color,
-                            backgroundColor: periodStyle.background,
-                           
-                          }}
-                        >
-                          {cls.className}
-                        </span>
+                        <div style={{
+                    fontSize: '16px',
+                    borderRadius: '5px',
+                    backgroundColor: periodStyle.background,
+                    width: '45px',
+                    color: periodStyle.color,
+                    height: '25px',
+                    marginTop: '0px',
+                    lineHeight: '25px',
+                    fontWeight: '600',
+                   textAlign: 'center',
+                    padding: '0px 0px',
+                  }}>
+                    {periodNumber}
+                    <span style={{
+                    fontSize: '16px',
+                    fontWeight: '600',
+                  }}>
+                    {suffix}
+                  </span>
+
+</div>
+
+
+                  <span style={{
+                    fontSize: '20px',
+                    
+                    color: periodStyle.color,
+                    margin: 0,
+                    fontWeight: '600',
+                    marginLeft: '10px',
+                  }}>
+                    Period
+                  </span>
+
+                  
+
+
+
+
                       </div>
                     );
                   })}

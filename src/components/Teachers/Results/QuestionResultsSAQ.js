@@ -22,7 +22,12 @@ const QuestionResults = ({ assignmentId, questionId, inModal = false, onClose })
   const [expandAll, setExpandAll] = useState(false);
   const navigate = useNavigate();
   
-
+  useEffect(() => {
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth' // This gives a smooth scrolling effect
+    });
+  }, [assignmentId, questionId]); 
   const handleFeedbackChange = async (studentId, newFeedback) => {
     try {
       const gradeRef = doc(db, 'grades', studentId);

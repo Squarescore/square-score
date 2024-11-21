@@ -10,7 +10,6 @@ const SettingsSection = ({
   setAssignmentName,
   assignmentSettings,
   updateAssignmentSetting,
-  
   timer,
   setTimer,
   timerOn,
@@ -64,7 +63,6 @@ const SettingsSection = ({
     }
   };
 
-  // Update assignment settings when dates change
   const handleAssignDateChange = (date) => {
     setAssignDate(date);
     updateAssignmentSetting('assignDate', formatDate(date));
@@ -100,16 +98,13 @@ const SettingsSection = ({
             onChange={handleInputChange}
             onBlur={handleNameUpdate}
             style={{
-              width: "calc(100% - 16px) ",
+              width: "calc(100% - 16px)",
               padding: "8px",
               border: "1px solid #D1D5DB",
               borderRadius: "8px",
               outline: "none",
               boxShadow: "0 0 0 2px transparent",
-              transition: "box-shadow 0.2s",
-              ":focus": {
-                boxShadow: "0 0 0 2px #3B82F6"
-              }
+              transition: "box-shadow 0.2s"
             }}
           />
         </div>
@@ -211,7 +206,7 @@ const SettingsSection = ({
             })}
             style={{
               width: "30px",
-                padding: "4px",
+              padding: "4px",
               border: "1px solid #D1D5DB",
               borderRadius: "4px"
             }}
@@ -264,8 +259,61 @@ const SettingsSection = ({
           </div>
         </div>
 
+        {/* Lockdown Mode Toggle */}
+        <div style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          marginTop: "-20px"
+        }}>
+          <label style={{
+            fontSize: "14px",
+            fontWeight: "600",
+            color: "#4B5563"
+          }}>Lockdown Mode:</label>
+          <div style={{ position: "relative", marginRight: "4px" }}>
+            <input
+              type="checkbox"
+              className="greenSwitch"
+              checked={assignmentSettings.lockdown}
+              onChange={(e) => updateAssignmentSetting('lockdown', e.target.checked)}
+            />
+            <span>On</span>
+          </div>
+        </div>
+
+        {/* Violation Behavior (only show if lockdown is enabled) */}
+        {assignmentSettings.lockdown && (
+          <div style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            marginTop: "-20px"
+          }}>
+            <label style={{
+              fontSize: "14px",
+              fontWeight: "600",
+              color: "#4B5563"
+            }}>On Violation:</label>
+            <select
+              value={assignmentSettings.onViolation || 'pause'}
+              onChange={(e) => updateAssignmentSetting('onViolation', e.target.value)}
+              style={{
+                padding: "4px 8px",
+                border: "1px solid #D1D5DB",
+                borderRadius: "4px",
+                marginRight: "4px",
+                fontFamily: "'montserrat', sans-serif"
+              }}
+            >
+              <option value="pause">Pause Assignment</option>
+              <option value="submit">Submit Assignment</option>
+            </select>
+          </div>
+        )}
+
         {/* Grading Scale */}
-        <div style={{ display: "flex",  gap: "8px",  }}>
+        <div style={{ display: "flex", gap: "8px" }}>
           <label style={{
             fontSize: "14px",
             fontWeight: "600",

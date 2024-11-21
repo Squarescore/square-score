@@ -1,54 +1,46 @@
+// CreateFolder.js
 import React, { useState } from 'react';
-import { addDoc, collection, doc, getDoc, updateDoc } from 'firebase/firestore';
+import { doc, updateDoc, arrayUnion } from 'firebase/firestore';
 import { db } from '../../Universal/firebase';
-import { SquareX, FolderPlus, Palette } from 'lucide-react';
+import { FolderPlus, SquareX } from 'lucide-react';
+
+const pastelColors = [
+  { bg: '#FFF2A9', text: '#FFD000' },
+  { bg: '#FFB411', text: '#EA6200' },
+  { bg: '#F7C7FF', text: '#B513D2' },
+  { bg: '#FFBCBC', text: '#C10E0E' },
+  { bg: '#84FDFF', text: '#00D3D7' },
+  { bg: '#DAB5FF', text: '#7C00F8' },
+  { bg: '#9EADFF', text: '#020CFF' },
+  { bg: '#C1FFC7', text: '#48E758' },
+];
 
 function CreateFolder({ classId, onFolderCreated, onClose }) {
-    const pastelColors = [
-  
-        { bg: '#FFF2A9', text: '#FFD000' },
-        { bg: '#FFB411', text: '#EA6200' },
-        { bg: '#F7C7FF', text: '#B513D2' },
-        { bg: '#FFBCBC', text: '#C10E0E' },
-        { bg: '#84FDFF', text: '#00D3D7' },
-        { bg: '#DAB5FF', text: '#7C00F8' },
-        { bg: '#9EADFF', text: '#020CFF' },
-        { bg: '#C1FFC7', text: '#48E758' },
-        
-      ];
   const [newFolderName, setNewFolderName] = useState('');
-  const [newFolderColor, setNewFolderColor] = useState(pastelColors[0]);
+  const [selectedColor, setSelectedColor] = useState(pastelColors[0]); // Store full color object
 
   const handleCreateFolder = async () => {
     if (newFolderName.trim() === '') return;
 
     try {
-      const newFolderRef = await addDoc(collection(db, 'folders'), {
-        name: newFolderName,
-        color: newFolderColor,
-        classId: classId,
-        assignments: [],
-      });
-
       const classDocRef = doc(db, 'classes', classId);
-      const classDocSnap = await getDoc(classDocRef);
-      if (classDocSnap.exists()) {
-        const currentFolders = classDocSnap.data().folders || [];
-        await updateDoc(classDocRef, {
-          folders: [...currentFolders, newFolderRef.id],
-        });
-      }
 
-      onFolderCreated({
-        id: newFolderRef.id,
+      // Create a new folder object with all necessary properties
+      const newFolder = {
         name: newFolderName,
-        color: newFolderColor,
+        color: selectedColor, // Store the full color object
         assignments: [],
+        id: Date.now().toString() // Add a unique ID
+      };
+
+      await updateDoc(classDocRef, {
+        folders: arrayUnion(newFolder),
       });
 
-      setNewFolderName('');
-      setNewFolderColor(pastelColors[0]);
+      onFolderCreated(); // Refresh folders
       onClose();
+      setNewFolderName('');
+      setSelectedColor(pastelColors[0]);
     } catch (error) {
       console.error('Error creating folder:', error);
     }
@@ -122,144 +114,70 @@ function CreateFolder({ classId, onFolderCreated, onClose }) {
             zIndex: '10',
             marginTop: '-20px',
             display: 'flex',
+            flexDirection: 'column',
+            padding: '20px',
           }}
         >
-          <div style={{ flex: 2, padding: '20px', marginLeft: '30px', marginTop: '20px' }}>
-            <div style={{ position: 'relative', width: '680px' }}>
-              <input
-                type="text"
-                value={newFolderName}
-                onChange={(e) => setNewFolderName(e.target.value.slice(0, 15))}
-                placeholder="Name"
-                style={{
-                  width: '600px',
-                  padding: '20px',
-                  position: 'relative',
-                  marginBottom: '10px',
-                  color: '#454545',
-                  fontFamily: "'montserrat', sans-serif",
-                  backgroundColor: 'white',
-                  fontWeight: 'bold',
-                  fontSize: '30px',
-                  outline: 'none',
-                  border: '4px solid #f4f4f4',
-                  borderRadius: '10px',
-                }}
-              />
-              <span
-                style={{
-                  position: 'absolute',
-                  right: '45px',
-                  bottom: '20px',
-                  color: 'lightgrey',
-                  fontFamily: "'montserrat', sans-serif",
-                  fontSize: '14px',
-                }}
-              >
-                {newFolderName.length}/15
-              </span>
-            </div>
+          <input
+            type="text"
+            value={newFolderName}
+            onChange={(e) => setNewFolderName(e.target.value.slice(0, 15))}
+            placeholder="Folder Name"
+            style={{
+              width: '90%',
+              padding: '15px',
+              marginBottom: '20px',
+              borderRadius: '8px',
+              border: '1px solid #ddd',
+              fontSize: '18px',
+              fontFamily: "'montserrat', sans-serif",
+            }}
+          />
 
-            <div
-              style={{
-                display: 'flex',
-                flexWrap: 'wrap',
-                marginBottom: '10px',
-                width: '600px',
-                height: '30px',
-                border: '4px solid #f4f4f4',
-                borderRadius: '10px',
-                padding: '20px',
-                marginTop: '10px',
-              }}
-            >
-              <div style={{ display: 'flex' }}>
-                <Palette size={40} strokeWidth={2.5} style={{ marginTop: '-5px' }} />
-                <h1
+          <div style={{ marginBottom: '30px' }}>
+            <h3 style={{ marginBottom: '15px', fontFamily: "'montserrat', sans-serif" }}>
+              Select Color
+            </h3>
+            <div style={{ display: 'flex', gap: '10px' }}>
+              {pastelColors.map((color, index) => (
+                <div
+                  key={index}
+                  onClick={() => setSelectedColor(color)}
                   style={{
-                    width: '150px',
-                    height: '20px',
-                    marginTop: '-5px',
-                    color: '#454545',
-                    textAlign: 'center',
-                    fontFamily: "'montserrat', sans-serif",
-                    padding: '0px 0px',
+                    width: '40px',
+                    height: '40px',
+                    backgroundColor: color.bg,
+                    border: selectedColor === color ? `3px solid ${color.text}` : '3px solid transparent',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                    transition: 'transform 0.2s',
+                    '&:hover': {
+                      transform: 'scale(1.1)',
+                    },
                   }}
-                >
-                  Theme
-                </h1>
-              </div>
-              <div style={{ height: '30px', width: '4px', background: '#f4f4f4' }}></div>
-              <div
-                style={{
-                  display: 'flex',
-                  flexWrap: 'wrap',
-                  gap: '15px',
-                  height: '20px',
-                  marginTop: '30px',
-                  marginLeft: '20px',
-                }}
-              >
-                {pastelColors.map((color, index) => (
-                  <div
-                    key={index}
-                    onClick={() => setNewFolderColor(color)}
-                    style={{
-                      width: '30px',
-                      height: '30px',
-                      marginTop: '-30px',
-                      position: 'relative',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    <div
-                      style={{
-                        width: '25px',
-                        height: '25px',
-                        backgroundColor: color.bg,
-                        borderRadius: '5px',
-                        border: `4px solid ${color.text}`,
-                        boxSizing: 'border-box',
-                      }}
-                    />
-                    {newFolderColor === color && (
-                      <div
-                        style={{
-                          position: 'absolute',
-                          top: '12px',
-                          left: '12px',
-                          transform: 'translate(-50%, -50%)',
-                          width: '32px',
-                          height: '32px',
-                          borderRadius: '10px',
-                          backgroundColor: 'transparent',
-                          border: '4px solid #2BB514',
-                        }}
-                      />
-                    )}
-                  </div>
-                ))}
-              </div>
+                />
+              ))}
             </div>
-
-            <button
-              onClick={handleCreateFolder}
-              style={{
-                padding: '5px 50px',
-                backgroundColor: '#CDFFC5',
-                fontWeight: 'bold',
-                fontSize: '25px',
-                fontFamily: "'montserrat', sans-serif",
-                color: newFolderColor ? '#2BB514' : 'white',
-                border: '4px solid #2BB514',
-                borderRadius: '10px',
-                marginTop: '20px',
-                cursor: 'pointer',
-              }}
-            >
-              Create
-            </button>
           </div>
+
+          <button
+            onClick={handleCreateFolder}
+            style={{
+              padding: '12px 24px',
+              backgroundColor: '#2BB514',
+              color: 'white',
+              border: 'none',
+              borderRadius: '8px',
+              fontSize: '18px',
+              fontWeight: 'bold',
+              cursor: 'pointer',
+              fontFamily: "'montserrat', sans-serif",
+              marginTop: 'auto',
+              width: 'fit-content',
+            }}
+          >
+            Create Folder
+          </button>
         </div>
       </div>
     </div>

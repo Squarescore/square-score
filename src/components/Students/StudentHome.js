@@ -176,6 +176,14 @@ const inputRefs = useRef([]);
       return () => clearTimeout(timer);
     }
   }, [error, retryCount, fetchClassesAndRequests]);
+  const getOrdinalSuffix = (num) => {
+    const number = parseInt(num);
+    if (number === 1) return "st";
+    if (number === 2) return "nd";
+    if (number === 3) return "rd";
+    return "th";
+  };
+
   if (loading) {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh', background: '#white' }}>
@@ -376,71 +384,89 @@ marginLeft: 'calc(4% + 200px)',
             {classes.map(classItem => {
             const periodNumber = parseInt(classItem.className.split(' ')[1]);
             const periodStyle = periodStyles[periodNumber] || { background: '#F4F4F4', color: 'grey' };
-            
+            const suffix = getOrdinalSuffix(periodNumber);
             return (
               <button 
                 key={classItem.id}
                 onClick={() => navigate(`/studentassignments/${classItem.id}/active`)}
                 style={{
-                  height: '130px',
                   marginRight: '3%',
-                  
-                  marginTop: '30px',
-                  display: 'flex',
-                  backgroundColor: 'transparent',
-                  color: 'grey',
-                  cursor: 'pointer',
-                  border: '1px solid #ededed',
-                  boxShadow: 'rgba(50, 50, 205, 0.05) 0px 2px 5px 0px, rgba(0, 0, 0, 0.05) 0px 1px 1px 0px',
-                  borderRadius: '15px',
-                  textAlign: 'left',
-                  flexDirection: 'column',
-                  alignItems: 'left',
-                  transition: '.2s',
-                  position: 'relative',
-                  fontFamily: "'montserrat', sans-serif",
-                  width: '30%'
-                }}
-                onMouseEnter={(e) => {
-                  e.target.style.borderColor = '#dddddd';
-                }}
-                onMouseLeave={(e) => {
-                  e.target.style.borderColor = '#ededed';
-                }}
-                className="hoverableButton"
-              >
-                <h1 style={{
-                  backgroundColor: periodStyle.background,
-                  color: periodStyle.color,
-                  marginLeft: '15%',
-                  height: '16px',
-                  lineHeight: '16px',
-                  marginTop: '40px',
-                  width: '180px',
-                  textAlign: 'left',
-                  paddingLeft: '5px',
-                  fontSize: '40px',
-                  fontWeight: '600'
-                }}>
-                  {classItem.className}
-                </h1>
+                      flex: 1,
+                      width: "30%",
+                      maxWidth: '30%',
+                      marginTop: '20px', 
+                      height: '150px',
+                      display: 'flex',
+                      backgroundColor: 'transparent',  
+                      color: 'grey', 
+                      cursor: 'pointer',
+                      
+                      border: '1px solid #ededed',
+                      boxShadow: 'rgba(50, 50, 205, 0.05) 0px 2px 5px 0px, rgba(0, 0, 0, 0.05) 0px 1px 1px 0px',
+                      borderRadius: '15px', 
+                      textAlign: 'left',
+                      flexDirection: 'column',
+                      alignItems: 'left',
+                      transition: '.2s', 
+                      position: 'relative',
+                      zIndex: '1',
+                      fontFamily: "'montserrat', sans-serif",
+                      transform: 'scale(1)',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.target.style.borderColor = '#dddddd';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.target.style.borderColor = '#ededed';
+                    }}
+                    className="hoverableButton"
+                  >
+                 <div style={{display: 'flex', padding: '20px'}}>
+                   <h1 style={{
+                    fontSize: '30px',
+                    borderRadius: '5px',
+                    backgroundColor: periodStyle.background,
+                    
+                    color: periodStyle.color,
+                    height: '40px',
+                    marginTop: '6px',
+                    lineHeight: '40px',
+                    fontWeight: '600',
+                   
+                    padding: '0px 10px',
+                  }}>
+                    {periodNumber}
+                    <span style={{
+                    fontSize: '30px',
+                    fontWeight: '600',
+                    marginLeft: '2px',
+                  }}>
+                    {suffix}
+                  </span>
+                  </h1>
                 
-                <p style={{
-                  marginTop: '-10px',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  marginLeft: '15%',
-                  textAlign: 'left',
-                  color: 'lightgrey',
-                  fontWeight: '600',
-                  fontSize: '16px',
-                  whiteSpace: 'nowrap',
-                  width: '268px',
-                  background: 'transparent'
-                }}>
-                  {classItem.classChoice}
-                </p>
-              </button>
+                  <h1 style={{
+                    fontSize: '40px',
+                    
+                    color: periodStyle.color,
+                    margin: 0,
+                    fontWeight: '600',
+                    marginLeft: '10px',
+                  }}>
+                    Period
+                  </h1>
+                  </div>
+
+
+                <p style={{ overflow: 'hidden',
+                    textOverflow: 'ellipsis', marginLeft: '20px',
+                    textAlign: 'left',color: 'lightgrey', fontWeight: '600', 
+                    marginTop: '0px',fontSize: '16px',
+                    whiteSpace: 'nowrap',width: '268px', background: 'tranparent',   }}>{classItem.classChoice} </p>
+                    
+                
+                
+                  </button>
             );
           })}
         </div>

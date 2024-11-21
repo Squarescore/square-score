@@ -178,7 +178,14 @@ const TeacherHome = () => {
     ...doc.data(),
   }));
  
- 
+  const getOrdinalSuffix = (num) => {
+    const number = parseInt(num);
+    if (number === 1) return "st";
+    if (number === 2) return "nd";
+    if (number === 3) return "rd";
+    return "th";
+  };
+
   return (
     <div style={{  display: 'flex', flexDirection: 'column', backgroundColor: '#white', flexWrap: 'wrap' }}>
      <HomeNav userType="teacher" />
@@ -455,13 +462,14 @@ zIndex: '100'
           .map((classItem, index) => {
             const periodNumber = parseInt(classItem.className.split(' ')[1]);
             const periodStyle = periodStyles[periodNumber] || { background: '#F4F4F4', color: 'grey' };
+            const suffix = getOrdinalSuffix(periodNumber);
             return (
              
              
             
                 <button 
                 key={classItem.id}
-                    onClick={() => navigate(`/class/${classItem.id}`)} 
+                    onClick={() => navigate(`/class/${classItem.id}/`)} 
                     style={{ 
                       marginRight: '3%',
                       flex: 1,
@@ -494,25 +502,47 @@ zIndex: '100'
                     }}
                     className="hoverableButton"
                   >
-                    <h1 style={{fontSize: '35px', 
-                    
-                    
+                 <div style={{display: 'flex', padding: '20px'}}>
+                   <h1 style={{
+                    fontSize: '30px',
+                    borderRadius: '5px',
                     backgroundColor: periodStyle.background,
                     
                     color: periodStyle.color,
-                    marginLeft: '4%',
-                    padding: '18px 10px',
-                    lineHeight: '16px',
-                    borderRadius: '5px',
-                    marginTop: '20px', width: '190px',  textAlign: 'left',
-                   fontSize: '40px',
-                      fontWeight: '600',}}>{classItem.className}</h1>
+                    height: '40px',
+                    marginTop: '6px',
+                    lineHeight: '40px',
+                    fontWeight: '600',
+                   
+                    padding: '0px 10px',
+                  }}>
+                    {periodNumber}
+                    <span style={{
+                    fontSize: '30px',
+                    fontWeight: '600',
+                    marginLeft: '2px',
+                  }}>
+                    {suffix}
+                  </span>
+                  </h1>
                 
-                
-                <p style={{marginTop: '0px',  overflow: 'hidden',
-                    textOverflow: 'ellipsis', marginLeft: '4%',
+                  <h1 style={{
+                    fontSize: '40px',
+                    
+                    color: periodStyle.color,
+                    margin: 0,
+                    fontWeight: '600',
+                    marginLeft: '10px',
+                  }}>
+                    Period
+                  </h1>
+                  </div>
+
+
+                <p style={{ overflow: 'hidden',
+                    textOverflow: 'ellipsis', marginLeft: '20px',
                     textAlign: 'left',color: 'lightgrey', fontWeight: '600', 
-                    marginTop: '5px',fontSize: '16px',
+                    marginTop: '0px',fontSize: '16px',
                     whiteSpace: 'nowrap',width: '268px', background: 'tranparent',   }}>{classItem.classChoice} </p>
                     
                 

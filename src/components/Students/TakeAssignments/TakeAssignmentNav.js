@@ -36,7 +36,7 @@ const TakeAssignmentNav = ({
         position: 'fixed',
         top: 0,
         left: 0,
-        zIndex: 5,
+        zIndex: 15,
       }}
     >
 
@@ -50,7 +50,7 @@ const TakeAssignmentNav = ({
                 borderRadius: '5px',
                 backgroundColor: 'white',
           padding: '10px 30px',
-          color: '#020CFF',
+          color: '#2BB514',
           fontSize: '16px',
           fontWeight: '600',
           textAlign: 'left',

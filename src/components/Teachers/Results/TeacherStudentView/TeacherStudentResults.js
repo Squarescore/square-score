@@ -323,8 +323,9 @@ function TeacherStudentResults() {
                 }));
 
                 const response = await axios.post('https://us-central1-square-score-ai.cloudfunctions.net/GradeSAQ', {
-                    questions: questionsToGrade,
-                    halfCreditEnabled: halfCredit
+                  questions: questionsToGrade,
+                  halfCreditEnabled: halfCredit,
+                  classId: classId 
                 });
 
                 if (response.status === 200) {

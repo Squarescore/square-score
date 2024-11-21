@@ -1992,14 +1992,13 @@ Student Response: ${q.studentResponse}
     });
   });
 
-
   exports.GradeSAQ = functions.https.onRequest((req, res) => {
     return cors(req, res, async () => {
       if (req.method !== 'POST') {
         return res.status(400).send('Please send a POST request');
       }
   
-      const { questions, halfCreditEnabled } = req.body;
+      const { questions, halfCreditEnabled, classId } = req.body;
       const OPENAI_API_KEY = functions.config().openai.key;
   
       const openai = new OpenAI({
@@ -2007,59 +2006,82 @@ Student Response: ${q.studentResponse}
       });
   
       try {
-        let prompt = `Grade the following short answer questions using these guidelines:
-
-        Scoring:
-        - 2 points: Answer contains the correct number of valid items/concepts and meets rubric requirements
-        - ${halfCreditEnabled ? '1 point: Answer contains some correct elements but is incomplete OR provides more information than requested' : 'Only use 0 or 2 for grades'}
-        - 0 points: Answer is incorrect or completely off-topic
-        
-        Grading Principles:
-        1. Focus on CONTENT ACCURACY:
-           - If the required number of correct items is present, award full points
-           - Extra information beyond what's asked should not reduce points
-           - Ignore spelling, grammar, and formatting
-           - Accept any clear way of expressing the correct concept
-        
-        2. For Multiple-Item Questions:
-           - Award full points if the required number of correct items is present
-           - ${halfCreditEnabled ? 'Award 1 point if at least one correct item is provided' : 'No partial credit for incomplete answers'}
-           - Additional correct items beyond the requested number don't affect scoring
-        
-        3. For Single-Answer Questions:
-           - Award full points if the core concept is correct
-           - Additional context or elaboration should not reduce points
-           - Accept any phrasing that demonstrates understanding
-        
-        4. Feedback Guidelines:
-           - For 2 points: "Correct! [Brief restatement of key points]"
-           - For 1 point: "Partially correct. [What was right + what was missing]"
-           - For 0 points: "Incorrect. [Brief explanation of major error]"
-        
-        Format your response as:
-        [
-          {
-            "feedback": "string",
-            "score": number
+        // Fetch training data from the class document
+        let trainingDataPrompt = '';
+        try {
+          const classDoc = await admin.firestore().collection('classes').doc(classId).get();
+          if (classDoc.exists) {
+            const classData = classDoc.data();
+            if (classData.aiTrainingData && classData.aiTrainingData.length > 0) {
+              trainingDataPrompt = '\n\nUse these example grades as reference:\n';
+              classData.aiTrainingData.forEach(example => {
+                trainingDataPrompt += `
+  Example:
+  Question: ${example.question}
+  Rubric: ${example.rubric}
+  Student Response: ${example.studentResponse}
+  Score Given: ${example.score}
+  Feedback Given: ${example.feedback}
+  `;
+              });
+            }
           }
-      
-`;
+        } catch (error) {
+          console.warn('Error fetching training data:', error);
+          // Continue without training data if fetch fails
+        }
   
-        let studentResponses = questions.map((q, index) => `
-
-  Question: ${q.question}
+        let prompt = `Grade the following short answer questions using these guidelines:
+  
+  Scoring:
+  - 2 points: Answer contains the correct number of valid items/concepts and meets rubric requirements
+  - ${halfCreditEnabled ? '1 point: Answer contains some correct elements but is incomplete OR provides more information than requested' : 'Only use 0 or 2 for grades'}
+  - 0 points: Answer is incorrect or completely off-topic
+  
+  Grading Principles:
+  1. Focus on CONTENT ACCURACY:
+     - If the required number of correct items is present, award full points
+     - Extra information beyond what's asked should not reduce points
+     - Ignore spelling, grammar, and formatting
+     - Accept any clear way of expressing the correct concept
+  
+  2. For Multiple-Item Questions:
+     - Award full points if the required number of correct items is present
+     - ${halfCreditEnabled ? 'Award 1 point if at least one correct item is provided' : 'No partial credit for incomplete answers'}
+     - Additional correct items beyond the requested number don't affect scoring
+  
+  3. For Single-Answer Questions:
+     - Award full points if the core concept is correct
+     - Additional context or elaboration should not reduce points
+     - Accept any phrasing that demonstrates understanding
+  
+  4. Feedback Guidelines:
+     - For 2 points: "Correct! [Brief restatement of key points]"
+     - For 1 point: "Partially correct. [What was right + what was missing]"
+     - For 0 points: "Incorrect. [Brief explanation of major error]"
+  
+  Format your response as:
+  [
+    {
+      "feedback": "string",
+      "score": number
+    }
+  ]${trainingDataPrompt}`;
+  
+        let studentResponses = questions.map((q, index) => 
+          `Question: ${q.question}
   Rubric: ${q.rubric}
   Student Response: ${q.studentResponse}
-  `).join('');
+  `).join('\n\n');
   
-        prompt += studentResponses;
+        prompt += '\n\nNow grade these responses:\n\n' + studentResponses;
   
         const response = await openai.chat.completions.create({
-          model: 'gpt-4o-mini',
+          model: 'gpt-4-1106-preview',
           messages: [
             { role: 'system', content: prompt },
           ],
-          temperature: 1,
+          temperature: 0.7,
           max_tokens: 2048,
           top_p: 0.7,
           frequency_penalty: 0.2,
@@ -2081,7 +2103,6 @@ Student Response: ${q.studentResponse}
       }
     });
   });
-
   exports.updateAllAssignmentStats = functions.pubsub.schedule('every 1 hours').onRun(async (context) => {
     const assignmentsSnapshot = await admin.firestore().collection('assignments(saq)').get();
 
