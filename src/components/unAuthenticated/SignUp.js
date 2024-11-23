@@ -1,11 +1,42 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { getAuth, createUserWithEmailAndPassword } from "firebase/auth";
 import { db, auth } from "../Universal/firebase"; // Adjust the path to your firebase configuration
-import { Link, useNavigate } from 'react-router-dom'; // Import the navigate hook
+import { Link, useLocation, useNavigate } from 'react-router-dom'; // Import the navigate hook
 import './BackgroundDivs.css'; // Import the CSS file
-import { doc, setDoc, serverTimestamp, getDoc, updateDoc } from "firebase/firestore"; 
+import { doc, setDoc, serverTimestamp, getDoc, updateDoc, arrayUnion } from "firebase/firestore"; 
 import { BookOpenText, GraduationCap, SquareCheck, SquareX } from 'lucide-react';
+const ClassSignupInfo = ({ classInfo }) => {
+  if (!classInfo) return null;
 
+  return (
+    <div style={{
+      backgroundColor: 'white',
+      padding: '5px 20px',
+      marginLeft: '20px',
+      position: 'fixed',
+      top: '10px',
+      zIndex: '2000',
+      overflow: 'hidden',
+      borderRadius: '10px',
+      marginBottom: '30px',
+    }}>
+      <div style={{
+        display: 'flex',
+        gap: '5px'
+      }}>
+        <span style={{ color: 'grey', fontWeight: '600', fontSize: "16px", marginTop: '3px' }}>
+          Joining:
+        </span>
+        <span style={{ color: 'black', fontWeight: '600', fontSize: "20px", marginLeft: '10px' }}>
+          {decodeURIComponent(classInfo.className)},
+        </span>
+        <span style={{ color: 'grey', fontWeight: '500', fontSize: "20px", marginLeft: '5px' }}>
+          {decodeURIComponent(classInfo.classChoice)}
+        </span>
+      </div>
+    </div>
+  );
+};
 const SignUp = () => {
   // State Variables
   const [email, setEmail] = useState('');
@@ -25,7 +56,8 @@ const SignUp = () => {
   const [allCriteriaMet, setAllCriteriaMet] = useState(false);
   const [isPasswordFocused, setIsPasswordFocused] = useState(false);
 const [isConfirmPasswordFocused, setIsConfirmPasswordFocused] = useState(false);
-
+const [classInfo, setClassInfo] = useState(null);
+const location = useLocation();
   const [inputValidation, setInputValidation] = useState({
     firstName: false,
     lastName: false,
@@ -47,6 +79,23 @@ const [isConfirmPasswordFocused, setIsConfirmPasswordFocused] = useState(false);
     confirmPassword: false,
   });
 
+  useEffect(() => {
+    const path = location.pathname;
+    if (path.startsWith('/signup/')) {
+      const classInfoStr = path.slice(8); // Remove '/signup/'
+      const [classCode, encodedClassName, encodedClassChoice] = classInfoStr.split('+');
+  
+      if (classCode && encodedClassName && encodedClassChoice) {
+        setClassInfo({
+          classCode,
+          className: encodedClassName,
+          classChoice: encodedClassChoice
+        });
+        // Force role to student when signing up through class link
+        setRole('student');
+      }
+    }
+  }, [location]);
   
   const PasswordCriteria = ({ passwordCriteria, allCriteriaMet }) => (
     <div style={{
@@ -201,26 +250,23 @@ const [isConfirmPasswordFocused, setIsConfirmPasswordFocused] = useState(false);
       };
 
       if (role === 'student') {
-        if (referralCode) {
-          const teacherQuery = await getDoc(doc(db, 'teachers', referralCode));
-          if (teacherQuery.exists()) {
-            const teacherData = teacherQuery.data();
-            if (!teacherData.referredTeachers) {
-              teacherData.referredTeachers = [];
-            }
-            teacherData.referredTeachers.push(uid);
-            await updateDoc(doc(db, 'teachers', referralCode), teacherData);
-          } else {
-            setReferralError('Invalid referral code');
-            return;
-          }
-        }
+        // ... existing code ...
         userProfile.testsTaken = [];
         userProfile.classesIn = [];
         userProfile.grades = [];
         userProfile.questionsCompleted = 0;
         userProfile.reviewedTests = false;
+        userProfile.pendingClasses = []; // Add this line
         await setDoc(doc(db, 'students', uid), userProfile);
+      
+        // Add this block
+        if (classInfo && classInfo.classCode) {
+          const studentRef = doc(db, 'students', uid);
+          await updateDoc(studentRef, {
+            pendingClasses: arrayUnion(classInfo.classCode)
+          });
+        }
+      
         navigate('/studenthome');
       } else if (role === 'teacher') {
         const newReferralCode = generateReferralCode();
@@ -332,7 +378,7 @@ const [isConfirmPasswordFocused, setIsConfirmPasswordFocused] = useState(false);
       backgroundColor: '#white',
       backdropFilter: 'blur(7px)'
     }}>
-  
+  {classInfo && <ClassSignupInfo classInfo={classInfo} />}
       {/* Navbar */}
       <div style={{ 
         position: 'fixed', 

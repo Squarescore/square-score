@@ -2,9 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { doc, getDoc, updateDoc, collection, query, where, getCountFromServer } from 'firebase/firestore'; // Updated imports
 import { db } from '../Universal/firebase';
-import { ChevronLeft, ChevronRight, Eye, Flag, SquareCheck, SquareX } from 'lucide-react';
+import { BookOpen, BookOpenText, ChevronLeft, ChevronRight, Eye, Flag, Folder, PencilRuler, SquareCheck, SquareX, Users } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import Navbar from '../Universal/Navbar';
+import CopyLinkButton from './CopyLinkButtonPink';
 
 const TeacherClassHome = () => {
   // Existing States
@@ -481,7 +482,6 @@ const TeacherClassHome = () => {
         padding: '0px 0px 0px 4%',
         gap: '40px',
         marginTop: '100px',
-        borderBottom: '1px solid #ededed',
         marginLeft: '200px',
         width: 'calc(96% - 200px)'
       }}>
@@ -591,77 +591,20 @@ const TeacherClassHome = () => {
 
 
 
-
+          <div style={{borderTop: "1px solid lightgrey", marginLeft: '-7%'}}>
+            
+            {renderContent()}
+            </div>
         </div>
 
 
         <div style={{width: '30%',  marginLeft: '-40px'}}>
-  <div style={{  width: '77%', alignItems: 'center', gap: '20px', marginLeft: '7%',   }}>
-    <div
-    onClick={() => navigate(`/class/${classId}/assignments`)} 
-    
-    style={{display: 'flex', alignItems: 'center', gap: '10px',  border: '1px solid #ededed', position: 'relative',padding: '15px 15px', marginTop: '20px', borderRadius: '15px',
-      
-      boxShadow: 'rgba(50, 50, 205, 0.05) 0px 2px 5px 0px, rgba(0, 0, 0, 0.05) 0px 1px 1px 0px',cursor: 'pointer'
-    }}>
-      <span style={{color: '#020CFF', background: '#CAD2FF',  padding: '5px 10px', fontWeight: '600', fontSize: '30px', borderRadius: '10px'}}>{assignments?.length || 0}</span>
-      <span style={{color: 'grey', fontWeight: '600', fontSize: '20px', marginLeft: '40px', position: 'absolute', left: '20%'}}>Assignments</span>
-    </div>
-    <div
-    
-    onClick={() => navigate(`/class/${classId}/participants`)} 
-    
-    style={{display: 'flex', alignItems: 'center', gap: '10px',  border: '1px solid #ededed', position: 'relative',padding: '15px 15px', marginTop: '20px', borderRadius: '15px',
-      
-      boxShadow: 'rgba(50, 50, 205, 0.05) 0px 2px 5px 0px, rgba(0, 0, 0, 0.05) 0px 1px 1px 0px',cursor: 'pointer'
-    }}>  <span style={{color: '#FFAE00', background: '#FFEFCC', padding: '5px 10px', fontWeight: '600', fontSize: '30px', borderRadius: '10px'}}>{(classData.students?.length || 0)}</span>
-      <span style={{color: 'grey', fontWeight: '600', fontSize: '20px', marginLeft: '40px', position: 'absolute', left: '20%'}}>Students</span>
-    </div>
-    <div 
-    
-    onClick={() => navigate(`/class/${classId}/assignments`)} 
-    
-    style={{display: 'flex', alignItems: 'center', gap: '10px',  border: '1px solid #ededed', position: 'relative',padding: '15px 15px', marginTop: '20px', borderRadius: '15px',
-      
-      boxShadow: 'rgba(50, 50, 205, 0.05) 0px 2px 5px 0px, rgba(0, 0, 0, 0.05) 0px 1px 1px 0px', cursor: 'pointer'
-    }}>  <span style={{color: 'grey', background: '#F2F2F2',  padding: '5px 10px', fontWeight: '600', fontSize: '30px', borderRadius: '10px'}}>{(classData.drafts?.length || 0)}</span>
-      <span style={{color: 'grey', fontWeight: '600', fontSize: '20px', marginLeft: '40px', position: 'absolute', left: '20%'}}>Drafts</span>
-    </div>
+        <div style={{height:' 100px', borderBottom: '1px solid lightgrey'}}>
 
-    <div 
-    
-    onClick={() => navigate(`/class/${classId}/assignments`)} 
-    
-    style={{display: 'flex', alignItems: 'center', gap: '10px',  border: '1px solid #ededed', position: 'relative',padding: ' 15px 15px', marginTop: '20px', borderRadius: '15px',
-      
-      boxShadow: 'rgba(50, 50, 205, 0.05) 0px 2px 5px 0px, rgba(0, 0, 0, 0.05) 0px 1px 1px 0px',cursor: 'pointer'
-    }}>  <span style={{color: '#38BFB8', background: '#D7FFFD',  padding: '5px 10px', fontWeight: '600', fontSize: '30px', borderRadius: '10px'}}>{(classData.Folders?.length || 0)}</span>
-      <span style={{color: 'grey', fontWeight: '600', fontSize: '20px', marginLeft: '40px', position: 'absolute', left: '20%'}}>Folders</span>
-    </div>
-
-  </div>
-</div>
-
-
-
-        
-      </div>
-
-      <div style={{width: 'calc(100% - 200px)', marginLeft: '200px', borderTop: '1px solid lightgrey', display: 'flex', height: '500px'}}>
-           
-            <div style={{ width: '65%', borderRight: '1px solid lightgrey',}}>
-            
-          {renderContent()}
-          </div>
-
-
-
-
-          <div style={{ width: '35%', }}>
-           <h2 style={{
+        <h2 style={{
             fontSize: '18px',
             fontWeight: '600',
-            marginLeft: '20px',
+            marginLeft: '8%',
             marginBottom: '30px',
             display: 'flex',
             fontFamily: "'Montserrat', sans-serif",
@@ -669,95 +612,204 @@ const TeacherClassHome = () => {
             borderLeft: '4px solid #E01FFF', 
             paddingLeft: '10px'
           }}>
-            Join Requests   
+            Join Code 
             
-            {classData.joinRequests?.length > 0 && (
-              <span style={{
-                background: 'red',
-                color:  'white',
-                padding: '0px 2px',
-                borderRadius: '4px',
-                height:" 20px",
-                fontSize: '12px',
-                fontWeight: '600',
-                marginLeft: '20px',
-                minWidth: '20px',
-                textAlign: 'center',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center'
-              }}>
-                {classData.joinRequests?.length}
-              </span>
-            )}
+       
           </h2>
 
 
+          <div style={{
+            fontSize: '40px',
+            marginTop: '20px',
+            width: '210px',
+            height: "25px",
+            paddingLeft: '20px',
+            display: 'flex',
+            color: '#E01FFF',
+            lineHeight: '20px',
+            background: '#F8CBFF',
+            marginRight: 'auto',
+            fontFamily: "'montserrat', sans-serif",
+            fontWeight: '600',
+            marginLeft: '8%'
+          }}>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-          {classData.joinRequests?.length > 0 ? (
-            classData.joinRequests.map(student => (
-              <div key={student.uid} style={{
-                display: 'flex',
-                alignItems: 'center',
-                padding: '15px 20px',
-                backgroundColor: 'white',
+          {classData.classCode}
+            <CopyLinkButton
+  classCode={classData.classCode}
+  className={classData.className}
+  classChoice={classData.classChoice}
+/>
 
-                border: '1px solid #ededed',
-                margin: '5px 0',
-                position: 'relative'
-              }}>
-                <div>
-                <div style={{ fontWeight: '600' }}>{student.name}</div>
-                <div style={{ color: 'grey', fontSize: '14px', marginTop: '10px'}}>{student.email}</div>
-                  </div>
 
-                <div style={{ display: 'flex', gap: '10px', marginLeft: 'auto', marginRight: '8%' }}>
-                  <button
-                    onClick={() => handleAdmitStudent(student)}
-                    style={{
-                      padding: '0px 5px',
-                      backgroundColor: 'white',
-                      border: 'none',
-                      borderRadius: '5px',
-                      color: '#00b303',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    <SquareCheck/>
-                  </button>
-                  <button
-                    onClick={() => handleRejectStudent(student.uid)}
-                    style={{
-                      padding: '0px 5px',
-                      backgroundColor: 'white',
-                      border: 'none',
-                      borderRadius: '5px',
-                      color: '#e60000',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    <SquareX/>
-                  </button>
-                </div>
-              </div>
-            ))
-          ) : (
-            <div style={{
-              padding: '10px 20px',
-              textAlign: 'left',
-              color: 'grey'
-            }}>
-              No join requests available
-            </div>
-          )}
+</div>
+
+</div>
+
+<div style={{ width: '77%', alignItems: 'center', gap: '20px', marginLeft: '7%', height: 'calc(100vh - 240px)' }}>
+      <div
+        onClick={() => navigate(`/class/${classId}/assignments`)}
+        style={{
+          alignItems: 'left',
+          gap: '10px',
+          border: '1px solid #ededed',
+          position: 'relative',
+          padding: '15px 15px',
+          marginTop: '20px',
+          borderRadius: '15px',
+          boxShadow: 'rgba(50, 50, 205, 0.05) 0px 2px 5px 0px, rgba(0, 0, 0, 0.05) 0px 1px 1px 0px',
+          cursor: 'pointer',
+          height: '80px'
+        }}
+      >
+        <div style={{ display: 'flex', height: '35px', color: 'blue',  }}>
+          <BookOpenText size={35} />
+          <h1 style={{
+            color: 'black',
+            fontWeight: '600',
+            fontSize: '30px',
+            borderRadius: '10px',
+            marginTop: '0px',
+            marginLeft: '20px'
+          }}>
+            {assignments?.length || 0}
+          </h1>
         </div>
+        <h1 style={{
+          color: 'grey',
+          fontWeight: '500',
+          fontSize: '20px',
+          marginTop: '20px',
+          position: 'absolute'
+        }}>
+          Assignments
+        </h1>
+      </div>
+
+      <div
+        onClick={() => navigate(`/class/${classId}/participants`)}
+        style={{
+          alignItems: 'left',
+          gap: '10px',
+          border: '1px solid #ededed',
+          position: 'relative',
+          padding: '15px 15px',
+          marginTop: '20px',
+          borderRadius: '15px',
+          boxShadow: 'rgba(50, 50, 205, 0.05) 0px 2px 5px 0px, rgba(0, 0, 0, 0.05) 0px 1px 1px 0px',
+          cursor: 'pointer',
+          height: '80px'
+        }}
+      >
+        <div style={{ display: 'flex', height: '35px', color: '#FFAE00' }}>
+          <Users size={35} />
+          <h1 style={{
+            color: 'black',
+            fontWeight: '600',
+            fontSize: '30px',
+            borderRadius: '10px',
+            marginTop: '0px',
+            marginLeft: '20px'
+          }}>
+            {classData.students?.length || 0}
+          </h1>
+        </div>
+        <h1 style={{
+          color: 'grey',
+          fontWeight: '500',
+          fontSize: '20px',
+          marginTop: '20px',
+          position: 'absolute'
+        }}>
+          Students
+        </h1>
+      </div>
+
+      <div
+        onClick={() => navigate(`/class/${classId}/assignments`)}
+        style={{
+          alignItems: 'left',
+          gap: '10px',
+          border: '1px solid #ededed',
+          position: 'relative',
+          padding: '15px 15px',
+          marginTop: '20px',
+          borderRadius: '15px',
+          boxShadow: 'rgba(50, 50, 205, 0.05) 0px 2px 5px 0px, rgba(0, 0, 0, 0.05) 0px 1px 1px 0px',
+          cursor: 'pointer',
+          height: '80px'
+        }}
+      >
+        <div style={{ display: 'flex', height: '35px', color: 'grey' }}>
+          <PencilRuler size={35} />
+          <h1 style={{
+            color: 'black',
+            fontWeight: '600',
+            fontSize: '30px',
+            borderRadius: '10px',
+            marginTop: '0px',
+            marginLeft: '20px'
+          }}>
+            {classData.drafts?.length || 0}
+          </h1>
+        </div>
+        <h1 style={{
+          color: 'grey',
+          fontWeight: '500',
+          fontSize: '20px',
+          marginTop: '20px',
+          position: 'absolute'
+        }}>
+          Drafts
+        </h1>
+      </div>
+
+      <div
+        onClick={() => navigate(`/class/${classId}/assignments`)}
+        style={{
+          alignItems: 'left',
+          gap: '10px',
+          border: '1px solid #ededed',
+          position: 'relative',
+          padding: '15px 15px',
+          marginTop: '20px',
+          borderRadius: '15px',
+          boxShadow: 'rgba(50, 50, 205, 0.05) 0px 2px 5px 0px, rgba(0, 0, 0, 0.05) 0px 1px 1px 0px',
+          cursor: 'pointer',
+          height: '80px'
+        }}
+      >
+        <div style={{ display: 'flex', height: '35px', color: '#38BFB8' }}>
+          <Folder size={35} />
+          <h1 style={{
+            color: 'black',
+            fontWeight: '600',
+            fontSize: '30px',
+            borderRadius: '10px',
+            marginTop: '0px',
+            marginLeft: '20px'
+          }}>
+            {classData.Folders?.length || 0}
+          </h1>
+        </div>
+        <h1 style={{
+          color: 'grey',
+          fontWeight: '500',
+          fontSize: '20px',
+          marginTop: '20px',
+          position: 'absolute'
+        }}>
+          Folders
+        </h1>
+      </div>
+    </div>
+    </div>
 
 
+        
+      </div>
 
-          </div>
-
-          </div>
+    
 
 
     </div>

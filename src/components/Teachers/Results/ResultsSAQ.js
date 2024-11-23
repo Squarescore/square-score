@@ -230,11 +230,13 @@ const TeacherResults = () => {
     if (assignmentDoc.exists()) {
       const data = assignmentDoc.data();
       if (data.questions) {
-        const allQuestions = Object.entries(data.questions).map(([id, questionData]) => ({
-          questionId: id,
-          ...questionData
+        // Convert questions object to array with questionId included
+        const questionsArray = Object.entries(data.questions).map(([questionId, questionData]) => ({
+          questionId,
+          question: questionData.question,
+          rubric: questionData.rubric
         }));
-        setGeneratedQuestions(allQuestions);
+        setGeneratedQuestions(questionsArray);
       }
       setSourceText(data.sourceText || '');
       setQuestionBank(data.questionCount?.bank || '10');
@@ -303,23 +305,35 @@ const TeacherResults = () => {
       console.error('Error handling question regeneration:', error);
     }
   };
-
   const handleUpdateQuestions = async (updatedQuestions) => {
     try {
       const assignmentRef = doc(db, 'assignments', assignmentId);
-      const updatedQuestionsObj = {};
-      updatedQuestions.forEach((q, index) => {
-        updatedQuestionsObj[`question${index + 1}`] = {
-          question: q.question,
-          rubric: q.rubric
+      
+      // Create a properly structured questions object
+      const questionsObject = updatedQuestions.reduce((acc, question, index) => {
+        acc[question.questionId] = {
+          question: question.question,
+          rubric: question.rubric,
+          questionId: question.questionId
         };
+        return acc;
+      }, {});
+  
+      // Update Firestore
+      await updateDoc(assignmentRef, {
+        questions: questionsObject
       });
-      await updateDoc(assignmentRef, { questions: updatedQuestionsObj });
+  
+      // Update local state
       setGeneratedQuestions(updatedQuestions);
+      
+      console.log('Successfully updated questions');
     } catch (error) {
       console.error('Error updating questions:', error);
     }
   };
+  
+  
 
   const fetchAssignmentSettings = useCallback(async () => {
     const assignmentRef = doc(db, 'assignments', assignmentId);
@@ -1214,9 +1228,14 @@ const renderTabContent = () => {
   };
   return (
     <div style={{  display: 'flex', flexDirection: 'column',  backgroundColor: 'white', position: 'absolute', left: 0, right: 0, bottom: 0, top: 0}}>
-      <Navbar userType="teacher" />
-   
-    
+     <Navbar 
+  userType="teacher"
+  navItems={[{
+    type: 'assignmentName',
+    id: assignmentId,
+    label: assignmentName
+  }]}
+/>
 
       
 

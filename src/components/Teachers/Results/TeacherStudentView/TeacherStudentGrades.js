@@ -87,8 +87,14 @@ function TeacherStudentGrades() {
       display: 'flex',
       flexDirection: 'column',
       position: 'relative'}}>
-      <Navbar userType="teacher" />
-
+     <Navbar 
+  userType="teacher"
+  navItems={[{
+    type: 'studentGrades',
+    id: studentUid,
+    label: studentName
+  }]}
+/>
 
       <div style={{ position: 'absolute', width: '360px', height: '55px',  right: '50px', marginTop: '100px'}}>
                            <input

@@ -186,6 +186,7 @@ function App() {
   }
   return (
     <div style={{ fontFamily: "'montserrat', sans-serif"}}>
+      
     <Router>
       
       {user ? (
@@ -288,9 +289,7 @@ function App() {
 
 
 
-
-        
-            <Route path="/studenthome" element={<StudentHome />} />
+        <Route path="/studenthome" element={<StudentHome />} />
             <Route path="/testPage" element={<TestPage />} />
             <Route path="/studentassignments/:classId" element={<StudentAssignments />} />
   
@@ -368,7 +367,7 @@ function App() {
             onEnter={handleUnauthenticatedRoute}
           />
           <Route
-            path="/signup"
+            path="/signup/:classInfo?"
             element={<SignUp />}
             onEnter={handleUnauthenticatedRoute} />
              <Route

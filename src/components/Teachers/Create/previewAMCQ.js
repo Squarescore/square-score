@@ -11,6 +11,7 @@ import {
   PencilOff,
   SquareCheck,
   Eye,
+  YoutubeIcon,
 } from 'lucide-react';
 import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '../../Universal/firebase';
@@ -23,9 +24,9 @@ const PreviewAMCQ = ({ questions, onBack, onSave, assignmentId, showCloseButton 
 
   const choiceStyles = {
     a: { background: '#C7CFFF', color: '#020CFF' },
-    c: { background: '#AEF2A3', color: '#2BB514' },
-    b: { background: '#F5B6FF', color: '#E441FF' },
-    d: { background: '#FFEAAF', color: '#FFAE00' },
+    c: { background: '#D6FFCF', color: '#2BB514' },
+    b: { background: '#F6C1FF', color: '#E441FF' },
+    d: { background: '#FFEFCC', color: '#FFAE00' },
     e: { background: '#CAFFF4', color: '#00F1C2' },
     f: { background: '#C2FBFF', color: '#CC0000' },
     g: { background: '#E3BFFF', color: '#8364FF' },
@@ -57,18 +58,6 @@ const PreviewAMCQ = ({ questions, onBack, onSave, assignmentId, showCloseButton 
     );
   };
 
-  const getChoiceWidth = (choicesLength) => {
-    switch (choicesLength) {
-      case 2:
-      case 3:
-      case 4:
-        return '45%';
-      case 5:
-        return '30%';
-      default:
-        return '100%';
-    }
-  };
 
   const handleEdit = (index) => {
     setEditingQuestionIndex(index === editingQuestionIndex ? null : index);
@@ -152,8 +141,8 @@ const PreviewAMCQ = ({ questions, onBack, onSave, assignmentId, showCloseButton 
       style={{
         width: '800px',
         position: 'absolute', 
-        top:'-60px',  left:' 50%', transform: 'translatex(-50%) ',
-      height: '480px',
+        top:'-140px',  left:' 50%', transform: 'translatex(-50%) ',
+      height: '530px',
       background:" white",
         boxShadow: '1px 1px 10px 1px rgb(0,0,155,.1)',
         borderRadius: '30px',
@@ -166,13 +155,10 @@ const PreviewAMCQ = ({ questions, onBack, onSave, assignmentId, showCloseButton 
       <div
         style={{
           display: 'flex',
-          marginTop: '-60px',
+          marginTop: '10px',
           width: '780px',
           height: '70px',
-          background: '#C0CAFF',
           marginBottom: '10px',
-          border: '10px solid #020CFF',
-          borderRadius: '30px 30px 0px 0px ',
           position: 'relative',
         }}
       >
@@ -181,16 +167,17 @@ const PreviewAMCQ = ({ questions, onBack, onSave, assignmentId, showCloseButton 
           style={{
             marginLeft: '40px',
             fontFamily: "'montserrat', sans-serif",
-            color: '#020CFF',
-            fontSize: '40px',
+            color: 'black',
+            fontSize: '35px',
+            fontWeight: '600',
             display: 'flex',
             marginTop: '10px',
           }}
         >
-         <Eye size={50} style={{marginLeft: '-20px', marginRight: "20px"}}/> Question Preview{' '}
+         <Eye size={40} style={{marginLeft: '-10px', marginRight: "20px", marginTop: '5px'}}/> Question Preview{' '}
         </h1>
       </div>
-      <div style={{ display: 'flex', marginBottom: '0px' }}>
+      <div style={{ display: 'flex', marginBottom: '0px', marginTop: '-20px'}}>
         <h1
           style={{
             fontSize: '14px',
@@ -205,13 +192,13 @@ const PreviewAMCQ = ({ questions, onBack, onSave, assignmentId, showCloseButton 
         </h1>
         <h1
           style={{
-            fontSize: '20px',
+            fontSize: '14px',
             fontWeight: '600',
             background: '#FDFFC1',
             color: '#FFD13B',
             padding: '5px 10px',
             borderRadius: '5px',
-            marginLeft: '50px',
+            marginLeft: '110px',
           }}
         >
           {' '}
@@ -219,7 +206,7 @@ const PreviewAMCQ = ({ questions, onBack, onSave, assignmentId, showCloseButton 
         </h1>
         <h1
           style={{
-            fontSize: '20px',
+            fontSize: '14px',
             fontWeight: '600',
             background: '#FFE2AC',
             color: '#FFAE00',
@@ -233,7 +220,7 @@ const PreviewAMCQ = ({ questions, onBack, onSave, assignmentId, showCloseButton 
         </h1>
         <h1
           style={{
-            fontSize: '20px',
+            fontSize: '14px',
             fontWeight: '600',
             background: '#FFB764',
             color: '#E07800',
@@ -246,7 +233,7 @@ const PreviewAMCQ = ({ questions, onBack, onSave, assignmentId, showCloseButton 
           Hard
         </h1>
       </div>
-<div style={{height: '360px', overflowY: 'auto',}}>
+<div style={{height: '400px', overflowY: 'auto',}}>
       {editedQuestions.map((question, questionIndex) => (
         <div
           key={questionIndex}
@@ -270,7 +257,7 @@ const PreviewAMCQ = ({ questions, onBack, onSave, assignmentId, showCloseButton 
                 width: '20px',
                 height: '20px',
                 background: difficultyStyles[question.difficulty]?.background,
-                border: `6px ${
+                border: `5px ${
                   editingQuestionIndex === questionIndex ? 'dashed' : 'solid'
                 } ${difficultyStyles[question.difficulty]?.color}`,
                 borderRadius: '5px',
@@ -307,9 +294,9 @@ const PreviewAMCQ = ({ questions, onBack, onSave, assignmentId, showCloseButton 
               <p
                 style={{
                   flex: '1',
-                  fontSize: '25px',
+                  fontSize: '20px',
                   marginLeft: '30px',
-                  fontWeight: 'bold',
+                  fontWeight: '600',
                   margin: '0 10px 0 0',
                 }}
               >
@@ -339,20 +326,21 @@ const PreviewAMCQ = ({ questions, onBack, onSave, assignmentId, showCloseButton 
                     <div
                       key={choice}
                       style={{
-                        display: 'flex',
+                        display: 'flex',width: '100%',
                         alignItems: 'stretch',
                         marginBottom: '10px',
                       }}
                     >
                       {/* Choice area */}
+                      <div style={{ width: '85%', marginBottom: '10px'}}>
                       <div
                         style={{
                           background: style.background,
                           color: style.color,
-                          flex: 1,
-                          padding: '10px',
-                          borderRadius: '10px 0 0 10px',
-                          border: `4px solid ${style.color}`,
+                          width: 'calc(100% - 10px)',
+                          padding: '5px',
+                          borderRadius: '5px',
+                          borderLeft: `4px solid ${style.color}`,
                           display: 'flex',
                           alignItems: 'center',
                           position: 'relative',
@@ -366,11 +354,10 @@ const PreviewAMCQ = ({ questions, onBack, onSave, assignmentId, showCloseButton 
                           }
                           style={{
                             flex: 1,
-                            fontWeight: 'bold',
-                            fontSize: '20px',
+                            fontWeight: '600',
+                            fontSize: '16px',
                             textAlign: 'left',
-                            margin: 0,
-                            width: '100%',
+                            width: '95%',
                             background: 'transparent',
                             border: 'none',
                             resize: 'vertical',
@@ -389,12 +376,13 @@ const PreviewAMCQ = ({ questions, onBack, onSave, assignmentId, showCloseButton 
                       <div
                         style={{
                           flex: 1,
-                          border: '4px solid #f4f4f4',
+                          border: '1px solid lightgrey',
                           padding: '5px',
-                          borderRadius: '0 10px 10px 0',
+                          borderRadius: '5px',
                           display: 'flex',
                           alignItems: 'center',
-                          width: '',
+                          marginTop: '10px',
+                          marginLeft: '20px',
                           position: 'relative',
                         }}
                       >
@@ -411,9 +399,10 @@ const PreviewAMCQ = ({ questions, onBack, onSave, assignmentId, showCloseButton 
                           style={{
                             flex: 1,
                             color: 'black',
-                            fontWeight: 'bold',
+                            fontWeight: '500',
                             margin: 0,
                             width: '100%',
+                            fontSize: '14px',
                             border: 'none',
                             resize: 'vertical',
                             minHeight: '1em',
@@ -426,12 +415,14 @@ const PreviewAMCQ = ({ questions, onBack, onSave, assignmentId, showCloseButton 
                           }}
                         />
                      
+                     </div>
                       </div>
                          {/* Correct answer checkbox and delete icon */}
                          <div
                           style={{
                             display: 'flex',
-                            marginLeft: '10px',
+                            marginLeft: '20px',
+                            marginTop: '-50px',
                             alignItems: 'center',
                           }}
                         >
@@ -457,7 +448,9 @@ const PreviewAMCQ = ({ questions, onBack, onSave, assignmentId, showCloseButton 
                           <div
                             style={{
                               cursor: 'pointer',
-                              marginTop: ''
+                              marginTop: '',
+                              
+                            marginLeft: '20px',
                             }}
                             onClick={(e) => {
                               e.stopPropagation();
@@ -485,7 +478,6 @@ const PreviewAMCQ = ({ questions, onBack, onSave, assignmentId, showCloseButton 
                 .filter((key) => key.match(/^[a-z]$/))
                 .map((choice, index, array) => {
                   const style = getChoiceStyle(choice);
-                  const width = getChoiceWidth(array.length);
                   const isLastRow = array.length === 5 && index >= 3;
                   const explanationKey = `explanation_${choice.toLowerCase()}`;
                   const isHovered = hoveredChoice === `${questionIndex}-${choice}`;
@@ -495,23 +487,23 @@ const PreviewAMCQ = ({ questions, onBack, onSave, assignmentId, showCloseButton 
                     <div
                       key={choice}
                       style={{
-                        width: width,
+                        width: '100%',
                         margin: '10px 1%',
                         padding: '5px',
                         background: style.background,
                         color: style.color,
-                        borderRadius: isHovered ? '10px 10px 0 0' : '10px',
+                        borderRadius:  '3px',
                         cursor: 'pointer',
                         display: 'flex',
                         flexDirection: 'column',
-                        justifyContent: 'center',
-                        alignItems: 'center',
+                        justifyContent: 'left',
+                        alignItems: 'left',
                         position: 'relative',
                         transition: 'all 0.2s',
-                        border: `4px solid ${style.color}`,
+                        borderLeft: `4px solid ${style.color}`,
                         boxShadow:
                           isCorrect && editingQuestionIndex !== questionIndex
-                            ? '0 0 0 4px white, 0 0 0 8px #AEF2A3'
+                            ? '0 0 0 4px white, 0 0 0 6px #AEF2A3'
                             : 'none',
                         ...(isLastRow && { marginLeft: 'auto', marginRight: 'auto' }),
                       }}
@@ -520,10 +512,11 @@ const PreviewAMCQ = ({ questions, onBack, onSave, assignmentId, showCloseButton 
                     >
                       <p
                         style={{
-                          fontWeight: 'bold',
-                          fontSize: '20px',
-                          textAlign: 'center',
-                          margin: 0,
+                          fontWeight: '600',
+                          fontSize: '16px',
+                          textAlign: 'left',
+
+                          margin: 0,  width: '95%', paddingLeft: '2%'
                         }}
                       >
                         {question[choice]}
@@ -553,7 +546,7 @@ const PreviewAMCQ = ({ questions, onBack, onSave, assignmentId, showCloseButton 
                               <p
                                 style={{
                                   color: 'black',
-                                  fontWeight: 'bold',
+                                  fontWeight: '500',
                                   margin: 0,
                                 }}
                               >

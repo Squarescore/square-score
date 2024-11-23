@@ -125,11 +125,13 @@ const [scaleMax, setScaleMax] = useState(2);
       console.log('Assignment already submitted, ignoring lockdown violation.');
       return;
     }
-
+  
     setIsLockdownSaving(true);
-
+  
     try {
       if (onViolation === 'submit') {
+        // Save progress before submitting
+        await saveProgress();
         await handleSubmit();
       } else {
         // Default behavior is pause
@@ -144,6 +146,7 @@ const [scaleMax, setScaleMax] = useState(2);
       setIsLockdownSaving(false);
     }
   };
+  
 
   const handleSubmit = async () => {
     setIsSubmitting(true);
@@ -151,17 +154,9 @@ const [scaleMax, setScaleMax] = useState(2);
       const gradeDocRef = doc(db, `grades`, `${assignmentId}_${studentUid}`);
       const progressRef = doc(db, 'assignments(progress)', `${assignmentId}_${studentUid}`);
       const studentRef = doc(db, 'students', studentUid);
-
-      // Clean up all assignment states first
-      await updateDoc(studentRef, {
-        assignmentsToTake: arrayRemove(assignmentId),
-        assignmentsInProgress: arrayRemove(assignmentId),
-        assignmentsPaused: arrayRemove(assignmentId),
-        assignmentsTaken: arrayUnion(assignmentId)
-      });
-
+  
       const maxRawScore = questions.length * (scaleMax - scaleMin);
-
+  
       // Save the student's answers without grading results
       await setDoc(gradeDocRef, {
         assignmentId,
@@ -177,7 +172,7 @@ const [scaleMax, setScaleMax] = useState(2);
           question: questions[index].text,
           studentResponse: answer.answer,
           rubric: questions[index].rubric,
-          feedback: 'responses havent been graded',
+          feedback: 'Responses havent been graded yet',
           score: 0,
         })),
         viewable: false,
@@ -188,21 +183,10 @@ const [scaleMax, setScaleMax] = useState(2);
         scaleMax,
         percentageScore: 0,
       });
-
-      // Delete the progress document
-      await deleteDoc(progressRef);
-
-      // Clear the save interval
-      if (saveIntervalRef.current) {
-        clearInterval(saveIntervalRef.current);
-        saveIntervalRef.current = null;
-      }
-
-      setIsSubmitted(true);
-
+  
       // Grade the assignment
       const gradingResults = await gradeAssignmentWithRetries(questions, answers, halfCredit);
-
+  
       // Update with grading results
       const combinedResults = gradingResults.map((result, index) => ({
         ...result,
@@ -213,10 +197,10 @@ const [scaleMax, setScaleMax] = useState(2);
         questionId: questions[index].questionId,
         flagged: false,
       }));
-
+  
       const rawTotalScore = combinedResults.reduce((sum, result) => sum + result.score, 0);
       const percentageScore = ((rawTotalScore / maxRawScore) * 100);
-
+  
       await updateDoc(gradeDocRef, {
         rawTotalScore,
         maxRawScore,
@@ -226,7 +210,25 @@ const [scaleMax, setScaleMax] = useState(2);
         percentageScore,
         questions: combinedResults,
       });
-
+  
+      // Update student assignment status after successful grading
+      await updateDoc(studentRef, {
+        assignmentsToTake: arrayRemove(assignmentId),
+        assignmentsInProgress: arrayRemove(assignmentId),
+        assignmentsPaused: arrayRemove(assignmentId),
+        assignmentsTaken: arrayUnion(assignmentId),
+      });
+  
+      // Delete the progress document
+      await deleteDoc(progressRef);
+  
+      // Clear the save interval
+      if (saveIntervalRef.current) {
+        clearInterval(saveIntervalRef.current);
+        saveIntervalRef.current = null;
+      }
+  
+      setIsSubmitted(true);
       navigate(`/studentassignments/${classId}/completed`);
     } catch (error) {
       console.error("Error submitting and grading assignment:", error);
@@ -235,7 +237,6 @@ const [scaleMax, setScaleMax] = useState(2);
       setIsSubmitting(false);
     }
   };
-
 
 
 

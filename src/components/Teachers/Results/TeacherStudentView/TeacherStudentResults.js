@@ -490,8 +490,22 @@ function TeacherStudentResults() {
             display: 'flex',
             flexDirection: 'column',
             position: 'relative' }}>
-            <Navbar userType="teacher" />
-   
+<Navbar 
+  userType="teacher"
+  navItems={[
+    {
+      type: 'assignmentName',
+      id: assignmentId,
+      label: assignmentName
+    },
+    {
+      type: 'studentGrades',
+      id: studentUid,
+      label: studentName
+    }
+  ]}
+  classId={classId}
+/>
 
 
 
@@ -508,24 +522,16 @@ function TeacherStudentResults() {
 
 
         <div style={{display: 'flex'}}>
-            <div style={{display: 'flex',
-           paddingRight: '0px', width: '655px ', borderRadius: '15px', marginBottom: '20px', height: '190px', marginLeft: '4%', }}>
-       <div style={{marginBottom: '40px'}}>
-       <h1 style={{ fontSize: '30px', color: 'black', marginBottom: '0px', cursor: 'pointer' , marginLeft: '-5px',fontFamily: "'montserrat', sans-serif", textAlign: 'left',  }}
-              onClick={() => navigate(`/class/${classId}/student/${studentUid}/grades`)}
-              onMouseEnter={(e) => { e.target.style.textDecoration = 'underline'; }}
-              onMouseLeave={(e) => { e.target.style.textDecoration = 'none'; }}
-          
-                      
-       
-       
-       >{studentName}</h1>
-     
+            <div style={{
+           paddingRight: '0px', width: '655px ', borderRadius: '15px', marginBottom: '20px', height: '140px', marginLeft: '4%', }}>
+       <div style={{display: 'flex', marginBottom: '30px'}}>
+      
+      
        <h1
        
        onClick={() => navigate(`/class/${classId}/assignment/${assignmentId}/TeacherResults`)}
                              
-       style={{ fontSize: '16px', fontFamily: "'montserrat', sans-serif", textAlign: 'left', color: 'lightgrey', fontWeight: '600', marginTop: '10px', cursor: 'pointer'   }}
+       style={{ fontSize: '25px', color: 'grey', marginBottom: '0px', cursor: 'pointer' , marginLeft: '-5px',fontFamily: "'montserrat', sans-serif", textAlign: 'left', fontWeight: '500' }}
        
        
        onMouseEnter={(e) => { e.target.style.textDecoration = 'underline'; }}
@@ -533,17 +539,35 @@ function TeacherStudentResults() {
     > 
         {assignmentName}
       </h1>
-       <h1 style={{ fontSize: '16px', fontFamily: "'montserrat', sans-serif", textAlign: 'left',  color: 'grey', fontWeight: '500', marginTop: '30px' }}> {new Date(results.submittedAt.toDate()).toLocaleString()} </h1>
+
+
+
+      <h1 style={{ fontSize: '25px', color: 'grey', marginBottom: '0px', cursor: 'pointer' ,fontFamily: "'montserrat', sans-serif", textAlign: 'left', marginLeft: '10px',fontWeight: '500',  }} >/</h1>
+       <h1 style={{ fontSize: '25px', color: 'black', marginBottom: '0px', cursor: 'pointer' ,fontFamily: "'montserrat', sans-serif", textAlign: 'left', marginLeft: '10px', fontWeight: '500'  }}
+              onClick={() => navigate(`/class/${classId}/student/${studentUid}/grades`)}
+              onMouseEnter={(e) => { e.target.style.textDecoration = 'underline'; }}
+              onMouseLeave={(e) => { e.target.style.textDecoration = 'none'; }}
+          
+                      
+       
+       
+       > {studentName}</h1>
+     
+      </div>
+
+
+
+       <h1 style={{ fontSize: '16px', fontFamily: "'montserrat', sans-serif", textAlign: 'left',  color: 'grey', fontWeight: '500', marginTop: '10px' }}> {new Date(results.submittedAt.toDate()).toLocaleString()} </h1>
             
         
-       </div>
+      
          
 
        </div>
-       <div style={{height: '100px ', position: 'relative', marginLeft:'auto',  borderRadius: '15px', width: '100px ',  marginTop:'30px' ,background: 'white', marginRight: '4%', }}>
-       <img style={{ width: '100px',   }} src="/Score.svg" alt="logo" />
+       <div style={{height: '80px ', position: 'relative', marginLeft:'auto',  borderRadius: '15px', width: '80px ',  marginTop:'20px' ,background: 'white', marginRight: '4%', }}>
+       <img style={{ width: '80px',   }} src="/Score.svg" alt="logo" />
      
-       <div style={{fontSize: '40px', fontWeight: 'bold', width: '90px', height: '70px',position: 'absolute', background: 'transparent',  borderRadius:  '10px', top: '-25px', left: '5px', textAlign: 'center', lineHeight: '150px'}}> 
+       <div style={{fontSize: '35px', fontWeight: 'bold', width: '90px', height: '70px',position: 'absolute', background: 'transparent',  borderRadius:  '10px', top: '-35px', left: '-5px', textAlign: 'center', lineHeight: '150px'}}> 
        {letterGrade}
 
           </div>
