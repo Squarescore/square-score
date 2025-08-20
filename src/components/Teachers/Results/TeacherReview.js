@@ -3,7 +3,8 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { db } from '../../Universal/firebase';
 import { doc, collection, updateDoc, where, query, getDocs, getDoc, arrayUnion, writeBatch } from 'firebase/firestore';
 import Navbar from '../../Universal/Navbar';
-import { Brain, ClipboardList, MessageSquareMore, SquareCheck, SquareSlash, SquareX } from 'lucide-react';
+import { Brain, ClipboardList, ClipboardMinus, MessageSquareMore, Check, Slash, X } from 'lucide-react';
+import { GlassContainer } from '../../../styles';
 
 const AutoResizeTextarea = ({ value, onChange, placeholder }) => {
   const textareaRef = useRef(null);
@@ -22,8 +23,8 @@ const AutoResizeTextarea = ({ value, onChange, placeholder }) => {
       style={{
         width: '100%',
         border: 'none',
-        fontSize: '14px',
-        fontWeight: '600',
+        fontSize: '1rem',
+        fontWeight: '400',
         resize: 'none',
         outline: 'none',
         color: '#848484',
@@ -31,7 +32,7 @@ const AutoResizeTextarea = ({ value, onChange, placeholder }) => {
         background: 'transparent',
         padding: '0',
         margin: '0',
-        lineHeight: '1.5',
+        lineHeight: '1.4',
       }}
       value={value || ''}
       onChange={onChange}
@@ -52,6 +53,9 @@ const TeacherReview = () => {
   const [reviewCount, setReviewCount] = useState(0);
   const [assignmentName, setAssignmentName] = useState('');
   const [showRubric, setShowRubric] = useState(false);
+  const [redVariant, setRedVariant] = useState('clear');
+  const [yellowVariant, setYellowVariant] = useState('clear');
+  const [greenVariant, setGreenVariant] = useState('clear');
 
   const handleQuestionClick = (questionId) => {
     navigate(`/class/${classId}/assignment/${assignmentId}/TeacherResults/`, {
@@ -212,7 +216,7 @@ const TeacherReview = () => {
     const currentQuestionGroup = groupedFlaggedQuestions[currentQuestionGroupIndex];
     const currentResponse = currentQuestionGroup.responses[currentResponseIndex];
   
-    const { gradeDocId } = currentResponse;
+    const { gradeDocId, studentUid } = currentResponse;
     const reviewRef = doc(db, 'grades', gradeDocId);
     const reviewDoc = await getDoc(reviewRef);
     const reviewData = reviewDoc.data();
@@ -229,19 +233,33 @@ const TeacherReview = () => {
       return q;
     });
   
+    const newRawTotal = updatedQuestions.reduce((sum, q) => sum + q.score, 0);
+    const maxScore = reviewData.rawMaxScore || (updatedQuestions.length * 2);
+    const newPercentageScore = (newRawTotal / maxScore) * 100;
+    const newScaledScore = (newRawTotal / maxScore);
     const hasFlaggedQuestions = updatedQuestions.some(q => q.flagged);
-    const totalScore = updatedQuestions.reduce((accum, current) => accum + current.score, 0);
-    const maxScore = updatedQuestions.length * 2;
   
     try {
       const batch = writeBatch(db);
+      const studentRef = doc(db, 'students', studentUid);
   
+      // Update grade document
       batch.update(reviewRef, {
         questions: updatedQuestions,
-        hasFlaggedQuestions: hasFlaggedQuestions,
-        totalScore,
-        maxScore,
-        percentageScore: (totalScore / maxScore) * 100,
+        rawTotalScore: newRawTotal,
+        percentageScore: newPercentageScore,
+        scaledScore: newScaledScore,
+        hasFlaggedQuestions
+      });
+  
+      // Update student's class grades
+      batch.update(studentRef, {
+        [`class_${reviewData.classId}.grades.${reviewData.assignmentId}`]: {
+          score: newPercentageScore,
+          submittedAt: reviewData.submittedAt,
+          assignmentId: reviewData.assignmentId,
+          assignmentName: reviewData.assignmentName,
+        }
       });
   
       if (isTrainingAI && trainingCount < 50) {
@@ -336,7 +354,7 @@ const TeacherReview = () => {
   const currentResponse = currentQuestionGroup.responses[currentResponseIndex];
 
   const buttonContainerStyle = {
-    width: '250px',
+    width: '400px',
     display: 'flex',
     position: 'fixed',
     bottom: '40px',
@@ -345,7 +363,6 @@ const TeacherReview = () => {
     borderRadius: '15px',
     height: '60px',
     padding: '10px 10px',
-    background: 'white',
     left: 'calc(200px + 4%)',
     marginTop: '20px',
   };
@@ -357,92 +374,41 @@ const TeacherReview = () => {
       style={{
         display: 'flex',
         flexDirection: 'column',
-        backgroundColor: 'white',
       }}
     >
-      <div
-        style={{
-          width: 'calc(92% - 200px)',
-          position: 'absolute',
-          left: 'calc(200px + 4%) ',
-          textAlign: 'left',
-          backgroundColor: 'white',
-          padding: '0px',
-          borderRadius: '15px',
-          marginTop: '0px',
-        }}
-      >
-        <div style={{ display: 'flex' }}>
-          <h2
-            style={{
-              fontSize: '25px',
-              fontWeight: '600',
-            }}
-          >
-            {reviewCount} Flagged Responses
-          </h2>
 
-          {trainingCount < 50 && (
-      <div style={{ 
-        position: 'fixed',
-        bottom: '150px',
-        left: 'calc(200px + 4%)',
-        display: 'flex',
-        alignItems: 'center',
-        gap: '10px',
-        background: isTrainingAI ? '#f0fdf4' : 'white',
-        padding: '8px 16px',
-        borderRadius: '10px',
-        border: `1px solid ${isTrainingAI ? '#86efac' : '#e5e7eb'}`,
-        cursor: 'pointer'
-      }}
-      onClick={() => setIsTrainingAI(!isTrainingAI)}
-      >
-        <Brain
-          size={20} 
-          color={isTrainingAI ? '#22c55e' : '#9ca3af'}
-        />
-        <span style={{
-          fontSize: '14px',
-          fontWeight: '500',
-          color: isTrainingAI ? '#22c55e' : '#9ca3af'
-        }}>
-          Train AI Grader ({trainingCount}/50)
-        </span>
-      </div>
-    )}
-          <button
-            style={{
-              background: 'white',
-              borderRadius: '5px',
-              cursor: 'pointer',
-              marginTop: '20px',
-              marginLeft: 'auto',
-              padding: '10px 20px',
-              fontWeight: '600',
-              fontSize: '16px',
-              color: 'grey',
-              lineHeight: '10px',
-              height: '35px',
-              border: '1px solid lightgrey',
-              fontFamily: "'montserrat', sans-serif",
-            }}
-            onClick={handleBack}
-          >
-            Previous Response
-          </button>
-        </div>
-        <div
-          style={{
-            position: 'relative',
-            width: '750px',
-            marginBottom: '20px',
-            backgroundColor: 'white',
-            borderRadius: '15px',
-            color: 'black',
-          }}
-        >
-          <h1
+<div style={{ 
+  width: 'calc(100% - 200px)',
+  height: '60px',
+  display: 'flex',
+  alignItems: 'center',
+  background: 'rgb(255,255,255,.9)',
+  backdropFilter: 'blur(5px)',
+  marginTop: '0px',
+  position: 'fixed',
+  top: '70px',
+  left: '200px',
+  zIndex: 2
+}}>
+  <div style={{ 
+    marginLeft: '4%', 
+    width: '460px', 
+    position: 'relative',
+    alignItems: 'center'
+  }}>
+    <h1 style={{  
+      fontWeight: '400',
+      fontSize: '1rem',
+      margin: '0',
+      display: 'flex',
+      alignItems: 'center',
+      color: 'grey',
+      height: '100%'
+    }}>
+      Responses Remaining: {reviewCount}
+    </h1>
+
+   <h1
            onClick={() => {
             if (currentResponse && currentResponse.studentUid) {
               navigateToStudentResults(currentResponse.studentUid);
@@ -450,178 +416,281 @@ const TeacherReview = () => {
             onMouseEnter={(e) => { e.target.style.textDecoration = 'underline'; }}
             onMouseLeave={(e) => { e.target.style.textDecoration = 'none'; }}
             style={{
-              fontSize: '14px',
-              marginTop: '50px',
+              fontSize: '.8rem',
+              fontWeight: '500',
               cursor: 'pointer',
-              color: 'lightgray',
+              color: 'lightgrey',
             }}
           >
-            {currentResponse.studentName}
+             Currently On: {currentResponse.studentName}
           </h1>
-          <button
-            onClick={() => setShowRubric(!showRubric)}
-            style={{
-              position: 'absolute',
-              bottom: '10px',
-              right: '10px',
-              color: 'grey',
-              background: 'none',
-              border: 'none',
-              cursor: 'pointer',
-            }}
-          >
-            <ClipboardList />
-          </button>
 
-          <p
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              handleQuestionClick(currentQuestionGroup.questionId);
-          }} onMouseEnter={(e) => { e.target.style.textDecoration = 'underline'; }}
-          onMouseLeave={(e) => { e.target.style.textDecoration = 'none'; }}
-            style={{
-              width: '630px',
-              marginTop: '15px',
-              cursor: 'pointer',
-              fontSize: '18px',
-              fontFamily: "'montserrat', sans-serif",
-              fontWeight: '600',
-              textAlign: 'left',
-            }}
-          >
-            {currentQuestionGroup.questionText}
-          </p>
+  </div>
 
-          {showRubric && (
-            <div
-              style={{
-                margin: '20px',
-                padding: '15px',
-                background: '#f4f4f4',
-                borderRadius: '10px',
-                color: 'grey',
-                fontFamily: "'montserrat', sans-serif",
-                fontSize: '14px',
-              }}
-            >
-              {currentResponse.rubric}
+  <div style={{
+    marginLeft: 'auto',
+    marginRight: '4%',
+    
+    display: 'flex',
+    alignItems: 'center',
+    gap: '20px'
+  }}>
+    {trainingCount < 50 && (
+      <GlassContainer
+        variant={isTrainingAI ? 'green' : 'clear'}
+        size={0}
+        onClick={() => setIsTrainingAI(!isTrainingAI)}
+        style={{
+          cursor: 'pointer',
+        }}
+        contentStyle={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '10px',
+          padding: '5px 15px',
+          fontFamily: "'montserrat', sans-serif",
+          fontSize: '.9rem',
+          fontWeight: "500",
+        }}
+      >
+        <Brain
+          size={20} 
+          strokeWidth={1.5}
+          color={isTrainingAI ? '#22c55e' : '#9ca3af'}
+        />
+        <span>
+          Train AI Grader ({trainingCount}/50)
+        </span>
+      </GlassContainer>
+    )}
+
+    
+  </div>
+  </div>
+      <div
+        style={{
+          width: 'calc(92% - 200px)',
+          
+          position: 'absolute',
+          left: 'calc(200px + 4%) ',
+          textAlign: 'left',
+          padding: '0px',
+          borderRadius: '15px',
+          marginTop: '0px',
+        }}
+      >
+      
+        <div
+          style={{
+            position: 'relative',
+            width: '90%',
+            marginBottom: '20px',
+            marginTop: '60px',
+            color: 'black',
+          }}
+        >
+       
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginTop: '15px',  }}>
+              <p
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  handleQuestionClick(currentQuestionGroup.questionId);
+                }} 
+                onMouseEnter={(e) => { e.target.style.textDecoration = 'underline'; }}
+                onMouseLeave={(e) => { e.target.style.textDecoration = 'none'; }}
+                style={{
+                  margin: 0,
+                  cursor: 'pointer',
+                  fontSize: '1.3rem',
+                  fontFamily: "'montserrat', sans-serif",
+                  fontWeight: '400',
+                  textAlign: 'left',
+                }}
+              >
+                {currentQuestionGroup.questionText}
+              </p>
+              <button
+                onClick={() => setShowRubric(!showRubric)}
+                style={{
+                  color: 'grey',
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  padding: '8px',
+                  borderRadius: '8px',
+                  display: 'flex',
+                  alignItems: 'center',
+                }}
+              >
+                {showRubric ? <ClipboardMinus strokeWidth={1.5} /> : <ClipboardList strokeWidth={1.5} />}
+              </button>
             </div>
-          )}
+
+            {showRubric && (
+              <div
+                style={{
+                  margin: '10px',
+                  padding: '15px',
+                  borderRadius: '10px',
+                  color: 'grey',
+                  fontFamily: "'montserrat', sans-serif",
+                  fontSize: '14px',
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: '10px'
+                }}
+              ><div>
+                <ClipboardList size={30} strokeWidth={1} style={{ marginTop: '2px', }} />
+                </div>
+                <span style={{borderLeft: '1px solid #ddd', paddingLeft: '10px'}}>{currentResponse.rubric}</span>
+              </div>
+            )}
         </div>
 
         <div
           style={{
-            width: '700px',
+            width: '90%',
             borderRadius: '15px',
             marginBottom: '10px',
           }}
         >
           {/* Student Response */}
-          <div
+          <GlassContainer
+            variant="clear"
+            size={0}
             style={{
-              background: '#f4f4f4',
-              padding: '10px',
-              borderLeft: '4px solid #7B7B7B',
-              color: '#7B7B7B',
+              width: '100%',
+              zIndex: '10',
+              marginBottom: '30px'
+            }}
+            contentStyle={{
+              padding: ' 15px 25px',
             }}
           >
             <p
               style={{
                 margin: 0,
-                fontSize: '14px',
+                fontSize: '1rem',
                 fontFamily: "'montserrat', sans-serif",
-                fontWeight: '500',
+                fontWeight: '400',
+                color: 'grey',
               }}
             >
               {currentResponse.studentResponse || 'Not provided'}
             </p>
-          </div>
+          </GlassContainer>
 
           {/* Teacher Feedback */}
-          <div style={{ display: 'flex', width: '100%', marginTop: '30px' }}>
-            <div
-              style={{
-                border: '0px solid lightgrey',
-                color: '#848484',
-                width: '40px',
-                borderRadius: '10px 0px 0px 10px',
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'center',
-                marginRight: '-4px',
-                zIndex: '1',
-              }}
-            >
-              <MessageSquareMore size={25} />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '20px', marginTop: '40px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: 'lightgrey' }}>
+              <MessageSquareMore size={20} strokeWidth={1.5} />
+              <span style={{ fontSize: '.9rem', fontWeight: '500' }}>Feedback (click to edit)</span>
             </div>
-            <div
-              style={{
-                flex: 1,
-                marginLeft: '-4px',
-                background: 'white',
-                borderRadius: '0px 10px 10px 0px',
-                padding: '10px 15px',
-              }}
-            >
-              <AutoResizeTextarea
-                value={currentResponse.feedback || ''}
-                onChange={handleFeedbackChange}
-                placeholder="Add feedback..."
-              />
-            </div>
+            <AutoResizeTextarea
+              value={currentResponse.feedback || ''}
+              onChange={handleFeedbackChange}
+              placeholder="Add feedback..."
+            />
           </div>
+
+       
         </div>
       </div>
 
       <div style={buttonContainerStyle}>
         <button
-          onClick={() => handleGradeChange(0)}
+          onClick={handleBack}
           style={{
-            background: 'transparent',
-            border: 'none',
+            background: 'white',
+            border: '1px solid #ddd',
+            borderRadius: '40px',
             cursor: 'pointer',
-            padding: '8px',
-            borderRadius: '8px',
-            transition: 'background-color 0.2s',
+            padding: '8px 16px',
+            fontWeight: '500',
+            fontSize: '.9rem',
+            color: 'grey',
+            fontFamily: "'montserrat', sans-serif",
+            display: 'flex',
+            alignItems: 'center'
           }}
-          onMouseEnter={(e) => (e.target.style.backgroundColor = '#ffebeb')}
-          onMouseLeave={(e) => (e.target.style.backgroundColor = 'transparent')}
         >
-          <SquareX size={40} color="#ef4444" />
+          Previous Response
         </button>
 
-        <button
-          onClick={() => handleGradeChange(1)}
-          style={{
-            background: 'transparent',
-            border: 'none',
-            cursor: 'pointer',
-            padding: '8px',
-            borderRadius: '8px',
-            transition: 'background-color 0.2s',
-          }}
-          onMouseEnter={(e) => (e.target.style.backgroundColor = '#fff7ed')}
-          onMouseLeave={(e) => (e.target.style.backgroundColor = 'transparent')}
-        >
-          <SquareSlash size={40} color="#FFAE00" />
-        </button>
+        <div style={{display: 'flex', gap: '20px'}}>
+          <div
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'scale(1.05)';
+              setRedVariant('red');
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'scale(1)';
+              setRedVariant('clear');
+            }}
+            style={{
+              position: 'relative',
+              transition: 'transform 0.2s',
+              cursor: 'pointer',
+            }}
+            onClick={() => handleGradeChange(0)}
+          >
+            <GlassContainer
+              variant={redVariant}
+              size={0}
+            >
+              <X size={30} strokeWidth={1.5} color={redVariant === 'red' ? "#ef4444" : "#9ca3af"} style={{ position: 'relative', padding: '8px' }} />
+            </GlassContainer>
+          </div>
 
-        <button
-          onClick={() => handleGradeChange(2)}
-          style={{
-            background: 'transparent',
-            border: 'none',
-            cursor: 'pointer',
-            padding: '8px',
-            borderRadius: '8px',
-            transition: 'background-color 0.2s',
-          }}
-          onMouseEnter={(e) => (e.target.style.backgroundColor = '#f0fdf4')}
-          onMouseLeave={(e) => (e.target.style.backgroundColor = 'transparent')}
-        >
-          <SquareCheck size={40} color="#2BB514" />
-        </button>
+          <div
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'scale(1.05)';
+              setYellowVariant('yellow');
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'scale(1)';
+              setYellowVariant('clear');
+            }}
+            style={{
+              position: 'relative',
+              transition: 'transform 0.2s',
+              cursor: 'pointer',
+            }}
+            onClick={() => handleGradeChange(1)}
+          >
+            <GlassContainer
+              variant={yellowVariant}
+              size={0}
+            >
+              <Slash size={20} strokeWidth={2.5} color={yellowVariant === 'yellow' ? "#FFAE00" : "#9ca3af"} style={{ position: 'relative', padding: '13px' }} />
+            </GlassContainer>
+          </div>
+
+          <div
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'scale(1.05)';
+              setGreenVariant('green');
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'scale(1)';
+              setGreenVariant('clear');
+            }}
+            style={{
+              position: 'relative',
+              transition: 'transform 0.2s',
+              cursor: 'pointer',
+            }}
+            onClick={() => handleGradeChange(2)}
+          >
+            <GlassContainer
+              variant={greenVariant}
+              size={0}
+            >
+              <Check size={30} strokeWidth={1.5} color={greenVariant === 'green' ? "#2BB514" : "#9ca3af"} style={{ position: 'relative', padding: '8px' }} />
+            </GlassContainer>
+          </div>
+        </div>
       </div>
     </div>
   );

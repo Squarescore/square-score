@@ -4,41 +4,71 @@ import { db, auth } from '../../Universal/firebase';
 import { serverTimestamp, arrayUnion } from 'firebase/firestore';
 import { SquareArrowOutUpRight, Check } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
+import { GlassContainer } from '../../../styles';
+import { useAuthState } from 'react-firebase-hooks/auth';
 
 const Exports = ({ assignmentId, style }) => {
   const [showDropdown, setShowDropdown] = useState(false);
-  const [teacherClasses, setTeacherClasses] = useState([]);
+  const [dropdownVisible, setDropdownVisible] = useState(false);
+  const [teacherData, setTeacherData] = useState(null);
   const [isHovered, setIsHovered] = useState(false);
   const [exportSuccess, setExportSuccess] = useState(false);
+  const [successVisible, setSuccessVisible] = useState(false);
   const timeoutRef = useRef(null);
   const containerRef = useRef(null);
+  const [user] = useAuthState(auth);
 
   const periodStyles = {
-    1: { background: '#A3F2ED', color: '#1CC7BC', hoverBg: '#D4FFFD' },
-    2: { background: '#F8CFFF', color: '#E01FFF', hoverBg: '#FCEDFF' },
-    3: { background: '#FFCEB2', color: '#FD772C', hoverBg: '#FFE4D4' },
-    4: { background: '#FFECA9', color: '#F0BC6E', hoverBg: '#FFF6D4' },
-    5: { background: '#AEF2A3', color: '#4BD682', hoverBg: '#DBFFD6' },
-    6: { background: '#BAA9FF', color: '#8364FF', hoverBg: '#F0EDFF' },
-    7: { background: '#8296FF', color: '#3D44EA', hoverBg: '#D4DAFF' },
-    8: { background: '#FF8E8E', color: '#D23F3F', hoverBg: '#FFD4D4' }
+    1: { variant: 'teal', color: "#1EC8bc", borderColor: "#83E2F5" },
+    2: { variant: 'purple', color: "#8324e1", borderColor: "#cf9eff" },
+    3: { variant: 'orange', color: "#ff8800", borderColor: "#f1ab5a" },
+    4: { variant: 'yellow', color: "#ffc300", borderColor: "#Ecca5a" },
+    5: { variant: 'green', color: "#29c60f", borderColor: "#aef2a3" },
+    6: { variant: 'blue', color: "#1651d4", borderColor: "#b5ccff" },
+    7: { variant: 'pink', color: "#d138e9", borderColor: "#f198ff" },
+    8: { variant: 'red', color: "#c63e3e", borderColor: "#ffa3a3" },
   };
 
   useEffect(() => {
-    const fetchTeacherClasses = async () => {
-      const teacherUID = auth.currentUser.uid;
-      const classesRef = collection(db, 'classes');
-      const classQuery = query(classesRef, where('teacherUID', '==', teacherUID));
-      const querySnapshot = await getDocs(classQuery);
-      const classes = querySnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-      setTeacherClasses(classes);
+    const fetchTeacherData = async () => {
+      if (!user) return;
+
+      try {
+        // First get the teacher document
+        const teacherRef = doc(db, 'teachers', user.uid);
+        const teacherSnap = await getDoc(teacherRef);
+        
+        if (teacherSnap.exists()) {
+          const teacherData = teacherSnap.data();
+          
+          // Then fetch all classes where this teacher is the owner
+          const classesQuery = query(
+            collection(db, 'classes'),
+            where('teacherUID', '==', user.uid)
+          );
+          
+          const classesSnap = await getDocs(classesQuery);
+          const classes = [];
+          
+          classesSnap.forEach((doc) => {
+            classes.push({
+              id: doc.id,
+              ...doc.data()
+            });
+          });
+          
+          setTeacherData({
+            ...teacherData,
+            classes: classes
+          });
+        }
+      } catch (error) {
+        console.error("Error fetching teacher data:", error);
+      }
     };
 
-    fetchTeacherClasses();
-  }, []);
+    fetchTeacherData();
+  }, [user]);
 
   const getPeriodNumber = (className) => {
     const match = className.match(/Period (\d)/);
@@ -87,12 +117,38 @@ const Exports = ({ assignmentId, style }) => {
       
       await batch.commit();
       setExportSuccess(true);
-      setTimeout(() => setExportSuccess(false), 2000);
+      setTimeout(() => setExportSuccess(false), 1000);
       setShowDropdown(false); // Close dropdown after successful export
     } catch (error) {
       console.error("Error during export:", error);
     }
   };
+
+  useEffect(() => {
+    if (showDropdown) {
+      setDropdownVisible(true);
+    } else {
+      const timer = setTimeout(() => {
+        setDropdownVisible(false);
+      }, 200); // Match transition duration
+      return () => clearTimeout(timer);
+    }
+  }, [showDropdown]);
+
+  useEffect(() => {
+    if (exportSuccess) {
+      setSuccessVisible(true);
+      const timer = setTimeout(() => {
+        setExportSuccess(false);
+      }, 1000);
+      return () => clearTimeout(timer);
+    } else {
+      const timer = setTimeout(() => {
+        setSuccessVisible(false);
+      }, 200); // Match transition duration
+      return () => clearTimeout(timer);
+    }
+  }, [exportSuccess]);
 
   const handleMouseEnter = () => {
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
@@ -155,142 +211,132 @@ const Exports = ({ assignmentId, style }) => {
         <h1 style={{fontSize: '14px', marginLeft: '10px ', fontFamily:  "'montserrat', sans-serif", fontWeight: '600'}}>Export</h1>
       </button>
 
-      {showDropdown && (
-        <div 
-          onMouseEnter={handleDropdownEnter}
-          onMouseLeave={handleMouseLeave}
+      {dropdownVisible && (
+        <GlassContainer
+          variant="clear"
+          size={1}
           style={{
             position: 'absolute',
-            top: '90px',
-            right: '0px',
-            backgroundColor: 'white',
-            borderRadius: '20px',
-            width: '490px',
-            border: '1px solid #DFDFDF',
-            padding: '10px',
+            top: '95px',
+            right: '-250px',
+            width: '620px',
             zIndex: 1000,
             maxHeight: '400px',
-            overflowY: 'auto',
-            boxShadow: '1px 1px 5px 1px rgb(0,0,155,.07)'
-          }}>
+            opacity: showDropdown ? 1 : 0,
+            transform: showDropdown ? 'translateY(0)' : 'translateY(-10px)',
+            transition: 'opacity 0.2s ease, transform 0.2s ease',
+          }}
+          contentStyle={{
+            padding: '10px',
+            
+            overflow: 'hidden',
+          }}
+        >
           <h1 style={{
-            fontWeight: '600', 
-            fontSize: '20px', 
+            fontWeight: '500', 
+            fontSize: '.8rem', 
             marginLeft: '20px',
-            marginBottom: '15px',
+            marginBottom: '0px',
             fontFamily: "'montserrat', sans-serif",
-            color: 'grey'
+            color: 'lightgrey'
           }}>
             Click on Class to Export
           </h1>
           <div style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(3, 1fr)',
-            gap: '5px',
+            gap: '15px',
+            padding: '10px'
           }}>
-            {teacherClasses.map((classItem) => {
-              const periodNumber = parseInt(classItem.className.split(' ')[1]);
-              const periodStyle = periodStyles[periodNumber] || { background: '#F4F4F4', color: 'grey' };
-              const suffix = getOrdinalSuffix(periodNumber);
+            {teacherData?.classes
+              ?.sort((a, b) => (a.period || 0) - (b.period || 0))
+              .map((classItem) => {
+              const periodNumber = classItem.period || 1;
+              const periodStyle = periodStyles[periodNumber] || { variant: 'clear', color: 'grey', borderColor: '#ddd' };
                
               return (
-                <div 
+                <GlassContainer
                   key={classItem.id}
+                  variant={periodStyle.variant}
+                  size={1}
                   onClick={() => handleClassSelect(classItem.id)}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = periodStyle.hoverBg;
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = 'white';
-                  }}
                   style={{
-                    width: '150px',
-                    height: '70px',
+                    width: '180px',
                     cursor: 'pointer',
-                    borderRadius: '10px',
-                    position: 'relative',
                     transition: 'all 0.3s',
-                    background: 'white',
-                    padding: '5px'
-                  }}>
-                    <div style={{display: 'flex'}}>
-                  <h1 style={{
-                    fontSize: '20px',
-                    borderRadius: '5px',
-                    backgroundColor: periodStyle.background,
-                    width: '40px',
-                    color: periodStyle.color,
-                    height: '30px',
-                    marginTop: '6px',
-                    lineHeight: '30px',
-                    fontWeight: '600',
-                   
-                    padding: '0px 5px',
-                  }}>
-                    {periodNumber}
-                    <span style={{
-                    fontSize: '20px',
-                    fontWeight: '600',
-                    marginLeft: '2px',
-                  }}>
-                    {suffix}
-                  </span>
-                  </h1>
-                
-                  <h1 style={{
-                    fontSize: '25px',
-                    
-                    color: periodStyle.color,
-                  marginTop: '6px',
-                    fontWeight: '600',
-                    marginLeft: '10px',
-                  }}>
-                    Period
-                  </h1>
-</div>
-
+                  }}
+                  contentStyle={{
+                    padding: '10px 20px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <div style={{display: 'flex', alignItems: 'center'}}>
+                    <h1 style={{
+                      fontSize: '20px',
+                      color: periodStyle.color,
+                      fontWeight: '600',
+                      margin: 0,
+                    }}>
+                      Period {periodNumber}
+                      
+                     
+                    </h1>
+                  </div>
 
                   <div style={{
                     fontFamily: "'montserrat', sans-serif",
-                    fontWeight: "600",
-                    color: 'lightgrey',
-                    marginLeft: '5px',
+                    fontWeight: "500",
+                    color: periodStyle.borderColor,
                     overflow: "hidden",
-                    marginTop: '-10px',
-                    textOverflow: "ellipsis"
-                    , textAlign:  'left',
+                    textOverflow: "ellipsis",
                     whiteSpace: "nowrap",
-                    fontSize: '14px'
+                    fontSize: '.7rem',
+                    marginTop: '5px'
                   }}>
                     {classItem.classChoice}
                   </div>
-                </div>
+                </GlassContainer>
               );
             })}
           </div>
-        </div>
+        </GlassContainer>
       )}
 
-      {exportSuccess && (
-        <div style={{
-          position: 'fixed',
-          bottom: '20px',
-          right: '20px',
-          backgroundColor: '#AEF2A3',
-          color: '#2BB514',
-          padding: '16px 24px',
-          borderRadius: '12px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px',
-          boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-          zIndex: 1000,
-          fontFamily: "'montserrat', sans-serif",
-          fontWeight: '600'
-        }}>
+      {successVisible && (
+        <GlassContainer
+          variant="green"
+          size={1}
+          style={{
+            position: 'fixed',
+            bottom: '20px',
+            right: '20px',
+            zIndex: 1000,
+            opacity: exportSuccess ? 1 : 0,
+            transform: exportSuccess ? 'translateY(0)' : 'translateY(10px)',
+            transition: 'opacity 0.2s ease, transform 0.2s ease',
+          }}
+          contentStyle={{
+            padding: '6px 24px',
+            display: 'flex',
+color: 'green', 
+            alignItems: 'center',
+            gap: '8px',
+          }}
+        >
+          <div style={{display: 'flex'}}>
+          
+          <span style={{
+            fontFamily: "'montserrat', sans-serif",
+            fontWeight: '600',
+            marginRight: '10px'
+          }}>
+            Successfully exported
+          </span>
           <Check size={20} />
-          Successfully exported
-        </div>
+          </div>
+        </GlassContainer>
       )}
     </div>
   );

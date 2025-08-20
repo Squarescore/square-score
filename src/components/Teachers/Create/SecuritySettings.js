@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { ChevronDown, ChevronUp, GlobeLock } from 'lucide-react';
+import { CustomSwitch } from '../../../styles';
 
 const SecuritySettings = ({ 
   saveAndExit, 
@@ -16,23 +17,19 @@ const SecuritySettings = ({
       <div style={{marginLeft:'-5px'}}>
         <div style={{ marginTop: '-20px' }}>
           <div style={{ display: 'flex', alignItems: 'center', marginBottom: '0px' , marginTop: '10px'}}>
-            <h1 style={{ fontSize: '16px', color: 'grey', marginLeft: '5px', flex: 1, width: '270px', fontWeight: '600' }}>
+            <h1 style={{ fontSize: '16px', color: 'grey', marginLeft: '5px', flex: 1, width: '270px', fontWeight: '500' }}>
               Save & Exit
             </h1>
-            <div style={{ position: 'relative' , marginRight:'4px'}}>
-              <input
-                style={{ marginRight: '0px' }}
-                type="checkbox"
-                className="greenSwitch"
+             <CustomSwitch
                 checked={saveAndExit}
                 onChange={() => setSaveAndExit(!saveAndExit)}
-              />
-              <span>On</span>
-            </div>
+            
+                        />
+            
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', marginTop: '0px' }}>
-            <h1 style={{ fontSize: '16px', color: 'grey', marginLeft: '5px', flex: 1, width: '270px', fontWeight: '600' }}>
+            <h1 style={{ fontSize: '16px', color: 'grey', marginLeft: '5px', flex: 1, width: '270px', fontWeight: '500' }}>
               Lockdown:
             </h1>
             {lockdown && (
@@ -53,7 +50,7 @@ const SecuritySettings = ({
                 
                 marginLeft: '10px', 
                 marginRight: '10px', 
-                fontWeight: '600' 
+                fontWeight: '500' 
               }}>
                 On Violation:
               </h1>
@@ -79,7 +76,7 @@ const SecuritySettings = ({
                     color: '#333333',
                     fontSize: '12px',
                     userSelect: 'none',
-                    fontWeight: '600'
+                    fontWeight: '500'
                   }}>
                     {onViolation.charAt(0).toUpperCase() + onViolation.slice(1)}
                   </span>
@@ -109,7 +106,7 @@ const SecuritySettings = ({
                         fontSize: "14px",
                         borderBottom: '1px solid #e0e0e0',
                         color: onViolation === 'pause' ? '#020CFF' : '#333333',
-                        fontWeight: onViolation === 'pause' ? '600' : '400',
+                        fontWeight: onViolation === 'pause' ? '500' : '400',
                         background: onViolation === 'pause' ? '#f8f8ff' : 'white'
                       }}
                     >
@@ -126,7 +123,7 @@ const SecuritySettings = ({
                         
                         fontSize: "14px",
                         color: onViolation === 'submit' ? '#020CFF' : '#333333',
-                        fontWeight: onViolation === 'submit' ? '600' : '400',
+                        fontWeight: onViolation === 'submit' ? '500' : '400',
                         background: onViolation === 'submit' ? '#f8f8ff' : 'white'
                       }}
                     >
@@ -137,16 +134,12 @@ const SecuritySettings = ({
               </div>
             </div>
           )}
-            <div style={{ position: 'relative', marginRight:'5px' }}>
-              <input
-                style={{ marginRight: '0px' }}
-                type="checkbox"
-                className="greenSwitch"
-                checked={lockdown}
-                onChange={() => setLockdown(!lockdown)}
-              />
-              <span>On</span>
-            </div>
+           <CustomSwitch
+           
+           checked={lockdown}
+           onChange={() => setLockdown(!lockdown)} 
+                        />
+            
           </div>
 
         

@@ -1,243 +1,138 @@
-// Folders.js
+import React from 'react';
+import { Folder, FolderPlus } from 'lucide-react';
+import { GlassContainer } from '../../../styles';
 
-import React, { useState } from 'react';
-import { doc, updateDoc } from 'firebase/firestore';
-import { db } from '../../Universal/firebase';
-import { FolderPlus, SquarePlus, SquareX, SquareArrowLeft, Folder } from 'lucide-react';
+// Color mapping for variants
+const variantColors = {
+  teal: { color: "#1EC8bc", borderColor: "#83E2F5" },
+  purple: { color: "#8324e1", borderColor: "#cf9eff" },
+  orange: { color: "#ff8800", borderColor: "#f1ab5a" },
+  yellow: { color: "#ffc300", borderColor: "#Ecca5a" },
+  green: { color: "#29c60f", borderColor: "#aef2a3" },
+  blue: { color: "#1651d4", borderColor: "#b5ccff" },
+  pink: { color: "#d138e9", borderColor: "#f198ff" },
+  red: { color: "#c63e3e", borderColor: "#ffa3a3" }
+};
 
-function Folders({
+const Folders = ({
   classId,
   folders,
   assignments,
   pastelColors,
   onFoldersUpdated,
   openFolderModal,
-}) {
-  const [showAddAssignmentsModal, setShowAddAssignmentsModal] = useState(false);
-  const [selectedFolderIndex, setSelectedFolderIndex] = useState(null);
-  const [searchTerm, setSearchTerm] = useState('');
-
-  const addAssignmentToFolder = async (assignment) => {
-    if (selectedFolderIndex === null) return;
-
-    try {
-      const classDocRef = doc(db, 'classes', classId);
-
-      const folder = folders[selectedFolderIndex];
-      const currentAssignments = folder.assignments || [];
-
-      if (!currentAssignments.includes(assignment.id)) {
-        folder.assignments = [...currentAssignments, assignment.id];
-
-        // Update the folders array in the class document
-        folders[selectedFolderIndex] = folder;
-        await updateDoc(classDocRef, { folders });
-
-        onFoldersUpdated(folders);
-      }
-    } catch (error) {
-      console.error('Error adding assignment to folder:', error);
-    }
-  };
-
-  const renderAddAssignmentsModal = () => {
-    if (!showAddAssignmentsModal) return null;
-
-    return (
-      <div
-        style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(250, 250, 250, 0.95)',
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          zIndex: 1000,
-        }}
-      >
-        <div
-          style={{
-            width: '500px',
-            backgroundColor: '#fff',
-            padding: '20px',
-            borderRadius: '12px',
-            position: 'relative',
-            boxShadow: '0px 4px 10px rgba(0,0,0,0.1)',
-          }}
-        >
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              marginBottom: '20px',
-            }}
-          >
-            <button
-              onClick={() => setShowAddAssignmentsModal(false)}
-              style={{
-                background: 'none',
-                border: 'none',
-                cursor: 'pointer',
-                marginRight: '10px',
-              }}
-            >
-              <SquareArrowLeft size={24} />
-            </button>
-            <input
-              type="text"
-              placeholder="Search assignments..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              style={{
-                width: '100%',
-                padding: '8px 8px 8px 35px',
-                borderRadius: '20px',
-                border: '1px solid #ccc',
-                fontSize: '16px',
-                outline: 'none',
-              }}
-            />
-          </div>
-          <div
-            style={{
-              maxHeight: '400px',
-              overflowY: 'auto',
-            }}
-          >
-            {assignments.length > 0 ? (
-              assignments
-                .filter(
-                  (assignment) =>
-                    (assignment.name || assignment.assignmentName)
-                      .toLowerCase()
-                      .includes(searchTerm.toLowerCase()) &&
-                    !folders[selectedFolderIndex]?.assignments.includes(
-                      assignment.id
-                    )
-                )
-                .map((assignment) => (
-                  <div
-                    key={assignment.id}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      padding: '10px 15px',
-                      borderRadius: '8px',
-                      border: '1px solid #f0f0f0',
-                      marginBottom: '10px',
-                    }}
-                  >
-                    <span
-                      style={{
-                        fontSize: '18px',
-                        fontFamily: "'Montserrat', sans-serif",
-                        fontWeight: '500',
-                      }}
-                    >
-                      {assignment.name}
-                    </span>
-                    <button
-                      onClick={() => addAssignmentToFolder(assignment)}
-                      style={{
-                        background: 'none',
-                        border: 'none',
-                        cursor: 'pointer',
-                      }}
-                    >
-                      <SquarePlus size={20} color="#7BE06A" />
-                    </button>
-                  </div>
-                ))
-            ) : (
-              <div
-                style={{
-                  textAlign: 'center',
-                  color: '#666',
-                  fontFamily: "'Montserrat', sans-serif",
-                  fontSize: '18px',
-                  marginTop: '40px',
-                }}
-              >
-                No assignments available to add.
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-    );
+  onCreateFolder,
+  periodStyle
+}) => {
+  const getFolderAssignmentCount = (folder) => {
+    return folder.assignments ? folder.assignments.length : 0;
   };
 
   return (
-    <div style={{ marginTop: '120px', marginLeft: '200px', padding: '20px' }}>
-      {/* Folder List */}
-      {folders.length > 0 ? (
-        <ul style={{ listStyleType: 'none', padding: 0 }}>
-          {folders.map((folder, index) => (
-            <li
-            key={folder.id} // Use the folder's ID
-            onClick={() => openFolderModal(folder)}
+    <div style={{ 
+      marginTop: '150px', 
+      marginLeft: '200px', 
+      padding: '0 4%', 
+      width: 'calc(92% - 200px)',
+    }}>
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(3, 1fr)',
+        gap: '20px',
+        width: '100%', 
+      }}>
+        {/* Create Folder Button */}
+        <div>
+          <GlassContainer
+            variant={periodStyle.variant}
+            size={1}
+            onClick={onCreateFolder}
+            style={{
+              cursor: 'pointer',
+            }}
+            contentStyle={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '10px 60px',
+              boxSizing: 'border-box',
+            }}
+          >
+            <div style={{
+              justifyContent: 'center',
+              display: 'flex' 
+            }}>
+              <FolderPlus style={{marginTop: '10px'}} size={30} color={periodStyle.color} />
+              <h1 style={{
+                marginLeft: '20px',
+                fontSize: '1.3rem',
+                fontFamily: "'Montserrat', sans-serif",
+                color: periodStyle.color,
+                fontWeight: '500'
+              }}>
+                Create Folder
+              </h1>
+            </div>
+          </GlassContainer>
+        </div>
+
+        {/* Folder Cards */}
+        {folders.map((folder) => (
+          <div key={folder.id}>
+            <GlassContainer
+              variant="clear"
+              size={1}
+              onClick={() => openFolderModal(folder)}
               style={{
-                backgroundColor: '#fff',
-                padding: '15px 20px',
-                marginBottom: '10px',
-                borderRadius: '8px',
-                boxShadow: '0px 1px 3px rgba(0,0,0,0.1)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                position: 'relative',
                 cursor: 'pointer',
-                transition: 'background-color 0.3s, border-color 0.3s, box-shadow 0.3s',
+              }}
+              contentStyle={{
+                display: 'flex',
+                padding: '20px',
+                width: '300px',
+                height: '50px',
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'center' }}>
-                <Folder
-                  size={24}
-                  color="#007BFF"
-                  style={{ marginRight: '10px' }}
-                />
-                <span
-                  style={{
-                    fontSize: '18px',
-                    fontFamily: "'Montserrat', sans-serif",
-                    fontWeight: '500',
-                  }}
-                >
-                  {folder.name}
-                </span>
-              </div>
-              <button
-                style={{
-                  backgroundColor: '#007BFF',
-                  color: '#fff',
-                  border: 'none',
-                  padding: '6px 12px',
-                  borderRadius: '12px',
-                  cursor: 'pointer',
-                  fontSize: '14px',
+              <div style={{display: 'flex', alignItems: 'center', marginTop: '5px'}}>
+                 <Folder 
+                size={40} 
+                color={variantColors[folder.variant || folder.color?.variant]?.color || '#ddd'}
+              />
+              <div style={{marginLeft: '15px', borderLeft: '1px solid #ddd', paddingLeft: '15px', height: '30px',
+                  marginTop: '5px',}}>
+             
+                <h1 style={{
+                  marginTop: '-5px',
+                  fontSize: '1rem',
                   fontFamily: "'Montserrat', sans-serif",
-                }}
-                onClick={() => openFolderModal(folder)}
-              >
-                View
-              </button>
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <h1 style={{ marginTop: '20px', fontWeight: '500' }}>
-          No folders created yet.
-        </h1>
-      )}
-
-      {/* Add Assignments Modal */}
-      {renderAddAssignmentsModal()}
+                  color: 'grey',
+                  fontWeight: '500',
+                  textAlign: 'left',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                  width: '210px'
+                }}>
+                  {folder.name}
+                </h1>
+                <h1 style={{
+                  marginTop: '-10px',
+                  fontSize: '.8rem',
+                  fontFamily: "'Montserrat', sans-serif",
+                  color: '#666',
+                  fontWeight: '400'
+                }}>
+                  {getFolderAssignmentCount(folder)} {getFolderAssignmentCount(folder) === 1 ? 'Assignment' : 'Assignments'}
+                </h1>
+              </div>
+              </div>
+            </GlassContainer>
+            
+          </div>
+        ))}
+      </div>
     </div>
   );
-}
+};
 
 export default Folders;

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { SquareX } from "lucide-react";
 import Navbar from '../../Universal/Navbar';
+import { GlassContainer } from '../../../styles';
 
 const TeacherAssignmentHome = ({ onClose }) => {
   const [selectedFormat, setSelectedFormat] = useState(null);
@@ -9,10 +10,8 @@ const TeacherAssignmentHome = ({ onClose }) => {
   const { classId } = useParams();
 
   const formatButtons = [
-    { shortLabel: 'SAQ', longLabel: 'Adaptive Short Answer Questions', color: '#020CFF', hasAsterisk: true, value: 'ASAQ' },
-    { shortLabel: 'SAQ', longLabel: 'Short Answer Questions', color: '#020CFF', hasAsterisk: false, value: 'SAQ' },
-    { shortLabel: 'MCQ', longLabel: 'Adaptive Multiple Choice Questions' , color: 'green', hasAsterisk: true, value: 'AMCQ' },
-    { shortLabel: 'MCQ', longLabel: 'Multiple Choice Questions', color: 'green', hasAsterisk: false, value: 'MCQ' },
+    { shortLabel: 'MC', longLabel: 'Adaptive Multiple Choice ' , color: '#7D00EA', hasAsterisk: true, value: 'AMCQ' },
+    { shortLabel: 'OE', longLabel: 'Open Ended ', color: '#00CCB4', hasAsterisk: false, value: 'OE' },
   ];
 
   const handleFormatSelect = (format) => {
@@ -26,10 +25,10 @@ const TeacherAssignmentHome = ({ onClose }) => {
     let navigationPath = '';
 
     switch (format) {
-      case 'SAQ':
+      case 'OE':
         navigationPath = `/class/${classId}/createassignment/${assignmentId}`;
         break;
-      case 'ASAQ':
+      case 'AOE':
         navigationPath = `/class/${classId}/SAQA/${assignmentId}`;
         break;
       case 'MCQ':
@@ -46,7 +45,7 @@ const TeacherAssignmentHome = ({ onClose }) => {
     navigate(navigationPath, {
       state: {
         assignmentType: format,
-        isAdaptive: format === 'ASAQ' || format === 'AMCQ',
+        isAdaptive: format === 'AOE' || format === 'AMCQ',
         assignmentId,
         classId,
       },
@@ -64,7 +63,7 @@ const TeacherAssignmentHome = ({ onClose }) => {
         right: 0,
         bottom: 0,
         backgroundColor: 'rgba(255, 255, 255)', 
-        zIndex: 10,
+        zIndex: 1,
         display: 'flex',
         backdropFilter: 'blur(5px)',
         alignItems: 'center',
@@ -80,48 +79,77 @@ const TeacherAssignmentHome = ({ onClose }) => {
           position: 'relative',
           width: '650px',
           marginTop: '-130px',
-          backgroundColor: 'white',
           padding: '20px',
           borderRadius: '20px',
           maxHeight: '80vh',
+          marginLeft: '100px',
           overflowY: 'auto',
         }}
       >
-
-        <h1 style={{fontWeight: '600'}}>Select Format</h1>
+     
+<GlassContainer     variant="clear"
+          size={1}
+          style={{
+          }}
+          contentStyle={{padding: '20px'}}>
+            
+   <h1 style={{fontWeight: '500', fontSize: '1rem', color: 'lightgrey', margin: '0px 20px', marginBottom: '10px'}}>Select Format</h1>
         <div
           style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(2, 1fr)', // 2 columns
             gap: '15px',
-            marginTop: '40px',
+            marginTop: '-0px',
+            borderRadius: '8px',
+            padding: '1px',
+            position: 'relative'
           }}
         >
-          {formatButtons.map(format => (
+          
+          {/* Vertical Divider */}
+          <div style={{
+            position: 'absolute',
+            left: '50%',
+            top: '0',
+            bottom: '0',
+            width: '1px',
+            backgroundColor: '#ddd',
+            transform: 'translateX(-50%)'
+          }} />
+            <div style={{
+            position: 'absolute',
+            left: '0',
+            top: '50%',
+            right: '20px',
+            height: '1px',
+            backgroundColor: '#eee',
+            transform: 'translatey(-50%)'
+          }} />
+          {formatButtons.map((format, index) => (
             <button
               key={format.value}
               style={{
                 padding: '16px 20px',
-                border: '1px solid #ddd',
                 borderRadius: '8px',
                 backgroundColor: 'white',
+                border: 'none',
                 color: format.color,
                 width: '100%',
                 cursor: 'pointer',
                 fontFamily: "'Montserrat', sans-serif",
-                fontWeight: '600',
+                fontWeight: '500',
                 position: 'relative',
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'flex-start',
-                transition: 'background 0.3s, box-shadow 0.3s',
+                transition: 'transform 0.2s ease',
               }}
               onClick={() => handleFormatSelect(format.value)}
               onMouseEnter={(e) => {
-                e.currentTarget.style.background = '#f8f8f8';
+                e.currentTarget.style.transform = 'scale(1.02)';
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.background = 'white';
+                e.currentTarget.style.transform = 'scale(1)';
               }}
             >
               <div style={{ 
@@ -149,8 +177,8 @@ const TeacherAssignmentHome = ({ onClose }) => {
                 )}
               </div>
               <span style={{ 
-                color: 'lightgrey', 
-                fontWeight: '600', 
+                color: 'grey', 
+                fontWeight: '400', 
                 fontSize: '14px',
                 lineHeight: '1.2'
               }}>
@@ -159,7 +187,9 @@ const TeacherAssignmentHome = ({ onClose }) => {
             </button>
           ))}
         </div>
+        </GlassContainer>
       </div>
+      
     </div>
   );
 };

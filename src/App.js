@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { getAuth, onAuthStateChanged, setPersistence, browserLocalPersistence } from 'firebase/auth';
+import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import { getAuth, onAuthStateChanged, setPersistence, browserLocalPersistence, signOut } from 'firebase/auth';
 import Auth from './components/unAuthenticated/Auth';
 import LogIn from './components/unAuthenticated/LogIn';
 import Loader from './components/Universal/Loader';
@@ -32,12 +32,11 @@ import TeacherPreviewASAQ from './components/Teachers/Create/PreviewASAQ';
 import { doc, getDoc } from "firebase/firestore"; // Importing from Firestore
 import { db, storage } from './components/Universal/firebase';
 import MCQ from './components/Teachers/Create/CreateMCQ';
-import { signOut } from 'firebase/auth';
 import StudentResultsAMCQ from './components/Students/Results/StudentResultsAMCQ';
 import TestPage  from './components/Universal/TestPage';
 import TermsOfService from './components/Universal/TermsofService';
 import MCQA from './components/Teachers/Create/CreateAMCQ';
-import TeacherStudentGrades from './components/Teachers/Results/TeacherStudentView/TeacherStudentGrades';
+import TeacherStudentGrades from './components/Teachers/TeacherStudentGrades';
 import TakeASAQ from './components/Students/TakeAssignments/TakeASAQ';
 import TakeAmcq from './components/Students/TakeAssignments/TakeAmcq';
 import TeacherResultsASAQ from './components/Teachers/Results/ResultsASAQ';
@@ -47,8 +46,52 @@ import AdminUB from './components/Admin/AdminUB';
 import TeacherLogs from './components/Admin/TeacherLogs';
 import SignUpAdmin from './components/unAuthenticated/SignUpAdmin';
 import PageNotFound from './components/Universal/PageNotFound'; // Import the PageNotFound component
-import QuestionResults from './components/Teachers/Results/QuestionResultsSAQ';
+import QuestionResults from './components/Teachers/Results/QuestionBank/QuestionResultsSAQ';
 import ProtectedRoute from './components/ProtectedRoute';
+import StudentRouteHandler from './components/Universal/StudentRouteHandler';
+import TeacherClassSettings from './components/Teachers/TeacherClassSettings';
+
+// SignOut component that handles the sign-out logic
+const SignOutComponent = () => {
+  const navigate = useNavigate();
+  const auth = getAuth();
+
+  useEffect(() => {
+    const handleSignOut = async () => {
+      try {
+        await signOut(auth);
+        // Clear any local storage or session data
+        localStorage.clear();
+        sessionStorage.clear();
+        // Remove tawk.to widget if it exists
+        if (window.Tawk_API) {
+          window.Tawk_API.hideWidget();
+        }
+        // Redirect to login page after sign out
+        navigate('/login');
+      } catch (error) {
+        console.error('Error signing out:', error);
+        // Still redirect to login even if there's an error
+        navigate('/login');
+      }
+    };
+
+    handleSignOut();
+  }, [navigate]);
+
+  return (
+    <div style={{
+      height: '100vh',
+      width: '100vw',
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center',
+      backgroundColor: 'white'
+    }}>
+      <Loader />
+    </div>
+  );
+};
 
 function App() {
   const [user, setUser] = useState(null);
@@ -58,6 +101,21 @@ function App() {
   const [authLoading, setAuthLoading] = useState(true); // For authentication state loading
 
 
+
+
+  const handleClassJoinRedirect = (path) => {
+    // Check if the path starts with /signup/ and contains class info
+    if (path.startsWith('/signup/')) {
+      const classInfo = path.slice(8); // Remove '/signup/'
+      return `/studenthome?joinClass=${classInfo}`; // Pass info as query parameter
+    }
+    // For regular signup attempts, redirect to appropriate home
+    return userRole === 'student' 
+      ? "/studenthome" 
+      : userRole === 'teacher' 
+        ? (hasAccess ? "/teacherhome" : "/teacher-waitlist")
+        : "/adminhome";
+  };
 
 
 
@@ -114,6 +172,46 @@ function App() {
       });
   }, []);
   
+  // Initialize tawk.to
+  useEffect(() => {
+    // Declare Tawk_API in the global scope
+    window.Tawk_API = window.Tawk_API || {};
+    window.Tawk_LoadStart = new Date();
+
+    try {
+      const s1 = document.createElement("script");
+      s1.async = true;
+      s1.src = 'https://embed.tawk.to/65a0d5688d261e1b5f5243c7/1hk2c5o9l';
+      s1.charset = 'UTF-8';
+      s1.setAttribute('crossorigin', '*');
+      
+      document.head.appendChild(s1);
+
+      // Cleanup function
+      return () => {
+        if (s1.parentNode) {
+          s1.parentNode.removeChild(s1);
+        }
+        // Clean up the global variables
+        delete window.Tawk_API;
+        delete window.Tawk_LoadStart;
+      };
+    } catch (error) {
+      console.error('Error initializing Tawk.to:', error);
+    }
+  }, []); // Empty dependency array means this runs once on mount
+
+  // Handle tawk.to visibility based on user role
+  useEffect(() => {
+    if (window.Tawk_API) {
+      if (userRole === 'teacher') {
+        window.Tawk_API.showWidget?.();
+      } else {
+        window.Tawk_API.hideWidget?.();
+      }
+    }
+  }, [userRole]);
+
   useEffect(() => {
     const fetchUserRole = async () => {
       if (user) {
@@ -241,6 +339,15 @@ function App() {
                 />
               } 
             />
+             <Route 
+                    path="/signup/*"
+                    element={
+                      <Navigate 
+                        to={handleClassJoinRedirect(window.location.pathname)}
+                        replace
+                      />
+                    }
+                    />
  <Route path="/termsofservice" element={<TermsOfService />} />
  <Route path="/privacyPolicy" element={<PrivacyPolicy />} />
 
@@ -279,12 +386,13 @@ function App() {
         
 
         <Route path="/class/:classId/participants" element={<Participants currentPage="Participants"/>} />
-
+        <Route path="/class/:classId/teacherSettings" element={<TeacherClassSettings currentPage="Settings"/>} />
 
         <Route path="/class/:classId" element={<TeacherClassHome />} />
 
         <Route path="/teacherhome" element={<TeacherHome />} />
         <Route path="/adminhome" element={<AdminHome />} />
+        <Route path="/signout" element={<SignOutComponent />} />
 
 
 
@@ -335,6 +443,8 @@ function App() {
         
         <Route path="/studentresultsMCQ/:assignmentId/:studentUid/:classId" element={<StudentResultsMCQ/>} />
         <Route path="*" element={<PageNotFound />} />
+
+<Route path="*" element={<StudentRouteHandler/>} />
         </>
             )}
         </Routes>
@@ -374,7 +484,8 @@ function App() {
             path="/signupadmin"
             element={<SignUpAdmin />}
             onEnter={handleUnauthenticatedRoute} />
-             <Route path="*" element={<PageNotFound />} />
+          <Route path="/signout" element={<SignOutComponent />} />
+          <Route path="*" element={<PageNotFound />} />
         </Routes>
         
       )}

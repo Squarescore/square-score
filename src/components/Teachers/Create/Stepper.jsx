@@ -1,7 +1,8 @@
 import React from 'react';
-import { Check, SquareCheck } from 'lucide-react';
+import { Check, CircleSlash, SquareCheck, X } from 'lucide-react';
 import { PencilRuler, SendHorizonal } from 'lucide-react';
 import CustomDropdownFormatSelector from './ExpandingFormatSelector';
+import { GlassContainer } from '../../../styles';
 
 const Step = ({ name, isComplete, isActive, onClick, disabled }) => {
   const stepStyles = {
@@ -13,16 +14,15 @@ const Step = ({ name, isComplete, isActive, onClick, disabled }) => {
       padding: '18px 0px',
       marginRight: '50px', 
       position: 'relative',
-
       cursor: disabled ? 'not-allowed' : 'pointer',
-      borderBottom: isActive ? '2px solid #16a34a' : '2px solid transparent',
     },
     text: {
       fontSize: '14px',
       fontWeight: 500,
       color: isComplete ? '#16a34a' : '#9ca3af',
       opacity: disabled ? 0.5 : 1,
-    },checkIconWhite: {
+    },
+    checkIconWhite: {
       color: 'white',
     },
     checkIcon: {
@@ -35,11 +35,47 @@ const Step = ({ name, isComplete, isActive, onClick, disabled }) => {
       onClick={disabled ? undefined : onClick}
       style={stepStyles.container}
     >
-      
-      {isComplete ? <SquareCheck size={14} style={stepStyles.checkIcon}/>: <SquareCheck size={14} style={stepStyles.checkIconWhite}/>}
-      <span style={stepStyles.text}>
-        {name}
-      </span>
+      {isActive ? (
+        <div>
+        <GlassContainer
+          variant="green"
+          size={0}
+                    enableRotation={true}
+          contentStyle={{
+            padding: '5px 15px',
+   
+            fontFamily: "'Montserrat', sans-serif",
+            fontSize: '14px',
+            fontWeight: "500",
+            color: '#16a34a',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '4px'
+          }}
+        >
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '4px'
+          }}>
+            <span>
+              {name}
+            </span>
+            {isComplete ? <Check size={14} style={stepStyles.checkIcon}/> : <SquareCheck size={14} style={stepStyles.checkIconWhite}/>}
+         
+          </div>
+        </GlassContainer>
+        </div>
+      ) : (
+        <>
+        <span style={stepStyles.text}>
+            {name}
+          </span>
+          {isComplete ? <Check size={14} style={stepStyles.checkIcon}/> : <SquareCheck size={14} style={stepStyles.checkIconWhite}/>}
+        
+        </>
+      )}
     </div>
   );
 };
@@ -49,59 +85,92 @@ const ActionButtons = ({ onSaveDraft, onPublish, isPublishDisabled }) => {
     container: {
       display: 'flex',
       gap: '8px',
-    },
-    baseButton: {
-      height: '32px',
-      padding: '0 12px',
-      display: 'flex',
-      alignItems: 'center',
-      gap: '8px',
-      borderRadius: '6px',
-      border: '1px solid #e5e7eb',
-      fontSize: '14px',
-      fontWeight: 600,
-      transition: 'all 0.2s ease',
-    },
-    draft: {
-      backgroundColor: '#f9fafb',
-      
-      fontFamily: "'Montserrat', sans-serif",
-      color: '#4b5563',
-      cursor: 'pointer',
-    },
-    publish: {
-      border:  isPublishDisabled ? '1px solid lightgrey' : '1px solid #2BB514',
-      fontFamily: "'Montserrat', sans-serif",
-      backgroundColor: isPublishDisabled ? 'lightgrey' : '#2BB514',
-      
-      color: isPublishDisabled ? 'grey' : 'white',
-      cursor: isPublishDisabled ? 'not-allowed' : 'pointer',
+    }
+  };
+
+  const handleSaveDraft = async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    try {
+      await onSaveDraft();
+    } catch (error) {
+      console.error("Error in save draft action:", error);
+    }
+  };
+
+  const handlePublish = async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!isPublishDisabled) {
+      try {
+        await onPublish();
+      } catch (error) {
+        console.error("Error in publish action:", error);
+      }
     }
   };
 
   return (
     <div style={buttonStyles.container}>
-      <button
-        onClick={onSaveDraft}
-        style={{
-          ...buttonStyles.baseButton,
-          ...buttonStyles.draft
+     <div 
+      onClick={handleSaveDraft}
+      style={{
+          padding: '5px 15px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontFamily: "'Montserrat', sans-serif",
+          fontSize: '.9rem',
+          fontWeight: "500",
+          borderRadius: '30px',
+          color: 'grey',
+          cursor: ' pointer' ,
+          border: '1px solid #ddd' ,
         }}
       >
-        <PencilRuler size={15} />
-        Draft
-      </button>
-      <button
-        onClick={onPublish}
-        disabled={isPublishDisabled}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px'
+        }}>
+          <PencilRuler size={15} />
+          Draft
+        </div>
+      </div>
+
+      <GlassContainer
+        variant={isPublishDisabled ? "clear" : "green"}
+        size={0}
+        onClick={handlePublish}
         style={{
-          ...buttonStyles.baseButton,
-          ...buttonStyles.publish
+          cursor: isPublishDisabled ? 'not-allowed' : 'pointer'
+        }}
+        contentStyle={{
+          padding: '5px 15px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontFamily: "'Montserrat', sans-serif",
+          fontSize: '14px',
+          fontWeight: "600",
+          color: isPublishDisabled ? '#858585' : '#16a34a',
+       
+          boxSizing: 'border-box',
         }}
       >
-        Publish
-        <SendHorizonal size={15} />
-      </button>
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px'
+        }}>
+          Publish
+          {isPublishDisabled ? (
+            <CircleSlash size={15} />
+          ) : (
+            <SendHorizonal size={15} />
+          )}
+        </div>
+      </GlassContainer>
     </div>
   );
 };
@@ -131,7 +200,7 @@ const Stepper = ({
       width: '100%',
       position: 'fixed',
       top: 0,
-      borderBottom: '1px solid #e5e7eb',
+      zIndex: '1' ,
     },
     marginContainer: {
       marginLeft: '224px',
@@ -142,7 +211,6 @@ const Stepper = ({
       justifyContent: 'space-between',
       alignItems: 'center',
       padding: '5px 20px',
-      backgroundColor: 'white',
       width: '100%',
       maxWidth: '896px',
       marginLeft: 'auto',

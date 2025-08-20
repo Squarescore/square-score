@@ -3,8 +3,10 @@ import { getAuth, createUserWithEmailAndPassword } from "firebase/auth";
 import { db, auth } from "../Universal/firebase"; // Adjust the path to your firebase configuration
 import { Link, useLocation, useNavigate } from 'react-router-dom'; // Import the navigate hook
 import './BackgroundDivs.css'; // Import the CSS file
-import { doc, setDoc, serverTimestamp, getDoc, updateDoc, arrayUnion } from "firebase/firestore"; 
-import { BookOpenText, GraduationCap, SquareCheck, SquareX } from 'lucide-react';
+import { doc, setDoc, serverTimestamp, getDoc, updateDoc, arrayUnion, collection, query, where, getDocs } from "firebase/firestore"; 
+import { BookOpenText, Check, CheckCircle, CheckCircle2, CircleCheck, CircleX, Eye, EyeOff, GraduationCap, SquareCheck, SquareX } from 'lucide-react';
+import { GlassContainer } from '../../styles.js'; // Import GlassContainer
+
 const ClassSignupInfo = ({ classInfo }) => {
   if (!classInfo) return null;
 
@@ -24,13 +26,13 @@ const ClassSignupInfo = ({ classInfo }) => {
         display: 'flex',
         gap: '5px'
       }}>
-        <span style={{ color: 'grey', fontWeight: '600', fontSize: "16px", marginTop: '3px' }}>
+        <span style={{ color: 'black', fontWeight: '500', fontSize: "1rem", marginTop: '3px' }}>
           Joining:
         </span>
-        <span style={{ color: 'black', fontWeight: '600', fontSize: "20px", marginLeft: '10px' }}>
-          {decodeURIComponent(classInfo.className)},
+        <span style={{ color: 'black', fontWeight: '500', fontSize: "1rem", marginLeft: '10px' , marginTop: '3px'  }}>
+          Period {decodeURIComponent(classInfo.period)},
         </span>
-        <span style={{ color: 'grey', fontWeight: '500', fontSize: "20px", marginLeft: '5px' }}>
+        <span style={{ color: 'black', fontWeight: '500', fontSize: "1rem", marginLeft: '5px' , marginTop: '3px'  }}>
           {decodeURIComponent(classInfo.classChoice)}
         </span>
       </div>
@@ -41,7 +43,6 @@ const SignUp = () => {
   // State Variables
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [role, setRole] = useState('student'); // Default role
@@ -49,21 +50,21 @@ const SignUp = () => {
   const navigate = useNavigate(); // Initialize the navigate function
   const [showPopup, setShowPopup] = useState(false); // Popup state
   const [navbarBg, setNavbarBg] = useState('rgba(255,255,255,0.7)');
-  const [passwordsMatch, setPasswordsMatch] = useState(true);
   const [referralCode, setReferralCode] = useState('');
   const [referralError, setReferralError] = useState('');
   const [isEmailValid, setIsEmailValid] = useState(true);
   const [allCriteriaMet, setAllCriteriaMet] = useState(false);
   const [isPasswordFocused, setIsPasswordFocused] = useState(false);
-const [isConfirmPasswordFocused, setIsConfirmPasswordFocused] = useState(false);
-const [classInfo, setClassInfo] = useState(null);
-const location = useLocation();
+  const [classInfo, setClassInfo] = useState(null);
+  const location = useLocation();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+
   const [inputValidation, setInputValidation] = useState({
     firstName: false,
     lastName: false,
     email: false,
-    password: false,
-    confirmPassword: false
+    password: false
   });
   const [passwordCriteria, setPasswordCriteria] = useState({
     length: false,
@@ -75,20 +76,23 @@ const location = useLocation();
     firstName: false,
     lastName: false,
     email: false,
-    password: false,
-    confirmPassword: false,
+    password: false
   });
 
   useEffect(() => {
     const path = location.pathname;
     if (path.startsWith('/signup/')) {
       const classInfoStr = path.slice(8); // Remove '/signup/'
-      const [classCode, encodedClassName, encodedClassChoice] = classInfoStr.split('+');
+      const [classCode, encodedPeriodStr, encodedClassChoice] = classInfoStr.split('+');
   
-      if (classCode && encodedClassName && encodedClassChoice) {
+      if (classCode && encodedPeriodStr && encodedClassChoice) {
+        // Extract period number from "Period X" string
+        const periodStr = decodeURIComponent(encodedPeriodStr);
+        const periodNumber = parseInt(periodStr.split(' ')[1]);
+        
         setClassInfo({
           classCode,
-          className: encodedClassName,
+          period: periodNumber,
           classChoice: encodedClassChoice
         });
         // Force role to student when signing up through class link
@@ -100,106 +104,102 @@ const location = useLocation();
   const PasswordCriteria = ({ passwordCriteria, allCriteriaMet }) => (
     <div style={{
       position: 'absolute',
-      top: '48px',
-      backgroundColor: 'white',
+      top: '-24px',
       width: '380px',
       zIndex: '10',
-      padding: '16px',
+      backgroundColor: 'white',
       borderRadius: '8px',
-      boxShadow: '1px 1px 5px 1px rgb(0,0,155,.1)'
+      border: '1px solid #eee',
+      boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
     }}>
-      <h1 style={{ 
-        fontSize: '16px',
-        fontWeight: '600',
-        marginTop: '0',
-        marginBottom: '16px',
-        color: 'grey'
-      }}>
-        Password Criteria
-      </h1>
-      
-      {/* First row: Length and Number */}
-      <div style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        marginBottom: '12px'
-      }}>
+      <div style={{ width: '100%', padding: '16px' }}>
+        {/* First row: Length and Number */}
         <div style={{
           display: 'flex',
-          alignItems: 'center',
-          width: '50%'
+          justifyContent: 'space-between',
+          marginBottom: '12px'
         }}>
-          {passwordCriteria.length ? (
-            <SquareCheck size={20} style={{ color: '#2BB514' }} />
-          ) : (
-            <SquareX size={20} style={{ color: '#D3D3D3' }} />
-          )}
-          <span style={{ 
-            marginLeft: '8px',
-            color: passwordCriteria.length ? '#2BB514' : '#D3D3D3'
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            width: '50%'
           }}>
-            8+ characters
-          </span>
+            {passwordCriteria.length ? (
+              <CircleCheck size={20} style={{ color: '#2BB514' }} />
+            ) : (
+              <CircleX size={20} style={{ color: '#D3D3D3' }} />
+            )}
+            <span style={{ 
+              marginLeft: '8px',
+              color: passwordCriteria.length ? '#2BB514' : '#D3D3D3',
+              fontWeight: '500'
+            }}>
+              8+ characters
+            </span>
+          </div>
+          
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            width: '50%'
+          }}>
+            {passwordCriteria.number ? (
+              <CircleCheck size={20} style={{ color: '#2BB514' }} />
+            ) : (
+              <CircleX size={20} style={{ color: '#D3D3D3' }} />
+            )}
+            <span style={{ 
+              marginLeft: '8px',
+              color: passwordCriteria.number ? '#2BB514' : '#D3D3D3',
+              fontWeight: '500'
+            }}>
+              Number
+            </span>
+          </div>
         </div>
         
+        {/* Second row: Uppercase and Lowercase */}
         <div style={{
           display: 'flex',
-          alignItems: 'center',
-          width: '50%'
+          justifyContent: 'space-between'
         }}>
-          {passwordCriteria.number ? (
-            <SquareCheck size={20} style={{ color: '#2BB514' }} />
-          ) : (
-            <SquareX size={20} style={{ color: '#D3D3D3' }} />
-          )}
-          <span style={{ 
-            marginLeft: '8px',
-            color: passwordCriteria.number ? '#2BB514' : '#D3D3D3'
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            width: '50%'
           }}>
-            Number
-          </span>
-        </div>
-      </div>
-      
-      {/* Second row: Uppercase and Lowercase */}
-      <div style={{
-        display: 'flex',
-        justifyContent: 'space-between'
-      }}>
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          width: '50%'
-        }}>
-          {passwordCriteria.uppercase ? (
-            <SquareCheck size={20} style={{ color: '#2BB514' }} />
-          ) : (
-            <SquareX size={20} style={{ color: '#D3D3D3' }} />
-          )}
-          <span style={{ 
-            marginLeft: '8px',
-            color: passwordCriteria.uppercase ? '#2BB514' : '#D3D3D3'
+            {passwordCriteria.uppercase ? (
+              <CircleCheck size={20} style={{ color: '#2BB514' }} />
+            ) : (
+              <CircleX size={20} style={{ color: '#D3D3D3' }} />
+            )}
+            <span style={{ 
+              marginLeft: '8px',
+              color: passwordCriteria.uppercase ? '#2BB514' : '#D3D3D3',
+              fontWeight: '500'
+            }}>
+              Uppercase letter
+            </span>
+          </div>
+          
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            width: '50%'
           }}>
-            Uppercase letter
-          </span>
-        </div>
-        
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          width: '50%'
-        }}>
-          {passwordCriteria.lowercase ? (
-            <SquareCheck size={20} style={{ color: '#2BB514' }} />
-          ) : (
-            <SquareX size={20} style={{ color: '#D3D3D3' }} />
-          )}
-          <span style={{ 
-            marginLeft: '8px',
-            color: passwordCriteria.lowercase ? '#2BB514' : '#D3D3D3'
-          }}>
-            Lowercase letter
-          </span>
+            {passwordCriteria.lowercase ? (
+              <CircleCheck size={20} style={{ color: '#2BB514' }} />
+            ) : (
+              <CircleX size={20} style={{ color: '#D3D3D3' }} />
+            )}
+            <span style={{ 
+              marginLeft: '8px',
+              color: passwordCriteria.lowercase ? '#2BB514' : '#D3D3D3',
+              fontWeight: '500'
+            }}>
+              Lowercase letter
+            </span>
+          </div>
         </div>
       </div>
     </div>
@@ -229,14 +229,7 @@ const location = useLocation();
 
   const handleSignUp = async (e) => {
     e.preventDefault();
-
-    if (password !== confirmPassword) {
-      setPasswordsMatch(false);
-      setError("Passwords do not match");
-      return;
-    }
-
-    setPasswordsMatch(true);
+    setIsSubmitting(true);
     setError(null);
 
     try {
@@ -250,24 +243,62 @@ const location = useLocation();
       };
 
       if (role === 'student') {
-        // ... existing code ...
         userProfile.testsTaken = [];
         userProfile.classesIn = [];
         userProfile.grades = [];
         userProfile.questionsCompleted = 0;
         userProfile.reviewedTests = false;
-        userProfile.pendingClasses = []; // Add this line
-        await setDoc(doc(db, 'students', uid), userProfile);
-      
-        // Add this block
+        userProfile.pendingClasses = [];
+        
+        // If there's class info, let's add them directly to the class
         if (classInfo && classInfo.classCode) {
-          const studentRef = doc(db, 'students', uid);
-          await updateDoc(studentRef, {
-            pendingClasses: arrayUnion(classInfo.classCode)
-          });
+          // Find the class document
+          const classesRef = collection(db, 'classes');
+          const classQuery = query(classesRef, where('classCode', '==', classInfo.classCode));
+          const classSnapshot = await getDocs(classQuery);
+          
+          if (!classSnapshot.empty) {
+            const classDoc = classSnapshot.docs[0];
+            const classData = classDoc.data();
+            
+            // Create student info for class
+            const studentInfo = {
+              uid,
+              email,
+              name: `${formatName(firstName)} ${formatName(lastName)}`,
+              timeMultiplier: 1
+            };
+
+            // Create class info for student
+            const classInfo = {
+              classId: classDoc.id,
+              classChoice: classData.classChoice,
+              period: classData.period
+            };
+
+            // Update userProfile with the class
+            userProfile.classes = [classInfo];
+
+            // Create student document with class included
+            await setDoc(doc(db, 'students', uid), userProfile);
+
+            // Update class document to include the student
+            await updateDoc(doc(db, 'classes', classDoc.id), {
+              students: arrayUnion(uid),
+              participants: arrayUnion(studentInfo)
+            });
+          } else {
+            // If class not found, create student doc without class
+            await setDoc(doc(db, 'students', uid), userProfile);
+          }
+        } else {
+          // If no class info, just create the student doc
+          await setDoc(doc(db, 'students', uid), userProfile);
         }
-      
-        navigate('/studenthome');
+
+        // Instead of navigating directly, wait a moment for Firebase to update
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        window.location.href = '/studenthome';
       } else if (role === 'teacher') {
         const newReferralCode = generateReferralCode();
         userProfile.classesOwned = [];
@@ -289,6 +320,7 @@ const location = useLocation();
 
     } catch (err) {
       setError(err.message);
+      setIsSubmitting(false);
     }
   };
 
@@ -302,8 +334,7 @@ const location = useLocation();
   };
 
   const isFormComplete = () => {
-    return email && password && role && confirmPassword && firstName && lastName && 
-           (password === confirmPassword) && allCriteriaMet;
+    return email && password && role && firstName && lastName && allCriteriaMet;
   };
 
   const checkPasswordCriteria = (password) => {
@@ -320,8 +351,7 @@ const location = useLocation();
     setAllCriteriaMet(criteriamet);
     setInputValidation(prev => ({
       ...prev,
-      password: criteriamet && password.length > 0,
-      confirmPassword: password === confirmPassword && password.length > 0 && criteriamet
+      password: criteriamet && password.length > 0
     }));
   };
 
@@ -369,6 +399,47 @@ const location = useLocation();
     setInputStyles(prevState => ({ ...prevState, [inputName]: value.trim() !== '' }));
   };
 
+  // Add at the top with other style constants
+  const inputContainerStyle = {
+    display: 'flex', 
+    alignItems: 'center', 
+    gap: '10px', 
+    marginTop: '.3rem',
+  };
+
+  const labelStyle = {
+    padding: '0 5px',
+    fontFamily: "'montserrat', sans-serif",
+    fontWeight: '500',
+    color: 'grey',
+    fontSize: '1rem',
+    display: 'flex',
+    alignItems: 'center',
+    whiteSpace: 'nowrap',
+    width: '120px'
+  };
+
+  const inputStyle = {
+    padding: '8px 15px',
+    margin: '8px 0',
+    marginLeft: 'auto',
+    border: '1px solid #ddd',
+    outline: 'none',
+    borderRadius: '25px',
+    fontSize: '1rem',
+    width: '250px',
+    fontFamily: "'montserrat', sans-serif",
+  };
+
+  const validationIconStyle = {
+    position: 'absolute',
+    right: '12px',
+    top: '50%',
+    transform: 'translateY(-50%)',
+    display: 'flex',
+    alignItems: 'center'
+  };
+
   return (
     <div style={{ 
       position: 'relative', 
@@ -378,502 +449,436 @@ const location = useLocation();
       backgroundColor: '#white',
       backdropFilter: 'blur(7px)'
     }}>
+     
   {classInfo && <ClassSignupInfo classInfo={classInfo} />}
       {/* Navbar */}
-      <div style={{ 
-        position: 'fixed', 
-        top: 0, 
-        width: '100%', 
-        display: 'flex',
-        borderBottom: '1px solid lightgrey',
-        padding: '0px 0', 
-        alignItems: 'center', 
-        height: '60px', 
-        color: 'grey', 
-        zIndex: 1000,
-        backgroundColor: navbarBg, 
-        transition: 'background-color 0.3s ease',
-        backdropFilter: 'blur(7px)',
-      }}>
-        <div style={{ marginLeft: 'auto', marginRight: 'auto', display: 'flex' }}>
-          <div style={{ 
-            width: '1280px', 
-            display: 'flex', 
-            backgroundColor: 'transparent', 
-            padding: '0px 0', 
-            alignItems: 'center', 
-            height: '70px', 
-            color: 'grey', 
-            marginRight: 'auto', 
-            marginLeft: 'auto' 
-          }}>
-            <div style={{
-              display: 'flex',  
-              position: 'absolute',
-              left: '30px',
-              top: '50%',
-              transform: 'translateY(-50%)'
-            }}>
-              <img style={{ width: '25px' }} src="/favicon.svg" alt="logo" />
-              <h1 style={{
-                fontWeight: '600', 
-                color: 'black', 
-                paddingLeft: '10px', 
-                borderLeft: '4px solid #f4f4f4', 
-                marginLeft: '10px', 
-                fontSize: '20px'
-              }}>
-                SquareScore
-              </h1>
-            </div>
-          </div>
-          <div style={{ width: '300px', display: 'flex', position: 'fixed', right: '20px' }}>
-            <Link to="/login" style={{
-              height: '30px', 
-              marginTop: '20px', 
-              lineHeight: '30px', 
-              borderRadius: '8px',
-              fontWeight: '600', 
-              background: 'transparent',  
-              color: 'black',
-              textDecoration: 'none', 
-              width: '100px', 
-              marginLeft: 'auto',
-              textAlign: 'center', 
-              transition: '.2s',
-              fontFamily: "'montserrat', sans-serif", 
-              fontSize: '16px'
-            }}
-            onMouseEnter={(e) => {     
-              e.target.style.background = '#f4f4f4';
-              e.target.style.border = '3px solid lightgrey';
-              e.target.style.color = 'grey';
-            }}
-            onMouseLeave={(e) => {
-              e.target.style.background = 'transparent';
-              e.target.style.color = 'black';
-              e.target.style.border = '3px solid transparent';
-            }}>
-              Login
-            </Link>
-          </div>
-        </div>
+   <div style={{ 
+             position: 'fixed', top: 0, width: '100%', display: 'flex',borderBottom: '1px solid lightgrey',
+             padding: '0px 0', alignItems: 'center', height: '60px', color: 'grey', zIndex: 1000,
+             backgroundColor: navbarBg, transition: 'background-color 0.3s ease',
+             backdropFilter: 'blur(7px)',
+           }}>
+             <div style={{ marginLeft: 'auto', marginRight: 'auto', display: 'flex'}}>
+               <div style={{ width: '1280px', display: 'flex', backgroundColor: 'transparent', padding: '0px 0', alignItems: 'center', height: '70px', color: 'grey', marginRight: 'auto', marginLeft: 'auto' }}>
+                 
+               <div style={{display: 'flex',  position: 'absolute',
+         left: '30px',
+         top: '50%',
+         transform: 'translateY( -50%)'}}>
+           <Link to="/">
+                 <img style={{width: '35px',  }} src="/FAVICON.svg" alt="logo" />
+                 </Link></div>
+   
+                 
+              
+   
+               </div>
+   
+   
+<h1 style={{position: 'absolute'
+  ,
+  left: '50%',
+  top: '5px',
+  transform: 'translate(-50%)',
+  fontWeight:'400',
+  fontSize: '1.3rem',
+  color: 'black'
+}}>Create An Account</h1>
+   
+               <div style={{ width: '700px', display: 'flex', position: 'fixed', right: '20px' }}>
+   
+   
+       
+               <Link to="/login" style={{
+                   height: '30px', marginTop: '20px', lineHeight: '30px', borderRadius: '5px',
+                   fontWeight: '500', marginLeft:'auto',
+                     color: 'grey',
+   width: '10rem',
+                   textDecoration: 'none', 
+                  textAlign: 'center', transition: '.2s',
+                   fontFamily: "'montserrat', sans-serif", 
+                   fontSize: '1rem',
+   
+   
+                   transition: 'color 0.3s, box-shadow 0.3s',
+                
+                 }}
+                
+                 onMouseEnter={(e) => {
+                   e.currentTarget.style.color = 'darkgrey';
+                 }}
+                 onMouseLeave={(e) => {
+                   e.currentTarget.style.color = 'grey';
+                 }}
+                 
+                 
+                 
+                 >Login</Link>
+               
+                
+               </div>
+             </div>
       </div>
 
       {/* Sign-Up Form Container */}
       <div style={{
-        width: '390px', 
+        width: '450px', 
         marginLeft: 'auto', 
-        height: 'auto', 
-        marginTop: '100px', 
+        marginTop: '150px', 
         marginRight: 'auto',  
-        backgroundColor: 'white',
-        padding: '0px 30px', 
-        borderRadius: '30px',
         display: 'flex',
         flexDirection: 'column',
-        alignItems: 'center'
       }}>
-        
-        {/* Form Header */}
-      
-          <h1 style={{ 
-            fontWeight: '600',
-            color: 'black', width: '100%', 
-            textAlign: 'left',
-            fontSize: '40px', 
-            fontFamily: "'montserrat', sans-serif", 
-        
-          }}>
-            Sign Up
-          </h1>
-    
+        <GlassContainer
+        size={1}
+          variant="clear"
+          style={{
+            width: '107%',
 
-        {/* Sign-Up Form */}
-        <form onSubmit={handleSignUp} style={{ width: '100%' }}> 
+            borderRadius: '12px',
+          }}
+          contentStyle={{padding: '30px', paddingBottom: '10px'}}
+        >
+          {/* Form Header */}
+          <form onSubmit={handleSignUp} style={{ width: '100%' }}> 
           
-          {/* Role Selection */}
-          <div style={{marginBottom: '45px', display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
-       
-            <div style={{ 
-              display: 'flex', 
-              justifyContent: 'center', 
-              gap: '20px', 
-              width: '100%', 
-              maxWidth: '400px'
-            }}>
-             <button 
-                type="button"
-                onClick={() => toggleRole('student')}
-                style={{ 
-                  flex: 1, 
-                  height: '30px',
-                  backgroundColor: role === 'student' ? '#FFF5DE' : '#F8F8F8',
-                  color:   role === 'student' ? '#FFAE00' : 'grey',
-                  border: 'none',
-                  fontSize: '20px', 
-                  fontWeight: '600',
-                  cursor: 'pointer',
-                  fontFamily: "'montserrat', sans-serif",
-                  display: 'flex',
+  {/* Role Selection - Only show if not joining via class link */}
+  {!classInfo && (
+    <div style={{marginBottom: 'calc(1.5rem - 10px)'}}>
+      <div style={inputContainerStyle}>
+        <label style={labelStyle}>
+          Role
+        </label>
+        <div style={{ 
+          position: 'relative', 
+          flex: 1, 
+          display: 'flex', 
+          justifyContent: 'flex-end',
+          gap: '10px'
+        }}>
+          {role === 'student' ? (
+            <div>
+            <GlassContainer 
+                      enableRotation={true}
+              variant="yellow" 
+              size={0}
+              onClick={() => toggleRole('student')}
+              style={{
+                cursor: 'pointer',
+              }}
+              contentStyle={{
+                display: 'flex',
+                height: '32px',
+                width: '135px',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px'
+              }}
+            >
+              <div style={{display:'flex', gap: '8px'}}>
+              <BookOpenText size={16} style={{ color: '#ffc300' }} />
+              <span style={{
+                fontWeight: '500', 
+                fontSize: '0.9rem',
+                color: '#ffc300',
+                fontFamily: "'montserrat', sans-serif"
+              }}>
+                Student
+              </span>
+              </div>
+            </GlassContainer>
+            </div>
+          ) : (
+            <button
+              onClick={() => toggleRole('student')}
+              style={{
+                background: 'none',
+                border: '1px solid #fff',
+                cursor: 'pointer',
+                borderRadius: '25px',
+                height: '35px',
+                width: '135px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px'
+              }}
+            >
+              <BookOpenText size={16} style={{ color: '#D2D2D2' }} />
+              <span style={{
+                fontWeight: '500', 
+                fontSize: '0.9rem',
+                color: 'grey',
+                fontFamily: "'montserrat', sans-serif"
+              }}>
+                Student
+              </span>
+            </button>
+          )}
 
-                  transition: '.2s',
-                }}
-              >
-                <BookOpenText size={24} style={{padding: '3px',    backgroundColor: role === 'student' ? '#FFAE00' : '#D2D2D2', color: 'white', marginTop: '-1px', marginLeft: '-10px'}}/>
-                <h1 style={{fontWeight: '600', fontSize: '20px', marginTop: '2px', marginLeft: "10px"}}>Student</h1>
-              </button>
-              <button 
-                type="button"
-                onClick={() => toggleRole('teacher')}
-                style={{ 
-                  flex: 1, 
-                  height: '30px',
-                  backgroundColor: role === 'teacher' ? '#C2D3FF' : '#F8F8F8',
-                  color:   role === 'teacher' ? '#020CFF' : 'grey',
-                  border: 'none',
-                  fontSize: '20px', 
-                  marginRight: '-20px',
-                  fontWeight: '600',
-                  cursor: 'pointer',
-                  fontFamily: "'montserrat', sans-serif",
-                  display: 'flex',
+          {role === 'teacher' ? (
+            <div>
+            <GlassContainer 
+                      enableRotation={true}
+              variant="blue" 
+              size={0}
+              onClick={() => toggleRole('teacher')}
+              style={{
+                cursor: 'pointer',
+              }}
+              contentStyle={{
+                display: 'flex',
+                height: '32px',
+                width: '135px',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px'
+              }}
+            >
+              <div style={{display:'flex', gap: '8px'}}>
+              <GraduationCap size={16} style={{ color: '#1651d4' }} />
+              <span style={{
+                fontWeight: '500', 
+                fontSize: '0.9rem',
+                color: '#1651d4',
+                fontFamily: "'montserrat', sans-serif"
+              }}>
+                Teacher
+              </span>
+              </div>
+            </GlassContainer>
+            </div>
+          ) : (
+            <button
+              onClick={() => toggleRole('teacher')}
+              style={{
+                background: 'none',
+                border: '1px solid #fff',
+                cursor: 'pointer',
+                borderRadius: '25px',
+                height: '35px',
+                width: '135px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px'
+              }}
+            >
+              <GraduationCap size={16} style={{ color: '#D2D2D2' }} />
+              <span style={{
+                fontWeight: '500', 
+                fontSize: '0.9rem',
+                color: 'grey',
+                fontFamily: "'montserrat', sans-serif"
+              }}>
+                Teacher
+              </span>
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  )}
 
-                  transition: '.2s',
+  <div style={{marginTop:'0px'}}>
+    {/* First Name */}
+          <div style={inputContainerStyle}>
+            <label style={labelStyle}>
+              First Name
+            </label>
+            <div style={{ position: 'relative', flex: 1, display: 'flex', justifyContent: 'flex-end' }}>
+              <input
+                type="text"
+                value={firstName}
+                onChange={(e) => {
+                  const formattedName = formatName(e.target.value);
+                  setFirstName(formattedName);
+                  setInputValidation(prev => ({
+                    ...prev,
+                    firstName: formattedName.length > 0
+                  }));
                 }}
-              >
-                <GraduationCap size={24} style={{padding: '3px',    backgroundColor: role === 'teacher' ? '#020CFF' : '#D2D2D2', color: 'white', marginTop: '-1px', marginLeft: '-10px'}}/>
-                <h1 style={{fontWeight: '600', fontSize: '20px', marginTop: '2px', marginLeft: "10px"}}>Teacher</h1>
-              </button>
+                style={inputStyle}
+              />
+              <div style={validationIconStyle}>
+                {inputValidation.firstName ?
+                  <CircleCheck size={14} style={{ color: '#2BB514' }} /> :
+                  <CircleX size={14} style={{ color: 'lightgrey' }} />
+                }
+              </div>
             </div>
           </div>
 
-          {/* First Name */}
-          <div style={{ position: 'relative', marginBottom: '45px' }}>
-            <input 
-              type="text" 
-              value={firstName}
-              onFocus={() => handleInputFocus('firstName')}
-              onBlur={(e) => handleInputBlur('firstName', e.target.value)}
-              onChange={e => {
-                const formattedName = formatName(e.target.value);
-                setFirstName(formattedName);
-                setInputValidation(prev => ({
-                  ...prev,
-                  firstName: formattedName.length > 0
-                }));
-              }}
-              placeholder=" " // To ensure the input remains styled
-              style={{ 
-                width: '100%', 
-                padding: '8px 10px 8px 10px', 
-                border: '1px solid lightgrey', 
-                color: 'black',
-                fontWeight: '600',
-                borderRadius: '8px', 
-                outline: 'none', 
-                fontSize: '16px',
-                fontFamily: "'montserrat', sans-serif",
-                position: 'relative'
-              }}
-            />
-            {/* Label */}
-            <label style={{ 
-              position: 'absolute', 
-              top: '-25px', 
-              backgroundColor: 'white', 
-              padding: '0 5px', 
-              fontFamily: "'montserrat', sans-serif", 
-              fontWeight: '600', 
-              fontSize: '16px', 
-              display: 'flex', 
-              alignItems: 'center' 
-            }}>
-              First Name
-              {inputValidation.firstName ? 
-                <SquareCheck size={20} style={{marginLeft: '10px', color: '#2BB514'}}/> : 
-                <SquareX size={20} style={{marginLeft: '10px', color: 'lightgrey'}}/>
-              }
-            </label>
-          </div>
-
           {/* Last Name */}
-          <div style={{ position: 'relative', marginBottom: '45px' }}>
-            <input 
-              type="text" 
-              value={lastName}
-              onFocus={() => handleInputFocus('lastName')}
-              onBlur={(e) => handleInputBlur('lastName', e.target.value)}
-              onChange={e => {
-                const formattedName = formatName(e.target.value);
-                setLastName(formattedName);
-                setInputValidation(prev => ({
-                  ...prev,
-                  lastName: formattedName.length > 0
-                }));
-              }}
-              placeholder=" "
-              style={{ 
-                width: '100%', 
-                padding: '8px 10px 8px 10px', 
-                border: '1px solid lightgrey', 
-                color: 'black',
-                fontWeight: '600',
-                borderRadius: '8px', 
-                outline: 'none', 
-                fontSize: '16px',
-                fontFamily: "'montserrat', sans-serif",
-                position: 'relative'
-              }}
-            />
-            {/* Label */}
-            <label style={{ 
-              position: 'absolute', 
-              top: '-25px', 
-              backgroundColor: 'white', 
-              padding: '0 5px', 
-              fontFamily: "'montserrat', sans-serif", 
-              fontWeight: '600', 
-              fontSize: '16px', 
-              display: 'flex', 
-              alignItems: 'center' 
-            }}>
+          <div style={inputContainerStyle}>
+            <label style={labelStyle}>
               Last Name
-              {inputValidation.lastName ? 
-                <SquareCheck size={20} style={{marginLeft: '10px', color: '#2BB514'}}/> : 
-                <SquareX size={20} style={{marginLeft: '10px', color: 'lightgrey'}}/>
-              }
             </label>
+            <div style={{ position: 'relative', flex: 1, display: 'flex', justifyContent: 'flex-end' }}>
+              <input
+                type="text"
+                value={lastName}
+                onChange={(e) => {
+                  const formattedName = formatName(e.target.value);
+                  setLastName(formattedName);
+                  setInputValidation(prev => ({
+                    ...prev,
+                    lastName: formattedName.length > 0
+                  }));
+                }}
+                style={inputStyle}
+              />
+              <div style={validationIconStyle}>
+                {inputValidation.lastName ?
+                  <CircleCheck size={14} style={{ color: '#2BB514' }} /> :
+                  <CircleX size={14} style={{ color: 'lightgrey' }} />
+                }
+              </div>
+            </div>
           </div>
 
           {/* Email */}
-          <div style={{ position: 'relative', marginBottom: '45px' }}>
-            <input 
-              type="email" 
-              value={email}
-              onFocus={() => handleInputFocus('email')}
-              onBlur={(e) => handleInputBlur('email', e.target.value)}
-              onChange={e => {
-                const newEmail = e.target.value.replace(/\s/g, '');
-                setEmail(newEmail);
-                const isValid = validateEmail(newEmail);
-                setIsEmailValid(isValid);
-                setInputValidation(prev => ({
-                  ...prev,
-                  email: isValid
-                }));
-              }}
-              placeholder=" "
-              style={{ 
-                width: '100%', 
-                padding: '8px 10px 8px 10px', 
-                border: '1px solid lightgrey', 
-                color: 'black',
-                fontWeight: '600',
-                borderRadius: '8px', 
-                outline: 'none', 
-                fontSize: '16px',
-                fontFamily: "'montserrat', sans-serif",
-                position: 'relative'
-              }}
-            />
-            {/* Label */}
-            <label style={{ 
-             position: 'absolute', 
-             top: '-25px', 
-             backgroundColor: 'white', 
-             padding: '0 5px', 
-             fontFamily: "'montserrat', sans-serif", 
-             fontWeight: '600', 
-             fontSize: '16px', 
-             display: 'flex', 
-             alignItems: 'center' 
-            }}>
+          <div style={inputContainerStyle}>
+            <label style={labelStyle}>
               Email
-              {inputValidation.email ? 
-                <SquareCheck size={20} style={{marginLeft: '10px', color: '#2BB514'}}/> : 
-                <SquareX size={20} style={{marginLeft: '10px', color: 'lightgrey'}}/>
-              }
             </label>
+            <div style={{ position: 'relative', flex: 1, display: 'flex', justifyContent: 'flex-end' }}>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => {
+                  const newEmail = e.target.value.replace(/\s/g, '');
+                  setEmail(newEmail);
+                  setInputValidation(prev => ({
+                    ...prev,
+                    email: newEmail.length > 0
+                  }));
+                }}
+                style={inputStyle}
+              />
+              <div style={validationIconStyle}>
+                {inputValidation.email ?
+                  <CircleCheck size={14} style={{ color: '#2BB514' }} /> :
+                  <CircleX size={14} style={{ color: 'lightgrey' }} />
+                }
+              </div>
+            </div>
           </div>
-
-        
 
           {/* Password */}
-          <div style={{ position: 'relative', marginBottom: '45px' }}>
-            <input 
-              type="password" 
-              value={password}
-              onFocus={() => {
-                handleInputFocus('password');
-                setIsPasswordFocused(true);
-              }}
-              onBlur={(e) => {
-                handleInputBlur('password', e.target.value);
-                setIsPasswordFocused(false);
-              }}
-              onChange={e => {
-                const newPassword = e.target.value;
-                setPassword(newPassword);
-                setPasswordsMatch(newPassword === confirmPassword);
-                checkPasswordCriteria(newPassword);
-              }}
-              placeholder=" "
-              style={{ 
-                width: '100%', 
-                padding: '8px 10px 8px 10px', 
-                border: '1px solid lightgrey', 
-                color: 'black',
-                fontWeight: '600',
-                borderRadius: '8px', 
-                outline: 'none', 
-                fontSize: '16px',
-                fontFamily: "'montserrat', sans-serif",
-                position: 'relative'
-              }}
-            />
-            {/* Label */}
-            <label style={{ 
-            position: 'absolute', 
-            top: '-25px', 
-            backgroundColor: 'white', 
-            padding: '0 5px', 
-            fontFamily: "'montserrat', sans-serif", 
-            fontWeight: '600', 
-            fontSize: '16px', 
-            display: 'flex', 
-            alignItems: 'center'  
-            }}>
-              Password
-              {inputValidation.password ? 
-                <SquareCheck size={20} style={{marginLeft: '10px', color: '#2BB514'}}/> : 
-                <SquareX size={20} style={{marginLeft: '10px', color: 'lightgrey'}}/>
-              }
-            </label>
+          <div style={{ 
+            display: 'flex',
+            flexDirection: 'column',
+            width: '100%',
+            marginBottom: isPasswordFocused ? '0' : '1.3rem'
+          }}>
+            <div style={inputContainerStyle}>
+              <label style={labelStyle}>
+                Password
+              </label>
+              <div style={{ position: 'relative', flex: 1, display: 'flex', justifyContent: 'flex-end' }}>
+                <input
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                  onFocus={() => setIsPasswordFocused(true)}
+                  onBlur={() => setIsPasswordFocused(false)}
+                  onChange={(e) => {
+                    const newPassword = e.target.value;
+                    setPassword(newPassword);
+                    checkPasswordCriteria(newPassword);
+                  }}
+                  style={{
+                    ...inputStyle,
+                    fontSize: '1rem',
+                  }}
+                />
+                <div style={{
+                  ...validationIconStyle,
+                  gap: '8px',
+                  right: '8px'
+                }}>
+                  <div
+                    onClick={() => setShowPassword(!showPassword)}
+                    style={{
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      padding: '4px'
+                    }}
+                  >
+                    {showPassword ? (
+                      <EyeOff size={14} style={{ color: '#666' }} />
+                    ) : (
+                      <Eye size={14} style={{ color: '#666' }} />
+                    )}
+                  </div>
+                  {inputValidation.password ?
+                    <CircleCheck size={14} style={{ color: '#2BB514' }} /> :
+                    <CircleX size={14} style={{ color: 'lightgrey' }} />
+                  }
+                </div>
+              </div>
+            </div>
             {isPasswordFocused && (
-  <PasswordCriteria passwordCriteria={passwordCriteria} allCriteriaMet={allCriteriaMet} />
-)}
-
-          </div>
-
-          {/* Confirm Password */}
-          <div style={{ position: 'relative', marginBottom: '25px' }}>
-            <input 
-              type="password" 
-              value={confirmPassword}
-              onFocus={() => {
-                handleInputFocus('confirmPassword');
-              }}
-              onBlur={(e) => {
-                handleInputBlur('confirmPassword', e.target.value);
-              }}
-              onChange={e => {
-                setConfirmPassword(e.target.value);
-                setPasswordsMatch(e.target.value === password);
-                setInputValidation(prev => ({
-                  ...prev,
-                  confirmPassword: e.target.value === password && password !== ''
-                }));
-              }}
-              placeholder=" "
-              style={{ 
-                width: '100%', 
-                padding: '8px 10px 8px 10px', 
-                border: '1px solid lightgrey', 
-                color: 'black',
-                fontWeight: '600',
-                borderRadius: '8px', 
-                outline: 'none', 
-                fontSize: '16px',
-                fontFamily: "'montserrat', sans-serif",
+              <div style={{ 
+                marginTop: '0.5rem',
+                marginBottom: '1rem',
+                width: '100%',
                 position: 'relative'
-              }}
-            />
-            {/* Label */}
-            <label style={{ 
-            position: 'absolute', 
-            top: '-25px', 
-            backgroundColor: 'white', 
-            padding: '0 5px', 
-            fontFamily: "'montserrat', sans-serif", 
-            fontWeight: '600', 
-            fontSize: '16px', 
-            display: 'flex', 
-            alignItems: 'center' 
-            }}>
-              Confirm Password
-              {inputValidation.confirmPassword ? 
-                <SquareCheck size={20} style={{marginLeft: '10px', color: '#2BB514'}}/> : 
-                <SquareX size={20} style={{marginLeft: '10px', color: 'lightgrey'}}/>
-              }
-            </label>
-
-
-
+              }}>
+                <PasswordCriteria passwordCriteria={passwordCriteria} allCriteriaMet={allCriteriaMet} />
+              </div>
+            )}
           </div>
-
-          {/* Passwords Match Error */}
-          {!passwordsMatch && (
-            <p style={{ 
-              color: 'red', 
-              marginBottom: '15px', 
-              fontFamily: "'montserrat', sans-serif",
-              fontSize: '16px'
-            }}>
-              Passwords do not match
-            </p>
-          )}
+           
+          </div>
 
           {/* Create Account Button and Terms */}
-          <div style={{display: 'flex', flexDirection: 'column', alignItems: 'center', marginRight: '-25px'}}>
-            {isFormComplete() && (
-              <>
-                <button 
-                  onClick={handleSignUp}
-                  type="submit"
-                  style={{ 
-                    width: '100%', 
-                    height: '50px',
-                    fontSize: '25px',
-                    color: role === 'student' ? 'white' : 'white',
-                    border: '4px solid',
-                    borderRadius: '10px',
-                    backgroundColor: role === 'student' ? '#FFAE00' : 'blue',
-                    fontWeight: '600',
-                    fontFamily: "'montserrat', sans-serif",
-                    transition: '.3s',
-                    cursor: 'pointer',
-                    marginBottom: '10px'
-                  }}
-                  onMouseEnter={(e) => {
-                    if (isFormComplete()) {
-                      e.target.style.opacity = '85%';
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (isFormComplete()) {
-                      e.target.style.opacity = '100%';
-                      e.target.style.boxShadow= 'none'
-                    }
-                  }}
-                >
-                 Sign Up
-                </button>
-                <p style={{ 
-                  fontFamily: "'montserrat', sans-serif", 
-                  color: 'black', 
-                  fontSize: '14px', 
-                  textAlign: 'left',
-                }}>
-                  By signing up you agree to SquareScore's <a href="/TermsofService" style={{ color: 'blue' }}>Terms of Service</a> and <a href="/PrivacyPolicy" style={{ color: 'blue' }}>Privacy Policy</a>
-                </p>
-              </>
-            )}
+          <div style={{display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%', marginTop: '30px'}}>
+            <GlassContainer
+              variant={isFormComplete() ? (role === 'student' ? 'yellow' : 'blue') : 'grey'}
+              size={1}
+                        enableRotation={true}
+              onClick={isFormComplete() ? handleSignUp : null}
+              style={{
+                cursor: isFormComplete() ? (isSubmitting ? 'default' : 'pointer') : 'not-allowed',
+                width: '100%',
+                borderRadius: '8px',
+                opacity: isSubmitting ? '0.7' : '1',
+                transition: '.3s'
+              }}
+              contentStyle={{
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                padding: '12px'
+              }}
+            >
+              <h1 style={{
+                fontWeight: '500',
+                fontSize: '1.1rem',
+                color: isFormComplete() ? (role === 'student' ? '#ffc300' : '#1651d4') : '#808080',
+                fontFamily: "'montserrat', sans-serif",
+                margin: 0
+              }}>
+                {isSubmitting ? 'Creating Account...' : 'Create Account'}
+              </h1>
+            </GlassContainer>
+            <p style={{ 
+              fontFamily: "'montserrat', sans-serif",
+              color: 'grey', 
+              fontSize: '0.875rem', 
+              textAlign: 'left',
+              marginTop: '10px'
+            }}>
+              By signing up you agree to Amoeba's <a href="/TermsofService" style={{ color: role === 'student' ? '#ffc300' : '#1651d4' }}>Terms of Service</a> and <a href="/PrivacyPolicy" style={{ color: role === 'student' ? '#ffc300' : '#1651d4' }}>Privacy Policy</a>
+            </p>
           </div>
         </form>
 
         {/* Error Message */}
         {error && <p style={{ color: 'red', marginTop: '20px', fontFamily: "'montserrat', sans-serif", fontSize: '16px', textAlign: 'center' }}>{error}</p>}
+        </GlassContainer>
       </div>
 
       {/* Success Popup */}

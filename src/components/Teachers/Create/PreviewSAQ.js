@@ -4,7 +4,8 @@ import axios from 'axios';
 
 import { v4 as uuidv4 } from 'uuid'; // Add this import at the top
 
-import { SquareX, CornerDownRight, Repeat, SquarePlus, Clipboard, ClipboardMinus, ClipboardList, SquareArrowLeft, Eye, ArrowLeft } from 'lucide-react';
+import { SquareX, CornerDownRight, Repeat, SquarePlus, Clipboard, ClipboardMinus, ClipboardList, SquareArrowLeft, Eye, ArrowLeft, X } from 'lucide-react';
+import { GlassContainer } from '../../../styles';
 const TeacherPreview = ({ questionsWithIds, setQuestionsWithIds, sourceText, questionCount, classId, teacherId }) => {
   const containerRef = useRef(null);
   const [showRegenerateDropdown, setShowRegenerateDropdown] = useState(false);
@@ -107,28 +108,30 @@ const TeacherPreview = ({ questionsWithIds, setQuestionsWithIds, sourceText, que
   };
 
   return (
+    <>
     <div style={{
-      width: '700px',
-      height: '500px',
+  
       zIndex: '10',
-      position: 'absolute',  top:'-90px', position: 'absolute' , left:' 50%', transform: 'translatex(-50%) ',fontFamily: "'montserrat', sans-serif",
+      position: 'absolute',  top:'-120px',  left:' 50%', transform: 'translatex(-50%) ',fontFamily: "'montserrat', sans-serif",
 
-      border: '1px solid lightgrey',
-               boxShadow: '1px 1px 5px 1px rgb(0,0,155,.07)' ,
-      background: 'white',
-      borderRadius: '20px',
-      padding: '30px',
     }}>
+      
+    <GlassContainer
+    
+    contentStyle={{    width: '700px',
+      height: '500px',
+      
+      padding: '30px',
+      
+      }}>
         <div
         style={{
           display: 'flex',
           marginTop: '-20px',
           width: '760px',
           marginLeft:'-30px',
-          height: '70px',
-          marginBottom: '10px',
-          borderRadius: '30px 30px 0px 0px ',
           position: 'relative',
+        
         }}
       >
 
@@ -137,13 +140,13 @@ const TeacherPreview = ({ questionsWithIds, setQuestionsWithIds, sourceText, que
             marginLeft: '60px',
             fontFamily: "'montserrat', sans-serif",
             color: 'black',
-            fontWeight: '600',
-            fontSize: '30px',
+            fontWeight: '400',
+            fontSize: '1.5rem',
             display: 'flex',
             marginTop: '10px',
           }}
         >
-         <Eye size={40} style={{marginLeft: '-20px', marginRight: "20px"}}/> Question Preview{' '}
+         <Eye size={30} strokeWidth={1.5} style={{marginLeft: '-20px', marginRight: "20px", }}/> Question Preview{' '}
         </h1>
       </div>
 
@@ -246,60 +249,62 @@ const TeacherPreview = ({ questionsWithIds, setQuestionsWithIds, sourceText, que
 
 
 
-<div style={{display: 'flex', width: '650px', marginLeft: '20px', marginRight: 'auto', marginTop: '-10px',  marginBottom: '20px'}}>
-      <h2 style={{color: 'lightgrey', fontSize: '14px', fontWeight: 'bold', width: '300px',  }}>Click to edit Questions and rubrics, </h2>
-  
+<div style={{display: 'flex', position: 'absolute', right: '20px' , top: '20px',  marginBottom: '20px', }}>
+    
         <button
         onClick={handleAddQuestion}
         style={{
         
-          padding: '5px 20px',
-          backgroundColor: 'white',
-          color: '#2BB514',
-          width: '160px',
+          padding: '5px 15px',
+          color: 'grey',
+          background: 'white',
           display: 'flex',
           marginLeft: 'auto',
           marginTop: "5px",
           border: '1px solid lightgrey',
           lineHeight: '20px',
-          borderRadius: '8px',
+          borderRadius: '20px',
           height: '30px',
           fontFamily: "'montserrat', sans-serif",
           cursor: 'pointer',
-          fontWeight: '600',
-          fontSize: '14px'
+          fontWeight: '500',
+          fontSize: '.8rem'
         }}
       >
         
-        <SquarePlus style={{marginLeft: '-15px', marginRight: '10px', marginTop: '-2px'}}/>
-        Add Question
+        Add Question +
       </button>
       <div 
           style={{ padding: '5px 20px',
             backgroundColor: 'white',
-            color: '#D800FB',
+            color: 'grey',
           marginLeft: '20px',
             marginTop: "5px",
             border: '1px solid lightgrey',
             lineHeight: '20px',
-            borderRadius: '8px',
+            borderRadius: '20px',
             height: '20px',
             fontFamily: "'montserrat', sans-serif",
             cursor: 'pointer',
-            fontWeight: '600',
+            fontWeight: '500',
             display:'flex',
-            fontSize: '16px'}}
+            fontSize: '.8rem'}}
           
           
           
           onClick={() => setShowRegenerateDropdown(!showRegenerateDropdown)}
         >
-          <Repeat style={{marginLeft: '-10px', marginRight: '10px', marginTop: '-3px'}}/>
+          <Repeat size={15} style={{ marginRight: '10px', marginTop: '3px'}}/>
           Regenerate
         </div>
+
+
+         
+
         </div> 
       
       
+ <h2 style={{color: 'grey', fontSize: '.9rem', fontWeight: '400', width: '300px',  marginTop:'-5px' }}>Click to edit Questions and rubrics, </h2>
 
 
 
@@ -336,9 +341,11 @@ const TeacherPreview = ({ questionsWithIds, setQuestionsWithIds, sourceText, que
                 borderRadius: '10px 0px 0px 10px',
                 display: 'flex',
                 alignItems: 'center',
+                fontSize: '1rem',
+                fontWeight: '400',
                 alignSelf: 'stretch',
               }}>
-                <h1 style={{ margin: 'auto' }}>{index + 1}.</h1>
+             {index + 1}.
               </div>
               <TextareaAutosize
                 style={{
@@ -346,8 +353,9 @@ const TeacherPreview = ({ questionsWithIds, setQuestionsWithIds, sourceText, que
                   padding: '15px',
                   paddingRight: '8%',
                   fontFamily: "'montserrat', sans-serif",
-                  fontWeight: '600',
-                  fontSize: '20px',
+                  fontWeight: '500',
+                  fontSize: '1rem',
+                  outline: 'none',
                   borderRadius: '0px 10px 10px 0px',
                   width: '500px',
                   resize: 'none',
@@ -367,17 +375,18 @@ const TeacherPreview = ({ questionsWithIds, setQuestionsWithIds, sourceText, que
           transform: 'translateY(-50%)',
           fontSize: '20px', 
           background: 'white',
-          border: '1px solid #ddd',
+          border: 'none',
           borderRadius: '8px',
           height: '40px',
           width: '40px',
-          color: 'grey'
+          color: 'grey',
+          cursor: 'pointer'
         }}
       >
         {showRubrics[index] ? (
-          <ClipboardMinus style={{marginLeft: '-2px', marginTop: '2px'}}/>
+          <ClipboardMinus strokeWidth={1.5} style={{marginLeft: '-2px', marginTop: '2px'}}/>
         ) : (
-          <ClipboardList style={{marginLeft: '-2px', marginTop: '2px'}}/>
+          <ClipboardList strokeWidth={1.5} style={{marginLeft: '-2px', marginTop: '2px'}}/>
         )}
       </button>
       <button 
@@ -398,7 +407,7 @@ const TeacherPreview = ({ questionsWithIds, setQuestionsWithIds, sourceText, que
                 }}
               >
                 <div style={{marginTop: '-2px', marginLeft: '-4px', }}>
-                <SquareX size={30} color="#e60000" strokeWidth={2} /></div>
+                <X  color="#e60000" strokeWidth={2} size={20}/></div>
           
               </button>
             </div>
@@ -407,12 +416,11 @@ const TeacherPreview = ({ questionsWithIds, setQuestionsWithIds, sourceText, que
             {showRubrics[index] && (
               <div style={{display: 'flex', alignItems: 'center', marginLeft: '-80px', position: 'relative', marginBottom: '20px'}}>
                 <div style={{marginLeft: '100px'}}>
-                  <CornerDownRight size={40} color="#c9c9c9" strokeWidth={3} />
+                  <CornerDownRight size={40} color="#c9c9c9" strokeWidth={1} />
                 </div>
                 <div style={{  width: '30px', 
-                padding: '8px', 
-                background: '#f4f4f4', 
-                border: '4px solid lightgrey', 
+                padding: ' 0px 10px', 
+                borderRight: '1px solid #ddd', 
                 color: 'grey', 
                 zIndex: '10', 
                 marginLeft: '20px',
@@ -423,14 +431,14 @@ const TeacherPreview = ({ questionsWithIds, setQuestionsWithIds, sourceText, que
                 alignSelf: 'stretch',
                 }}> 
 
-                  <ClipboardList style={{margin: 'auto'}}size={30}/>
+                  <ClipboardList style={{margin: 'auto'}} size={30} strokeWidth={1.5}/>
                 </div>
                 <TextareaAutosize
                   style={{
                     width: '500px',
-                    border: '4px solid #F4F4F4',
+                    border: 'none',
                     padding: '15px',
-                    fontWeight: '600',
+                    fontWeight: '400',
                     color: 'grey',
                     outline: 'none',
                     marginLeft: '-4px',
@@ -447,7 +455,10 @@ const TeacherPreview = ({ questionsWithIds, setQuestionsWithIds, sourceText, que
           </div>
         ))}
       </div>
+      
+    </GlassContainer>
     </div>
+    </>
   );
 };
 

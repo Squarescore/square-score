@@ -37,7 +37,7 @@ const ResponsiveText = ({ text, maxFontSize, minFontSize, style }) => {
       ref={textRef}
       style={{
         fontSize: `${fontSize}px`,
-        fontWeight: '600',
+        fontWeight: '500',
         cursor: 'pointer',
         width: '100%',
         fontFamily: "'montserrat', sans-serif",

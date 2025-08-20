@@ -339,7 +339,7 @@ const [showIncorrectScreen, setShowIncorrectScreen] = useState(false);
   };
 
   const handleSubmit = async () => {
-    
+    const timeSpent = timeLimit ? (timeLimit - secondsLeft) : 0; // Calculate time spent
     try {
       const gradeDocRef = doc(db, 'grades', `${assignmentId}_${studentUid}`);
       await setDoc(gradeDocRef, {
@@ -357,14 +357,17 @@ const [showIncorrectScreen, setShowIncorrectScreen] = useState(false);
         correctQuestions,
         incorrectQuestions,
         viewable: false,
+        timeSpent, // Add time spent to the grade document
       });
 
       const studentRef = doc(db, 'students', studentUid);
-      await updateDoc(studentRef, {
+      const studentUpdates = {
         assignmentsToTake: arrayRemove(assignmentId),
         assignmentsInProgress: arrayRemove(assignmentId),
-        assignmentsTaken: arrayUnion(assignmentId)
-      });
+        assignmentsTaken: arrayUnion(assignmentId),
+        timeSpent, // Add time spent to student updates
+      };
+      await updateDoc(studentRef, studentUpdates);
 
       const progressRef = doc(db, 'assignments(progress', `${assignmentId}_${studentUid}`);
       await deleteDoc(progressRef);

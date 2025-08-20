@@ -118,7 +118,7 @@ const Folders = ({
                 fontSize: '20px',
                 marginBottom: '10px',
                 borderRadius: '5px',
-                border: '1px solid #ccc',
+                border: '1px solid #ddd',
               }}
             />
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '15px' }}>

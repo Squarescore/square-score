@@ -3,6 +3,8 @@
   position: relative;
   height: 20px;
   width: 140px;
+  margin-left: auto;
+  margin-right: auto;
   background-image: linear-gradient(#f4f4f4 20px, transparent 0), 
                     linear-gradient(#f4f4f4 20px, transparent 0), 
                     linear-gradient(#f4f4f4 20px, transparent 0), 

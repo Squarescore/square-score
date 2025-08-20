@@ -6,8 +6,13 @@ const CopyLinkButton = ({ classCode, className, classChoice }) => {
 
   const handleCopy = async () => {
     // Create the signup URL with class info encoded
-    const baseUrl = 'https://square-score-ai.web.app/signup';
-    const signupUrl = `${baseUrl}/${classCode}+${className}+${classChoice}`;
+    const baseUrl = 'https://amoeba-education.web.app/signup';
+    
+    // Properly encode the components using encodeURIComponent
+    const encodedClassName = encodeURIComponent(className);
+    const encodedClassChoice = encodeURIComponent(classChoice);
+    
+    const signupUrl = `${baseUrl}/${classCode}+${encodedClassName}+${encodedClassChoice}`;
 
     try {
       await navigator.clipboard.writeText(signupUrl);
@@ -17,13 +22,12 @@ const CopyLinkButton = ({ classCode, className, classChoice }) => {
       console.error('Failed to copy:', err);
     }
   };
-
+  
   return (
     <button 
       onClick={handleCopy}
       style={{ 
         background: 'transparent', 
-        color: '#E01FFF', 
         border: 'none', 
         cursor: 'pointer',
         position: 'relative',

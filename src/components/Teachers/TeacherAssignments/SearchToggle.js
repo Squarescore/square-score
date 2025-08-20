@@ -23,7 +23,7 @@ const SearchToggle = ({ searchTerm, handleSearchChange, activeTab }) => {
   };
 
   return (
-    <div style={{ width: '350px', height: '30px', position: 'relative', }}>
+    <div style={{ width: '350px', height: '30px', position: 'relative', marginTop: '-25px', marginLeft: 'auto'}}>
   
         <div style={{ 
           position: 'relative', 

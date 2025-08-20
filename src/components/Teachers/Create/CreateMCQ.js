@@ -19,7 +19,17 @@ import SecuritySettings from './SecuritySettings';
 import SelectStudentsDW from './SelectStudentsDW';
 import PreviewMCQ from './previewMCQ';
 import CustomExpandingFormatSelector from './ExpandingFormatSelector';
-import { AssignmentName, ChoicesPerQuestion, FormatSection, PreferencesSection, QuestionCountSection, TimerSection, ToggleSwitch } from './Elements';
+import { 
+  AssignmentName, 
+  ChoicesPerQuestion, 
+  FormatSection, 
+  PreferencesSection, 
+  QuestionCountSection, 
+  TimerSection, 
+  ToggleSwitch,
+  DateSettingsElement,
+  SecuritySettingsElement
+} from './Elements';
 
 import SourcePreviewToggle from './SourcePreviewToggle';
 import Loader from '../../Universal/Loader';
@@ -467,7 +477,7 @@ const [isSaving, setIsSaving] = useState(false)
       name: 'Select Students',
       
       backgroundColor: '#FFECA8',
-      borderColor: '#FFD13B',
+      borderColor: '#FF8800',
       textColor: '#CE7C00',
       condition: selectedStudents.size > -1, // Example condition
 
@@ -601,7 +611,7 @@ const [isSaving, setIsSaving] = useState(false)
     />
     
  
-    <DateSettings
+    <DateSettingsElement
            assignDate={assignDate}
            setAssignDate={setAssignDate}
            dueDate={dueDate}
@@ -632,14 +642,9 @@ const [isSaving, setIsSaving] = useState(false)
      selectedOptions={selectedOptions}
      onChange={setSelectedOptions}
    />
-  </PreferencesSection>
+    
  
- 
-            
-         
- 
- 
-  <SecuritySettings
+ <SecuritySettingsElement
    saveAndExit={saveAndExit}
    setSaveAndExit={setSaveAndExit}
    lockdown={lockdown}
@@ -647,6 +652,12 @@ const [isSaving, setIsSaving] = useState(false)
    onViolation={onViolation}
    setOnViolation={setOnViolation}
  />
+  </PreferencesSection>
+ 
+ 
+            
+         
+
  
  </StepContainer>
  
@@ -804,195 +815,6 @@ const [isSaving, setIsSaving] = useState(false)
 
 
 
-
-
-
-      <div style={{ marginTop: '150px', width: '800px', padding: '15px', marginLeft: 'auto', marginRight: 'auto', fontFamily: "'montserrat', sans-serif", background: 'white', borderRadius: '25px', 
-               boxShadow: '1px 1px 10px 1px rgb(0,0,155,.1)', marginBottom: '40px' }}>
-       
-              
-        
-       <div style={{ marginLeft: '0px', color: '#2BB514', margin: '-15px', padding: '10px 10px 10px 60px',  border: '10px solid #2BB514', borderRadius: '30px 30px 0px 0px', fontFamily: "'montserrat', sans-serif",  fontSize: '40px', display: 'flex', width: '740px', background: '#AEF2A3', marginBottom: '180px', fontWeight: 'bold' }}>
-        Create Assignment
-     
-  
-    <button style={{background: 'transparent', border: 'none', marginBottom: '-5px', marginLeft: 'auto'}}
-    onClick={handlePrevious}>
-<SquareX size={45} color="#2BB514"/>
-
-    </button>
-    </div>
-
-
-
-
-
-
-
-        
-      
-        <div style={{ width: '100%', height: 'auto', marginTop: '-200px', border: '10px solid transparent', borderRadius: '20px', padding: '20px' }}>
-
-
-   <PreferencesSection>
-      <AssignmentName 
-        value={assignmentName}
-        onChange={setAssignmentName}
-      />
-      
-      <FormatSection
-        classId={classId}
-        selectedFormat={selectedFormat}
-        onFormatChange={(newFormat) => {
-          setSelectedFormat(newFormat);
-          // Any additional format change logic
-        }}
-      />
-
-      <TimerSection
-        timerOn={timerOn}
-        timer={timer}
-        onTimerChange={setTimer}
-        onToggle={() => setTimerOn(!timerOn)}
-      />
-      
-    
-      
-      <ToggleSwitch
-        label="Feedback"
-        value={feedback}
-        onChange={setFeedback}
-      />
-      <ToggleSwitch
-        label="Retype"
-        value={retype}
-        onChange={setRetype}
-      />
-    </PreferencesSection>
-
-
-          <div style={{ width: '700px', marginLeft: '25px', marginTop: '30px', marginBottom: '-20px' }}>
-         
-
-
-          <DateSettings
-          assignDate={assignDate}
-          setAssignDate={setAssignDate}
-          dueDate={dueDate}
-          setDueDate={setDueDate}
-        />
-           
-            <SelectStudentsDW
-          classId={classId}
-          selectedStudents={selectedStudents}
-          setSelectedStudents={setSelectedStudents}
-        />
-          
-
-
-          <SecuritySettings
-          saveAndExit={saveAndExit}
-          setSaveAndExit={setSaveAndExit}
-          lockdown={lockdown}
-          setLockdown={setLockdown}
-        />
-
-         
-
-            {showPreview && generatedQuestions && generatedQuestions.length > 0 && (
-              <div style={{ width: '100%', position: 'absolute', zIndex: 100, background: 'white', top: '70px', left: '0%' }}>
-                <PreviewMCQ
-                  questions={generatedQuestions}
-                  onBack={() => setShowPreview(false)}
-                  onSave={handleSaveQuestions}
-                />
-              </div>
-            )}
-
-
-
-
-
-
-<div style={{ width: '700px', padding: '0px', marginTop: '20px',  borderRadius: '10px', marginBottom: '20px', zIndex: '-10' }}>
-              <div
-                style={{
-                  width: '100%',
-                  padding: '10px',
-                  fontSize: '30px',
-                  backgroundColor: 'white',
-                  color: 'black',
-                  border: 'none',
-                  height: '30px',
-                  marginTop: '10px',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center'
-                }}
-              >
-                <CircleHelp size={20} color="lightgrey" />
-                <h1 style={{ fontSize: '16px', marginLeft: '10px', marginRight: 'auto', fontFamily: "'montserrat', sans-serif", color: 'lightgrey', fontWeight: '600' }}>Generate Questions</h1>
-            
-              </div>
-
-
-              <div >
-                <div style={{ marginTop: '-20px' }}>
-                  {/* Questions Section */}
-               
-
-        
-          
-                
-      <QuestionCountSection
-        bankCount={questionBank}
-        studentCount={questionStudent}
-        onBankChange={setQuestionBank}
-        onStudentChange={setQuestionStudent}
-      />
-
-                <ChoicesPerQuestion
-        selectedOptions={selectedOptions}
-        onChange={setSelectedOptions}
-      />
-
-                <div style={{ width: '700px', marginLeft: '10px', }}>
-                <SourcePreviewToggle
-      sourceText={sourceText}
-      onSourceChange={setSourceText}
-      additionalInstructions={additionalInstructions}
-      onAdditionalInstructionsChange={setAdditionalInstructions}
-      onPreviewClick={handleGenerateQuestions}
-      onGenerateClick={handleGenerateQuestions}
-      generating={generating}
-      generatedQuestions={generatedQuestions}
-      progress={progress}
-      progressText={progressText}
-    />
-  
-  
-  
-
-                  </div>
-                </div>
-                
-              </div>
-              </div>
-
-            
-         </div>
-       </div>
-     </div>
-
-
-
-     <AssignmentActionButtons
-        onSaveDraft={saveDraft}
-        onPublish={saveAssignment}
-        isPublishDisabled={isPublishDisabled}
-        publishDisabledConditions={publishDisabledConditions}
-      />
 
      </div>
   

@@ -1,25 +1,27 @@
 import React from 'react';
 import { Settings, SquareDashedMousePointer, Sparkles, Eye } from 'lucide-react';
+import { GlassContainer } from '../../../styles';
 
 const StepContainer = ({ title, icon, color, backgroundColor, children, width = '550px', titleWidth }) => {
     const Icon = icon;
     
     return (
       <div style={{
-        width: width,
-        padding: '15px',
-        fontFamily: "'montserrat', sans-serif",
-        background: 'white',
-        borderRadius: '25px',
-        boxShadow: '1px 1px 10px 1px rgb(0,0,155,.05)',
-        
-        border: `1px solid lightgrey`,
         position: 'absolute',
-        top: '-120px',
-        left: '50%',
-        transform: 'translateX(-50%)',
-        zIndex: 100
+          top: '-120px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          zIndex: 10
       }}>
+        <GlassContainer
+        size={1}
+        contentStyle={{ width: width,
+          padding: '15px',
+          fontFamily: "'montserrat', sans-serif",
+      
+        
+         }}>
+
         <div style={{
           color: 'black',
           margin: '-15px',
@@ -28,17 +30,18 @@ const StepContainer = ({ title, icon, color, backgroundColor, children, width = 
           
           marginLeft: '-25px',
           borderRadius: '30px 30px 0px 0px',
-          fontSize: '30px',
+          fontSize: '1.5rem',
           display: 'flex',
           width: titleWidth || `${parseInt(width) - 38}px`, // Default to container width - padding if titleWidth not provided
           
-          marginBottom: '30px',
-          fontWeight: '600'
+          marginBottom: '10px',
+          fontWeight: '400'
         }}>
-          <Icon size={30} strokeWidth={2} style={{ marginRight: '10px', marginTop: '5px' }}/>
+          <Icon size={24} strokeWidth={1.5} style={{ marginRight: '10px', marginTop: '3px' }}/>
           {title}
         </div>
         {children}
+        </GlassContainer>
       </div>
     );
   };
@@ -53,7 +56,6 @@ const PostGenerationView = ({ sourceText, additionalInstructions, onEditClick })
         marginBottom: '20px'
       }}>
         <h3 style={{ 
-          color: '#E441FF',
           marginBottom: '10px',
           display: 'flex',
           alignItems: 'center'
@@ -101,7 +103,7 @@ const PostGenerationView = ({ sourceText, additionalInstructions, onEditClick })
           borderRadius: '8px',
           padding: '8px 16px',
           color: '#E441FF',
-          fontWeight: '600',
+          fontWeight: '500',
           cursor: 'pointer'
         }}
       >

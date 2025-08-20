@@ -12,7 +12,7 @@ return (
     <div style={
         {position: 'relative',width: '100%',
         height: '300px',
-        boxShadow: '1px 1px 5px 1px rgb(0,0,155,.1)',
+        borderTop: '1px solid lightgrey',
         backgroundColor: 'white' 
         }}>
 
@@ -23,7 +23,7 @@ marginRight: 'auto',display: 'flex', flexDirection: 'row', marginTop: '50px'}}>
   <div style={{width: '50%', backgroundColor: 'white', height: '200px', marginLeft: 'auto', flexDirection: 'row',display: 'flex'}}>
 
 <div style={{width: '50%', backgroundColor: 'white', height: '200px', flexDirection: 'column',display: 'flex',}}>
-<h4 style={{fontWeight:'bold', fontSize: '16px', marginBottom: '0px'}}>SquareScore</h4>
+<h4 style={{fontWeight:'500', fontSize: '16px', marginBottom: '0px'}}>Amoeba</h4>
 <Link style={{...foot}}>About us</Link>
   <Link style={{...foot}}>Tutorials</Link>
   <Link style={{...foot}}>Help</Link>
@@ -31,7 +31,7 @@ marginRight: 'auto',display: 'flex', flexDirection: 'row', marginTop: '50px'}}>
   
 </div>
 <div style={{width: '50%', backgroundColor: ' white', height: '200px', flexDirection: 'column',display: 'flex',}}>
-<h4 style={{fontWeight:'bold', fontSize: '16px', marginBottom: '0px'}}>Legal</h4>
+<h4 style={{fontWeight:'500', fontSize: '16px', marginBottom: '0px'}}>Legal</h4>
 <Link style={{...foot}}>Privacy Policy</Link>
 <Link to="/termsofservice"style={{...foot}}>Terms of Service</Link>
 </div>
@@ -41,11 +41,12 @@ marginRight: 'auto',display: 'flex', flexDirection: 'row', marginTop: '50px'}}>
 <div style={{width: '25%', backgroundColor: 'white', height: '200px', marginRight: 'auto', flexDirection: 'column',display: 'flex'}}>
 <div style={{height: '50%' ,backgroundColor: 'white'}}>
   <img src='
-/Footer.png'
-style={{width: '250px', marginTop: '7px', marginLeft: 'auto', marginRight: 'auto'}}/>
+/favicon.svg'
+style={{width: '60px', marginTop: '7px', marginLeft: 'auto',  
+  marginRight: 'auto', padding: '10px 30px', borderRadius: '10px'}}/>
 
 </div>
-<div style={{height: '20%',marginTop: '45px', backgroundColor: 'white', flexDirection: 'row',display: 'flex'}}>
+<div style={{height: '20%',marginTop: '15px', backgroundColor: 'white', flexDirection: 'row',display: 'flex'}}>
   <Link style={{width: '53px', backgroundColor: 'transparent', cursor: 'pointer', borderColor: 'transparent'}}>
     <img src='https://cdn3.iconfinder.com/data/icons/picons-social/57/06-facebook-512.png'style={{width: '30px', backgroundColor: 'transparent', cursor: 'pointer', borderColor: 'transparent'}}/>
   </Link>

@@ -23,7 +23,7 @@ marginRight: 'auto',display: 'flex', flexDirection: 'row', marginTop: '50px'}}>
   <div style={{width: '50%', backgroundColor: 'white', height: '200px', marginLeft: 'auto', flexDirection: 'row',display: 'flex'}}>
 
 <div style={{width: '50%', backgroundColor: 'white', height: '200px', flexDirection: 'column',display: 'flex',}}>
-<h4 style={{fontWeight:'bold', fontSize: '16px', marginBottom: '0px'}}>SquareScore</h4>
+<h4 style={{fontWeight:'500', fontSize: '16px', marginBottom: '0px'}}>Amoeba</h4>
 <Link style={{...foot}}>About us</Link>
   <Link style={{...foot}}>Tutorials</Link>
   <Link style={{...foot}}>Help</Link>
@@ -41,7 +41,7 @@ marginRight: 'auto',display: 'flex', flexDirection: 'row', marginTop: '50px'}}>
 <div style={{width: '25%', backgroundColor: 'white', height: '200px', marginRight: 'auto', flexDirection: 'column',display: 'flex'}}>
 <div style={{height: '50%' ,backgroundColor: 'white'}}>
   <img src='
-/Footer.png'
+/favicon.svg'
 style={{width: '250px', marginTop: '7px', marginLeft: 'auto', marginRight: 'auto'}}/>
 
 </div>

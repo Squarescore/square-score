@@ -28,14 +28,12 @@ export const formatDate = (date) => {
 const DateSettings = ({ assignDate, setAssignDate, dueDate, setDueDate }) => {
  
   return (
-    <div style={{ width: '506px', marginTop: '0px',  marginLeft: 'auto', marginRight: 'auto',  height: '80px', marginLeft: '-5px'}}>
-     
-
+    <div style={{ width: '490px', marginTop: '0px', marginLeft: 'auto', marginRight: 'auto', height: '95px', }}>
       <div>
-        <div style={{ marginTop: '-10px', height: '150px' , marginBottom: '-30px', display: 'flex'}}>
-          <div style={{ position: 'relative', alignItems: 'center',  height: '60px', borderRadius:'10px', width: '600px',  marginTop: '-5px',  }}>
-            <h1 style={{ marginLeft: '5px', marginBottom: '5px', fontSize: '14px', fontWeight: '600', marginTop: '10px', color: 'grey'}}>Assign on:</h1>
-            <div style={{ marginLeft: 'auto', zIndex: '2', }}>
+        <div style={{ display: 'flex', flexDirection: 'column',  gap: '10px'}}>
+          <div style={{ position: 'relative', display: 'flex', alignItems: 'center', height: '40px', width: '100%' }}>
+            <h1 style={{ fontSize: '1rem', fontWeight: '500', color: 'grey', marginRight: 'auto'}}>Access Opens</h1>
+            <div style={{ }}>
               <CustomDateTimePicker
                 selected={assignDate}
                 onChange={(date) => setAssignDate(date)}
@@ -43,9 +41,11 @@ const DateSettings = ({ assignDate, setAssignDate, dueDate, setDueDate }) => {
               />
             </div>
           </div>
-          <div style={{ position: 'relative', alignItems: 'center',  height: '60px', borderRadius:'10px', width: '600px',  marginTop: '-5px', }}>
-            <h1 style={{ marginLeft: '10px', marginBottom: '5px', fontSize: '14px', fontWeight: '600', marginTop: '10px', color: 'grey'}}>Due on:</h1>
-            <div style={{ marginLeft: 'auto', zIndex: '2',  }}>
+
+
+          <div style={{ position: 'relative', display: 'flex', alignItems: 'center', height: '40px', width: '100%' , }}>
+            <h1 style={{ fontSize: '1rem', fontWeight: '500', color: 'grey',marginRight: 'auto'  }}>Due By</h1>
+            <div style={{  }}>
               <CustomDateTimePicker
                 selected={dueDate}
                 onChange={(date) => setDueDate(date)}

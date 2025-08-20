@@ -1,187 +1,254 @@
-// CreateFolder.js
 import React, { useState } from 'react';
 import { doc, updateDoc, arrayUnion } from 'firebase/firestore';
 import { db } from '../../Universal/firebase';
-import { FolderPlus, SquareX } from 'lucide-react';
+import { FolderPlus } from 'lucide-react';
+import { GlassContainer } from '../../../styles';
 
-const pastelColors = [
-  { bg: '#FFF2A9', text: '#FFD000' },
-  { bg: '#FFB411', text: '#EA6200' },
-  { bg: '#F7C7FF', text: '#B513D2' },
-  { bg: '#FFBCBC', text: '#C10E0E' },
-  { bg: '#84FDFF', text: '#00D3D7' },
-  { bg: '#DAB5FF', text: '#7C00F8' },
-  { bg: '#9EADFF', text: '#020CFF' },
-  { bg: '#C1FFC7', text: '#48E758' },
+// Simplified folder style variants
+const folderVariants = [
+  'teal',
+  'purple',
+  'orange',
+  'yellow',
+  'green',
+  'blue',
+  'pink',
+  'red'
 ];
 
-function CreateFolder({ classId, onFolderCreated, onClose }) {
+const MAX_LENGTH = 20;
+
+const CreateFolder = ({ classId, onFolderCreated, onClose }) => {
   const [newFolderName, setNewFolderName] = useState('');
-  const [selectedColor, setSelectedColor] = useState(pastelColors[0]); // Store full color object
+  const [selectedVariant, setSelectedVariant] = useState(folderVariants[0]);
 
   const handleCreateFolder = async () => {
     if (newFolderName.trim() === '') return;
 
     try {
       const classDocRef = doc(db, 'classes', classId);
-
-      // Create a new folder object with all necessary properties
       const newFolder = {
         name: newFolderName,
-        color: selectedColor, // Store the full color object
+        variant: selectedVariant,
         assignments: [],
-        id: Date.now().toString() // Add a unique ID
+        id: Date.now().toString()
       };
 
       await updateDoc(classDocRef, {
         folders: arrayUnion(newFolder),
       });
 
-      onFolderCreated(); // Refresh folders
+      onFolderCreated();
       onClose();
       setNewFolderName('');
-      setSelectedColor(pastelColors[0]);
+      setSelectedVariant(folderVariants[0]);
     } catch (error) {
       console.error('Error creating folder:', error);
     }
   };
 
   return (
-    <div
-      style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        backgroundColor: 'rgba(255, 255, 255, 0.9)',
-        backdropFilter: 'blur(5px)',
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        zIndex: 101,
-      }}
-    >
-      <div style={{ width: '800px', height: '400px' }}>
-        <div
-          style={{
-            padding: '10px',
-            height: '60px',
-            width: '738px',
-            backgroundColor: '#CDFFC5',
-            borderRadius: '20px 20px 0 0',
-            cursor: 'pointer',
-            marginRight: 'auto',
+    <div style={{
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      width: '100%',
+      height: '100%',
+      backdropFilter: 'blur(5px)',
+      background: 'rgba(255,255,255,0.8)',
+      zIndex: 100,
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center'
+    }}>
+      <GlassContainer
+        variant="clear"
+        size={1}
+        style={{
+          width: '500px'
+        }}
+        contentStyle={{
+          padding: '30px'
+        }}
+      >
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          marginBottom: '40px'
+        }}>
+          <FolderPlus size={35} strokeWidth={1.5} style={{ marginRight: '10px', color: 'black' }} />
+          <h1 style={{
             fontSize: '30px',
-            color: '#2BB514',
-            border: '10px solid #2BB514',
-            fontFamily: "'montserrat', sans-serif",
-            fontWeight: 'bold',
-            position: 'relative',
-            textAlign: 'left',
-            display: 'flex',
-            zIndex: 11,
-          }}
-        >
-          <FolderPlus size={50} style={{ marginLeft: '40px', marginTop: '6px' }} />
-          <h1 style={{ fontSize: '40px', marginLeft: '20px', marginTop: '6px' }}>
-            Create Folder
+            fontWeight: '400',
+            margin: 0,
+            color: 'black'
+          }}>
+            Create New Folder
           </h1>
-          <button
-            onClick={onClose}
-            style={{
-              height: '40px',
-              border: 'none',
-              marginLeft: 'auto',
-              background: 'none',
-              color: '#2BB514',
-              cursor: 'pointer',
-            }}
-          >
-            <SquareX size={50} style={{ marginTop: '5px' }} />
-          </button>
         </div>
 
-        <div
-          style={{
-            position: 'absolute',
-            height: '330px',
-            width: '758px',
-            borderRadius: '0 0 20px 20px',
-            backgroundColor: 'white',
-            border: '10px solid white',
-            boxShadow: '1px 1px 5px 1px rgb(0,0,155,.07)',
-            zIndex: '10',
-            marginTop: '-20px',
+        {/* Folder Name Input */}
+        <div style={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          gap: '10px', 
+          marginBottom: '30px',
+          position: 'relative'
+        }}>
+          <label style={{
+            padding: '0 5px',
+            fontFamily: "'montserrat', sans-serif",
+            fontWeight: '500',
+            color: 'grey',
+            fontSize: '1rem',
             display: 'flex',
-            flexDirection: 'column',
-            padding: '20px',
-          }}
-        >
-          <input
-            type="text"
-            value={newFolderName}
-            onChange={(e) => setNewFolderName(e.target.value.slice(0, 15))}
-            placeholder="Folder Name"
-            style={{
-              width: '90%',
-              padding: '15px',
-              marginBottom: '20px',
-              borderRadius: '8px',
-              border: '1px solid #ddd',
-              fontSize: '18px',
+            alignItems: 'center',
+            whiteSpace: 'nowrap',
+            width: '120px'
+          }}>
+            Folder Name
+          </label>
+          <div style={{ position: 'relative', flex: 1, display: 'flex', justifyContent: 'flex-end' }}>
+            <input
+              type="text"
+              value={newFolderName}
+              onChange={(e) => setNewFolderName(e.target.value.slice(0, MAX_LENGTH))}
+              style={{
+                width: '250px',
+                padding: '8px 15px',
+                border: '1px solid #ddd',
+                borderRadius: '25px',
+                fontSize: '1rem',
+                fontFamily: "'montserrat', sans-serif",
+                outline: 'none'
+              }}
+            />
+            <div style={{
+              position: 'absolute',
+              right: '12px',
+              top: '50%',
+              transform: 'translateY(-50%)',
+              fontSize: '.8rem',
+              color: newFolderName.length === MAX_LENGTH ? '#ff6b6b' : 'lightgrey',
               fontFamily: "'montserrat', sans-serif",
-            }}
-          />
-
-          <div style={{ marginBottom: '30px' }}>
-            <h3 style={{ marginBottom: '15px', fontFamily: "'montserrat', sans-serif" }}>
-              Select Color
-            </h3>
-            <div style={{ display: 'flex', gap: '10px' }}>
-              {pastelColors.map((color, index) => (
-                <div
-                  key={index}
-                  onClick={() => setSelectedColor(color)}
-                  style={{
-                    width: '40px',
-                    height: '40px',
-                    backgroundColor: color.bg,
-                    border: selectedColor === color ? `3px solid ${color.text}` : '3px solid transparent',
-                    borderRadius: '8px',
-                    cursor: 'pointer',
-                    transition: 'transform 0.2s',
-                    '&:hover': {
-                      transform: 'scale(1.1)',
-                    },
-                  }}
-                />
-              ))}
+              fontWeight: '500'
+            }}>
+              {newFolderName.length}/{MAX_LENGTH}
             </div>
           </div>
+        </div>
 
-          <button
+        {/* Theme Selector */}
+        <div style={{ 
+          marginBottom: '30px',
+          display: 'flex',
+          width: '100%',
+          alignItems: 'center'
+        }}>
+          <label style={{
+            padding: '0 5px',
+            fontFamily: "'montserrat', sans-serif",
+            fontWeight: '500',
+            color: 'grey',
+            fontSize: '1rem',
+            display: 'flex',
+            alignItems: 'center',
+            whiteSpace: 'nowrap',
+            width: '120px'
+          }}>
+            Theme
+          </label>
+          <div style={{ 
+            display: 'flex',
+            gap: '3px',
+            marginLeft: 'auto',
+            marginRight: '20px'
+          }}>
+            {folderVariants.map((variant) => (
+              <div key={variant} style={{
+                zIndex: '2', 
+                border: `1.5px solid ${variant === selectedVariant ? '#ddd' : 'transparent'}`, 
+                padding: '4px', 
+                height: '16px',
+                width: '16px',
+                borderRadius: '200px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}>
+                <GlassContainer
+                  variant={variant}
+                  size={0}
+                  onClick={() => setSelectedVariant(variant)}
+                  style={{
+                    cursor: 'pointer'
+                  }}
+                  contentStyle={{
+                    width: '16px',
+                    height: '16px'
+                  }}
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Action Buttons */}
+        <div style={{
+          display: 'flex',
+          gap: '15px',
+          marginTop: '20px'
+        }}>
+          <div>
+          <GlassContainer
+            variant={newFolderName.trim() ? "teal" : "clear"}
+            size={0}
             onClick={handleCreateFolder}
             style={{
-              padding: '12px 24px',
-              backgroundColor: '#2BB514',
-              color: 'white',
-              border: 'none',
-              borderRadius: '8px',
-              fontSize: '18px',
-              fontWeight: 'bold',
-              cursor: 'pointer',
-              fontFamily: "'montserrat', sans-serif",
-              marginTop: 'auto',
-              width: 'fit-content',
+              cursor: newFolderName.trim() ? 'pointer' : 'not-allowed',
+           
+            }}
+            contentStyle={{
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              padding: '5px 0',
+                 width: '160px',
+              height: '20px'
             }}
           >
-            Create Folder
+            <span style={{
+              fontSize: '1rem',
+              color: newFolderName.trim() ? '#008080' : '#808080',
+              fontWeight: '500',
+              fontFamily: "'montserrat', sans-serif"
+            }}>
+              Create Folder
+            </span>
+          </GlassContainer>
+</div>
+          <button 
+            onClick={onClose}
+            style={{
+              background: 'none',
+              border: '1px solid #ddd',
+              borderRadius: '25px',
+              padding: '0',
+              fontSize: '1rem',
+              color: 'grey',
+              fontWeight: '500',
+              fontFamily: "'montserrat', sans-serif",
+              cursor: 'pointer',
+              width: '120px',
+              height: '34px'
+            }}
+          >
+            Cancel
           </button>
         </div>
-      </div>
+      </GlassContainer>
     </div>
   );
-}
+};
 
 export default CreateFolder;

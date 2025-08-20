@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   doc,
@@ -12,10 +12,11 @@ import {
   getDoc,
   arrayUnion,
   arrayRemove,
+  serverTimestamp,
 } from 'firebase/firestore';
 import Navbar from '../../Universal/Navbar';
 import { motion, AnimatePresence } from 'framer-motion';
-import CustomDateTimePicker from './CustomDateTimePickerResults';
+import CustomDateTimePicker from './Settings/CustomDateTimePickerResults';
 import 'react-datepicker/dist/react-datepicker.css';
 import Exports from './Exports';
 import {
@@ -30,12 +31,15 @@ import {
   CheckSquare,
 } from 'lucide-react';
 import Tooltip from './ToolTip';
-import QuestionBankMCQ from './QuestionBankMCQ';
-
+import QuestionBankMCQ from './QuestionBank/QuestionBankMCQ';
 import { db } from '../../Universal/firebase';
+import TabButton from './TabButton'; // Ensure you have this component
+import SettingsSection from './Settings/SettingsSection'; // Ensure you have this component
+import StudentResultsList from './StudentList/StudentResultList'; // You might need to create this component
+import ResultsHeader from './TabButton';
 
 const TeacherResultsMCQ = () => {
-  // State hooks
+  // State declarations
   const [allViewable, setAllViewable] = useState(false);
   const [assignmentData, setAssignmentData] = useState(null);
   const [assignmentName, setAssignmentName] = useState('');
@@ -43,24 +47,20 @@ const TeacherResultsMCQ = () => {
   const [assignDate, setAssignDate] = useState(null);
   const [dueDate, setDueDate] = useState(null);
   const [grades, setGrades] = useState({});
+  const [hasScrolled, setHasScrolled] = useState(false);
   const [hoveredStatus, setHoveredStatus] = useState(null);
-  const [hoveredStudent, setHoveredStudent] = useState(null);
   const [loading, setLoading] = useState(false);
   const [resetStatus, setResetStatus] = useState({});
   const [resetStudent, setResetStudent] = useState(null);
+  const [selectedStudents, setSelectedStudents] = useState([]);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showQuestionBank, setShowQuestionBank] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [students, setStudents] = useState([]);
   const [submissionCount, setSubmissionCount] = useState(0);
   const [assignedCount, setAssignedCount] = useState(0);
   const [averageGrade, setAverageGrade] = useState(null);
-  const [isHovered, setIsHovered] = useState(false);
-  const [selectedStudents, setSelectedStudents] = useState([]);
-  const [isVisible, setIsVisible] = useState(false);
-  const [students, setStudents] = useState([]);
-  const { classId, assignmentId } = useParams();
-
-  const [showQuestionBank, setShowQuestionBank] = useState(false);
-  const [showOverlay, setShowOverlay] = useState(false);
-
-  const [showSettings, setShowSettings] = useState(false);
+  const [activeTab, setActiveTab] = useState('submissions');
   const [editedQuestions, setEditedQuestions] = useState([]);
 
   const [assignmentSettings, setAssignmentSettings] = useState({
@@ -73,26 +73,43 @@ const TeacherResultsMCQ = () => {
     scaleMax: '2',
     timer: '0',
     timerOn: false,
+    onViolation: 'pause'
   });
-  const navigate = useNavigate();
 
+  // Refs
+  const studentDataCache = useRef({});
   const assignmentDataRef = useRef(null);
 
-  const getStatusIcon = (status) => {
-    switch (status) {
-      case 'completed':
-        return <SquareCheck color="#00DE09" size={30} strokeWidth={2.5} />;
-      case 'In Progress':
-        return <SquareMinus color="#FFAA00" size={30} strokeWidth={2.5} />;
-      case 'not_started':
-        return <SquareX color="lightgrey" size={30} strokeWidth={2.5} />;
-      case 'Paused':
-        return <SquareMinus color="#FFA500" size={30} strokeWidth={2.5} />;
-      default:
-        return null;
+  // Router hooks
+  const { classId, assignmentId } = useParams();
+  const navigate = useNavigate();
+
+  // Tabs state
+  const [tabs] = useState([
+    { id: 'submissions', label: 'Submissions' },
+    { id: 'questionBank', label: 'Question Bank' },
+    { id: 'settings', label: 'Settings' },
+  ]);
+
+  // Define the tabs
+  const handleTabClick = (tab) => {
+    setActiveTab(tab);
+    if (tab === 'questionBank') {
+      setShowQuestionBank(true);
+     
+    } else {
+      setShowQuestionBank(false);
+   
+    }
+
+    if (tab === 'settings') {
+      setShowSettings(true);
+    } else {
+      setShowSettings(false);
     }
   };
 
+  // Fetch assignment details
   useEffect(() => {
     const fetchAssignmentDetails = async () => {
       try {
@@ -127,6 +144,7 @@ const TeacherResultsMCQ = () => {
     fetchAssignmentDetails();
   }, [assignmentId]);
 
+  // Update assignment setting
   const updateAssignmentSetting = async (setting, value) => {
     const assignmentRef = doc(db, 'assignments', assignmentId);
     const updateData = { [setting]: value };
@@ -135,159 +153,7 @@ const TeacherResultsMCQ = () => {
     setAssignmentSettings((prev) => ({ ...prev, [setting]: value }));
   };
 
-  const SettingsSection = () => (
-    <div
-      style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        backgroundColor: 'rgba(255, 255, 255, 0.9)',
-        backdropFilter: 'blur(10px)',
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        zIndex: 101,
-      }}
-    >
-      <div
-        style={{
-          width: '790px',
-          marginRight: 'auto',
-          marginLeft: 'auto',
-          position: 'relative',
-          border: '10px solid lightgrey',
-          backgroundColor: '#f4f4f4',
-          color: 'grey',
-          borderRadius: '20px',
-          marginTop: '-10px',
-        }}
-      >
-        <div
-          style={{
-            display: 'flex',
-            marginTop: '10px',
-            marginBottom: '-30px',
-            marginLeft: '20px',
-          }}
-        >
-          <Settings size={40} />
-
-          <h1 style={{ marginTop: '0px', marginLeft: '20px' }}>Settings</h1>
-
-          <button
-            onClick={() => setShowSettings(!showSettings)}
-            style={{
-              height: '40px',
-              background: 'transparent',
-              border: 'none',
-              cursor: 'pointer',
-              marginLeft: 'auto',
-              marginRight: '10px',
-              color: 'grey',
-              marginTop: '0px',
-            }}
-          >
-            {' '}
-            <SquareX size={40} strokeWidth={3} style={{}} />
-          </button>
-        </div>
-        <div
-          style={{
-            marginLeft: '0px',
-            borderTop: '10px solid lightgrey',
-            background: 'white',
-            borderRadius: '0px 0px 10px 10px',
-
-            padding: '20px',
-            width: '750px',
-            marginTop: '20px',
-          }}
-        >
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              marginBottom: '0px',
-            }}
-          >
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                marginBottom: '10px',
-                borderRadius: '10px',
-                marginLeft: '-5px',
-                background: '#F4F4F4',
-              }}
-            >
-              {' '}
-              <h3
-                style={{
-                  fontSize: '18px',
-                  color: 'grey',
-                  marginLeft: '20px',
-                  marginRight: '-28px',
-                  fontFamily: "'montserrat', sans-serif",
-                }}
-              >
-                Assigned:
-              </h3>
-              <CustomDateTimePicker
-                selected={assignDate}
-                onChange={(date) => {
-                  setAssignDate(date);
-                  if (dueDate) {
-                    updateDates(date, dueDate);
-                  }
-                }}
-              />
-            </div>
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                marginBottom: '10px',
-                borderRadius: '10px',
-                marginLeft: '10px',
-                background: '#F4F4F4',
-              }}
-            >
-              <h3
-                style={{
-                  fontSize: '18px',
-                  color: 'grey',
-                  marginLeft: '20px',
-                  marginRight: '-28px',
-                  fontFamily: "'montserrat', sans-serif",
-                }}
-              >
-                Due:
-              </h3>
-              <CustomDateTimePicker
-                selected={dueDate}
-                onChange={(date) => {
-                  setDueDate(date);
-                  if (assignDate) {
-                    updateDates(assignDate, date);
-                  }
-                }}
-              />
-            </div>
-          </div>
-
-          {/* Additional settings here */}
-
-        </div>
-      </div>
-    </div>
-  );
-
-  const navigateToStudentGrades = (studentUid) => {
-    navigate(`/class/${classId}/student/${studentUid}/grades`);
-  };
-
+  // Fetch class and grades
   const fetchClassAndGrades = async () => {
     setLoading(true);
     try {
@@ -446,7 +312,7 @@ const TeacherResultsMCQ = () => {
     const classAndGradesInterval = setInterval(fetchClassAndGrades, 10000);
 
     return () => clearInterval(classAndGradesInterval);
-  }, [classId, assignmentId])
+  }, [classId, assignmentId]);
 
   // Fetch assignment status for each student
   useEffect(() => {
@@ -480,7 +346,37 @@ const TeacherResultsMCQ = () => {
     fetchAssignmentStatus();
   }, [students, assignmentId]);
 
-  // Handlers
+  // Helper functions
+  const getStatusIcon = (status) => {
+    switch (status) {
+      case 'completed':
+        return <SquareCheck color="#00DE09" size={30} strokeWidth={2.5} />;
+      case 'In Progress':
+        return <SquareMinus color="#FFAA00" size={30} strokeWidth={2.5} />;
+      case 'not_started':
+        return <SquareX color="lightgrey" size={30} strokeWidth={2.5} />;
+      case 'Paused':
+        return <SquareMinus color="#FFA500" size={30} strokeWidth={2.5} />;
+      default:
+        return null;
+    }
+  };
+
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'completed':
+        return '#009006';
+      case 'In Progress':
+        return '#FFD700';
+      case 'not_started':
+        return '#808080';
+      case 'Paused':
+        return '#FFA500';
+      default:
+        return 'lightgrey';
+    }
+  };
+
   const calculateLetterGrade = (percentage) => {
     if (percentage >= 90) return 'A';
     if (percentage >= 80) return 'B';
@@ -516,32 +412,8 @@ const TeacherResultsMCQ = () => {
     }
   };
 
-  const updateDates = async (newAssignDate, newDueDate) => {
-    try {
-      const assignmentRef = doc(db, 'assignments', assignmentId);
-      await updateDoc(assignmentRef, {
-        assignDate: newAssignDate.toISOString(),
-        dueDate: newDueDate.toISOString(),
-      });
-      console.log('Dates updated successfully');
-    } catch (error) {
-      console.error('Error updating dates:', error);
-    }
-  };
-
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'completed':
-        return '#009006';
-      case 'in_progress':
-        return '#FFD700';
-      case 'not_started':
-        return '#808080';
-      case 'paused':
-        return '#FFA500';
-      default:
-        return 'lightgrey';
-    }
+  const navigateToStudentGrades = (studentUid) => {
+    navigate(`/class/${classId}/student/${studentUid}/grades`);
   };
 
   const handleAssign = async (studentId) => {
@@ -559,58 +431,6 @@ const TeacherResultsMCQ = () => {
         prev.map((id) => (id === studentId ? `${id}-checked` : id))
       );
     }, 1000);
-  };
-
-  const AdaptiveHeading = ({ text }) => {
-    const [fontSize, setFontSize] = useState(60);
-    const headingRef = useRef(null);
-
-    useEffect(() => {
-      const fitText = () => {
-        if (headingRef.current) {
-          let size = 60;
-          headingRef.current.style.fontSize = `${size}px`;
-
-          while (
-            headingRef.current.scrollWidth > headingRef.current.offsetWidth &&
-            size > 40
-          ) {
-            size--;
-            headingRef.current.style.fontSize = `${size}px`;
-          }
-
-          setFontSize(size);
-        }
-      };
-
-      fitText();
-      window.addEventListener('resize', fitText);
-      return () => window.removeEventListener('resize', fitText);
-    }, [text]);
-
-    return (
-      <h1
-        ref={headingRef}
-        style={{
-          fontSize: `${fontSize}px`,
-          color: 'black',
-          width: '90%',
-          fontFamily: "'montserrat', sans-serif",
-          wordWrap: 'break-word',
-          overflowWrap: 'break-word',
-          hyphens: 'auto',
-          lineHeight: '1.2',
-          margin: 0,
-          marginBottom: '0px',
-          padding: '10px 0',
-          whiteSpace: 'nowrap',
-          textOverflow: 'ellipsis',
-          overflow: 'hidden',
-        }}
-      >
-        {text}
-      </h1>
-    );
   };
 
   const handleReset = async (studentUid) => {
@@ -669,50 +489,51 @@ const TeacherResultsMCQ = () => {
       setResetStatus((prev) => ({ ...prev, [studentUid]: 'failed' }));
     }
   };
+
   const toggleAllViewable = async () => {
     const newViewableStatus = !allViewable;
     setAllViewable(newViewableStatus);
-  
+
     const batch = writeBatch(db);
-  
+
     // Update assignment document
     const assignmentRef = doc(db, 'assignments', assignmentId);
     batch.update(assignmentRef, { viewable: newViewableStatus });
-  
+
     // Update class document's viewableAssignments array
     const classRef = doc(db, 'classes', classId);
     if (newViewableStatus) {
       // Add assignmentId to viewableAssignments if making viewable
       batch.update(classRef, {
-        viewableAssignments: arrayUnion(assignmentId)
+        viewableAssignments: arrayUnion(assignmentId),
       });
     } else {
       // Remove assignmentId from viewableAssignments if making non-viewable
       batch.update(classRef, {
-        viewableAssignments: arrayRemove(assignmentId)
+        viewableAssignments: arrayRemove(assignmentId),
       });
     }
-  
+
     // Update individual grade documents
     for (const student of students) {
       const gradeRef = doc(db, 'grades', `${assignmentId}_${student.uid}`);
       const gradeDoc = await getDoc(gradeRef);
-  
+
       if (gradeDoc.exists()) {
         batch.update(gradeRef, {
-          viewable: newViewableStatus
+          viewable: newViewableStatus,
         });
-  
-        setGrades(prevGrades => ({
+
+        setGrades((prevGrades) => ({
           ...prevGrades,
           [student.uid]: {
             ...prevGrades[student.uid],
-            viewable: newViewableStatus
-          }
+            viewable: newViewableStatus,
+          },
         }));
       }
     }
-  
+
     try {
       await batch.commit();
       console.log('Successfully updated viewable status for all documents');
@@ -723,919 +544,211 @@ const TeacherResultsMCQ = () => {
     }
   };
   const togglePauseAssignment = async (studentUid) => {
-    if (assignmentStatuses[studentUid] !== 'Paused') return;
+    const student = students.find(s => s.uid === studentUid);
+    if (!student) return;
 
-    setResetStatus((prev) => ({ ...prev, [studentUid]: 'updating' }));
+    setResetStatus(prev => ({ ...prev, [studentUid]: 'updating' }));
 
     try {
       const studentRef = doc(db, 'students', studentUid);
-      const progressRef = doc(
-        db,
-        'assignments(progress)',
-        `${assignmentId}_${studentUid}`
-      );
-      const progressDoc = await getDoc(progressRef);
+      const progressRef = doc(db, 'assignments(progress)', `${assignmentId}_${studentUid}`);
+      const studentDoc = await getDoc(studentRef);
 
-      if (progressDoc.exists()) {
-        await updateDoc(progressRef, { status: 'In Progress' });
+      if (!studentDoc.exists()) {
+        throw new Error("Student document not found");
+      }
+
+      const studentData = studentDoc.data();
+      const isPaused = studentData.assignmentsPaused?.includes(assignmentId);
+
+      if (isPaused) {
+        // Unpause
         await updateDoc(studentRef, {
-          assignmentsInProgress: arrayUnion(assignmentId),
+          assignmentsPaused: arrayRemove(assignmentId),
+          assignmentsInProgress: arrayUnion(assignmentId)
         });
 
-        setAssignmentStatuses((prev) => ({
-          ...prev,
-          [studentUid]: 'In Progress',
-        }));
-        setResetStatus((prev) => ({ ...prev, [studentUid]: 'success' }));
+        await updateDoc(progressRef, { 
+          status: 'in_progress',
+          updatedAt: serverTimestamp()
+        });
+
       } else {
-        console.error('Progress document does not exist');
-        setResetStatus((prev) => ({ ...prev, [studentUid]: 'failed' }));
+        // Pause
+        await updateDoc(studentRef, {
+          assignmentsInProgress: arrayRemove(assignmentId),
+          assignmentsPaused: arrayUnion(assignmentId)
+        });
+
+        await updateDoc(progressRef, { 
+          status: 'paused',
+          updatedAt: serverTimestamp()
+        });
       }
+
+      // Fetch updated student data
+      const updatedStudentDoc = await getDoc(studentRef);
+      if (updatedStudentDoc.exists()) {
+        const updatedStudentData = updatedStudentDoc.data();
+        studentDataCache.current[studentUid] = {
+          data: updatedStudentData,
+          lastUpdate: Date.now()
+        };
+        setStudents(prevStudents => {
+          return prevStudents.map(student => {
+            if (student.uid === studentUid) {
+              return {
+                ...student,
+                firstName: updatedStudentData.firstName.trim(),
+                lastName: updatedStudentData.lastName.trim(),
+                name: `${updatedStudentData.firstName.trim()} ${updatedStudentData.lastName.trim()}`,
+                isAssigned: updatedStudentData.assignmentsToTake?.includes(assignmentId) ||
+                  updatedStudentData.assignmentsInProgress?.includes(assignmentId) ||
+                  updatedStudentData.assignmentsTaken?.includes(assignmentId) ||
+                  updatedStudentData.assignmentsPaused?.includes(assignmentId),
+                isPaused: updatedStudentData.assignmentsPaused?.includes(assignmentId)
+              };
+            }
+            return student;
+          });
+        });
+
+        // **Update assignmentStatuses**
+        let status = 'not_started';
+
+        if (updatedStudentData.assignmentsPaused?.includes(assignmentId)) {
+          status = 'paused';
+        } else if (updatedStudentData.assignmentsInProgress?.includes(assignmentId)) {
+          status = 'In Progress';
+        } else if (updatedStudentData.assignmentsTaken?.includes(assignmentId)) {
+          status = 'completed';
+        } else if (updatedStudentData.assignmentsToTake?.includes(assignmentId)) {
+          status = 'not_started';
+        }
+
+        setAssignmentStatuses(prevStatuses => ({
+          ...prevStatuses,
+          [studentUid]: status
+        }));
+      }
+
+      setResetStatus(prev => ({ ...prev, [studentUid]: 'success' }));
     } catch (error) {
-      console.error('Error unpausing assignment:', error);
-      setResetStatus((prev) => ({ ...prev, [studentUid]: 'failed' }));
+      console.error("Error toggling pause status:", error);
+      setResetStatus(prev => ({ ...prev, [studentUid]: 'failed' }));
     } finally {
-      setTimeout(
-        () => setResetStatus((prev) => ({ ...prev, [studentUid]: '' })),
-        1000
-      );
+      setTimeout(() => setResetStatus(prev => ({ ...prev, [studentUid]: '' })), 1000000);
+    }
+  };
+  // Render content based on active tab
+  const renderTabContent = () => {
+    switch (activeTab) {
+      case 'submissions':
+        return (
+          <StudentResultsList
+            students={students}
+            grades={grades}
+            assignmentStatuses={assignmentStatuses}
+            navigateToStudentGrades={navigateToStudentGrades}
+            getStatusIcon={getStatusIcon}
+            getStatusColor={getStatusColor}
+            calculateLetterGrade={calculateLetterGrade}
+            hoveredStatus={hoveredStatus}
+            setHoveredStatus={setHoveredStatus}
+            togglePauseAssignment={togglePauseAssignment}
+            handleReset={handleReset}
+            resetStatus={resetStatus}
+            handleAssign={handleAssign}
+            submissionCount={submissionCount}
+            averageGrade={averageGrade}
+            onTabChange={handleTabClick} 
+            allViewable={allViewable}
+            toggleAllViewable={toggleAllViewable}
+          />
+        );
+
+      case 'questionBank':
+        return (
+          <div style={{ width: '100%', marginTop: '20px' }}>
+            <QuestionBankMCQ
+              editedQuestions={editedQuestions}
+              setEditedQuestions={setEditedQuestions}
+              assignmentId={assignmentId}
+            />
+          </div>
+        );
+
+      case 'settings':
+        return (
+          <div style={{ width: '100%', marginTop: '20px' }}>
+            <SettingsSection
+              assignmentId={assignmentId}
+              classId={classId}
+              assignmentName={assignmentName}
+              setAssignmentName={setAssignmentName}
+              assignmentSettings={assignmentSettings}
+              updateAssignmentSetting={updateAssignmentSetting}
+            />
+          </div>
+        );
+
+      default:
+        return null;
     }
   };
 
-  const QuestionBankModal = ({
-    onClose,
-    setShowQuestionBank,
-    setShowOverlay,
-  }) => {
-    const [hoveredOptions, setHoveredOptions] = useState({});
-    const modalRef = useRef(null);
-    const questions = assignmentDataRef.current?.questions || [];
-    const [isVisible, setIsVisible] = useState(false);
-    const optionStyles = {
-      a: { background: '#A3F2ED', color: '#00645E' },
-      b: { background: '#AEF2A3', color: '#006428' },
-      c: { background: '#F8CFFF', color: '#E01FFF' },
-      d: { background: '#FFECA8', color: '#CE7C00' },
-      e: { background: '#FFD1D1', color: '#FF0000' },
-      f: { background: '#627BFF', color: '#020CFF' },
-      g: { background: '#E3BFFF', color: '#8364FF' },
-      h: { background: '#9E9E9E', color: '#000000' },
-    };
-
-    const handleOptionHover = (index, option) => {
-      setHoveredOptions((prev) => ({
-        ...prev,
-        [index]: option,
-      }));
-    };
-
-    const handleMouseLeave = () => {
-      setShowQuestionBank(false);
-      setShowOverlay(false);
-    };
-
-    useEffect(() => {
-      const timer = setTimeout(() => setIsVisible(true), 300);
-      return () => clearTimeout(timer);
-    }, []);
-
-    return (
-      <div
-        style={{
-          position: 'fixed',
-          top: '80px',
-          left: '50%',
-          transform: 'translateX(-50%)',
-          height: '600px',
-          width: '800px',
-          backgroundColor: 'white',
-          border: '10px solid white',
-
-          boxShadow: '1px 1px 5px 1px rgb(0,0,155,.07)',
-          borderRadius: '20px',
-          zIndex: 100,
-          transition: 'all 0.3s ease-in-out',
-          opacity: isVisible ? 1 : 0,
-          visibility: isVisible ? 'visible' : 'hidden',
-        }}
-      >
-        {isVisible && (
-          <>
-            <div
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                margin: '-10px -10px 0px -10px',
-                padding: '10px',
-                height: '40px',
-                background: '#FCD3FF',
-                color: '#D800FB',
-                borderRadius: '20px 20px 0px 0px',
-                border: '10px solid #D800FB',
-              }}
-            >
-              <h2
-                style={{
-                  fontSize: '30px',
-                  fontWeight: 'bold',
-                  fontFamily: "'montserrat', sans-serif",
-                  marginLeft: '30px',
-
-                  marginTop: '20px',
-                }}
-              >
-                Questions
-              </h2>
-              <button
-                onClick={onClose}
-                style={{
-                  backgroundColor: 'transparent',
-                  border: 'none',
-                  fontSize: '24px',
-                  color: '#D800FB',
-                  cursor: 'pointer',
-                }}
-              >
-                <SquareX size={40} strokeWidth={2.5} style={{}} />
-              </button>
-            </div>
-            <div
-              ref={modalRef}
-              style={{
-                height: 'calc(100% - 80px)',
-                overflowY: 'auto',
-                padding: '0 20px',
-                scrollbarWidth: 'thin',
-                scrollbarColor: '#888 #f1f1f1',
-              }}
-            >
-              {questions.map((question, index) => (
-                <div
-                  key={index}
-                  style={{
-                    marginBottom: '20px',
-                    borderBottom: '1px solid #ccc',
-                    paddingBottom: '10px',
-                    textAlign: 'left',
-                  }}
-                >
-                  <h3
-                    style={{
-                      fontSize: '30px',
-                      fontWeight: 'bold',
-                      fontFamily: "'montserrat', sans-serif",
-                      width: '100%',
-                    }}
-                  >
-                    {question.question}
-                  
-                  </h3>
-                  <ul style={{ listStyleType: 'none', padding: 0 }}>
-                    {Object.keys(question)
-                      .filter((key) => key.match(/^[a-h]$/))
-                      .map((option) => {
-                        if (question[option]) {
-                          return (
-                            <li
-                              key={option}
-                              style={{
-                                marginBottom: '15px',
-                                padding: '10px',
-                                backgroundColor:
-                                  optionStyles[option.toLowerCase()]
-                                    .background,
-                                color:
-                                  optionStyles[option.toLowerCase()].color,
-                                borderRadius: '5px',
-                                cursor: 'pointer',
-                                fontFamily: "'montserrat', sans-serif",
-                                fontWeight: 'bold',
-                                width: '600px',
-                                transition: 'all 0.3s',
-                                boxShadow:
-                                  option === question.correct
-                                    ? '0 4px 4px rgb(0,200,0,.25)'
-                                    : hoveredOptions[index] === option
-                                    ? '0 4px 4px rgb(100,0,0,.25)'
-                                    : 'none',
-                              }}
-                              onMouseEnter={() =>
-                                handleOptionHover(index, option)
-                              }
-                              onMouseLeave={() =>
-                                handleOptionHover(index, null)
-                              }
-                            >
-                              {question[option]}
-                              {option === question.correct && ' ✓'}
-                            </li>
-                          );
-                        }
-                        return null;
-                      })}
-                  </ul>
-                  {hoveredOptions[index] && (
-                    <p
-                      style={{
-                        fontSize: '14px',
-                        color:
-                          hoveredOptions[index] === question.correct
-                            ? '#4CAF50'
-                            : '#ff4d4d',
-                        width: '100%',
-                        fontFamily: "'montserrat', sans-serif",
-                        fontWeight: 'bold',
-                      }}
-                    >
-                      Explanation:{' '}
-                      {question[`explanation_${hoveredOptions[index]}`]}
-                    </p>
-                  )}
-                </div>
-              ))}
-            </div>
-          </>
-        )}
-      </div>
-    );
+  // Add periodStyles object
+  const periodStyles = {
+    1: { variant: 'teal', color: "#1EC8bc", borderColor: "#83E2F5" },
+    2: { variant: 'purple', color: "#8324e1", borderColor: "#cf9eff" },
+    3: { variant: 'orange', color: "#ff8800", borderColor: "#f1ab5a" },
+    4: { variant: 'yellow', color: "#ffc300", borderColor: "#Ecca5a" },
+    5: { variant: 'green', color: "#29c60f", borderColor: "#aef2a3" },
+    6: { variant: 'blue', color: "#1651d4", borderColor: "#b5ccff" },
+    7: { variant: 'pink', color: "#d138e9", borderColor: "#f198ff" },
+    8: { variant: 'red', color: "#c63e3e", borderColor: "#ffa3a3" }
   };
 
+  // Add getCurrentPeriodStyle function
+  const getCurrentPeriodStyle = useCallback(() => {
+    const period = classId.split('+')[1] || '1';
+    return periodStyles[period] || periodStyles[1];
+  }, [classId]);
+
+  // Add scroll handler effect
+  useEffect(() => {
+    const handleScroll = () => {
+      setHasScrolled(window.scrollY > 0);
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
   return (
-    <div
-      style={{
-        minHeight: '100vh',
-        width: '100%',
-        backgroundColor: '#white',
-        display: 'flex',
-        flexDirection: 'column',
-        position: 'relative',
-      }}
-    >
-      <Navbar userType="teacher" />
+    <div style={{  display: 'flex', flexDirection: 'column',  backgroundColor: 'white', position: 'absolute', left: 0, right: 0, bottom: 0, top: 0}}>
+      <Navbar 
+        userType="teacher"
+        navItems={[{
+          type: 'assignmentName',
+          id: assignmentId,
+          label: assignmentName
+        }]}
+      />
 
-            
-      {showQuestionBank && assignmentDataRef.current && (
-  <QuestionBankMCQ
-    editedQuestions={editedQuestions}
-    setEditedQuestions={setEditedQuestions}
-    assignmentId={assignmentId}
-    onClose={() => {
-      setShowQuestionBank(false);
-      setShowOverlay(false);
-    }}
-  />
-)}
+      <ResultsHeader 
+        assignmentName={assignmentName}
+        format={{ label: 'MCQ', color: '#7D00EA' }}
+        tabs={tabs}
+        activeTab={activeTab}
+        onTabClick={handleTabClick}
+        periodStyle={getCurrentPeriodStyle()}
+        hasScrolled={hasScrolled}
+      />
 
-      <div
-        style={{
-          width: '80px',
-          position: 'fixed',
-          left: '-30px',
-          top: '0px',
-          height: '100%',
-          boxShadow: '1px 1px 5px 1px rgb(0,0,155,.07)',
-          justifyContent: 'space-between',
-          marginTop: '0px',
-          alignSelf: 'center',
-          alignItems: 'center',
-          marginLeft: '30px',
-          marginBottom: '30px',
-        }}
-      >
-        <div
-          style={{
-            height: '4px',
-            width: '70px',
-            background: 'transparent',
-            borderRadius: '10px',
-            marginLeft: '10px',
-            marginTop: '120px',
-            marginBottom: '20px',
-          }}
-        ></div>
-
-        <Tooltip text="Question Bank">
-          <button
-            onClick={() => {
-              if (assignmentData && assignmentData.questions) {
-                setShowQuestionBank(!showQuestionBank);
-                setShowOverlay(!showQuestionBank);
-              } else {
-                console.log('No questions available');
-              }
-            }}
-            style={{
-              width: '60px',
-              height: '60px',
-              borderRadius: '10px',
-              fontWeight: 'bold',
-              border: '4px solid',
-              cursor: 'pointer',
-              marginLeft: '10px',
-              transition: '.3s',
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'center',
-              alignItems: 'center',
-              padding: '5px',
-              zIndex: '100',
-              borderColor: isHovered ? '#E441FF' : 'transparent',
-              backgroundColor: isHovered ? '#F5B6FF' : 'transparent',
-              color: isHovered ? '#E441FF' : 'grey',
-            }}
-            onMouseEnter={() => setIsHovered(true)}
-            onMouseLeave={() => setIsHovered(false)}
-          >
-            <img
-              src={
-                isHovered ? '/questionbankpink.svg' : '/QuestionBank.svg'
-              }
-              style={{
-                width: '35px',
-                marginTop: '0px',
-                opacity: isHovered ? '100%' : '40%',
-              }}
-              alt="Question Bank"
-            />
-          </button>
-        </Tooltip>
-
-        <div
-          style={{
-            height: '4px',
-            width: '70px',
-            background: 'transparent',
-            borderRadius: '10px',
-            marginLeft: '15px',
-            marginTop: '15px',
-            marginBottom: '20px',
-          }}
-        ></div>
-
-        <Tooltip text="Student Review">
-          <div
-            title="Allow students to review their responses"
-            onClick={toggleAllViewable}
-            style={{
-              width: '55px',
-              height: '55px',
-              borderRadius: '10px',
-              cursor: 'pointer',
-              marginTop: '0px',
-              marginLeft: '8px',
-              transition: '.3s',
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'center',
-              alignItems: 'center',
-              padding: '0px',
-              border: `4px solid ${
-                allViewable ? '#020CFF' : 'transparent'
-              }`,
-              background: allViewable ? '#B0BDFF' : 'transparent',
-              color: allViewable ? '#020CFF' : 'grey',
-              fontWeight: allViewable ? 'bold' : '600',
-            }}
-          >
-            {allViewable ? (
-              <Eye size={40} />
-            ) : (
-              <EyeOff size={40} />
-            )}
-          </div>
-        </Tooltip>
-
-        <div
-          style={{
-            height: '4px',
-            width: '70px',
-            background: 'transparent',
-            borderRadius: '10px',
-            marginLeft: '15px',
-            marginTop: '15px',
-            marginBottom: '20px',
-          }}
-        ></div>
-
-        <Tooltip text="Assignment Settings">
-          <button
-            onClick={() => setShowSettings(!showSettings)}
-            style={{
-              width: '65px',
-              height: '65px',
-              borderRadius: '10px',
-              fontWeight: 'bold',
-              border: '4px solid transparent',
-              background: 'transparent',
-              cursor: 'pointer',
-              color: 'grey',
-              marginTop: '0px',
-              marginLeft: '8px',
-              transition: '.3s',
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'center',
-              alignItems: 'center',
-              padding: '5px',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.borderColor = 'lightgrey';
-              e.currentTarget.style.backgroundColor = '#f4f4f4';
-
-              e.currentTarget.style.color = 'grey';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.borderColor = 'transparent';
-
-              e.currentTarget.style.color = 'grey';
-              e.currentTarget.style.backgroundColor = 'transparent';
-            }}
-          >
-            <Settings size={40} color="#8f8f8f" />
-          </button>
-        </Tooltip>
-        <div
-          style={{
-            height: '4px',
-            width: '70px',
-            background: 'white',
-            borderRadius: '10px',
-            marginLeft: '10px',
-            marginTop: '5px',
-            marginBottom: '25px',
-          }}
-        >
-          {' '}
-        </div>
-
-        <Tooltip text="Export to other classes">
-          <Exports assignmentId={assignmentId} />
-        </Tooltip>
+      <div style={{marginTop:'150px', width: '100%',}}>
+        {renderTabContent()}
       </div>
-
-      <div
-        style={{
-          width: '1000px',
-          display: 'flex',
-          justifyContent: 'align',
-          marginTop: '150px',
-          marginLeft: 'auto',
-          marginRight: 'auto',
-        }}
-      >
-        <div
-          style={{
-            display: 'flex',
-            width: '900px',
-            marginRight: 'auto',
-            marginLeft: '50px',
-            height: ' auto',
-            lineHeight: '0px',
-            paddingBottom: '15px',
-            marginBottom: '0px',
-          }}
-        >
-          <div
-            style={{
-              position: 'relative',
-              width: '620px',
-              backgroundColor: 'white',
-              height: '150px',
-              padding: '20px 10px  20px 40px',
-              boxShadow: '1px 1px 5px 1px rgb(0,0,155,.07)',
-              borderRadius: '20px',
-            }}
-          >
-            <AdaptiveHeading text={assignmentName} />
-            <h1
-              style={{
-                fontSize: '25px',
-                color: 'grey',
-                width: '260px',
-                fontFamily: "'montserrat', sans-serif",
-                wordWrap: 'break-word',
-                overflowWrap: 'break-word',
-                hyphens: 'auto',
-                lineHeight: '1.2',
-                margin: 0,
-                position: 'absolute',
-                bottom: '20px',
-                left: '40px',
-                padding: '10px 0',
-              }}
-            >
-              {submissionCount}/{assignedCount} Submissions{' '}
-            </h1>
-            <h1
-              style={{
-                position: 'absolute',
-                fontSize: '25px',
-                right: '50px',
-                bottom: '25px',
-                color: '#29DB0B',
-              }}
-            >
-              MCQ
-            </h1>
-          </div>
-          <div
-            style={{
-              height: '190px',
-              backgroundColor: 'white',
-              width: '190px',
-              boxShadow: '1px 1px 5px 1px rgb(0,0,155,.07)',
-              borderRadius: '20px',
-              marginLeft: 'auto',
-            }}
-          >
-            <Tooltip text="Class Average">
-              <img
-                style={{ width: '150px', marginLeft: '20px', marginTop: '23px' }}
-                src="/Score.svg"
-                alt="logo"
-              />
-              <div
-                style={{
-                  fontSize: '45px',
-                  fontWeight: 'bold',
-                  width: '88px',
-                  position: 'absolute',
-                  background: 'transparent',
-                  height: '88px',
-                  borderRadius: '10px',
-                  top: '50px',
-                  left: '50px',
-                  textAlign: 'center',
-                  lineHeight: '90px',
-                }}
-              >
-                {averageGrade !== null ? averageGrade : '-'}
-              </div>
-            </Tooltip>
-          </div>
-        </div>
-      </div>
-
-      <AnimatePresence>
-        {showSettings && <SettingsSection key="settings" />}
-      </AnimatePresence>
-
-      <ul
-        style={{
-          background: 'white',
-          width: '860px',
-          marginLeft: 'auto',
-          marginRight: 'auto',
-          backgroundColor: 'white',
-          boxShadow: '1px 1px 5px 1px rgb(0,0,155,.07)',
-          borderRadius: '20px',
-          paddingTop: '20px',
-        }}
-      >
-        {students.map((student) => (
-          <li
-            key={student.uid}
-            style={{
-              width: '800px',
-              height: '40px',
-              alignItems: 'center',
-              display: 'flex',
-              justifyContent: 'space-between',
-
-              marginLeft: '10px',
-              borderBottom: '2px solid #f4f4f4',
-              backgroundColor: 'white',
-              padding: '0px',
-              paddingBottom: '20px',
-
-              paddingTop: '20px',
-              position: 'relative',
-              zIndex: '0',
-            }}
-          >
-            <div
-              style={{
-                marginLeft: '0px',
-                width: '460px',
-                display: 'flex',
-                marginTop: '5px',
-              }}
-            >
-              <div
-                style={{
-                  display: 'flex',
-                  marginBottom: '10px',
-                  cursor: 'pointer',
-                  transition: 'color 0.3s',
-                  width: '280px',
-                  marginTop: '5px',
-                }}
-                onClick={() => navigateToStudentGrades(student.uid)}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.color = 'blue';
-                  e.currentTarget.style.textDecoration = 'underline';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.color = 'inherit';
-                  e.currentTarget.style.textDecoration = 'none';
-                }}
-              >
-                <h3
-                  style={{
-                    fontWeight: 'normal',
-                    color: 'inherit',
-                    fontFamily: "'montserrat', sans-serif",
-                    fontSize: '20px',
-                  }}
-                >
-                  {student.lastName},
-                </h3>
-                <h3
-                  style={{
-                    fontWeight: '600',
-                    color: 'inherit',
-                    fontFamily: "'montserrat', sans-serif",
-                    fontSize: '20px',
-                    marginLeft: '10px',
-                  }}
-                >
-                  {student.firstName}
-                </h3>
-              </div>
-            </div>
-
-            {student.isAssigned ? (
-              <>
-                <div
-                  style={{
-                    fontWeight: 'bold',
-                    textAlign: 'center',
-                    color: 'black',
-                    fontFamily: "'montserrat', sans-serif",
-                    marginTop: '0px',
-                    width: '100px',
-                    marginRight: '20px',
-                    marginLeft: '-140px',
-                  }}
-                >
-                  {grades[student.uid] ? (
-                    <div
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        marginTop: '-2px',
-                        width: '130px',
-                      }}
-                    >
-                      <p
-                        style={{
-                          fontWeight: 'bold',
-                          width: '23px',
-                          fontSize: '22px',
-                          backgroundColor: '#566DFF',
-                          height: '23px',
-                          border: '4px solid #003BD4',
-                          lineHeight: '23px',
-                          color: 'white',
-                          borderRadius: '7px',
-                          fontFamily: "'montserrat', sans-serif",
-                        }}
-                      >
-                        {calculateLetterGrade(grades[student.uid].SquareScore)}
-                      </p>
-                      <p
-                        style={{
-                          fontSize: '25px',
-                          color: 'grey',
-                          marginLeft: '20px',
-                        }}
-                      >
-                        {`${Math.round(grades[student.uid].SquareScore)}%`}
-                      </p>
-                    </div>
-                  ) : (
-                    <div
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        marginTop: '-2px',
-                        width: '130px',
-                      }}
-                    >
-                      <p
-                        style={{
-                          fontWeight: 'bold',
-                          width: '23px',
-                          fontSize: '22px',
-                          backgroundColor: '#C0C0C0',
-                          height: '23px',
-                          border: '4px solid #A8A8A8',
-                          lineHeight: '23px',
-                          color: 'white',
-                          borderRadius: '7px',
-                          fontFamily: "'montserrat', sans-serif",
-                        }}
-                      >
-                        Z
-                      </p>
-                      <p
-                        style={{
-                          fontSize: '25px',
-                          color: 'lightgrey',
-                          marginLeft: '20px',
-                        }}
-                      >
-                        00%
-                      </p>
-                    </div>
-                  )}
-                </div>
-                <div
-                  style={{
-                    color: 'lightgrey',
-                    width: '360px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    marginLeft: '0px',
-                    marginTop: '5px',
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center' }}>
-                    <div
-                      style={{
-                        marginRight: '10px ',
-                        marginLeft: '10px',
-                      }}
-                    >
-                      {getStatusIcon(
-                        grades[student.uid] && grades[student.uid].submittedAt
-                          ? 'completed'
-                          : assignmentStatuses[student.uid]
-                      )}
-                    </div>
-                    <h1
-                      style={{
-                        fontSize:
-                          grades[student.uid] && grades[student.uid].submittedAt
-                            ? '17px'
-                            : '20px',
-                        fontFamily: "'montserrat', sans-serif",
-                        fontWeight: '600',
-                        fontStyle:
-                          grades[student.uid] && grades[student.uid].submittedAt
-                            ? 'italic'
-                            : 'normal',
-                        color:
-                          grades[student.uid] && grades[student.uid].submittedAt
-                            ? '#808080'
-                            : getStatusColor(assignmentStatuses[student.uid]),
-                        textTransform:
-                          assignmentStatuses[student.uid] === 'completed'
-                            ? 'uppercase'
-                            : 'capitalize',
-                        cursor:
-                          assignmentStatuses[student.uid] === 'Paused'
-                            ? 'pointer'
-                            : 'default',
-                        marginRight: '10px',
-                        marginTop: '10px',
-                      }}
-                      onMouseEnter={() =>
-                        assignmentStatuses[student.uid] === 'Paused' &&
-                        setHoveredStatus(student.uid)
-                      }
-                      onMouseLeave={() => setHoveredStatus(null)}
-                      onClick={() =>
-                        assignmentStatuses[student.uid] === 'Paused' &&
-                        togglePauseAssignment(student.uid)
-                      }
-                    >
-                      {grades[student.uid] && grades[student.uid].submittedAt
-                        ? ` ${new Date(
-                            grades[student.uid].submittedAt.toDate()
-                          ).toLocaleString(undefined, {
-                            year: 'numeric',
-                            month: 'numeric',
-                            day: 'numeric',
-                            hour: '2-digit',
-                            minute: '2-digit',
-                            hour12: true,
-                          })}`
-                        : hoveredStatus === student.uid &&
-                          assignmentStatuses[student.uid] === 'Paused'
-                        ? 'Unpause'
-                        : assignmentStatuses[student.uid]}
-                    </h1>
-                  </div>
-                </div>
-                <button
-                  style={{
-                    backgroundColor: 'transparent',
-                    color:
-                      resetStatus[student.uid] === 'success'
-                        ? 'lightgreen'
-                        : 'red',
-
-                    cursor: 'pointer',
-                    textAlign: 'left',
-                    borderColor: 'transparent',
-                    fontFamily: "'montserrat', sans-serif",
-                    fontWeight: 'bold',
-                    fontSize: '16px',
-                    marginTop: '-0px',
-                    marginLeft: '0px',
-                    marginRight: '0px',
-                  }}
-                  onClick={() => handleReset(student.uid)}
-                >
-                  {resetStatus[student.uid] === 'success' ? 'Success' : 'Reset'}
-                </button>
-              </>
-            ) : (
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  marginLeft: 'auto',
-                }}
-              >
-                <h1
-                  style={{
-                    fontSize: '16px',
-                    color: 'lightgrey',
-                    marginRight: '200px',
-                    width: '120px',
-                  }}
-                >
-                  Not Assigned
-                </h1>
-                <button
-                  style={{
-                    backgroundColor: 'transparent',
-                    color: '#2BB514',
-                    cursor: 'pointer',
-                    borderColor: 'transparent',
-                    fontFamily: "'montserrat', sans-serif",
-                    fontWeight: 'bold',
-                    fontSize: '16px',
-                    marginRight: '0px',
-                  }}
-                  onClick={() => handleAssign(student.uid)}
-                >
-                  Assign
-                </button>
-              </div>
-            )}
-
-            {student.isAssigned &&
-              assignmentStatuses[student.uid] === 'completed' && (
-                <div
-                  style={{
-                    position: 'absolute',
-                    right: '80px',
-                    top: '8px',
-                    height: '38px',
-                    width: '50px',
-                    padding: '11px',
-                    zIndex: '2',
-                    backgroundColor: 'transparent',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    border: '4px solid transparent',
-                    borderBottomRightRadius: '10px',
-                    borderTopRightRadius: '10px',
-                    cursor: 'pointer',
-                  }}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    navigate(
-                      `/teacherStudentResultsMCQ/${assignmentId}/${student.uid}/${classId}`
-                    );
-                  }}
-                >
-                  <ArrowRight size={30} color="#09BA00" strokeWidth={2.5} />
-                </div>
-              )}
-          </li>
-        ))}
-      </ul>
-
-      {showOverlay && (
-        <div
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(255, 255, 255, 0.9)',
-            backdropFilter: 'blur(5px)',
-            zIndex: 98, // Make sure this is below the question bank but above other content
-          }}
-        />
-      )}
     </div>
   );
 };

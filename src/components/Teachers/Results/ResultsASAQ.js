@@ -5,11 +5,11 @@ import { db } from '../../Universal/firebase';
 import { arrayUnion, arrayRemove, deleteDoc, getDoc } from 'firebase/firestore';
 import Navbar from '../../Universal/Navbar';
 import { useRef } from 'react';
-import CustomDateTimePicker from './CustomDateTimePickerResults';
+import CustomDateTimePicker from './Settings/CustomDateTimePickerResults';
 import 'react-datepicker/dist/react-datepicker.css';
 import { AnimatePresence } from 'framer-motion';
-
 import { Settings, ArrowRight, SquareX } from 'lucide-react';
+import { CustomSwitch } from '../../../styles';
 const TeacherResultsASAQ = () => {
   const [students, setStudents] = useState([]);
   const [grades, setGrades] = useState({});
@@ -116,18 +116,18 @@ const TeacherResultsASAQ = () => {
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
           <div style={{display: 'flex', alignItems: 'center', border: '4px solid #f4f4f4', borderRadius: '10px', width: '400px', height: '70px'}}>
             <h3 style={{lineHeight: '30px', marginLeft: '20px', marginRight: '20px',     fontFamily: "'montserrat', sans-serif",}}>Timer</h3>
-            <div style={{ display: 'flex', alignItems: 'center' }}>
-              <input
-                type="checkbox"
-                className="greenSwitch"
-                checked={assignmentSettings.timerOn}
-                onChange={(e) => {
-                  updateAssignmentSetting('timerOn', e.target.checked);
-                  if (!e.target.checked) {
-                    updateAssignmentSetting('timer', '0');
-                  }
-                }}
-              />
+            
+                   <CustomSwitch
+                       
+                       checked={assignmentSettings.timerOn}
+                       onChange={(e) => {
+                         updateAssignmentSetting('timerOn', e.target.checked);
+                         if (!e.target.checked) {
+                           updateAssignmentSetting('timer', '0');
+                         }
+                       }}
+                                    />
+        
               {assignmentSettings.timerOn ? (
                 <>
                   <input
@@ -141,17 +141,17 @@ const TeacherResultsASAQ = () => {
               ) : (
                 <span style={{ marginLeft: '10px', color: 'grey',     fontFamily: "'montserrat', sans-serif", }}>Off</span>
               )}
-            </div>
+            
             
           </div>
           <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', border: '4px solid #f4f4f4', borderRadius: '10px', width: '265px', height: '70px', padding: '0 20px'}}>
             <h3 style={{    fontFamily: "'montserrat', sans-serif",}}>Half Credit</h3>
-            <input
-              type="checkbox"
-              className="greenSwitch"
-              checked={assignmentSettings.halfCredit}
-              onChange={(e) => updateAssignmentSetting('halfCredit', e.target.checked)}
-            />
+          
+                   <CustomSwitch
+                             checked={assignmentSettings.halfCredit}
+                             onChange={(e) => updateAssignmentSetting('halfCredit', e.target.checked)}
+                        
+                                    />
           </div>
   
         </div>

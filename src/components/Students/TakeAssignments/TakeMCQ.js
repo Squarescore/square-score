@@ -3,7 +3,7 @@ import { arrayRemove, arrayUnion, doc, getDoc, setDoc, updateDoc, serverTimestam
 import { useParams, useNavigate } from 'react-router-dom';
 import { db, auth } from '../../Universal/firebase';
 import Loader from '../../Universal/Loader';
-import { SquareArrowLeft, ArrowRight } from 'lucide-react';
+import { SquareArrowLeft, ArrowRight, LayoutGrid, List } from 'lucide-react';
 import TakeAssignmentNav from './TakeAssignmentNav';
 
 function TakeMCQ() {
@@ -20,7 +20,7 @@ function TakeMCQ() {
   const [classId, setClassId] = useState(null);
   const [assignmentName, setAssignmentName] = useState('');
   const [timerStarted, setTimerStarted] = useState(false);
-  
+  const [isListView, setIsListView] = useState(false);
   const [feedback, setFeedback] = useState(false);
   const studentUid = auth.currentUser.uid;
   const navigate = useNavigate();
@@ -30,7 +30,8 @@ function TakeMCQ() {
   const [lastName, setLastName] = useState('');
   const [initialWindowSize, setInitialWindowSize] = useState({ width: window.innerWidth, height: window.innerHeight });
   const [showTimerComponents, setShowTimerComponents] = useState(false);
-
+  const [isSubmitted, setIsSubmitted] = useState(false);
+  
   const fetchUserName = async () => {
     const userRef = doc(db, 'students', auth.currentUser.uid);
     const userDoc = await getDoc(userRef);
@@ -184,32 +185,6 @@ function TakeMCQ() {
     setAssignmentStatus('paused');
     navigate(`/studentassignments/${classId}/active`);
   };
-  
-  const saveProgress = async (status = 'in_progress') => {
-    try {
-      const progressRef = doc(db, 'assignments(progress)', `${assignmentId}_${studentUid}`);
-      await setDoc(progressRef, {
-        assignmentId,
-        studentUid,
-        questions: questions,
-        selectedAnswers: selectedAnswers,
-        timeRemaining: secondsLeft,
-        savedAt: serverTimestamp(),
-        status: status
-      }, { merge: true });
-  
-      // Update student assignment status
-      const studentRef = doc(db, 'students', studentUid);
-      await updateDoc(studentRef, {
-        assignmentsToTake: arrayRemove(assignmentId),
-        assignmentsInProgress: arrayUnion(assignmentId)
-      });
-  
-      console.log('Progress saved and status updated');
-    } catch (error) {
-      console.error("Error saving progress:", error);
-    }
-  };
 
   useEffect(() => {
     if (timeLimit !== null) {
@@ -263,46 +238,117 @@ function TakeMCQ() {
       // Calculate the total score
       const totalScore = gradingResults.reduce((sum, result) => sum + result.score, 0);
       const maxScore = questions.length;
-  
-     
+      const percentageScore = (totalScore / maxScore) * 100;
   
       // Create the grade document
+      const timeSpent = timeLimit ? (timeLimit - secondsLeft) : 0; // Calculate time spent based on timer
       const gradeDocRef = doc(db, `grades`, `${assignmentId}_${studentUid}`);
       await setDoc(gradeDocRef, {
         assignmentId,
         studentUid,
         assignmentName,
-        firstName: firstName,
-        lastName: lastName,
+        firstName,
+        lastName,
         classId,
         submittedAt: serverTimestamp(),
         rawTotalScore: totalScore,
         maxRawScore: maxScore,
-  
         questions: gradingResults,
+        timeSpent, // Add time spent to the grade document
         viewable: false,
       });
   
-      // Update student's assignment status
+      // Update student's assignment status and add grade reference
       const studentRef = doc(db, 'students', studentUid);
-      await updateDoc(studentRef, {
+      const studentUpdates = {
         assignmentsToTake: arrayRemove(assignmentId),
         assignmentsInProgress: arrayRemove(assignmentId),
-        assignmentsTaken: arrayUnion(assignmentId)
-      });
+        assignmentsTaken: arrayUnion(assignmentId),
+        timeSpent // Add time spent to student updates
+      };
+
+      // Add the class-specific grade data
+      studentUpdates[`class_${classId}.grades.${assignmentId}`] = {
+        score: percentageScore,
+        submittedAt: serverTimestamp(),
+        assignmentId,
+        assignmentName,
+      };
+
+      await updateDoc(studentRef, studentUpdates);
   
-      // Remove the progress document if it exists
+      // Update progress document instead of deleting it
       const progressRef = doc(db, 'assignments(progress)', `${assignmentId}_${studentUid}`);
-      await deleteDoc(progressRef);
+      await setDoc(progressRef, {
+        status: 'submitted',
+        submittedAt: serverTimestamp(),
+        selectedAnswers,
+        questions,
+      }, { merge: true });
   
+      setIsSubmitted(true);
       navigate(`/studentassignments/${classId}/completed`);
     } catch (error) {
       console.error("Error submitting and grading assignment:", error);
+      alert("An error occurred while submitting your assignment. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
   };
 
+  // Modify saveProgress to check submission status
+  const saveProgress = async (status = 'in_progress') => {
+    if (isSubmitted) {
+      console.log('Assignment already submitted, not saving progress.');
+      return;
+    }
+
+    try {
+      // Check if assignment is already submitted
+      const gradeDocRef = doc(db, `grades`, `${assignmentId}_${studentUid}`);
+      const gradeDoc = await getDoc(gradeDocRef);
+      
+      if (gradeDoc.exists()) {
+        console.log('Assignment already has grades, canceling save.');
+        return;
+      }
+
+      const progressRef = doc(db, 'assignments(progress)', `${assignmentId}_${studentUid}`);
+      await setDoc(progressRef, {
+        assignmentId,
+        studentUid,
+        firstName,
+        lastName,
+        classId,
+        assignmentName,
+        questions,
+        selectedAnswers,
+        timeRemaining: secondsLeft,
+        savedAt: serverTimestamp(),
+        status
+      }, { merge: true });
+  
+      // Update student assignment status
+      const studentRef = doc(db, 'students', studentUid);
+      const updates = {
+        assignmentsToTake: arrayRemove(assignmentId),
+        assignmentsInProgress: arrayRemove(assignmentId),
+        assignmentsPaused: arrayRemove(assignmentId)
+      };
+  
+      if (status === 'paused') {
+        updates.assignmentsPaused = arrayUnion(assignmentId);
+      } else if (status === 'in_progress') {
+        updates.assignmentsInProgress = arrayUnion(assignmentId);
+      }
+  
+      await updateDoc(studentRef, updates);
+      console.log('Progress saved successfully with status:', status);
+    } catch (error) {
+      console.error("Error saving progress:", error);
+      throw error;
+    }
+  };
   const gradeAssignment = (questions, selectedAnswers) => {
     return questions.map(question => {
       const isCorrect = selectedAnswers[question.questionId] === question.correct;
@@ -394,6 +440,56 @@ function TakeMCQ() {
   };
   return (
     <div style={{ paddingBottom: '80px', marginLeft: '-3px', marginRight: '-3px', display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', width: '100%' }}>
+      
+      <div style={{position: 'fixed', top: '0px', left: '200px', right: '0px', height: '70px', borderBottom: '1px solid lightgrey', display: 'flex', zIndex: '6', backdropFilter: 'blur(5px)', 
+        background: 'rgb(255,255,255,.8)'
+      }}>
+    <h1 style={{marginLeft: '4%', fontSize: '25px', marginTop: '20px', color: '#999999', fontWeight: '500' }}>{assignmentName}</h1>
+    <h1 style={{marginRight: '4%', fontSize: '20px', marginTop: '25px', color: 'grey', marginLeft: 'auto', fontWeight: "500"}}>
+
+    {isListView ? 
+            `${questions.length} Questions` : 
+            `Question ${currentQuestionIndex + 1} of ${questions.length}`
+          }
+
+    </h1>
+      </div>
+
+      <button
+        onClick={() => setIsListView(prev => !prev)}
+        style={{
+          position: 'fixed',
+          top: '90px',
+          right: '4%',
+          zIndex: 10,
+          backgroundColor: 'white',
+          border: '1px solid lightgrey',
+          borderRadius: '5px',
+          padding: '8px 16px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+          cursor: 'pointer',
+          color: 'grey',
+          fontFamily: "'montserrat', sans-serif",
+          fontWeight: '600'
+        }}
+      >
+        {isListView ? <LayoutGrid size={20} /> : <List size={20} />}
+        {isListView ? 'Page View' : 'List View'}
+      </button>
+
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
         <TakeAssignmentNav
         saveAndExitEnabled={saveAndExit}
         onSaveAndExit={onSaveAndExit}
@@ -432,19 +528,112 @@ function TakeMCQ() {
 ) : null}
 
  {questions.length > 0 && (
-        <div style={{ width: '1000px', marginLeft: 'auto',   borderRadius: '20px',      boxShadow: '1px 1px 5px 1px rgb(0,0,155,.07)' , marginRight: 'auto', marginTop: '250px', position: 'relative' }}>
-          <div style={{
-            backgroundColor: '#f4f4f4',  
-       width: '900px',  border: '10px solid lightgrey',
-       borderRadius: ' 20px 20px 0px 0px',
-            textAlign: 'center', fontWeight: 'bold', padding: '10px 40px', fontSize: '25px', position: 'relative', color: 'grey',
-            marginLeft: 'auto', marginRight: 'auto', marginTop: '0px', fontFamily: "'montserrat', sans-serif", userSelect: 'none'
-          }}>
-            {questions[currentQuestionIndex]?.question}
-          </div>
+      <div style={{ 
+        width: 'calc(100% - 200px)', 
+
+        marginLeft: 'calc(200px)', 
+        overflow: 'hidden',
+        marginRight: 'auto', zIndex: '1',
+        marginTop: '150px', 
+        position: 'relative' 
+      }}>
+        
+        
+        
+        
+        
+        
+        
+        {isListView ? (
+            // List View
+            <div>
+               {questions.map((question, index) => (
+      <div key={question.questionId} style={{ 
+        marginBottom: '40px', 
+        width: '100%', 
+        borderBottom: '1px solid lightgrey', 
+        paddingBottom: '40px'
+      }}>
+        <div style={{
+          width: '60%',
+          backgroundColor: 'white',
+          color: 'black',
+          marginBottom: '50px',
+          fontWeight: '600',
+          borderLeft: '5px solid #2BB514',
+          fontSize: '25px',
+          padding: '10px 30px',
+          textAlign: 'left',
+          marginLeft: '5%'
+        }}>
+          {question.question}
+        </div>
+        
+        {Object.keys(question)
+          .filter(key => key.match(/^[a-z]$/))
+          .map((choice) => {
+            const style = choiceStyles[choice];
+            const isSelected = selectedAnswers[question.questionId] === choice;
+
+            return (
+              <div
+                key={choice}
+                onClick={() => handleAnswerSelection(question.questionId, choice)}
+                style={{
+                  width: '88%',
+                  marginLeft: 'calc(4% + 12px)',
+                  marginTop: '10px',
+                  fontFamily: "'montserrat', sans-serif",
+                  padding: '3px',
+                  background: isSelected ? style.background : '#f4f4f4',
+                  color: isSelected ? style.color : 'grey',
+                  borderLeft: isSelected ? `4px solid ${style.color}` : '4px solid grey',
+                  borderRadius: '3px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  paddingLeft: '20px',
+                  fontWeight: '500',
+                  alignItems: 'center',
+                  minHeight: '30px',
+                  transition: 'all 0.3s ease'
+                }}
+              >
+                <p style={{
+                  fontWeight: '500', 
+                  fontSize: '16px', 
+                  textAlign: 'left', 
+                  margin: 0
+                }}>
+                  {question[choice]}
+                </p>
+              </div>
+            );
+          })}
+      </div>
+    ))}
+            </div>
+          ) : (
+            // Paginated View (existing view)
+            <>
+              
+             <div style={{
+              width: '60%',
+              marginTop: '0px',
+              backgroundColor: 'white',
+              color: 'black',
+              fontWeight: '600',
+              marginBottom: '100px',
+              marginLeft: '5%',
+              borderLeft: '5px solid #2BB514',
+              fontSize: '25px',
+              padding: '10px 30px',
+              textAlign: 'left',
+            }}>
+          {questions[currentQuestionIndex]?.question}
+         
+         </div>
           
-          <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', marginTop: '50px', marginBottom: '50px' }}>
-            {Object.keys(questions[currentQuestionIndex] || {})
+         {Object.keys(questions[currentQuestionIndex] || {})
               .filter(key => key.match(/^[a-z]$/))
               .map((choice, index, array) => {
                 const style = choiceStyles[choice];
@@ -457,73 +646,93 @@ function TakeMCQ() {
                     key={choice}
                     onClick={() => handleAnswerSelection(questions[currentQuestionIndex].questionId, choice)}
                     style={{
-                      width: width,
-                      margin: array.length === 2 ? '10px 0.5%' : array.length === 5 ? '10px 1% 30px' : '10px 1%',
-     
+                      width: '88%',
+                      marginLeft: 'calc( 4% + 12px)',
+     marginTop: '10px',
           fontFamily: "'montserrat', sans-serif",
                       padding: '3px',
-                      background: style.background,
-                      color: style.color,
-                      border: isSelected ? `4px solid ${style.color}` : `4px solid ${style.background}`,
-                      borderRadius: '10px',
+                      background: isSelected ? `${style.background}` : `#f4f4f4`,
+                      color:isSelected ? ` ${style.color}`: 'grey',
+                      borderLeft: isSelected ? `4px solid ${style.color}` : `4px solid grey`,
+                      borderRadius: '3px',
                       cursor: 'pointer',
                       display: 'flex',
-                      justifyContent: 'center',
+                      paddingLeft: '20px',
+                      fontWeight: '500',
                       alignItems: 'center',
-                      minHeight: '50px',
+                      minHeight: '30px',
                       transition: 'all 0.3s ease',
                       ...(isLastRow && { marginLeft: 'auto', marginRight: 'auto' })
                     }}
                   >
-                    <p style={{fontWeight: 'bold', fontSize: '20px', textAlign: 'center', margin: 0}}>
+                    <p style={{fontWeight: '500', fontSize: '16px', textAlign: 'left', margin: 0}}>
                       {questions[currentQuestionIndex][choice]}
                     </p>
                   </div>
                 );
               })}
-</div>
-<div style={{ 
-            display: 'flex', 
-            alignItems: 'center', 
-            justifyContent: 'center', 
-            position: 'fixed', 
-            bottom: '0px', 
-            left: '0', 
-            right: '0', 
-            zIndex: 1000
-          }}> <button
-        style={currentQuestionIndex > 0 ? buttonStyles.active : buttonStyles.default}
-        onClick={currentQuestionIndex > 0 ? () => setCurrentQuestionIndex(prev => prev - 1) : null}
-      >
-         {currentQuestionIndex > 0 ? <SquareArrowLeft size={60} style={{cursor: currentQuestionIndex > 0  ? 'pointer' : 'default', position: 'fixed', left: '20px', top: '400px', color: '#2BB514'}}/> : <SquareArrowLeft size={60} style={{cursor: currentQuestionIndex > 0 ? 'pointer' : 'default', position: 'fixed', left: '20px', top: '400px', color: 'grey'}}/>}
-       
+      
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: '80px' }}>
+            <button
+              onClick={() => currentQuestionIndex > 0 && setCurrentQuestionIndex(prev => prev - 1)}
+              style={{
+                backgroundColor: currentQuestionIndex > 0 ? 'white' : '#f4f4f4',
+                cursor: currentQuestionIndex > 0 ? 'pointer' : 'default',
+                fontSize: '16px',
+                width: '300px',
+                fontWeight: '600',
+                marginLeft: '5%',
+                fontFamily: "'montserrat', sans-serif",
+                borderRadius: '5px' ,
+                color: currentQuestionIndex > 0 ? 'grey' : 'lightgrey',
+                border: '1px solid lightgrey',
+                height: '40px',
+              }}
+            >
+              Previous Question
+            </button>
+            
+          
+            
+            <button
+              onClick={() => currentQuestionIndex < questions.length - 1 && setCurrentQuestionIndex(prev => prev + 1)}
+              style={{
+               marginLeft: '40px',
+
+                backgroundColor: currentQuestionIndex < questions.length - 1 ? 'white' : '#f4f4f4',
+                cursor: currentQuestionIndex < questions.length - 1 ? 'pointer' : 'default',
+                fontSize: '16px',
+                width: '300px',
+                fontWeight: '600',
+                fontFamily: "'montserrat', sans-serif",
+                borderRadius: '5px' ,
+                color: currentQuestionIndex < questions.length - 1 ? 'grey' : 'lightgrey',
+                border: '1px solid lightgrey',
+                height: '40px',
+                marginRight: 'auto'
+
+              }}
+            >
+            Next Question
+            </button>
+          </div>
+
+        
+            </>
+          )}  
+        
+        
+        
+        
+        
+        
      
-      </button>
+          
 
 
-      <h3 style={{
-      width: '300px',
-      textAlign: 'center',
-      fontSize: '40px',
-      backgroundColor: 'transparent',
-      fontFamily: "'montserrat', sans-serif",
-      color: 'grey',
-     
-      border: '2px solid transparent'
-    }}>
-      {currentQuestionIndex + 1} of {questions.length}
-    </h3>
+    
 
 
-
-      <button
-        style={currentQuestionIndex < questions.length - 1 ? buttonStyles.active : buttonStyles.default}
-        onClick={currentQuestionIndex < questions.length - 1 ? () => setCurrentQuestionIndex(prev => prev + 1) : null}
-      >
-        {currentQuestionIndex < questions.length - 1 ? <ArrowRight size={60} style={{cursor: currentQuestionIndex < questions.length - 1 ? 'pointer' : 'default', position: 'fixed', right: '20px', top: '400px', color: '#2BB514'}}/> : <ArrowRight size={60} style={{cursor: currentQuestionIndex < questions.length - 1 ? 'pointer' : 'default', position: 'fixed', right: '20px', top: '400px', color: 'grey'}}/>}
-         
-      </button>
-    </div>
    
   </div>
 )}

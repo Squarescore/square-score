@@ -1,21 +1,28 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { doc, setDoc,updateDoc, writeBatch, arrayUnion, serverTimestamp, getDoc, arrayRemove } from 'firebase/firestore';
-
-import { CalendarCog, SquareDashedMousePointer, Sparkles, GlobeLock, PencilRuler, Eye, SendHorizonal, SquareX, ChevronUp, ChevronDown, Settings,  } from 'lucide-react';
-import { db } from '../../Universal/firebase';  // Ensure the path is correct
+import { doc, setDoc, updateDoc, writeBatch, arrayUnion, serverTimestamp, getDoc, arrayRemove } from 'firebase/firestore';
+import { CalendarCog, SquareDashedMousePointer, Sparkles, GlobeLock, PencilRuler, Eye, SendHorizonal, SquareX, ChevronUp, ChevronDown, Settings } from 'lucide-react';
+import { db } from '../../Universal/firebase';
 import TeacherPreviewASAQ from './PreviewASAQ';
 import { auth } from '../../Universal/firebase';
+import SelectStudentsDW from './SelectStudentsDW';
 import '../../Universal//SwitchGreen.css';
 import Navbar from '../../Universal/Navbar';
 import 'react-datepicker/dist/react-datepicker.css';
 import axios from 'axios';
-import DateSettings, { formatDate } from './DateSettings';
-import SecuritySettings from './SecuritySettings';
-import SelectStudentsDW from './SelectStudentsDW';
-import { AssignmentActionButtons, usePublishState } from './AssignmentActionButtons';
 import { v4 as uuidv4 } from 'uuid';
-import { AssignmentName, FormatSection, PreferencesSection, QuestionCountSection, TimerSection, ToggleSwitch} from './Elements';
+import { AssignmentActionButtons, usePublishState } from './AssignmentActionButtons';
+import { 
+  AssignmentName, 
+  FormatSection, 
+  PreferencesSection, 
+  QuestionCountSection, 
+  TimerSection, 
+  ToggleSwitch,
+  DateSettingsElement,
+  SecuritySettingsElement
+} from './Elements';
+
 
 import SourcePreviewToggle from './SourcePreviewToggle';
 import StepPreviewCards from './StepPreviewCards';
@@ -206,7 +213,6 @@ function SAQA() {
     }
   }, [location.state]);
 
-
   const saveAssignment = async () => {
     if (isSaving) return;
     setIsSaving(true);
@@ -225,11 +231,11 @@ function SAQA() {
         };
       });
   
-      // Create assignment document
+      // Save assignment document
       const assignmentRef = doc(db, 'assignments', finalAssignmentId);
       batch.set(assignmentRef, {
         classId,
-        format: 'ASAQ',
+        format: 'AOE',
         assignmentName,
         timer: timerOn ? Number(timer) : 0,
         halfCredit,
@@ -242,8 +248,7 @@ function SAQA() {
         },
         createdAt: serverTimestamp(),
         questions: formattedQuestions,
-        
-      onViolation: lockdown ? onViolation : null, 
+        onViolation: lockdown ? onViolation : null,
         lockdown,
         saveAndExit,
         isAdaptive
@@ -273,13 +278,18 @@ function SAQA() {
         batch.delete(draftRef);
       }
   
-      // Assign to students
+      // Assign to students by adding to their assignmentsToTake array
       const selectedStudentIds = Array.from(selectedStudents);
       selectedStudentIds.forEach(studentUid => {
         const studentRef = doc(db, 'students', studentUid);
         batch.update(studentRef, {
           assignmentsToTake: arrayUnion(finalAssignmentId)
         });
+      });
+  
+      // Add assignment to viewableAssignments array in class document
+      batch.update(classRef, {
+        viewableAssignments: arrayUnion(finalAssignmentId)
       });
   
       // Commit all operations atomically
@@ -289,7 +299,7 @@ function SAQA() {
         state: {
           successMessage: `Success: ${assignmentName} published`,
           assignmentId: finalAssignmentId,
-          format: 'ASAQ'
+          format: 'AOE'
         }
       });
     } catch (error) {
@@ -306,14 +316,14 @@ function SAQA() {
   
     try {
       // Generate a new draft ID if none exists
-      const finalDraftId = draftId || `${classId}+${Date.now()}+ASAQ`;
+      const finalDraftId = draftId || `${classId}+${Date.now()}+AOE`;
       const batch = writeBatch(db);
   
       // Save draft document
       const draftRef = doc(db, 'drafts', finalDraftId);
       batch.set(draftRef, {
         classId,
-        format: 'ASAQ',
+        format: 'AOE',
         assignmentName,
         timer: timerOn ? Number(timer) : 0,
         halfCredit,
@@ -426,7 +436,7 @@ function SAQA() {
       name: 'Select Students',
       
       backgroundColor: '#FFECA8',
-      borderColor: '#FFD13B',
+      borderColor: '#FF8800',
       textColor: '#CE7C00',
       condition: selectedStudents.size > -1, // Example condition
 
@@ -575,7 +585,7 @@ function SAQA() {
    />
    
 
-   <DateSettings
+   <DateSettingsElement
           assignDate={assignDate}
           setAssignDate={setAssignDate}
           dueDate={dueDate}
@@ -602,14 +612,7 @@ function SAQA() {
       
 
      
- </PreferencesSection>
-
-
-           
-        
-
-
- <SecuritySettings
+ <SecuritySettingsElement
   saveAndExit={saveAndExit}
   setSaveAndExit={setSaveAndExit}
   lockdown={lockdown}
@@ -617,6 +620,13 @@ function SAQA() {
   onViolation={onViolation}
   setOnViolation={setOnViolation}
 />
+
+
+ </PreferencesSection>
+
+
+           
+        
 
 
 
@@ -672,41 +682,19 @@ onPrevStep={handlePrevious}
 assignmentName={assignmentName}
 hasGeneratedQuestions={generatedQuestions.length > 0}
 />
-      <div style={{width: '730px', padding: '15px', top:'-60px', position: 'absolute' , left:' 50%', transform: 'translatex(-50%) ', zIndex: '10', fontFamily: "'montserrat', sans-serif", background: 'white', borderRadius: '25px', height: '450px',
-        boxShadow: '1px 1px 10px 1px rgb(0,0,155,.1)', marginBottom: '40px' }}>
-      
-      
-      <div style={{ marginLeft: '0px', color: '#E01FFF', margin: '-15px', padding: '10px 10px 10px 20px',  border: '10px solid #E01FFF', borderRadius: '30px 30px 0px 0px', fontFamily: "'montserrat', sans-serif",  fontSize: '40px', display: 'flex', width: '710px', background: '#F8CAFF', marginBottom: '180px', fontWeight: 'bold' }}>
-       
-       
- <Sparkles size={40} strokeWidth={2.5} style={{marginRight: '10px', marginTop: '5px'}}/>
-        Generate Questions
-        
-        </div>
-        
-          <div
-            style={{
-              width: '100%',
-              padding: '10px',
-              fontSize: '30px',
-              backgroundColor: 'white',
-              color: 'black',
-              border: 'none',
-              height: '30px',
-              marginTop: '10px',
-              cursor: 'pointer',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center'
-            }}
-          >
-
-
-          <div >
-            <div style={{ marginTop: '-30px' }}>
+<StepContainer 
+          title="Generate Questions" 
+          icon={Sparkles}
+          color="black"
+          
+          backgroundColor="white"
+          width={StepContainerConfig.generate.width}
+          titleWidth={StepContainerConfig.generate.titleWidth}
+        >
        
 
-      
+
+     
 
               <div style={{ width: '700px', marginLeft: '10px', marginTop: '-40px'}}>
            
@@ -726,15 +714,10 @@ hasGeneratedQuestions={generatedQuestions.length > 0}
 
 
 
-            </div>
-          </div>
-          </div>
-  
-          </div>
+</div>
+</StepContainer>
 
-    
-         
-          </div></div>
+</div>
     )}
 
     {currentStep === 4 && (

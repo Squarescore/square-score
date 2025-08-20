@@ -1,24 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { doc, getDoc } from 'firebase/firestore';
-import { db, auth } from '../../Universal/firebase';
+import { db } from '../../Universal/firebase';
 import Navbar from '../../Universal/Navbar';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Check, ChevronDown, ChevronUp, MessageSquareMore, SquareCheck, SquareX, User, UserX } from 'lucide-react';
-import { useRef } from 'react';
+import { SquareCheck, SquareX, ChevronUp, ChevronDown, Square, User, MessageSquareMore, Check, UserX, UserCheck } from 'lucide-react';
+
 function StudentResultsAMCQ() {
     const { assignmentId, studentUid, classId } = useParams();
     const [assignmentName, setAssignmentName] = useState('');
     const [results, setResults] = useState(null);
     const [studentName, setStudentName] = useState('');
     const [correctCount, setCorrectCount] = useState(0);
+    const [completedCount, setCompletedCount] = useState(0);
     const [incorrectCount, setIncorrectCount] = useState(0);
-    const navigate = useNavigate();
     const [allQuestions, setAllQuestions] = useState([]);
+    const navigate = useNavigate();
     const [expandedQuestions, setExpandedQuestions] = useState({});
-
-    const [completedCoun, setCompletedCount] = useState(0);
-   
+    const [selectedChoices, setSelectedChoices] = useState({});
 
     useEffect(() => {
         const fetchResults = async () => {
@@ -30,19 +29,16 @@ function StudentResultsAMCQ() {
                     const data = gradeDoc.data();
                     setResults(data);
                     setAssignmentName(data.assignmentName);
-                    setStudentName(`${data.firstName} ${data.lastName}`);
-
-                    // Calculate counts
                     setCorrectCount(data.correctQuestions.length);
                     setIncorrectCount(data.incorrectQuestions.length);
                     setCompletedCount(data.completedQuestions.length);
+                    setStudentName(`${data.firstName} ${data.lastName}`);
 
-                    // Set all questions
-                    setAllQuestions([...data.correctQuestions, ...data.incorrectQuestions].sort((a, b) => a.index - b.index));
-
-                    console.log('Grade Document:', data);
-                } else {
-                    console.log('No grade document found');
+                    const combined = [
+                        ...data.correctQuestions,
+                        ...data.incorrectQuestions
+                    ];
+                    setAllQuestions(combined);
                 }
             } catch (error) {
                 console.error('Error fetching results:', error);
@@ -51,18 +47,6 @@ function StudentResultsAMCQ() {
 
         fetchResults();
     }, [assignmentId, studentUid]);
-
-    if (!results) {
-        return <div>Loading...</div>;
-    }
-
-    const handleCircleClick = (index) => {
-        const element = document.getElementById(`question-${index}`);
-        if (element) {
-            element.scrollIntoView({ behavior: 'smooth' });
-        }
-    };
-
     const getLetterGrade = (score) => {
         const percentage = parseInt(score);
         if (percentage >= 90) return 'A';
@@ -72,642 +56,411 @@ function StudentResultsAMCQ() {
         return 'F';
     };
 
+    const getGradeColors = (grade) => {
+        if (grade === undefined || grade === null || grade === 0) return { color: '#858585', background: 'white' };
+        if (grade < 50) return { color: '#FF0000', background: '#FFCBCB' };
+        if (grade < 70) return { color: '#FF4400', background: '#FFC6A8' };
+        if (grade < 80) return { color: '#EFAA14', background: '#FFF4DC' };
+        if (grade < 90) return { color: '#9ED604', background: '#EDFFC1' };
+        if (grade > 99) return { color: '#E01FFF', background: '#F7C7FF' };
+        return { color: '#2BB514', background: '#D3FFCC' };
+    };
+
+    if (!results) return <div>Loading...</div>;
+
     const letterGrade = getLetterGrade(results.SquareScore);
-    const AMCQMap = ({ allQuestions, results, scrollToQuestion }) => {
-        const [isMapCollapsed, setIsMapCollapsed] = useState(false);
-        const contentRef = useRef(null);
-        const [contentHeight, setContentHeight] = useState('auto');
-    
-        useEffect(() => {
-            const updateHeight = () => {
-                if (contentRef.current) {
-                    const headerHeight = 50; // Height of the header
-                    const maxHeight = window.innerHeight - 230; // 230 = 180 (top) + 50 (header)
-                    const contentScrollHeight = contentRef.current.scrollHeight + headerHeight;
-                    
-                    if (contentScrollHeight > maxHeight) {
-                        setContentHeight(`${maxHeight}px`);
-                    } else {
-                        setContentHeight(`${contentScrollHeight}px`);
-                    }
-                }
-            };
-    
-            updateHeight();
-            window.addEventListener('resize', updateHeight);
-            return () => window.removeEventListener('resize', updateHeight);
-        }, [results]);
-    
-        const handleQuestionClick = (index) => {
-            const element = document.getElementById(`question-${index}`);
-            if (element) {
-                const elementRect = element.getBoundingClientRect();
-                const absoluteElementTop = elementRect.top + window.pageYOffset;
-                const middle = absoluteElementTop - (window.innerHeight / 2);
-                window.scrollTo({
-                    top: middle,
-                    behavior: 'smooth'
-                });
+    if (!results) return <div>Loading...</div>;
+
+ 
+   
+    const renderChoice = (questionData, choiceKey, index) => {
+        const isSelected = questionData.selectedChoice === choiceKey;
+        const isCorrect = questionData.correctChoice === choiceKey;
+        const isSelectedCorrect = isSelected && isCorrect;
+        const isSelectedIncorrect = isSelected && !isCorrect;
+        const isClicked = selectedChoices[index] === choiceKey;
+        
+        const boxStyle = {
+            width: '92%',
+            borderRadius: '20px',
+            position: 'relative',
+            
+                    marginLeft: '4%',
+            marginBottom: '10px',
+            cursor: 'pointer',
+            transition: 'all 0.3s ease'
+        };
+
+        const getIconProps = () => {
+            if (isSelectedCorrect) {
+                return {
+                    icon: <UserCheck size={20} />,
+                    color: '#20BF00'
+                };
+            } else if (isSelectedIncorrect) {
+                return {
+                    icon: <UserX size={20} />,
+                    color: 'red'
+                };
+            } else if (isCorrect) {
+                return {
+                    icon: <Check strokeWidth={3} size={20} />,
+                    color: '#20BF00'
+                };
+            } else {
+                return {
+                    icon: <Square size={20} />,
+                    color: 'white'
+                };
             }
         };
+        const choiceStyles = {
+            a: { background: '#C7CFFF', color: '#020CFF' },
+            c: { background: '#D6FFCF', color: '#2BB514' },
+            b: { background: '#F6C1FF', color: '#E441FF' },
+            d: { background: '#FFEFCC', color: '#FFAE00' },
+            e: { background: '#CAFFF4', color: '#00F1C2' },
+            f: { background: '#C2FBFF', color: '#CC0000' },
+            g: { background: '#E3BFFF', color: '#8364FF' },
+            h: { background: '#9E9E9E', color: '#000000' },
+        };
     
+        const iconProps = getIconProps();
+        const style = choiceStyles[choiceKey] || { background: '#f4f4f4', color: 'grey' };
+
         return (
-            <div style={{
-                position: 'fixed',
-                height: isMapCollapsed ? '50px' : contentHeight,
-                top: '180px',
-                left: '40px',
-                width: '80px',
-                paddingBottom: isMapCollapsed ? '0px' : '30px',
-                backgroundColor: 'white',
-                boxShadow: '1px 1px 5px 1px rgb(0,0,155,.1)',
-                borderRadius: '10px',
-                transition: 'all 0.3s',
-                zIndex: 1000,
-                display: 'flex',
-                flexDirection: 'column',
-                overflow: 'hidden' // Add this to prevent content from overflowing when collapsed
-            }}>
+            <div 
+                style={boxStyle} 
+                onClick={() => setSelectedChoices(prev => ({
+                    ...prev,
+                    [index]: choiceKey
+                }))}
+            >
                 <div style={{
-                    display: 'flex',
                     width: '50px',
-                    marginLeft: 'auto', marginRight: 'auto',
+                    position: 'absolute',
+                    borderRadius: '15px 0px 0px 15px',
+                    left: '-50px',
+                    top: '-4px',
+                    bottom: '-4px',
+                    color: iconProps.color,
+                    display: 'flex',
                     alignItems: 'center',
-                    justifyContent: 'space-between',
-                    padding: '10px',
-                    height: '30px'
+                    justifyContent: 'center'
                 }}>
-                    <span style={{ fontWeight: 'bold' }}>Map</span>
-                    <button
-                        onClick={() => setIsMapCollapsed(!isMapCollapsed)}
-                        style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '20px' }}
-                    >
-                        {isMapCollapsed ? <ChevronDown size={20} /> : <ChevronUp size={20} />}
-                    </button>
+                    {iconProps.icon}
                 </div>
-                {!isMapCollapsed && (
-                    <div ref={contentRef} style={{ 
-                        overflowY: 'auto', 
-                        flex: 1,
-                        scrollbarWidth: 'thin',
-                        scrollbarColor: '#888 #f1f1f1',
-                        '&::-webkit-scrollbar': {
-                            width: '8px',
-                        },
-                        '&::-webkit-scrollbar-track': {
-                            background: '#f1f1f1',
-                            borderRadius: '10px',
-                        },
-                        '&::-webkit-scrollbar-thumb': {
-                            background: '#888',
-                            borderRadius: '10px',
-                        },
-                        '&::-webkit-scrollbar-thumb:hover': {
-                            background: '#555',
-                        },
+                <div style={{
+                    padding: '0px 20px',
+                  borderRadius: '3px', 
+                    borderLeft: isClicked ? `5px solid ${style.color}`: '5px solid grey',
+                    background: isClicked ? style.background : '#f4f4f4',
+                    display: 'flex',
+                    alignItems: 'center',
+                    transition: 'all 0.3s ease'
+                }}>
+                    <p style={{
+                        fontSize: '16px',
+                        fontWeight: '500',
+                        color: isClicked ? style.color : 'grey',
+                       margin: '-0px',
+                       padding: '10px 20px',
+                        transition: 'color 0.3s ease'
                     }}>
-                        {allQuestions.map((question, index) => {
-                            const isCorrect = results.correctQuestions.some(q => q.question === question.question);
-                            
-                            return (
-                                <div
-                                    key={index}
-                                    onClick={() => handleQuestionClick(index)}
-                                    style={{
-                                        width: '50px',
-                                        marginLeft: 'auto', marginRight: 'auto',
-                                        alignItems: 'center',
-                                        padding: '10px 5px',
-                                        display: 'flex',
-                                        cursor: 'pointer'
-                                    }}
-                                >
-                                    <span style={{ marginLeft: '0px', fontWeight: '700', marginRight: 'auto' }}>{index + 1}.</span>
-                                    {isCorrect ? (
-                                        <SquareCheck size={25} color="#00d12a" style={{ marginRight: '0px' }} />
-                                    ) : (
-                                        <SquareX size={25} color="#FF0000" style={{ marginRight: '0px' }} />
-                                    )}
-                                </div>
-                            );
-                        })}
-                    </div>
-                )}
+                        {questionData[choiceKey]}
+                    </p>
+                </div>
             </div>
         );
     };
-    const scrollToQuestion = (index) => {
-        const element = document.getElementById(`question-${index}`);
-        if (element) {
-            element.scrollIntoView({ behavior: 'smooth' });
-        }
+    const renderExplanation = (questionData, selectedChoice) => {
+        if (!selectedChoice) return null;
+
+        const explanationKey = `explanation_${selectedChoice}`;
+        const explanation = questionData[explanationKey];
+
+        return explanation ? (
+            <div style={{
+                marginTop: '30px',
+                width: '92%',
+                marginLeft: '4%',
+                marginBottom: '30px',
+            }}>
+              <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    marginBottom: '10px',
+                    fontWeight: '500',
+                    color: 'lightgrey',
+                }}>
+                    <MessageSquareMore size={20} style={{ marginRight: '10px' }} />
+                    <h4 style={{ margin: 0 , fontWeight: '600', fontSize: '16px'}}>Explanation</h4>
+                </div>
+                <p style={{ margin: 0 }}>{explanation}</p>
+            </div>
+        ) : null;
     };
-    
-    const renderQuestion = (question, index) => {
-        const isCorrect = results.correctQuestions.some(q => q.question === question);
-        const questionData = isCorrect 
-            ? results.correctQuestions.find(q => q.question === question)
-            : results.incorrectQuestions.find(q => q.question === question);
-    
+
+    const renderQuestion = (questionData, index) => {
         const toggleExpanded = () => {
-            setExpandedQuestions(prev => ({
-                ...prev,
-                [index]: !prev[index]
-            }));
+            setExpandedQuestions(prev => {
+                const newState = {
+                    ...prev,
+                    [index]: !prev[index]
+                };
+                // Set selected choice to student's selection when expanding
+                if (newState[index]) {
+                    setSelectedChoices(prev => ({
+                        ...prev,
+                        [index]: questionData.selectedChoice
+                    }));
+                }
+                return newState;
+            });
         };
-    
+
         const isExpanded = expandedQuestions[index] || false;
 
         return (
-            <li
-                id={`question-${index}`}
-                key={question}
+            <div 
+                key={index}
                 style={{
-                    fontFamily: "'montserrat', sans-serif",
-                    marginBottom: '0px',
-                    marginTop: '0px',
-                 
-                    padding: '10px 0px',
-                    width: '750px',
-                    marginLeft: 'auto',
-                    marginRight: 'auto',
-                    textAlign: 'left',
-                    borderBottom: ' 2px solid #f4f4f4' ,
-                    listStyleType: 'none'
+                    borderBottom: '1px solid #ededed',
+                    width: '100%', background: 'white',
+                    padding: '20px 0px',
                 }}
             >
-                  <div style={{ display:'flex', alignItems: 'center', marginBottom: '0px',    }}>
-               
-                  <div>
-                    {isCorrect ? 
-                      <SquareCheck size={40} color="#00d12a" /> :  <SquareX size={40} color="#FF0000" />}
-                    </div>
-               <p style={{
-                        fontWeight: 'bold',
-                        fontSize: '25px',
-                        color: 'black',
-                        marginLeft: '20px',
-                        marginRight: '10px',
-                        flex: 1,
-                    }}>
-                        {questionData.question}
-                    </p>
-                   <button 
-                    onClick={toggleExpanded}
-                    style={{
-                        background: 'none',
-                        border: 'none',
-                        cursor: 'pointer',
-                        fontSize: '20px',
-                    }}
-                >
-                       {isExpanded ?<ChevronUp size={25} color="#666666" /> : <ChevronDown size={25} color="#666666" />}
-                
-                </button>
-                  </div>
+             <div style={{ 
+    display: 'flex', 
+    alignItems: 'center', 
+    height: '30px', 
+    marginTop: '20px',
+    marginBottom: '20px',
+    marginLeft: '4%'
+}}>
+    {/* Replace Square with conditional icon */}
+    {questionData.selectedChoice === questionData.correctChoice ? 
+        <SquareCheck size={25} color="#20BF00" /> : 
+        <SquareX size={25} color="#FF0000" />
+    }
+    <h3 style={{ 
+        fontSize: '20px',
+        marginLeft: '20px',
+        fontWeight: '600'
+    }}>
+        {questionData.question}
+    </h3>
+    <button 
+        onClick={toggleExpanded}
+        style={{
+            background: 'none',
+            border: 'none',
+            marginLeft: 'auto',
+            marginRight: '4%',
+            cursor: 'pointer'
+        }}
+    >
+        {isExpanded ? <ChevronUp size={25} /> : <ChevronDown size={25} />}
+    </button>
+</div>
+
                 <AnimatePresence>
-                {isExpanded && (
-                    <motion.div 
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: 'auto' }}
-                        exit={{ opacity: 0, height: 0 }}
-                        transition={{ duration: 0.3 }}
-                        style={{ overflow: 'hidden' }}
-                    >
-                    <div style={{ display: 'flex'}}>
-                       
-                      {isCorrect ? (
-
-
-
-
-
-<div style={{ display: 'flex', paddingBottom: '20px', width: '100%', marginTop: '20px' }}>
-<div style={{
-  width:'380px' ,
-  borderRadius: '20px',
-  position: 'relative',
-  border: '4px solid #f4f4f4',
-   flexDirection: 'column',
-  alignItems: 'center'
-}}>
-  <div style={{
-                                            width: '50px',
-                                            position: 'absolute',
-                                            borderRadius: '15px 0px 0px 15px',
-                                            left:'-4px',
-                                            top: '-4px',
-                                            bottom:'-4px',
-                                            background:  '#AEF2A3' ,
-                                            border:  ' 4px solid #20BF00' , 
-                                            color: '#20BF00' , 
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center'
-                                        }}> 
-                                            <User size={40} />
-                                        </div>
-                                        <div style={{
-                                            flexGrow: 1,
-                                            paddingLeft: '30px',
-                                            paddingRight: '0px',
-                                            marginLeft: '20px',
-                                            position: 'relative',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                            minHeight: '100px',
-                                        }}>
-                                            <p style={{
-                                                fontSize: '16px',
-                                                fontWeight: 'bold',
-                                                textAlign: 'left',
-                                                margin: 0,
-                                                width: '88%',
-                                                padding: '0px',
-                                            }}>
-                            {questionData.choiceContent}</p>
-                            </div>
-                        </div>
-                       
-                        <div style={{
-  width:'380px' ,
-  borderRadius: '20px',
-  position: 'relative',
-  marginLeft: '20px',
-  border: '4px solid #f4f4f4',
-   flexDirection: 'column',
-  alignItems: 'center'
-}}>
-  <div style={{
-                                            width: '50px',
-                                            position: 'absolute',
-                                            borderRadius: '15px 0px 0px 15px',
-                                            left:'-4px',
-                                            top: '-4px',
-                                            bottom:'-4px',
-                                            background: `#f4f4f4`,
-                                            border: `4px solid lightgrey`, 
-                                            display: 'flex',
-                                            color: `grey`, 
-                                            alignItems: 'center',
-                                            justifyContent: 'center'
-                                        }}> 
-                                             <MessageSquareMore size={40} />
-                                        </div>
-                                        <div style={{
-                                            flexGrow: 1,
-                                            paddingLeft: '30px',
-                                            paddingRight: '0px',
-                                            marginLeft: '20px',
-                                            position: 'relative',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                            minHeight: '100px',
-                                        }}>
-                                            <p style={{
-                                                fontSize: '16px',
-                                                fontWeight: 'bold',
-                                                textAlign: 'left',
-                                                color: 'grey',
-                                                margin: 0,
-                                                width: '88%',
-                                                padding: '0px',
-                                            }}>
-                            {questionData.correctExplanation}</p>
-                            </div>
-                        </div>
-                           
-                            </div>
-                        ) : (
-                            <div style={{paddingBottom: '30px'}}>
-                            <div style={{ display: 'flex',borderBottom: '4px solid #f4f4f4' , paddingBottom: '30px'}}>
-                            <div style={{
-  width:'380px' ,
-  borderRadius: '20px',
-  position: 'relative',
-  border: '4px solid #f4f4f4',
-   flexDirection: 'column',
-  alignItems: 'center'
-}}>
-  <div style={{
-                                            width: '50px',
-                                            position: 'absolute',
-                                            borderRadius: '15px 0px 0px 15px',
-                                            left:'-4px',
-                                            top: '-4px',
-                                            bottom:'-4px',
-                                            background:  '#FFD3D3' ,
-                                            border:  ' 4px solid red' , 
-                                            color: 'red' , 
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center'
-                                        }}> 
-                                            <UserX  size={40} />
-                                        </div>
-                                        <div style={{
-                                            flexGrow: 1,
-                                            paddingLeft: '30px',
-                                            paddingRight: '0px',
-                                            marginLeft: '20px',
-                                            position: 'relative',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                            minHeight: '100px',
-                                        }}>
-                                            <p style={{
-                                                fontSize: '16px',
-                                                fontWeight: 'bold',
-                                                textAlign: 'left',
-                                                margin: 0,
-                                                width: '88%',
-                                                padding: '0px',
-                                            }}>
-                            {questionData.choiceContent}</p>
-                            </div>
-                        </div>
-                       
-                        <div style={{
-  width:'380px' ,
-  borderRadius: '20px',
-  position: 'relative',
-  marginLeft: '20px',
-  border: '4px solid #f4f4f4',
-   flexDirection: 'column',
-  alignItems: 'center'
-}}>
-  <div style={{
-                                            width: '50px',
-                                            position: 'absolute',
-                                            borderRadius: '15px 0px 0px 15px',
-                                            left:'-4px',
-                                            top: '-4px',
-                                            bottom:'-4px',
-                                            background: `#f4f4f4`,
-                                            border: `4px solid lightgrey`, 
-                                            display: 'flex',
-                                            color: `grey`, 
-                                            alignItems: 'center',
-                                            justifyContent: 'center'
-                                        }}> 
-                                             <MessageSquareMore size={40} />
-                                        </div>
-                                        <div style={{
-                                            flexGrow: 1,
-                                            paddingLeft: '30px',
-                                            paddingRight: '0px',
-                                            marginLeft: '20px',
-                                            position: 'relative',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                            minHeight: '100px',
-                                        }}>
-                                            <p style={{
-                                                fontSize: '16px',
-                                                fontWeight: 'bold',
-                                                textAlign: 'left',
-                                                margin: 0,
-                                                
-                                                color: 'grey',
-                                                width: '88%',
-                                                padding: '0px',
-                                            }}>
-                            {questionData.incorrectExplanation}</p>
-                            </div>
-                        </div>
-                           </div>
-
-
-
-                            <div style={{ display: 'flex', marginTop: '40px'}}>
-                            <div style={{
-  width:'380px' ,
-  borderRadius: '20px',
-  position: 'relative',
-  border: '4px solid #f4f4f4',
-   flexDirection: 'column',
-  alignItems: 'center'
-}}>
-  <div style={{
-                                            width: '50px',
-                                            position: 'absolute',
-                                            borderRadius: '15px 0px 0px 15px',
-                                            left:'-4px',
-                                            top: '-4px',
-                                            bottom:'-4px',
-                                            background:  '#AEF2A3' ,
-                                            border:  ' 4px solid #20BF00' , 
-                                            color: '#20BF00' , 
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center'
-                                        }}> 
-                                            <Check  strokeWidth={3} size={30} />
-                                        </div>
-                                        <div style={{
-                                            flexGrow: 1,
-                                            paddingLeft: '30px',
-                                            paddingRight: '0px',
-                                            marginLeft: '20px',
-                                            position: 'relative',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                            minHeight: '100px',
-                                        }}>
-                                            <p style={{
-                                                fontSize: '16px',
-                                                fontWeight: 'bold',
-                                                textAlign: 'left',
-                                                margin: 0,
-                                                width: '88%',
-                                                padding: '0px',
-                                            }}>
-                            {questionData.correctContent}</p>
-                            </div>
-                        </div>
-                       
-                        <div style={{
-  width:'380px' ,
-  borderRadius: '20px',
-  position: 'relative',
-  marginLeft: '20px',
-  border: '4px solid #f4f4f4',
-   flexDirection: 'column',
-  alignItems: 'center'
-}}>
-  <div style={{
-                                            width: '50px',
-                                            position: 'absolute',
-                                            borderRadius: '15px 0px 0px 15px',
-                                            left:'-4px',
-                                            top: '-4px',
-                                            bottom:'-4px',
-                                            background: `#f4f4f4`,
-                                            border: `4px solid lightgrey`, 
-                                            display: 'flex',
-                                            color: `grey`, 
-                                            alignItems: 'center',
-                                            justifyContent: 'center'
-                                        }}> 
-                                             <MessageSquareMore size={40} />
-                                        </div>
-                                        <div style={{
-                                            flexGrow: 1,
-                                            paddingLeft: '30px',
-                                            paddingRight: '0px',
-                                            marginLeft: '20px',
-                                            position: 'relative',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                            minHeight: '100px',
-                                        }}>
-                                            <p style={{
-                                                fontSize: '16px',
-                                                fontWeight: 'bold',
-                                                textAlign: 'left',
-                                                
-                                                color: 'grey',
-                                                margin: 0,
-                                                width: '88%',
-                                                padding: '0px',
-                                            }}>
-                            {questionData.correctExplanation}</p>
-                            </div>
-                        </div>
-                           </div>
-                           
-                           </div>
-                        )}
-                    </div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
-            </li>
+                    {isExpanded && (
+                        <motion.div
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: 'auto' }}
+                            exit={{ opacity: 0, height: 0 }}
+                            transition={{ duration: 0.3 }}
+                        >
+                            {['a', 'b', 'c', 'd'].map(choiceKey => 
+                                renderChoice(questionData, choiceKey, index)
+                            )}
+                            {renderExplanation(questionData, selectedChoices[index])}
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+            </div>
         );
     };
 
     return (
-        <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', backgroundColor: 'white' }}>
-            <Navbar userType="student" />
-         
-           
-            <div style={{  fontFamily: "'montserrat', sans-serif", backgroundColor: '', width: '820px', zIndex: '100', alignItems: 'center', marginLeft: 'auto', marginRight: 'auto', marginTop: '190px'}}>
-           
-           
-<div style={{display: 'flex', boxShadow: '1px 1px 5px 1px rgb(0,0,155,.1)', paddingRight: '0px', width: '830px ', borderRadius: '15px', marginBottom: '20px', height: '200px', marginLeft: '-10px' }}>
-       <div style={{marginLeft: '30px', marginBottom: '40px'}}>
-       <h1 style={{ fontSize: '40px', color: 'black', marginBottom: '0px',  marginLeft: '-5px',fontFamily: "'montserrat', sans-serif", textAlign: 'left',  }}>{assignmentName}</h1>
-     
-       <h1 style={{ fontSize: '30px', fontFamily: "'montserrat', sans-serif", textAlign: 'left', color: 'grey', fontWeight: '600',   }}> {studentName}
-      </h1>
-       <h1 style={{ fontSize: '20px', fontFamily: "'montserrat', sans-serif", textAlign: 'left',  color: 'grey', fontWeight: '500', marginTop: '-5px' }}> Submitted: {new Date(results.submittedAt.toDate()).toLocaleString()} </h1>
-            
-        
-         
-         
-
-       </div>
-       <div style={{width: '100px', marginLeft: 'auto', marginRight: '80px', marginTop: '-10px'}}>
-           <div style={{ width: '110px', height: '110px', border: '15px solid #C0FFBD', borderRadius: '30px', background: '#20BF00', marginTop: '40px',  marginLeft: '10px' }}>
-                       <div style={{ width: '85px', height: '85px', backgroundColor: 'white', borderRadius: '7px', margin: 'auto', marginTop: '14px', justifyContent: 'space-around', fontSize: '40px', alignItems: 'center', position: 'relative', fontFamily: "'montserrat', sans-serif" }}>
-                           <h1 style={{ backgroundColor: 'transparent', borderRadius: '5px', marginTop: '11px', justifyContent: 'space-around', fontSize: '40px', alignItems: 'center', position: 'relative', fontFamily: "'montserrat', sans-serif", textAlign: 'center', lineHeight: '85px',  }}>{results.SquareScore}</h1>
-                       </div>
-                   </div>
-                   </div>
-           </div>
-           <div style={{display: 'flex', width: '880px'}}>
-               <div style={{width: '330px', boxShadow: '1px 1px 5px 1px rgb(0,0,155,.1)', borderRadius: '15px', height: '135px',  padding: '0px 0px', marginLeft: '-10px'}}>
-                   <h1 style={{  marginBottom: '-20px', marginTop:'15px', marginLeft: '30px', fontSize: '25px', }}> Point Distribution</h1>
-                 <div style={{display: 'flex', }}> 
-                   <div style={{ fontSize: '30px', fontWeight: 'bold',marginLeft: '30px',color: 'black', display: 'flex', alignItems: 'center',  justifyContent: 'space-around',  width: '90px', marginTop: '50px' , }}>
-                   
-                       <div style={{width: '40px', }}>
-                       <SquareCheck size={40} color="#00d12a" />
-                       </div>
-                       <h1 style={{ backgroundColor: 'white', borderRadius: '5px', margin: 'auto', marginLeft: '5px', marginTop: '0px', fontSize: '35px', alignItems: 'center', position: 'relative', fontFamily: "'montserrat', sans-serif" }}>{correctCount}</h1>
-                
-                   </div>
-               
-               
-                   
-                
-            
-                   <div style={{ fontSize: '40px',marginLeft: '40px', fontWeight: 'bold', color: 'black', display: 'flex', alignItems: 'center',  justifyContent: 'space-around',   width: '90px', marginTop: '50px' }}>
-                     
-                   <div style={{width: '40px'}}>
-                         <SquareX size={40} color="#ff0000" />
-                       </div>
-                       <h1 style={{backgroundColor: 'white', borderRadius: '5px', margin: 'auto', marginLeft: '5px', marginTop: '0px', fontSize: '35px', alignItems: 'center', position: 'relative', fontFamily: "'montserrat', sans-serif" }}>{incorrectCount}</h1>
-                   </div>
-                   </div>
-                   </div>
+            <div style={{
+                minHeight: '100vh',
+                width: 'calc(100% - 200px)',
+                marginLeft: '200px',
+                backgroundColor: 'white',
+                display: 'flex',
+                flexDirection: 'column',
+                position: 'relative'
+            }}>
+                <Navbar 
+                    userType="student"
+                    navItems={[
+                        {
+                            type: 'assignmentName',
+                            id: assignmentId,
+                            label: assignmentName
+                        },
+                        {
+                            type: 'studentGrades',
+                            id: studentUid,
+                            label: studentName
+                        }
+                    ]}
+                    classId={classId}
+                />
+    
+                <div style={{
+                    fontFamily: "'montserrat', sans-serif",
+                    width: '100%',
+                    zIndex: '20',
+                    alignItems: 'center',
+                    marginLeft: 'auto',
+                    marginRight: 'auto',
+                    marginTop: '0px'
+                }}>
+                    <div style={{display: 'flex'}}>
+                        <div style={{
+                            paddingRight: '0px',
+                            width: '655px',
+                            borderRadius: '15px',
+                            marginBottom: '20px',
+                            height: '140px',
+                            marginLeft: '4%',
+                        }}>
 
 
-                   <div style={{width: '480px', boxShadow: '1px 1px 5px 1px rgb(0,0,155,.1)', borderRadius: '15px', height: '135px',  padding: '0px 0px', marginLeft: '20px' }}>
-                   <h1 style={{  marginBottom: '-20px', marginTop:'15px', marginLeft: '30px', fontSize: '25px', }}>Grade</h1>
-                   <div style={{display: 'flex', justifyContent: 'space-around', marginTop: '25px', marginLeft: '10px'}}> 
-                   <p style={{fontSize: '25px', width: '20px',color: 'grey', padding: '5px 20px', background: '#f4f4f4', borderRadius: '5px', fontWeight: 'bold',  textAlign: 'center'}}>{letterGrade}</p>
-                   
-                   <p style={{fontSize: '25px', width: '90px',color: 'grey', padding: '5px 0px', background: '#f4f4f4', borderRadius: '5px', fontWeight: 'bold',  textAlign: 'center'}}>{`${correctCount}/${completedCoun}`}</p>
-                   <p style={{fontSize: '20px', width: '170px',color: 'grey',marginRight: '20px', height: '30px', marginTop: '25px', padding: '5px 25px', background: '#f4f4f4', borderRadius: '5px', fontWeight: 'bold',  textAlign: 'center', lineHeight: '30px'}}>   SquareScore: {results.SquareScore}</p>
+                            <div style={{display: 'flex', marginBottom: '30px'}}>
+                                <h1
+                                   onClick={() => navigate(`/class/${classId}/student/${studentUid}/grades`)}
+                           
+                                    style={{
+                                        fontSize: '30px',
+                                        color: 'black',
+                                        marginBottom: '-10px',
+                                        cursor: 'pointer',
+                                        marginLeft: '-5px',
+                                        fontFamily: "'montserrat', sans-serif",
+                                        textAlign: 'left',
+                                        fontWeight: '500'
+                                    }}
+                                    onMouseEnter={(e) => { e.target.style.textDecoration = 'underline'; }}
+                                    onMouseLeave={(e) => { e.target.style.textDecoration = 'none'; }}
+                                >
+                                    {studentName} 
+                                </h1>
 
-                   </div>
-              </div>
-              
-               </div>
-  
-           
 
-              
 
-               <div style={{
-        width: '870px',
-        marginLeft: 'auto',
-        marginTop: '20px',
-        marginRight: 'auto',
-       
-        textAlign: 'center',
-        backgroundColor: 'white',
-        borderRadius: '10px',
-        position: 'relative'
-      }}>
-              
-           
-                <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '25px', marginBottom: '40px', position:'absolute', left: '30px', top: '-50px', 
-                    
-                  }}>
-              
-                <AMCQMap allQuestions={allQuestions} results={results} scrollToQuestion={scrollToQuestion} />    </div>
-    </div>
+                             
 
-               
-                {results.cycledThroughAll && (
-                    <p
-                        style={{
-                            color: 'red',
-                            fontWeight: 'bold'
-                        }}
-                    >
-                        Student may require assistance. Completed {results.completedQuestions.length} questions to get to a score of {results.SquareScore}.
-                    </p>
-                )}
- </div>
- <div style={{marginLeft: 'auto', marginRight: 'auto',}}>
-    <ul style={{ listStyle: 'none', padding: '0',  marginTop: '0px', boxShadow: '1px 1px 5px 1px rgb(0,0,155,.1)', width: '830px', borderRadius: '15px',marginLeft: '-10px',}}>
-           
-           <div style={{width: '800px', }}>
-           {allQuestions.map((question, index) => renderQuestion(question.question, index))}
+                                
+                           
+                            </div>
+    
+    <div style={{display: 'flex',  height: '26px'}}>
+
+    <div style={{    width: '30px',
+                                textAlign: 'center',
+                                height: '20px',
+                                marginTop: '3px',
+                                lineHeight: '20px',
+                                fontSize: '16px',
+                                borderRadius: '3px',
+                                    background: getGradeColors(results.SquareScore).background,
+                                    color: getGradeColors(results.SquareScore).color
+                                }}>{letterGrade}</div>
+                                <div style={{height: '20px', width: '1px', background: '#EDEDED ', margin: '3px 10px'}}/>
+                            <h1 style={{
+                                fontSize: '16px',
+                                color: 'grey',
+                                marginBottom: '0px',
+                                cursor: 'pointer',
+                                marginTop: '3px',
+                                fontFamily: "'montserrat', sans-serif",
+                                textAlign: 'left',
+                                fontWeight: '500'
+                            }}
+                            onClick={() => navigate(`/class/${classId}/assignment/${assignmentId}/TeacherResultsAMCQ`)}
+                                   
+                         onMouseEnter={(e) => { e.target.style.textDecoration = 'underline'; }}
+                            onMouseLeave={(e) => { e.target.style.textDecoration = 'none'; }}
+                            >
+                              {assignmentName} 
+                            </h1>
+                            <div style={{height: '20px', width: '1px', background: '#EDEDED ', margin: '3px 10px'}}/>
+                       
+<span style={{fontSize: '14px', fontWeight: '600', color: '#7D00EA',
+                                marginTop: '4px', }}>MC<span style={{color: '#FFAE00'}}>*</span></span>
+<div style={{height: '20px', width: '1px', background: '#EDEDED ', margin: '3px 10px'}}/>
+                       
+                            <h1 style={{fontSize: '14px', color: 'grey', 
+                                marginTop: '4px', fontWeight: '500'}}>
+                                     {new Date(results.submittedAt.toDate()).toLocaleString()}
+                                </h1>
+
+
+                              
+                            </div>
+                        </div>
+                    </div>
+    
+                    <div style={{
+                        position: 'sticky',
+                        height: '50px',
+                        top: '-1px',
+                        left: '200px',
+                        width: 'calc(100%)',
+                        background: 'rgb(255,255,255,.9)',
+                        backdropFilter: 'blur(5px)',
+                        borderBottom: '1px solid lightgrey',
+                        borderTop: '1px solid lightgrey',
+                        marginTop: '-40px',
+                        transition: 'all 0.1s',
+                        zIndex: 50,
+                        display: 'flex',
+                        flexDirection: 'row'
+                    }}>
+                        <div style={{marginLeft: '4%', width: '86%', display: 'flex', overflow: 'hidden', marginTop: '2px'}}>
+                            {allQuestions.map((question, index) => (
+                                <div key={index} style={{width: '30px', padding: '10px 5px'}}>
+                                    {question.selectedChoice === question.correctChoice ? (
+                                        <SquareCheck size={25} color="#00d12a" />
+                                    ) : (
+                                        <SquareX size={25} color="#FF0000" />
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+                        <div style={{
+                            fontSize: '20px',
+                            marginRight: '4%',
+                            marginLeft: 'auto',
+                            paddingLeft: '20px',
+                            lineHeight: '50px',
+                            display: 'flex'
+                        }}>
+                            <div style={{
+                                width: '60px',
+                                textAlign: 'center',
+                                height: '26px',
+                                marginTop: '12px',
+                                lineHeight: '26px',
+                                fontSize: '16px',
+                                borderRadius: '5px',
+                                background: getGradeColors(results.SquareScore).background,
+                                color: getGradeColors(results.SquareScore).color
+                            }}>
+                                {results.SquareScore}%
+                            </div>
+                        </div>
+                    </div>
+
+                <div style={{ marginTop: '0px', }}>
+                    {allQuestions.map((question, index) => renderQuestion(question, index))}
+                </div>
             </div>
-        </ul>
-        </div> 
-        
-    </div>
+        </div>
     );
 }
 

@@ -1,34 +1,23 @@
 import React, { useState, useRef } from 'react';
 import TextareaAutosize from 'react-textarea-autosize';
-import { SquareX, CornerDownRight, Repeat, SquarePlus, Clipboard, ClipboardMinus, ClipboardList, SquareArrowLeft } from 'lucide-react';
+import { 
+  SquareX, 
+  CornerDownRight, 
+  Repeat, 
+  SquarePlus, 
+  ClipboardMinus, 
+  ClipboardList, 
+  SquareArrowLeft 
+} from 'lucide-react';
+import { v4 as uuidv4 } from 'uuid';
 
-
-const TeacherPreviewASAQ = ({ questionsWithIds, setQuestionsWithIds, sourceText, questionCount, classId, teacherId }) => {
+const TeacherPreviewAOE = ({ questionsWithIds, setQuestionsWithIds, sourceText, questionCount, classId, teacherId }) => {
   const containerRef = useRef(null);
   const [showRegenerateDropdown, setShowRegenerateDropdown] = useState(false);
   const [regenerateInput, setRegenerateInput] = useState('');
   const [isRegenerating, setIsRegenerating] = useState(false);
   const [showRubrics, setShowRubrics] = useState({});
-  const difficultyColors = {
-    easy: '#A6FFAF',
-    medium: '#FFDE67',
-    hard: '#FF6B6B',
-  };
 
-  const handleDeleteQuestion = (indexToDelete) => {
-    const newQuestions = questionsWithIds.filter((_, index) => index !== indexToDelete);
-    setQuestionsWithIds(newQuestions);
-  };
-  const handleNevermind = () => {
-    setShowRegenerateDropdown(false);
-    setRegenerateInput('');
-  };
-  const toggleRubric = (index) => {
-    setShowRubrics(prev => ({
-      ...prev,
-      [index]: !prev[index]
-    }));
-  };
   const handleChangeDifficulty = (index) => {
     const difficulties = ['easy', 'medium', 'hard'];
     const currentDifficulty = questionsWithIds[index].difficulty || 'easy';
@@ -36,13 +25,25 @@ const TeacherPreviewASAQ = ({ questionsWithIds, setQuestionsWithIds, sourceText,
     const newDifficulty = difficulties[(currentIndex + 1) % 3];
     handleEditQuestion(index, 'difficulty', newDifficulty);
   };
+  const handleDeleteQuestion = (indexToDelete) => {
+    // Create a new array without the question at indexToDelete
+    const newQuestions = questionsWithIds.filter((_, index) => index !== indexToDelete);
+    // Update the questions array using the setter function
+    setQuestionsWithIds(newQuestions);
+  };
+
+  // Handler for canceling regeneration - this should be defined before it's used in JSX
+  const handleNevermind = () => {
+    // Clear the regenerate input and hide the dropdown
+    setShowRegenerateDropdown(false);
+    setRegenerateInput('');
+  };
 
   const handleRegenerateSubmit = async () => {
     setIsRegenerating(true);
     try {
       // Implement regeneration logic here
       console.log('Regenerating questions...');
-      // After regeneration:
       setShowRegenerateDropdown(false);
       setRegenerateInput('');
     } catch (error) {
@@ -76,15 +77,13 @@ const TeacherPreviewASAQ = ({ questionsWithIds, setQuestionsWithIds, sourceText,
       ...questionsWithIds.slice(insertIndex)
     ];
     setQuestionsWithIds(newQuestions);
+  };
 
-    setTimeout(() => {
-      if (containerRef.current) {
-        const newQuestionElement = containerRef.current.children[insertIndex];
-        if (newQuestionElement) {
-          newQuestionElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }
-      }
-    }, 0);
+  const toggleRubric = (index) => {
+    setShowRubrics(prev => ({
+      ...prev,
+      [index]: !prev[index]
+    }));
   };
 
   const handleEditQuestion = (index, field, value) => {
@@ -99,8 +98,7 @@ const TeacherPreviewASAQ = ({ questionsWithIds, setQuestionsWithIds, sourceText,
       height: '550px',
       marginTop: '-20px',
       border: '10px solid white',
-      
-               boxShadow: '1px 1px 5px 1px rgb(0,0,155,.07)' ,
+      boxShadow: '1px 1px 5px 1px rgb(0,0,155,.07)',
       background: 'RGB(255,255,255)',
       backdropFilter: 'blur(5px)',
       borderRadius: '20px',
@@ -120,29 +118,28 @@ const TeacherPreviewASAQ = ({ questionsWithIds, setQuestionsWithIds, sourceText,
         borderTopLeftRadius: '20px',
         marginTop: '-30px'
       }}>
-        <h1 style={{fontSize: '30px', fontFamily: "'montserrat', sans-serif", color: '#D800FB', marginLeft: '80px',marginTop: '15px', }}>Question Bank</h1>
-       
+        <h1 style={{fontSize: '30px', fontFamily: "'montserrat', sans-serif", color: '#D800FB', marginLeft: '80px', marginTop: '15px'}}>
+          Question Bank
+        </h1>
       </div>
+
       {showRegenerateDropdown && (
         <div style={{
           backgroundColor: 'white',
           padding: '10px',
           position: 'absolute',
-          zIndex:'101',
+          zIndex: '101',
           width: 'calc(100% - 20px)',
           marginLeft: '-30px',
           marginTop: '0px',
           border: '10px solid white',
-          
-               boxShadow: '1px 1px 5px 1px rgb(0,0,155,.07)' ,
+          boxShadow: '1px 1px 5px 1px rgb(0,0,155,.07)',
           borderTop: '0px solid white',
           borderRadius: '0px 0px 20px 20px',
           height: '490px'
         }}>
-
           <h1 style={{marginLeft: '90px', marginTop:'60px'}}>Regenerate</h1>
           <TextareaAutosize
-            type="text"
             value={regenerateInput}
             onChange={(e) => setRegenerateInput(e.target.value)}
             placeholder="Enter general adjustments you want made to questions"
@@ -153,7 +150,7 @@ const TeacherPreviewASAQ = ({ questionsWithIds, setQuestionsWithIds, sourceText,
               marginRight: '40px',
               padding: '10px',
               fontFamily: "'montserrat', sans-serif",
-            fontSize: '25px',
+              fontSize: '25px',
               borderRadius: '5px',
               fontWeight: '600',
               border: '2px solid lightgrey',
@@ -164,29 +161,26 @@ const TeacherPreviewASAQ = ({ questionsWithIds, setQuestionsWithIds, sourceText,
             onClick={handleRegenerateSubmit}
             disabled={isRegenerating}
             style={{
-             
               padding: '5px 20px',
-                backgroundColor: '#FBD3FF',
-                color: '#D800FB',
+              backgroundColor: '#FBD3FF',
+              color: '#D800FB',
               marginLeft: '20px',
-                marginTop: "5px",
-                border: '4px solid #D800FB',
-                lineHeight: '20px',
-                borderRadius: '8px',
-                height: '40px',
-                fontFamily: "'montserrat', sans-serif",
-                cursor: 'pointer',
-                fontWeight: 'bold',
-                display:'flex',
-                fontSize: '16px',
-              
-              position: 'absolute', 
+              marginTop: "5px",
+              border: '4px solid #D800FB',
+              lineHeight: '20px',
+              borderRadius: '8px',
+              height: '40px',
+              fontFamily: "'montserrat', sans-serif",
+              cursor: 'pointer',
+              fontWeight: 'bold',
+              display: 'flex',
+              fontSize: '16px',
+              position: 'absolute',
               top: '310px',
               left: '80px',
             }}
           >
-               <Repeat style={{marginLeft: '-10px', marginRight: '10px', marginTop: '-2px'}}/>
-       
+            <Repeat style={{marginLeft: '-10px', marginRight: '10px', marginTop: '-2px'}}/>
             {isRegenerating ? 'Regenerating...' : 'Regenerate'}
           </button>
           <button
@@ -199,9 +193,9 @@ const TeacherPreviewASAQ = ({ questionsWithIds, setQuestionsWithIds, sourceText,
               cursor: 'pointer',
               fontFamily: "'montserrat', sans-serif",
               fontWeight: 'bold',
-              position: 'absolute', 
+              position: 'absolute',
               top: '70px',
-              left: '10px', 
+              left: '10px',
             }}
           >
             <SquareArrowLeft size={50}/>
@@ -209,42 +203,42 @@ const TeacherPreviewASAQ = ({ questionsWithIds, setQuestionsWithIds, sourceText,
         </div>
       )}
 
+      <div style={{display: 'flex', width: '840px', marginLeft: '20px', marginRight: 'auto', marginTop: '20px', marginBottom: '20px'}}>
+        <h2 style={{color: 'lightgrey', fontSize: '16px', fontWeight: 'bold', width: '390px'}}>
+          Click to edit difficulty, questions and rubrics.
+        </h2>
 
-
-
-<div style={{display: 'flex', width: '840px', marginLeft: '20px', marginRight: 'auto', marginTop: '20px',  marginBottom: '20px'}}>
-      <h2 style={{color: 'lightgrey', fontSize: '16px', fontWeight: 'bold', width: '390px',  }}>Click to edit difficulty, questions and rubrics.</h2>
-  
         <button
-        onClick={handleAddQuestion}
-        style={{
-        
-          padding: '5px 20px',
-          backgroundColor: '#A6FFAF',
-          color: '#2BB514',
-          width: '190px',
-          display: 'flex',
-          marginLeft: 'auto',
-          marginTop: "5px",
-          border: '4px solid #2BB514',
-          lineHeight: '24px',
-          borderRadius: '8px',
-          height: '40px',
-          fontFamily: "'montserrat', sans-serif",
-          cursor: 'pointer',
-          fontWeight: 'bold',
-          fontSize: '16px'
-        }}
-      >
-        
-        <SquarePlus style={{marginLeft: '-15px', marginRight: '10px', marginTop: '0px'}}/>
-        Add Question
-      </button>
-      <div 
-          style={{ padding: '5px 20px',
+          onClick={handleAddQuestion}
+          style={{
+            padding: '5px 20px',
+            backgroundColor: '#A6FFAF',
+            color: '#2BB514',
+            width: '190px',
+            display: 'flex',
+            marginLeft: 'auto',
+            marginTop: "5px",
+            border: '4px solid #2BB514',
+            lineHeight: '24px',
+            borderRadius: '8px',
+            height: '40px',
+            fontFamily: "'montserrat', sans-serif",
+            cursor: 'pointer',
+            fontWeight: 'bold',
+            fontSize: '16px'
+          }}
+        >
+          <SquarePlus style={{marginLeft: '-15px', marginRight: '10px', marginTop: '0px'}}/>
+          Add Question
+        </button>
+
+        <div 
+          onClick={() => setShowRegenerateDropdown(!showRegenerateDropdown)}
+          style={{
+            padding: '5px 20px',
             backgroundColor: '#FBD3FF',
             color: '#D800FB',
-          marginLeft: '20px',
+            marginLeft: '20px',
             marginTop: "5px",
             border: '4px solid #D800FB',
             lineHeight: '20px',
@@ -254,48 +248,54 @@ const TeacherPreviewASAQ = ({ questionsWithIds, setQuestionsWithIds, sourceText,
             cursor: 'pointer',
             fontWeight: 'bold',
             display:'flex',
-            fontSize: '16px'}}
-          
-          
-          
-          onClick={() => setShowRegenerateDropdown(!showRegenerateDropdown)}
+            fontSize: '16px'
+          }}
         >
           <Repeat style={{marginLeft: '-10px', marginRight: '10px', marginTop: '-3px'}}/>
           Regenerate
         </div>
-        </div> 
-      
-      
-        <div ref={containerRef} style={{ height: '400px', overflowY: 'auto', width: '930px', marginLeft: '-40px' }}>
+      </div>
+
+      <div ref={containerRef} style={{ height: '400px', overflowY: 'auto', width: '930px', marginLeft: '-40px' }}>
         {questionsWithIds.map((question, index) => (
           <div key={index} style={{ 
-            padding: '10px', 
+            padding: '10px',
             marginTop: '0px',
             marginBottom: '-10px',
-            border: '0px solid lightgrey', 
-            borderRadius: '10px', 
-            width: '820px', 
-            marginLeft: '50px', 
+            border: '0px solid lightgrey',
+            borderRadius: '10px',
+            width: '820px',
+            marginLeft: '50px',
             position: 'relative',
             display: 'flex',
             flexDirection: 'column',
           }}>
             <div style={{
-              width: '820px', 
-              borderRadius: '10px', 
+              width: '820px',
+              borderRadius: '10px',
               display: 'flex',
               fontSize: '12px',
               position: 'relative',
-              marginBottom: '10px', 
+              marginBottom: '10px',
             }}>
-              
               <div 
-               onClick={() => handleChangeDifficulty(index)}
-
-               style={{width:'70px ', background: 'white', position: 'absolute', top: '-10px', left: '60px', border: '2px solid #f4f4f4', 
-                textAlign: 'center', fontWeight: '600', borderRadius: '5px',
+                onClick={() => handleChangeDifficulty(index)}
+                style={{
+                  width:'70px',
+                  background: 'white',
+                  position: 'absolute',
+                  top: '-10px',
+                  left: '60px',
+                  border: '2px solid #f4f4f4',
+                  textAlign: 'center',
+                  fontWeight: '600',
+                  borderRadius: '5px',
                   fontFamily: "'montserrat', sans-serif",
-              }}> {question.difficulty || 'easy'}</div>
+                }}
+              >
+                {question.difficulty || 'easy'}
+              </div>
+
               <div style={{
                 marginRight: '-4px',
                 zIndex: '1',
@@ -309,9 +309,9 @@ const TeacherPreviewASAQ = ({ questionsWithIds, setQuestionsWithIds, sourceText,
                 alignItems: 'center',
                 alignSelf: 'stretch',
               }}>
-            
                 <h1 style={{ margin: 'auto' }}>{index + 1}.</h1>
               </div>
+
               <TextareaAutosize
                 style={{
                   border: '4px solid #f4f4f4',
@@ -323,77 +323,78 @@ const TeacherPreviewASAQ = ({ questionsWithIds, setQuestionsWithIds, sourceText,
                   borderRadius: '0px 10px 10px 0px',
                   width: '100%',
                   resize: 'none',
-                  lineHeight: '1.2', // Add this to control line height
+                  lineHeight: '1.2',
                 }}
                 value={question.question}
                 onChange={(e) => handleEditQuestion(index, 'question', e.target.value)}
                 minRows={1}
               />
 
-      <button
-        onClick={() => toggleRubric(index)}
-        style={{
-          position: 'absolute',
-          right: '21px',
-          top: '50%',
-          transform: 'translateY(-50%)',
-          fontSize: '20px', 
-          background: '#f4f4f4',
-          border: '4px solid lightgrey',
-          borderRadius: '8px',
-          height: '40px',
-          width: '40px',
-          color: 'grey'
-        }}
-      >
-        {showRubrics[index] ? (
-          <ClipboardMinus style={{marginLeft: '-2px', marginTop: '2px'}}/>
-        ) : (
-          <ClipboardList style={{marginLeft: '-2px', marginTop: '2px'}}/>
-        )}
-      </button>
-      <button 
+              <button
+                onClick={() => toggleRubric(index)}
+                style={{
+                  position: 'absolute',
+                  right: '21px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  fontSize: '20px',
+                  background: '#f4f4f4',
+                  border: '4px solid lightgrey',
+                  borderRadius: '8px',
+                  height: '40px',
+                  width: '40px',
+                  color: 'grey'
+                }}
+              >
+                {showRubrics[index] ? (
+                  <ClipboardMinus style={{marginLeft: '-2px', marginTop: '2px'}}/>
+                ) : (
+                  <ClipboardList style={{marginLeft: '-2px', marginTop: '2px'}}/>
+                )}
+              </button>
+
+              <button 
                 onClick={() => handleDeleteQuestion(index)}
-                style={{position: 'absolute', right: '-10px', top: '-10px', fontSize: '20px', 
-     
-            
+                style={{
+                  position: 'absolute',
+                  right: '-10px',
+                  top: '-10px',
+                  fontSize: '20px',
                   zIndex: '10',
-                  height: '30px', 
+                  height: '30px',
                   width: '30px',
                   borderRadius: '6px',
                   background: 'white',
                   border: 'none',
                   cursor: 'pointer',
-                  
                 }}
               >
-                <div style={{marginTop: '-2px', marginLeft: '-4px', }}>
-                <SquareX size={30} color="#e60000" strokeWidth={3} /></div>
-          
+                <div style={{marginTop: '-2px', marginLeft: '-4px'}}>
+                  <SquareX size={30} color="#e60000" strokeWidth={3} />
+                </div>
               </button>
             </div>
-        
-            
+
             {showRubrics[index] && (
               <div style={{display: 'flex', alignItems: 'center', marginLeft: '-80px', position: 'relative', marginBottom: '20px'}}>
                 <div style={{marginLeft: '100px'}}>
                   <CornerDownRight size={40} color="#c9c9c9" strokeWidth={3} />
                 </div>
-                <div style={{  width: '30px', 
-                padding: '8px', 
-                background: '#f4f4f4', 
-                border: '4px solid lightgrey', 
-                color: 'grey', 
-                zIndex: '10', 
-                marginLeft: '20px',
-                borderRadius: '10px 0px 0px 10px',
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'center',
-                alignSelf: 'stretch',
-                }}> 
-
-                  <ClipboardList style={{margin: 'auto'}}size={30}/>
+                <div style={{
+                  width: '30px',
+                  padding: '8px',
+                  background: '#f4f4f4',
+                  border: '4px solid lightgrey',
+                  color: 'grey',
+                  zIndex: '10',
+                  marginLeft: '20px',
+                  borderRadius: '10px 0px 0px 10px',
+                  display: 'flex',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  alignSelf: 'stretch',
+                }}>
+                  <ClipboardList style={{margin: 'auto'}} size={30}/>
                 </div>
                 <TextareaAutosize
                   style={{
@@ -407,8 +408,8 @@ const TeacherPreviewASAQ = ({ questionsWithIds, setQuestionsWithIds, sourceText,
                     fontFamily: "'montserrat', sans-serif",
                     resize: 'none',
                   }}
-                  value={`${question.rubric}`}
-                  onChange={(e) => handleEditQuestion(index, 'rubric', e.target.value.replace('Probable answer: ', ''))}
+                  value={question.rubric}
+                  onChange={(e) => handleEditQuestion(index, 'rubric', e.target.value)}
                   minRows={1}
                 />
               </div>
@@ -420,4 +421,4 @@ const TeacherPreviewASAQ = ({ questionsWithIds, setQuestionsWithIds, sourceText,
   );
 };
 
-export default TeacherPreviewASAQ;
+export default TeacherPreviewAOE;

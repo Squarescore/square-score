@@ -95,24 +95,24 @@ const AdminUB = () => {
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px', width: '1000px' }}>
           <div>Total Cost: ${totals.cost.toFixed(2)}</div>
         </div>
-        <div style={{ border: '1px solid #ccc', borderRadius: '10px', padding: '20px', width: '1000px' }}>
+        <div style={{ border: '1px solid #ddd', borderRadius: '10px', padding: '20px', width: '1000px' }}>
           
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '10px', width: '100%' }}>
-            <div style={{ fontWeight: 'bold', borderBottom: '1px solid #ccc', padding: '10px' }}>Teacher Name</div>
-            <div style={{ fontWeight: 'bold', borderBottom: '1px solid #ccc', padding: '10px' }}>Type 1 Input (Tokens)</div>
-            <div style={{ fontWeight: 'bold', borderBottom: '1px solid #ccc', padding: '10px' }}>Type 1 Output (Tokens)</div>
-            <div style={{ fontWeight: 'bold', borderBottom: '1px solid #ccc', padding: '10px' }}>Type 2 Input (Tokens)</div>
-            <div style={{ fontWeight: 'bold', borderBottom: '1px solid #ccc', padding: '10px' }}>Type 2 Output (Tokens)</div>
-            <div style={{ fontWeight: 'bold', borderBottom: '1px solid #ccc', padding: '10px' }}>Cost</div>
+            <div style={{ fontWeight: 'bold', borderBottom: '1px solid #ddd', padding: '10px' }}>Teacher Name</div>
+            <div style={{ fontWeight: 'bold', borderBottom: '1px solid #ddd', padding: '10px' }}>Type 1 Input (Tokens)</div>
+            <div style={{ fontWeight: 'bold', borderBottom: '1px solid #ddd', padding: '10px' }}>Type 1 Output (Tokens)</div>
+            <div style={{ fontWeight: 'bold', borderBottom: '1px solid #ddd', padding: '10px' }}>Type 2 Input (Tokens)</div>
+            <div style={{ fontWeight: 'bold', borderBottom: '1px solid #ddd', padding: '10px' }}>Type 2 Output (Tokens)</div>
+            <div style={{ fontWeight: 'bold', borderBottom: '1px solid #ddd', padding: '10px' }}>Cost</div>
 
             {teachers.map(teacher => (
               <React.Fragment key={teacher.id}>
-                <div style={{ borderBottom: '1px solid #ccc', padding: '10px', cursor: 'pointer' }} onClick={() => handleTeacherClick(teacher.id)}>{teacher.lastName}</div>
-                <div style={{ borderBottom: '1px solid #ccc', padding: '10px' }}>{teacher.type1Input}</div>
-                <div style={{ borderBottom: '1px solid #ccc', padding: '10px' }}>{teacher.type1Output}</div>
-                <div style={{ borderBottom: '1px solid #ccc', padding: '10px' }}>{teacher.type2Input}</div>
-                <div style={{ borderBottom: '1px solid #ccc', padding: '10px' }}>{teacher.type2Output}</div>
-                <div style={{ borderBottom: '1px solid #ccc', padding: '10px' }}>${teacher.cost.toFixed(2)}</div>
+                <div style={{ borderBottom: '1px solid #ddd', padding: '10px', cursor: 'pointer' }} onClick={() => handleTeacherClick(teacher.id)}>{teacher.lastName}</div>
+                <div style={{ borderBottom: '1px solid #ddd', padding: '10px' }}>{teacher.type1Input}</div>
+                <div style={{ borderBottom: '1px solid #ddd', padding: '10px' }}>{teacher.type1Output}</div>
+                <div style={{ borderBottom: '1px solid #ddd', padding: '10px' }}>{teacher.type2Input}</div>
+                <div style={{ borderBottom: '1px solid #ddd', padding: '10px' }}>{teacher.type2Output}</div>
+                <div style={{ borderBottom: '1px solid #ddd', padding: '10px' }}>${teacher.cost.toFixed(2)}</div>
               </React.Fragment>
             ))}
           </div>

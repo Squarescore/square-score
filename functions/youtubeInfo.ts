@@ -1,11 +1,25 @@
 import * as functions from 'firebase-functions';
-import axios from 'axios';
 import { google } from 'googleapis';
 
 const youtube = google.youtube({
   version: 'v3',
-  auth: functions.config().youtube.api_key // Make sure to set this in your Firebase config
+  auth: functions.config().youtube.api_key
 });
+
+// Helper function to extract video ID from YouTube URL
+const extractVideoId = (url: string): string | null => {
+  const patterns = [
+    /(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\n?#]+)/,
+    /youtube\.com\/embed\/([^&\n?#]+)/,
+    /youtube\.com\/v\/([^&\n?#]+)/
+  ];
+
+  for (const pattern of patterns) {
+    const match = url.match(pattern);
+    if (match) return match[1];
+  }
+  return null;
+};
 
 export const getYouTubeInfo = functions.https.onCall(async (data, context) => {
   const { youtubeLink } = data;
@@ -16,50 +30,69 @@ export const getYouTubeInfo = functions.https.onCall(async (data, context) => {
 
   try {
     const videoId = extractVideoId(youtubeLink);
-
     if (!videoId) {
       throw new functions.https.HttpsError('invalid-argument', 'Invalid YouTube link');
     }
 
+    // Get video details
     const videoResponse = await youtube.videos.list({
       part: ['snippet'],
       id: [videoId]
     });
 
-    const videoName = videoResponse.data.items?.[0]?.snippet?.title || 'Unknown';
+    if (!videoResponse.data.items?.length) {
+      throw new functions.https.HttpsError('not-found', 'Video not found');
+    }
 
+    const videoTitle = videoResponse.data.items[0].snippet?.title || 'Untitled';
+
+    // Get caption tracks
     const captionsResponse = await youtube.captions.list({
       part: ['snippet'],
       videoId: videoId
     });
 
-    let captionTrackUrl = '';
-    for (const item of captionsResponse.data.items || []) {
-      if (item.snippet?.language === 'en') {
-        captionTrackUrl = item.snippet.trackKind === 'ASR' ? item.snippet.audioTrackType : '';
-        break;
-      }
+    // Look for English captions
+    const englishCaptions = captionsResponse.data.items?.find(item => 
+      item.snippet?.language === 'en' && 
+      (item.snippet?.trackKind === 'standard' || item.snippet?.trackKind === 'ASR')
+    );
+
+    if (!englishCaptions) {
+      throw new functions.https.HttpsError(
+        'failed-precondition', 
+        'No English captions found for this video. Please choose a video with English captions.'
+      );
     }
 
-    if (!captionTrackUrl) {
-      throw new functions.https.HttpsError('not-found', 'No English captions found for this video');
-    }
+    // Get the caption content
+    const captionTrack = await youtube.captions.download({
+      id: englishCaptions.id!
+    });
 
-    const captionResponse = await axios.get(captionTrackUrl);
-    const captionContent = captionResponse.data;
+    // Process captions into plain text
+    const captionText = captionTrack.data
+      .replace(/\[\w+\]|\d{2}:\d{2}:\d{2}\.\d{3} --> \d{2}:\d{2}:\d{2}\.\d{3}/g, '') // Remove timestamps and [Sound effects]
+      .replace(/\n\n/g, ' ') // Replace double newlines with space
+      .replace(/\s+/g, ' ') // Normalize whitespace
+      .trim();
 
     return {
-      videoName,
-      captions: captionContent
+      title: videoTitle,
+      text: captionText,
+      videoId: videoId
     };
-  } catch (error) {
+
+  } catch (error: any) {
     console.error('Error fetching YouTube info:', error);
-    throw new functions.https.HttpsError('internal', 'Error fetching YouTube info');
+    
+    if (error instanceof functions.https.HttpsError) {
+      throw error;
+    }
+    
+    throw new functions.https.HttpsError(
+      'internal',
+      'Failed to process YouTube video: ' + (error.message || 'Unknown error')
+    );
   }
 });
-
-function extractVideoId(url: string): string | null {
-  const regex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/;
-  const match = url.match(regex);
-  return match ? match[1] : null;
-}

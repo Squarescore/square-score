@@ -1,14 +1,16 @@
-import React, { useState, useEffect } from 'react';
-import { doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
+import React, { useState, useEffect, useRef } from 'react';
+import { doc, getDoc, collection, query, where, getDocs, onSnapshot } from 'firebase/firestore';
 import { Link } from 'react-router-dom';
 import { db, auth } from '../Universal/firebase';
 import { useNavigate, useParams } from 'react-router-dom';
 import Navbar from '../Universal/Navbar';
-import { ArrowRight, CalendarClock, CalendarX2, BookOpen, BookOpenCheck, Eye, EyeOff, SquareMinus, SquareCheck, SquareDashedBottom,  SquareX,Check } from 'lucide-react';
+import { ArrowRight, CalendarClock, CalendarX2, BookOpen, BookOpenCheck, Eye, EyeOff, SquareMinus, SquareCheck, SquareDashedBottom, SquareX, Check, ChevronDown, Search, ListFilter, CalendarArrowDown, CalendarArrowUp, ArrowDownAZ, ArrowUpAZ, ArrowDown10, ArrowUp01, X, Pause, CircleDashed, Minus } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
 import Tooltip from '../Teachers/TeacherAssignments/AssignmentsToolTip';
 import { flushSync } from 'react-dom';
 import { color } from 'framer-motion';
+import GradeProgressionChart from '../Teachers/Results/TeacherStudentView/GradeProgressionChart';
+import { GlassContainer } from '../../styles';
 function StudentAssignmentsHome({ studentUid: propStudentUid }) {
   const { classId } = useParams();
   const [assignments, setAssignments] = useState([]);
@@ -20,13 +22,27 @@ function StudentAssignmentsHome({ studentUid: propStudentUid }) {
   const isActiveOrCompleted = activeTab === 'active' || activeTab === 'completed';
   const [isHovered, setIsHovered] = useState(false);
   const [assignmentsPaused, setAssignmentsPaused] = useState([]);
+  const [specialDates, setSpecialDates] = useState({});
+  const [isScrolled, setIsScrolled] = useState(false);
+  const [showUnavailableModal, setShowUnavailableModal] = useState(false);
+  const [unavailableAssignment, setUnavailableAssignment] = useState(null);
+
+  // Add scroll event listener
+  useEffect(() => {
+    const handleScroll = () => {
+      const scrollPosition = window.scrollY;
+      setIsScrolled(scrollPosition > 0);
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   // U
   const [completedAssignments, setCompletedAssignments] = useState([]);
   const [averageScore, setAverageScore] = useState(null);
   const [mostRecentScore, setMostRecentScore] = useState(null);
   const [classChoice, setClassChoice] = useState('');
-  const [className, setClassName] = useState('');
   const [showDueDate, setShowDueDate] = useState(true);
   const [hoveredAssignment, setHoveredAssignment] = useState(null);
   const [showConfirm, setShowConfirm] = useState(false);
@@ -35,9 +51,100 @@ const [studentName, setStudentName] = useState('');
 const [textSize, setTextSize] = useState(40);
 const [calculatedAverage, setCalculatedAverage] = useState(0);
 const [hoveredAssignmentId, setHoveredAssignmentId] = useState(null);
-  
-  
-// Set initial tab based on URL path
+const [isGradeExpanded, setIsGradeExpanded] = useState(true);
+const [classPeriod, setClassPeriod] = useState(4);
+  const [showFiltersPopup, setShowFiltersPopup] = useState(false);
+  const [sortOrder, setSortOrder] = useState('new-old'); // Default sort
+  const [alphabeticalOrder, setAlphabeticalOrder] = useState(null); // 'a-z' or 'z-a' or null
+  const [gradeOrder, setGradeOrder] = useState(null); // 'high-low' or 'low-high' or null
+  const [searchTerm, setSearchTerm] = useState('');
+  const filtersRef = useRef(null);
+
+  // Handle clicking outside of filters popup
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (filtersRef.current && !filtersRef.current.contains(event.target)) {
+        setShowFiltersPopup(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
+  // Update handlers
+  const handleSortOrderChange = (order) => {
+    setSortOrder(order);
+    setAlphabeticalOrder(null);
+    setGradeOrder(null);
+  };
+
+  const handleAlphabeticalToggle = (order) => {
+    if (alphabeticalOrder === order) {
+      setAlphabeticalOrder(null);
+    } else {
+      setAlphabeticalOrder(order);
+      setGradeOrder(null);
+    }
+  };
+
+  const handleGradeOrderToggle = (order) => {
+    if (gradeOrder === order) {
+      setGradeOrder(null);
+    } else {
+      setGradeOrder(order);
+      setAlphabeticalOrder(null);
+    }
+  };
+
+  const handleSearchChange = (e) => {
+    setSearchTerm(e.target.value);
+  };
+
+  // Filter and sort completed assignments
+  const getFilteredCompletedAssignments = () => {
+    let filtered = [...completedAssignments];
+    const now = new Date();
+    const overdueAssignments = assignments.filter(a => new Date(a.dueDate) < now && !completedAssignments.find(c => c.id === a.id));
+
+    // Combine completed and overdue assignments
+    filtered = [
+      ...filtered,
+      ...overdueAssignments.map(assignment => ({
+        ...assignment,
+        isOverdue: true,
+        submittedAt: { toDate: () => new Date(assignment.dueDate) }
+      }))
+    ];
+
+    // Apply search filter
+    if (searchTerm) {
+      filtered = filtered.filter((item) =>
+        (item.assignmentName || item.name).toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+
+    // Apply sorting
+    if (alphabeticalOrder === 'a-z') {
+      filtered.sort((a, b) => (a.assignmentName || a.name).localeCompare(b.assignmentName || b.name));
+    } else if (alphabeticalOrder === 'z-a') {
+      filtered.sort((a, b) => (b.assignmentName || b.name).localeCompare(a.assignmentName || a.name));
+    } else if (gradeOrder === 'high-low') {
+      filtered.sort((a, b) => ((b.score || 0) - (a.score || 0)));
+    } else if (gradeOrder === 'low-high') {
+      filtered.sort((a, b) => ((a.score || 0) - (b.score || 0)));
+    } else if (sortOrder === 'new-old') {
+      filtered.sort((a, b) => b.submittedAt.toDate() - a.submittedAt.toDate());
+    } else if (sortOrder === 'old-new') {
+      filtered.sort((a, b) => a.submittedAt.toDate() - b.submittedAt.toDate());
+    }
+
+    return filtered;
+  };
+
+  // Update initial tab setting
 useEffect(() => {
   const path = location.pathname;
   if (path.includes('/active')) {
@@ -46,8 +153,6 @@ useEffect(() => {
     setActiveTab('completed');
   } else if (path.includes('/upcoming')) {
     setActiveTab('upcoming');
-  } else if (path.includes('/overdue')) {
-    setActiveTab('overdue');
   } else {
     // Default to active if no specific tab in URL
     setActiveTab('active');
@@ -57,18 +162,7 @@ useEffect(() => {
 // Update URL when tab changes
 
 
-useEffect(() => {
-  if (completedAssignments.length > 0) {
-    const totalScore = completedAssignments.reduce((sum, assignment) => {
-      const score = assignment.type === 'AMCQ' ? 
-        assignment.SquareScore : 
-        assignment.percentageScore;
-      return sum + score;
-    }, 0);
-    const average = totalScore / completedAssignments.length;
-    setCalculatedAverage(Math.round(average));
-  }
-}, [completedAssignments]);
+
 useEffect(() => {
   const fetchStudentData = async () => {
     try {
@@ -77,6 +171,14 @@ useEffect(() => {
         const userData = studentDoc.data();
         const fullName = `${userData.firstName} ${userData.lastName}`;
         setStudentName(fullName);
+        
+        // Find the matching class from the classes array
+        const classData = userData.classes?.find(c => c.classId.split('/')[0] === classId);
+        if (classData) {
+          setClassChoice(`${classData.classChoice}`);
+          setClassPeriod(classData.period);
+        }
+        
         // Adjust text size based on name length
         const baseSize = 40;
         const adjustedSize = Math.min(baseSize, (baseSize * 20) / fullName.length);
@@ -88,10 +190,8 @@ useEffect(() => {
   };
 
   fetchStudentData();
-}, [studentUid]);
+}, [studentUid, classId]);
 
-
-// Get period number from class name
 
 const studentUID = auth.currentUser.uid;
   useEffect(() => {
@@ -136,52 +236,75 @@ const studentUID = auth.currentUser.uid;
       clearInterval(interval);
     };
   }, []);
-  
   useEffect(() => {
+    let unsubscribeClass;
+    
     const fetchAssignments = async () => {
       try {
         const studentDocRef = doc(db, 'students', studentUid);
         const studentDoc = await getDoc(studentDocRef);
-  
+        
         if (studentDoc.exists()) {
-          const assignmentsToTake = studentDoc.data().assignmentsToTake || [];
-          const assignmentsInProgress = studentDoc.data().assignmentsInProgress || [];
-          const assignmentsPaused = studentDoc.data().assignmentsPaused || []; // Changed from pausedAssignments
+          const studentData = studentDoc.data();
+          const assignmentsToTake = studentData.assignmentsToTake || [];
+          const assignmentsInProgress = studentData.assignmentsInProgress || [];
+          const assignmentsPaused = studentData.assignmentsPaused || [];
+          const specialDates = studentData.specialDates || {};
+          
           setAssignmentsPaused(assignmentsPaused);
   
-          const classAssignments = assignmentsToTake.filter(assignmentId => 
-            assignmentId.startsWith(classId)
-          );
-  
-          const inProgressAssignments = assignmentsInProgress.filter(assignmentId => 
-            assignmentId.startsWith(classId)
-          );
-  
-          // Get all assignments including paused ones
-          const allAssignmentIds = [...new Set([
-            ...classAssignments,
-            ...inProgressAssignments,
-            ...assignmentsPaused.filter(id => id.startsWith(classId))
-          ])];
-  
-          const assignmentPromises = allAssignmentIds.map(async (assignmentId) => {
-            const assignmentDocRef = doc(db, 'assignments', assignmentId);
-            const assignmentDoc = await getDoc(assignmentDocRef);
-            
-            if (assignmentDoc.exists()) {
-              return { 
-                id: assignmentId, 
-                ...assignmentDoc.data(), 
-                inProgress: assignmentsInProgress.includes(assignmentId),
-                isPaused: assignmentsPaused.includes(assignmentId) // Use assignmentsPaused instead
-              };
+          // Set up real-time listener for class document
+          const classRef = doc(db, 'classes', classId);
+          unsubscribeClass = onSnapshot(classRef, async (classDoc) => {
+            if (classDoc.exists()) {
+              const classData = classDoc.data();
+              const viewableAssignments = classData.viewableAssignments || [];
+              
+              // Filter assignments for this class
+              const classAssignments = assignmentsToTake.filter(assignmentId => 
+                assignmentId.startsWith(classId)
+              );
+              
+              const inProgressAssignments = assignmentsInProgress.filter(assignmentId => 
+                assignmentId.startsWith(classId)
+              );
+              
+              const allAssignmentIds = [...new Set([
+                ...classAssignments,
+                ...inProgressAssignments,
+                ...assignmentsPaused.filter(id => id.startsWith(classId))
+              ])];
+              
+              // Fetch all assignment documents
+              const assignmentPromises = allAssignmentIds.map(async (assignmentId) => {
+                const assignmentDocRef = doc(db, 'assignments', assignmentId);
+                const assignmentDoc = await getDoc(assignmentDocRef);
+                
+                if (assignmentDoc.exists()) {
+                  const assignmentData = assignmentDoc.data();
+                  
+                  // Check if this assignment has a special date for this student
+                  const specialDueDate = specialDates[assignmentId];
+                  const dueDate = specialDueDate ? new Date(specialDueDate) : assignmentData.dueDate;
+                  
+                  return {
+                    id: assignmentId,
+                    ...assignmentData,
+                    dueDate, // Override with special date if it exists
+                    inProgress: assignmentsInProgress.includes(assignmentId),
+                    isPaused: assignmentsPaused.includes(assignmentId),
+                    viewable: viewableAssignments.includes(assignmentId),
+                    hasSpecialDate: !!specialDueDate // Flag to indicate if this is a special date
+                  };
+                }
+                return null;
+              });
+              
+              const assignmentDetails = await Promise.all(assignmentPromises);
+              const filteredAssignments = assignmentDetails.filter(assignment => assignment !== null);
+              setAssignments(filteredAssignments);
             }
-            return null;
           });
-  
-          const assignmentDetails = await Promise.all(assignmentPromises);
-          const filteredAssignments = assignmentDetails.filter(assignment => assignment !== null);
-          setAssignments(filteredAssignments);
         }
       } catch (error) {
         console.error("Error fetching assignments:", error);
@@ -189,99 +312,101 @@ const studentUID = auth.currentUser.uid;
     };
   
     fetchAssignments();
+    
+    // Cleanup
+    return () => {
+      if (unsubscribeClass) {
+        unsubscribeClass();
+      }
+    };
   }, [classId, studentUid]);
 
 
   const getAssignmentStatus = (assignment) => {
+    const now = new Date();
+    const assignDate = new Date(assignment.assignDate);
+    
+    if (assignDate > now) {
+      return {
+        text: "Upcoming",
+        icon: <CalendarClock size={16} color="#858585" strokeWidth={1.5} />,
+        variant: 'clear',
+        clickable: false
+      };
+    }
     if (assignment.isPaused) {
       return {
         text: "Paused",
-        color: "#FFA500",
+        icon: <Pause size={16} color="#FFA500" strokeWidth={1.5} />,
+        variant: 'orange',
         clickable: false
       };
     }
     if (assignment.inProgress) {
       return {
         text: "In Progress",
-        color: "#2BB514",
+        icon: <CircleDashed size={16} color="orange" strokeWidth={1.5} />,
+        variant: 'yellow',
         clickable: true
       };
     }
     return {
       text: "Not Started",
-      color: "grey",
+      icon: <Minus size={16} color="#858585" strokeWidth={1.5} />,
+      variant: 'clear',
       clickable: true
     };
   };
 
   
 
-  useEffect(() => {
-    const fetchCompletedAssignments = async () => {
-      try {
-        // Query the unified 'grades' collection where 'studentUid' and 'classId' match
-        const gradesQuery = query(
-          collection(db, 'grades'),
-          where('studentUid', '==', studentUid),
-          where('classId', '==', classId)
-        );
+  const fetchCompletedAssignments = async () => {
+    try {
+      const [studentDoc, classDoc] = await Promise.all([
+        getDoc(doc(db, 'students', studentUid)),
+        getDoc(doc(db, 'classes', classId))
+      ]);
+      
+      if (!studentDoc.exists()) return;
   
-        const gradesSnapshot = await getDocs(gradesQuery);
+      const studentData = studentDoc.data();
+      const classData = classDoc.exists() ? classDoc.data() : {};
+      const viewableAssignments = classData.viewableAssignments || [];
+      const classGrades = studentData[`class_${classId}`]?.grades || {};
   
-        // Map through the grades and parse the type from the document ID
-        const grades = gradesSnapshot.docs.map(doc => {
-          const id = doc.id;
-          const data = doc.data();
+      const gradesArray = Object.entries(classGrades).map(([assignmentId, gradeData]) => {
+        const parts = assignmentId.split('+');
+        const format = parts[parts.length - 1];
+        
+        return {
+          id: assignmentId,
+          assignmentId: assignmentId,
+          ...gradeData,
+          type: format,
+          submittedAt: gradeData.submittedAt,
+          percentageScore: gradeData.score,
+          viewable: viewableAssignments.includes(assignmentId)
+        };
+      });
   
-          // Parse the 'format' from the document ID
-          const format = parseFormatFromId(id);
+      const sortedGrades = gradesArray.sort((a, b) => 
+        b.submittedAt.toDate() - a.submittedAt.toDate()
+      );
   
-          return { 
-            id: doc.id, 
-            ...data, 
-            type: format,
-            submittedAt: data.submittedAt // Ensure this exists or handle accordingly
-          };
-        });
-  
-        // Sort grades by 'submittedAt' descending
-        const sortedGrades = grades.sort((a, b) => {
-          if (a.submittedAt && b.submittedAt) {
-            return b.submittedAt.toDate() - a.submittedAt.toDate();
-          }
-          return 0;
-        });
-  
-        setCompletedAssignments(sortedGrades);
-      } catch (error) {
-        console.error("Error fetching grades:", error);
+      setCompletedAssignments(sortedGrades);
+      
+      if (sortedGrades.length > 0) {
+        const totalScore = sortedGrades.reduce((sum, grade) => sum + grade.score, 0);
+        setCalculatedAverage(Math.round(totalScore / sortedGrades.length));
       }
-    };
-  
+    } catch (error) {
+      console.error("Error fetching completed assignments:", error);
+    }
+  };
+  useEffect(() => {
     fetchCompletedAssignments();
   }, [classId, studentUid]);
-  
   // Helper function to parse the format from the document ID
-const parseFormatFromId = (id) => {
-  // Example ID: "math101+1633072800000+AMCQ_student123"
-  // Split the ID by '+' to isolate the format_studentId part
-  const parts = id.split('+');
-
-  if (parts.length < 3) return 'UNKNOWN'; // Ensure the ID has enough parts
-
-  const formatStudentId = parts[2]; // "AMCQ_student123"
-
-  // Split by '_' to separate format and studentId
-  const formatParts = formatStudentId.split('_');
-
-  if (formatParts.length < 1) return 'UNKNOWN';
-
-  const format = formatParts[0]; // "AMCQ"
-
-  // Validate the format
-  const validFormats = ['SAQ', 'AMCQ', 'MCQ'];
-  return validFormats.includes(format) ? format : 'UNKNOWN';
-};
 
   
   
@@ -314,13 +439,59 @@ const parseFormatFromId = (id) => {
     setShowConfirm(true);
   };
 
+  // Add new states at the top of the component
+  const [holdProgress, setHoldProgress] = useState(0);
+  const [isHolding, setIsHolding] = useState(false);
+  const holdTimerRef = useRef(null);
 
+  // Add hold handlers
+  const handleHoldStart = () => {
+    setIsHolding(true);
+    let startTime = Date.now();
+    
+    holdTimerRef.current = setInterval(() => {
+      const progress = Math.min(((Date.now() - startTime) / 1500) * 100, 100);
+      setHoldProgress(progress);
+      
+      if (progress >= 100) {
+        clearInterval(holdTimerRef.current);
+        setShowConfirm(false);
+        const format = confirmAssignment.id.split('+')[2];
+        
+        let path = '';
+        if (format === 'AMCQ') {
+          path = `/TakeAmcq/${confirmAssignment.id}`;
+        } else if (format === 'ASAQ') {
+          path = `/TakeAsaq/${confirmAssignment.id}`;
+        } else if (format === 'MCQ') {
+          path = `/TakeMcq/${confirmAssignment.id}`;
+        } else if (format === 'OE') {
+          path = `/taketests/${confirmAssignment.id}`;
+        }
 
+        navigate(path, { state: { allowAccess: true }, replace: true });
+      }
+    }, 10);
+  };
 
+  const handleHoldEnd = () => {
+    setIsHolding(false);
+    setHoldProgress(0);
+    if (holdTimerRef.current) {
+      clearInterval(holdTimerRef.current);
+    }
+  };
 
+  // Add cleanup effect
+  useEffect(() => {
+    return () => {
+      if (holdTimerRef.current) {
+        clearInterval(holdTimerRef.current);
+      }
+    };
+  }, []);
 
-
-
+  // Update RetroConfirm component
   const RetroConfirm = ({ onConfirm, onCancel, assignmentName, saveAndExit, lockdown }) => (
     <div style={{
       position: 'fixed',
@@ -328,118 +499,248 @@ const parseFormatFromId = (id) => {
       left: 0,
       width: '100%',
       height: '100%',
+      backgroundColor: 'rgba(255, 255, 255, 0.8)',
       backdropFilter: 'blur(5px)',
-      background: 'rgba(255,255,255,0.8)',
-      zIndex: 100
+      zIndex: 1000,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center'
     }}>
-      <div style={{
-        position: 'fixed',
-        top: '50%',
-        left: '50%',
-        borderRadius: '20px',
-        backdropFilter: 'blur(5px)',
-        transform: 'translate(-50%, -50%)',
-        width: '500px',
-        backgroundColor: 'rgb(255,255,255,.001)',
-        border: '1px solid lightgrey',
-        
-        fontFamily: 'Arial, sans-serif',
-        zIndex: 100000
-      }}>
-       
-        <div style={{ padding: '40px 40px 20px 40px', textAlign: 'left', fontWeight: '600', fontFamily: '"montserrat", sans-serif', fontSize: '30px',  }}>
-       <h1 style={{marginBottom: '20px',  fontSize: '25px', fontWeight: '600', marginTop: '0px' }}>Enter {assignmentName}? </h1>
-       
-        <div style={{display: 'flex',}}>
-      
-        <h1 style={{fontSize: '20px', marginTop: '0px', marginRight: 'auto',color: saveAndExit ? 'green' : 'grey', fontWeight: '500'}}>   Save and exit:</h1> 
-        {saveAndExit ? <SquareCheck size={25} color="#00a832" /> : <SquareMinus size={25} color="#9c9c9c" />}
-        </div>
-        <div style={{display: 'flex'}}>
-   
-        <h1 style={{fontSize: '20px', marginTop: '0px', marginRight: 'auto', color: lockdown ? 'green' : 'grey', fontWeight: '500'}}>   Lockdown:</h1>
-        {lockdown ? <SquareCheck size={25} color="#00a832" /> : <SquareMinus size={25} color="#9c9c9c" />}
-        </div>
-
-      </div>
-        <div style={{ 
-          display: 'flex', 
-          justifyContent: 'center', 
-          padding: '10px'
+      <GlassContainer
+        variant="clear"
+        size={2}
+        style={{
+          width: '400px',
+          backgroundColor: 'white'
+        }}
+        contentStyle={{
+          padding: '30px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '20px',
+          userSelect: 'none'
+        }}
+      >
+        <h2 style={{
+          margin: 0,
+          fontSize: '1.5rem',
+          fontWeight: '400',
+          color: 'black',
+          fontFamily: "'Montserrat', sans-serif"
         }}>
-          <button 
-            onClick={onConfirm}
+          Enter {assignmentName}?
+        </h2>
+        <p style={{
+          margin: '20px 0px',
+          fontSize: '1rem',
+          width: '100%',
+          color: 'grey',
+          fontFamily: "'Montserrat', sans-serif"
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', marginBottom: '10px', borderBottom: '1px solid #ddd', paddingBottom: '10px' }}>
+            <div style={{ 
+              fontWeight: '500',
+              width: '100%',
+              display: 'flex',
+              alignItems: 'center'
+            }}>
+              Format:
+              <FormatDisplay format={confirmAssignment.format} />
+            </div>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', marginBottom: '10px',  borderBottom: '1px solid #ddd', paddingBottom: '10px'}}>
+            <span style={{ 
+              color:  'grey',
+              fontWeight: '500',
+              marginRight: 'auto'
+            }}>
+              Save & Exit:
+            </span>
+            {saveAndExit ? (
+              <Check size={18} color="#2BB514" strokeWidth={2} />
+            ) : (
+              <X size={18} color="grey" strokeWidth={2} />
+            )}
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center' }}>
+            <span style={{ 
+              color:  'grey',
+              fontWeight: '500',
+              marginRight: 'auto'
+            }}>
+              Lockdown Mode:
+            </span>
+            {lockdown ? (
+              <Check size={18} color="#2BB514" strokeWidth={2} />
+            ) : (
+              <X size={18} color="grey" strokeWidth={2} />
+            )}
+          </div>
+        </p>
+        <div style={{
+          display: 'flex',
+          gap: '10px',
+          justifyContent: 'flex-end'
+        }}>
+          <button
+            onClick={onCancel}
             style={{
-              width: '100px',
-              marginRight: '0px',
-              marginLeft: '30px',
-              height: '30px',
-              lineHeight: '10PX',
-              padding: '5px 5px',
-              fontWeight: '600',
-              fontSize: '16px',
-              borderRadius: '5px',
-              marginTop: '-10px',
-              fontFamily: '"montserrat", sans-serif',
               backgroundColor: 'white',
-              border: '1px solid lightgrey',
-              color: '#45B434',
-              cursor: 'pointer',
-              transition: '.3s',
-              marginBottom: '10px'
-            }}
-     
-          >
-            Enter
-          </button>
-         
-
-
-
-
-          <button 
-                onClick={onCancel}
-            style={{
-              width: '100px',
-              marginRight: 'auto',
-              marginLeft: '30px',
-              height: '30px',
-              lineHeight: '10PX',
-              padding: '5px 5px',
-              fontWeight: '600',
-              fontSize: '16px',
-              borderRadius: '5px',
-              marginTop: '-10px',
-              fontFamily: '"montserrat", sans-serif',
-              backgroundColor: 'white',
-              border: '1px solid lightgrey',
+              border: '1px solid #ddd',
+              borderRadius: '50px',
+              padding: '5px 15px',
               color: 'grey',
               cursor: 'pointer',
-              transition: '.3s',
-              marginBottom: '10px'
+              fontSize: '.9rem',
+              fontWeight: '400',
+              width: '100px',
+              fontFamily: "'Montserrat', sans-serif"
             }}
-     
           >
             Cancel
           </button>
-
-
-
+          <div style={{ position: 'relative', width: '150px' }}>
+            <GlassContainer
+              onMouseDown={handleHoldStart}
+              onMouseUp={handleHoldEnd}
+              onMouseLeave={handleHoldEnd}
+              onTouchStart={handleHoldStart}
+              onTouchEnd={handleHoldEnd}
+              variant="green"
+              size={0}
+              style={{
+                width: '100%',
+                cursor: 'pointer',
+                position: 'relative',
+                overflow: 'hidden'
+              }}
+              contentStyle={{
+                padding: '5px 15px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                position: 'relative',
+                zIndex: 2
+              }}
+            >
+              <span style={{
+                color: '#2BB514',
+                fontSize: '.9rem',
+                fontWeight: '400',
+                fontFamily: "'Montserrat', sans-serif"
+              }}>
+                Enter (Hold)
+              </span>
+              {isHolding && (
+                <div style={{
+                  position: 'absolute',
+                  left: 0,
+                  top: 0,
+                  bottom: 0,
+                  width: `${holdProgress}%`,
+                  backgroundColor: 'rgba(43, 181, 20, 0.1)',
+                  transition: 'width 0.01s linear',
+                  zIndex: 1
+                }} />
+              )}
+            </GlassContainer>
+          </div>
         </div>
-      </div>
+      </GlassContainer>
     </div>
   );
+
+const ResultsUnavailableModal = ({ assignmentName, onClose }) => (
+  <div style={{
+    position: 'fixed',
+    top: 0,
+    left: 0,
+    width: '100%',
+    height: '100%',
+    backgroundColor: 'rgba(255, 255, 255, 0.8)',
+    backdropFilter: 'blur(5px)',
+    zIndex: 1000,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center'
+  }}>
+    <GlassContainer
+      variant="clear"
+      size={2}
+      style={{
+        width: '400px',
+        backgroundColor: 'white'
+      }}
+      contentStyle={{
+        padding: '30px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '20px',
+        userSelect: 'none'
+      }}
+    >
+      <h2 style={{
+        margin: 0,
+        fontSize: '1.5rem',
+        fontWeight: '400',
+        color: 'black',
+        fontFamily: "'Montserrat', sans-serif"
+      }}>
+        Unable to View Results For "{assignmentName}""
+      </h2>
+      <p style={{
+        margin: '10px 0px',
+        fontSize: '1rem',
+        width: '100%',
+        color: 'grey',
+        lineHeight: '1.3',
+        fontFamily: "'Montserrat', sans-serif"
+      }}>
+       Your teacher must open the assignment for review. A <GlassContainer
+
+                      variant='blue'
+                      size={0}
+                      contentStyle={{padding: '2px 4px'}}
+                      style={{zIndex: '1'}}
+                    > <Eye size={16} color="#020CFF" style={{ verticalAlign: 'middle' }} /> 
+                    </GlassContainer> will appear next to the assignment when reviewable:   
+      </p>
+      <div style={{
+        display: 'flex',
+        gap: '10px',
+        justifyContent: 'flex-end'
+      }}>
+        <button
+          onClick={onClose}
+          style={{
+            backgroundColor: 'white',
+            border: '1px solid #ddd',
+            borderRadius: '50px',
+            padding: '5px 15px',
+            color: 'grey',
+            cursor: 'pointer',
+            fontSize: '.9rem',
+            fontWeight: '400',
+            width: '100px',
+            fontFamily: "'Montserrat', sans-serif"
+          }}
+        >
+          Close
+        </button>
+      </div>
+    </GlassContainer>
+  </div>
+);
+
   const filterAssignments = (assignments) => {
     const now = new Date();
     
     return {
-      overdue: assignments.filter(a => new Date(a.dueDate) < now),
       active: assignments.filter(a => {
-        const assignDate = new Date(a.assignDate);
         const dueDate = new Date(a.dueDate);
-        return assignDate <= now && dueDate >= now;
-      }),
-      upcoming: assignments.filter(a => new Date(a.assignDate) > now)
+        // Include both active and upcoming assignments
+        return dueDate >= now;
+      })
     };
   };
 
@@ -453,203 +754,686 @@ const parseFormatFromId = (id) => {
     return 'F';
   };
 
- 
   
-      
   const renderCompletedAssignments = () => {
+    const filteredAssignments = getFilteredCompletedAssignments();
     
-    const getGradeColors = (grade) => {
-      if (grade === undefined || grade === null) return { color: 'grey', background: '#f4f4f4' };
-      if (grade < 50) return { color: '#FF0000', background: '#FFCBCB' };
-      if (grade < 70) return { color: '#FF4400', background: '#FFC6A8' };
-      if (grade < 80) return { color: '#EFAA14', background: '#FFF4DC' };
-      if (grade < 90) return { color: '#9ED604', background: '#EDFFC1' };
-      if (grade > 99) return { color: '#E01FFF', background: '#F7C7FF' };
-      return { color: '#2BB514', background: '#D3FFCC' };
-    };
-  
-
     return (
-      <div style={{ 
-        display: 'flex',marginLeft: "-4%",
-      
-        flexDirection: 'column',
-        gap: '1px',
-      }}>
-        {completedAssignments.map((grade) => {
-          const isAMCQ = grade.type === 'AMCQ';
-          const isSAQ = grade.type === 'SAQ';
-          const isMCQ = grade.type === 'MCQ';
-          const percentage = Math.round(
-            isAMCQ ? grade.SquareScore :
-            isMCQ ? (grade.rawTotalScore / grade.maxRawScore) * 100 :
-            grade.percentageScore
-          );
-          const letterGrade = getLetterGrade(percentage);
-          const gradeColors = getGradeColors(percentage);
-          return (
-            <div 
-              key={grade.id} 
-              style={{
-                backgroundColor: hoveredAssignmentId === grade.id ? '#FBFEFF' : 'white',
-                height: '70px',
-                width: '100%',
-                display: 'flex',
-                alignItems: 'center',
-                borderBottom: '1px solid #EDEDED',
-                cursor: grade.viewable ? 'pointer' : 'not-allowed',
-                transition: '.3s',
-                position: 'relative'
-              }}
-              onMouseEnter={() => setHoveredAssignmentId(grade.id)}
-              onMouseLeave={() => setHoveredAssignmentId(null)}
-              onClick={() => {
-                if (grade.viewable) {
-                  navigate(`/studentresults${isAMCQ ? 'AMCQ' : (isSAQ ? '' : 'mcq')}/${grade.assignmentId}/${studentUID}/${classId}`);
-                }
-              }}
-            >
-              {/* Assignment Name - Fixed 4% left margin */}
-              <div style={{ 
-                marginLeft: '4%',
-                width: '350px',
-                fontWeight: '600',
+      <>
+        {showUnavailableModal && (
+          <ResultsUnavailableModal
+            assignmentName={unavailableAssignment?.assignmentName}
+            onClose={() => {
+              setShowUnavailableModal(false);
+              setUnavailableAssignment(null);
+            }}
+          />
+        )}
+
+        {/* Assignments List */}
+        <div style={{ 
+          display: 'flex',
+          marginLeft: "-2%",
+          marginTop: '40px',
+          flexDirection: 'column',
+          position: 'relative',
+          gap: '1px',
+        }}>
+          {/* Search and Filters Section */}
+          <div style={{
+            width: '96%',
+            margin: '15px 4%',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+          }}>
+            {/* Filters */}
+            <div style={{
+              display: 'flex',
+              gap: '15px',
+              position: 'relative',
+              alignItems: 'center',
+            }}>
+              {/* Tab Title */}
+              <h2 style={{
+                margin: 0,
                 fontSize: '16px',
-                fontFamily: "'montserrat', sans-serif",
+                fontWeight: '400',
+                color: 'grey',
+                fontFamily: "'Montserrat', sans-serif",
+                paddingRight: '15px',
+                borderRight: '1px solid #ddd'
               }}>
-                {grade.assignmentName}
+                Completed
+              </h2>
+
+              {/* Filter Icon and Popup */}
+              <div ref={filtersRef} style={{ position: 'relative' }}>
+                <button
+                  onClick={() => setShowFiltersPopup(!showFiltersPopup)}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    padding: '5px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    color: '#858585',
+                    fontFamily: "'Montserrat', sans-serif",
+                    fontSize: '14px',
+                    transition: 'transform 0.2s ease',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = 'scale(1.05)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = 'scale(1)';
+                  }}
+                >
+                  <ListFilter size={18} color="#858585" />
+                  Sort & Filter
+                </button>
+
+                {/* Filters Popup */}
+                {showFiltersPopup && (
+                  <GlassContainer
+                    variant="clear"
+                    size={1}
+                    style={{
+                      position: 'absolute',
+                      top: '100%',
+                      left: '0',
+                      marginTop: '10px',
+                      minWidth: '200px',
+                      zIndex: 1000
+                    }}
+                    contentStyle={{
+                      padding: '20px'
+                    }}
+                  >
+                    {/* Sort Options */}
+                    <div style={{ marginBottom: '15px' }}>
+                      <div style={{ 
+                        fontSize: '12px', 
+                        color: '#858585', 
+                        marginBottom: '8px',
+                        fontFamily: "'Montserrat', sans-serif",
+                      }}>
+                        SORT BY
+                      </div>
+                      <div style={{
+                        display: 'flex',
+                        flexWrap: 'wrap',
+                        gap: '8px',
+                      }}>
+                        <button
+                          onClick={() => handleSortOrderChange('new-old')}
+                          style={{
+                            width: 'calc(50% - 4px)',
+                            padding: '8px 12px',
+                            border: `1px solid ${sortOrder === 'new-old' ? '#858585' : '#ddd'}`,
+                            borderRadius: '100px',
+                            background: sortOrder === 'new-old' ? 'rgba(219, 219, 219, 0.1)' : 'white',
+                            color: sortOrder === 'new-old' ? '#858585' : 'grey',
+                            cursor: 'pointer',
+                            fontFamily: "'Montserrat', sans-serif",
+                            fontSize: '14px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '6px',
+                          }}
+                        >
+                          <CalendarArrowDown size={16} />
+                        </button>
+                        <button
+                          onClick={() => handleSortOrderChange('old-new')}
+                          style={{
+                            width: 'calc(50% - 4px)',
+                            padding: '8px 12px',
+                            border: `1px solid ${sortOrder === 'old-new' ? '#858585' : '#ddd'}`,
+                            borderRadius: '100px',
+                            background: sortOrder === 'old-new' ? 'rgba(219, 219, 219, 0.1)' : 'white',
+                            color: sortOrder === 'old-new' ? '#858585' : 'grey',
+                            cursor: 'pointer',
+                            fontFamily: "'Montserrat', sans-serif",
+                            fontSize: '14px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '6px',
+                          }}
+                        >
+                          <CalendarArrowUp size={16} />
+                        </button>
+                        <button
+                          onClick={() => handleAlphabeticalToggle('a-z')}
+                          style={{
+                            width: 'calc(50% - 4px)',
+                            padding: '8px 12px',
+                            border: `1px solid ${alphabeticalOrder === 'a-z' ? '#858585' : '#ddd'}`,
+                            borderRadius: '100px',
+                            background: alphabeticalOrder === 'a-z' ? 'rgba(219, 219, 219, 0.1)' : 'white',
+                            color: alphabeticalOrder === 'a-z' ? '#858585' : 'grey',
+                            cursor: 'pointer',
+                            fontFamily: "'Montserrat', sans-serif",
+                            fontSize: '14px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '6px',
+                          }}
+                        >
+                          <ArrowDownAZ size={16} />
+                        </button>
+                        <button
+                          onClick={() => handleAlphabeticalToggle('z-a')}
+                          style={{
+                            width: 'calc(50% - 4px)',
+                            padding: '8px 12px',
+                            border: `1px solid ${alphabeticalOrder === 'z-a' ? '#858585' : '#ddd'}`,
+                            borderRadius: '100px',
+                            background: alphabeticalOrder === 'z-a' ? 'rgba(219, 219, 219, 0.1)' : 'white',
+                            color: alphabeticalOrder === 'z-a' ? '#858585' : 'grey',
+                            cursor: 'pointer',
+                            fontFamily: "'Montserrat', sans-serif",
+                            fontSize: '14px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '6px',
+                          }}
+                        >
+                          <ArrowUpAZ size={16} />
+                        </button>
+                        <button
+                          onClick={() => handleGradeOrderToggle('high-low')}
+                          style={{
+                            width: 'calc(50% - 4px)',
+                            padding: '8px 12px',
+                            border: `1px solid ${gradeOrder === 'high-low' ? '#858585' : '#ddd'}`,
+                            borderRadius: '100px',
+                            background: gradeOrder === 'high-low' ? 'rgba(219, 219, 219, 0.1)' : 'white',
+                            color: gradeOrder === 'high-low' ? '#858585' : 'grey',
+                            cursor: 'pointer',
+                            fontFamily: "'Montserrat', sans-serif",
+                            fontSize: '14px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '6px',
+                          }}
+                        >
+                          <ArrowDown10 size={16} />
+                        </button>
+                        <button
+                          onClick={() => handleGradeOrderToggle('low-high')}
+                          style={{
+                            width: 'calc(50% - 4px)',
+                            padding: '8px 12px',
+                            border: `1px solid ${gradeOrder === 'low-high' ? '#858585' : '#ddd'}`,
+                            borderRadius: '100px',
+                            background: gradeOrder === 'low-high' ? 'rgba(219, 219, 219, 0.1)' : 'white',
+                            color: gradeOrder === 'low-high' ? '#858585' : 'grey',
+                            cursor: 'pointer',
+                            fontFamily: "'Montserrat', sans-serif",
+                            fontSize: '14px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '6px',
+                          }}
+                        >
+                          <ArrowUp01 size={16} />
+                        </button>
+                      </div>
+                    </div>
+                  </GlassContainer>
+                )}
               </div>
-  
-              {/* Center content - Equally distributed */}
+
+              {/* Active Options Display */}
               <div style={{
                 display: 'flex',
+                gap: '10px',
                 alignItems: 'center',
-                justifyContent: 'space-evenly',
-                flex: 1,
-                marginLeft: '20px',
-                marginRight: '20px'
               }}>
-                {/* Letter Grade */}
-                <div style={{
-                  fontSize: '16px',
+                {/* Sort Display */}
+                {(sortOrder || alphabeticalOrder || gradeOrder) && (
+                  <button
+                    style={{
+                      padding: '6px 12px',
+                      paddingRight: '30px',
+                      border: '1px solid #ddd',
+                      borderRadius: '100px',
+                      background: 'rgba(219, 219, 219, 0.1)',
+                      color: '#858585',
+                      cursor: 'pointer',
+                      fontFamily: "'Montserrat', sans-serif",
+                      fontSize: '12px',
+                      position: 'relative',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                    }}
+                    onClick={() => setShowFiltersPopup(true)}
+                  >
+                    {sortOrder === 'new-old' ? (
+                      <>
+                        <CalendarArrowDown size={14} /> Newest First
+                      </>
+                    ) : sortOrder === 'old-new' ? (
+                      <>
+                        <CalendarArrowUp size={14} /> Oldest First
+                      </>
+                    ) : alphabeticalOrder === 'a-z' ? (
+                      <>
+                        <ArrowDownAZ size={14} /> A to Z
+                      </>
+                    ) : alphabeticalOrder === 'z-a' ? (
+                      <>
+                        <ArrowUpAZ size={14} /> Z to A
+                      </>
+                    ) : gradeOrder === 'high-low' ? (
+                      <>
+                        <ArrowDown10 size={14} /> Highest Grade First
+                      </>
+                    ) : (
+                      <>
+                        <ArrowUp01 size={14} /> Lowest Grade First
+                      </>
+                    )}
+                    <ChevronDown
+                      size={12}
+                      style={{
+                        position: 'absolute',
+                        right: '10px',
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                      }}
+                    />
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Search */}
+            <div style={{
+              position: 'relative',
+              width: '300px',
+              border: '1px solid #ddd',
+              borderRadius: '1rem'
+            }}>
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={handleSearchChange}
+                placeholder="Search assignments..."
+                style={{
+                  width: '80%',
+                  padding: '8px 12px',
+                  paddingLeft: '40px',
+                  border: 'none',
+                  outline: 'none',
+                  borderRadius: '6px',
+                  fontSize: '14px',
+                  fontFamily: "'Montserrat', sans-serif",
+                  background: 'transparent',
+                }}
+              />
+              <Search 
+                size={20} 
+                color="#858585" 
+                style={{
+                  position: 'absolute',
+                  left: '10px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                }}
+              />
+            </div>
+          </div>
+
+
+          {filteredAssignments.map((grade) => {
+            const isOverdue = grade.isOverdue;
+            const percentage = !isOverdue ? Math.round(
+              grade.type === 'MC*' ? grade.score :
+              grade.type === 'MC' ? (grade.score) * 100 :
+              grade.percentageScore
+            ) : null;
+
+            const displayGrade = {
+              letter: percentage !== null && !isNaN(percentage) ? calculateLetterGrade(percentage) : 'Z',
+              percentage: percentage !== null && !isNaN(percentage) ? `${percentage}%` : '00%'
+            };
+
+            return (
+              <div key={grade.id} 
+                style={{
+                  backgroundColor:  'white',
+                  height: '70px',
+                  width: '96%',
+                  margin: '0% 2%',
+                  padding: '0% 2%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  borderBottom: '1px solid #ddd',
+                  cursor: !isOverdue && grade.viewable ? 'pointer' : 'default',
+                  transition: '.3s',
+                  position: 'relative'
+                }}
+                onMouseEnter={() => setHoveredAssignmentId(grade.id)}
+                onMouseLeave={() => setHoveredAssignmentId(null)}
+                onClick={() => {
+                  if (!isOverdue) {
+                    if (grade.viewable) {
+                      navigate(`/studentresults${grade.type === 'MC*' ? 'mcq' : (grade.type === 'OE' ? '' : 'AMCQ')}/${grade.assignmentId || grade.id}/${studentUID}/${classId}`);
+                    } else {
+                      setUnavailableAssignment(grade);
+                      setShowUnavailableModal(true);
+                    }
+                  }
+                }}
+              >
+                <div style={{ 
+                  width: '350px',
                   fontWeight: '500',
+                  fontSize: '1rem',
+                  gap: "0px",
+                  display: 'flex',
+                  alignItems: 'center' ,
                   fontFamily: "'montserrat', sans-serif",
-                  color: 'black',
-                  width: '30px',
-                  textAlign: 'center'
                 }}>
-                  {letterGrade}
-                </div>
-  
-                {/* Percentage */}
-                <div style={{
-                  fontSize: '16px',
-                  padding: '5px',
-                  width: '40px',
-                  borderRadius: '5px',
-                  textAlign: 'center',
-                  color: gradeColors.color,
-                  backgroundColor: gradeColors.background
+                  <div>
+                  {grade.assignmentName}   
+                  </div>
+                   <div style={{
+                  fontSize: '.8rem',
+                  fontWeight: '500',
+                  width: '50px',
+                  marginLeft: '10px',
+                  textAlign: 'left',
+                  color: grade.type === 'MC*' ? '#7D00EA' : (grade.type === 'OE' ? '#00CCB4 ' : '#7D00EA'),
                 }}>
-                 {percentage}%
+                  {grade.type}
                 </div>
-  
-                {/* Submission Date with Check Icon */}
+                </div>
+
                 <div style={{
                   display: 'flex',
                   alignItems: 'center',
-                  color: 'grey',
-                  fontStyle: 'italic',
-                  fontWeight: '600',
-                  gap: '5px',
-                  width: '210px'
+                  justifyContent: 'space-evenly',
+                  flex: 1,
+                  marginLeft: '20px',
+                  marginRight: '20px'
                 }}>
-                  <SquareCheck 
-                    size={20}
+                  <GlassContainer
+                    variant={isOverdue ? 'clear' : getGradeColors(percentage).variant}
+                    size={0}
                     style={{
-                      color: '#00DE09',
-                      marginTop: '1px'
+                      margin: 0,
+                                            zIndex: '2'
                     }}
-                  />
-                  <span style={{
-                    fontSize: '16px',
-                    marginTop: '2px'
+                    contentStyle={{
+                      padding: '2px 8px',
+                      display: 'flex',
+                      width: '60px',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}
+                  >
+                    <div style={{display:'flex', gap:'8px'}}>
+                      <span style={{
+                        fontSize: '.8rem',
+                        color: isOverdue ? 'grey' : getGradeColors(percentage).color,
+                        fontWeight: '500'
+                      }}>
+                        {displayGrade.letter}
+                      </span>
+                      <span style={{
+                        width: '1px',
+                        marginTop: '3px',
+                        background: isOverdue ? 'grey' : getGradeColors(percentage).color,
+                        height: '10px',
+                      }}/>
+                      <span style={{
+                        fontSize: '.8rem',
+                        color: isOverdue ? 'grey' : getGradeColors(percentage).color,
+                        fontWeight: '500'
+                      }}>
+                        {displayGrade.percentage}
+                      </span>
+                    </div>
+                  </GlassContainer>
+
+                  <div style={{
+                    display: 'flex',
+                    color: 'grey',
+                    fontStyle: 'italic',
+                    fontWeight: '500',
+                    textAlign: 'left',
+                    width: '240px',
+                    gap: '5px',
                   }}>
-                    {grade.submittedAt ? new Date(grade.submittedAt.toDate()).toLocaleString(undefined, {
-                      year: 'numeric',
-                      month: 'numeric',
-                      day: 'numeric',
-                      hour: '2-digit',
-                      minute: '2-digit',
-                      hour12: true
-                    }) : 'N/A'}
-                  </span>
+                    <span style={{
+                      fontSize: '.8rem',
+                      marginTop: '2px'
+                    }}>
+                      {isOverdue ? 'Due: ' : 'Completed: '}
+                      {grade.submittedAt ? new Date(grade.submittedAt.toDate()).toLocaleString(undefined, {
+                        year: 'numeric',
+                        month: 'numeric',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        hour12: true
+                      }) : 'N/A'}
+                    </span>
+                  </div>
                 </div>
+                <div style={{
+                }}>
+                  
+                  {isOverdue ? (
+                    <GlassContainer
+                      variant='red'
+                      size={0}
+                      contentStyle={{padding: '2px 4px'}}
+                      style={{zIndex: '1'}}
+                    >
+                      <CalendarX2 
+                        size={16} 
+                        color="#c63e3e" 
+                        strokeWidth={1.5}
+                      />
+                    </GlassContainer>
+                  ) : grade.viewable ? (
+                    <GlassContainer
+                      variant='blue'
+                      size={0}
+                      contentStyle={{padding: '2px 4px'}}
+                      style={{zIndex: '1'}}
+                    >
+                      <Eye 
+                        size={16} 
+                        color="#020CFF" 
+                        strokeWidth={1.5}
+                      />
+                    </GlassContainer>
+                  ) : (
+                    <EyeOff 
+                      size={16} 
+                      color="transparent" 
+                      strokeWidth={1.5}
+                      style={{padding: '4px 6px'}}
+                    />
+                  )}
+                </div>
+             
               </div>
-              <div style={{
-                marginRight: '3%'
-              }}>
-                {grade.viewable ? (
-                  <Eye 
-                    size={20} 
-                    color="#020CFF" 
-                    strokeWidth={2}
-                  />
-                ) : (
-                  <EyeOff 
-                    size={20} 
-                    color="transparent" 
-                    strokeWidth={2}
-                  />
-                )}
-              </div>
-              {/* Format Type - Fixed position from right margin */}
-              <div style={{
-                fontSize: '16px',
-                fontWeight: 'bold',marginRight: '4%',
-                width: '50px',
-                textAlign: 'right',
-                color: isAMCQ ? '#2BB514' : (isSAQ ? '#020CFF' : '#2BB514'),
-              
-              }}>
-                {isAMCQ ? 'MCQ*' : (isSAQ ? 'SAQ' : 'MCQ')}
-              </div>
-  
-              {/* Eye Icon - Fixed 4% right margin */}
-              
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
+      </>
     );
   };
 
 
 
+const StatusIcon = ({ status }) => {
+  const [showTooltip, setShowTooltip] = useState(false);
+
+  return (
+    <div style={{ position: 'relative', marginRight: '4%' }}>
+      <div
+        onMouseEnter={() => setShowTooltip(true)}
+        onMouseLeave={() => setShowTooltip(false)}
+      >
+        <GlassContainer
+          variant={status.variant}
+          size={0}
+          contentStyle={{ padding: '2px 4px' }}
+          style={{ zIndex: '1' }}
+        >
+          {status.icon}
+        </GlassContainer>
+      </div>
+      <div
+        style={{
+          position: 'absolute',
+          top: '100%',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          backgroundColor: 'rgba(245, 245, 245, 0.8)',
+          color: 'grey',
+          padding: '4px 8px',
+          borderRadius: '4px',
+          fontSize: '12px',
+          whiteSpace: 'nowrap',
+          opacity: showTooltip ? 1 : 0,
+          transition: 'opacity 0.2s ease',
+          pointerEvents: 'none',
+          zIndex: 2,
+          marginTop: '5px'
+        }}
+      >
+        {status.text}
+      </div>
+    </div>
+  );
+};
+
+const FormatDisplay = ({ format }) => {
+  const [showTooltip, setShowTooltip] = useState(false);
+  
+  const getFormatInfo = () => {
+    switch(format) {
+      case 'OE':
+        return {
+          abbr: 'OE',
+          color: '#00CCB4',
+          fullName: 'Open Ended',
+          isAdaptive: false
+        };
+      case 'ASAQ':
+        return {
+          abbr: 'OE',
+          color: '#00CCB4',
+          fullName: 'Open Ended Adaptive',
+          isAdaptive: true
+        };
+      case 'MCQ':
+        return {
+          abbr: 'MC',
+          color: '#7D00EA',
+          fullName: 'Multiple Choice',
+          isAdaptive: false
+        };
+      case 'AMCQ':
+        return {
+          abbr: 'MC',
+          color: '#7D00EA',
+          fullName: 'Multiple Choice Adaptive',
+          isAdaptive: true
+        };
+      default:
+        return {
+          abbr: '',
+          color: 'grey',
+          fullName: '',
+          isAdaptive: false
+        };
+    }
+  };
+
+  const formatInfo = getFormatInfo();
+
+  return (
+    <div style={{ 
+      position: 'relative',
+      marginLeft: 'auto',
+      display: 'flex',
+      alignItems: 'center'
+    }}
+    onMouseEnter={() => setShowTooltip(true)}
+    onMouseLeave={() => setShowTooltip(false)}
+    >
+      <span style={{ color: formatInfo.color }}>
+        {formatInfo.abbr}
+        {formatInfo.isAdaptive && <span style={{ color: '#F4C10A' }}>*</span>}
+      </span>
+      {showTooltip && (
+        <div style={{
+          position: 'absolute',
+          top: '100%',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          backgroundColor: 'rgba(245, 245, 245, 0.8)',
+          color: 'grey',
+          padding: '4px 8px',
+          borderRadius: '4px',
+          fontSize: '12px',
+          whiteSpace: 'nowrap',
+          opacity: 1,
+          transition: 'opacity 0.2s ease',
+          pointerEvents: 'none',
+          zIndex: 2,
+          marginTop: '5px'
+        }}>
+          {formatInfo.fullName}
+        </div>
+      )}
+    </div>
+  );
+};
+
 const renderAssignments = (assignments) => {
   return assignments.map((assignment) => {
+    const now = new Date();
+    const assignDate = new Date(assignment.assignDate);
+    const isUpcoming = assignDate > now;
     const status = getAssignmentStatus(assignment);
-    const isClickable = status.clickable && (isActiveOrCompleted || !assignment.isPaused);
-    
-
+    const isClickable = status.clickable && !isUpcoming;
 
     const format = assignment.id.split('+').pop();
     let formatDisplay;
-    if (format === 'SAQ') {
-      formatDisplay = <span style={{ color: '#020CFF' }}>SAQ</span>;
+    if (format === 'OE') { 
+      formatDisplay = <span style={{ color: '#00CCB4' }}>OE</span>;
     } else if (format === 'ASAQ') {
       formatDisplay = (
         <span>
-          <span style={{ color: '#020CFF' }}>SAQ</span>
+          <span style={{ color: '#00CCB4' }}>OE</span>
           <span style={{ color: '#F4C10A' }}>*</span>
         </span>
       );
     } else if (format === 'MCQ') {
-      formatDisplay = <span style={{ color: '#2BB514' }}>MCQ</span>;
+      formatDisplay = <span style={{ color: '#7D00EA' }}>MC</span>;
     } else if (format === 'AMCQ') {
       formatDisplay = (
         <span>
-          <span style={{ color: '#2BB514' }}>MCQ</span>
+          <span style={{ color: '#7D00EA' }}>MC</span>
           <span style={{ color: '#F4C10A' }}>*</span>
         </span>
       );
@@ -669,23 +1453,23 @@ const renderAssignments = (assignments) => {
       return ` ${date.toLocaleDateString('en-US', options)}`;
     };
 
-    const isHoveredAssignment = hoveredAssignmentId === assignment.id;
     
     const listItemStyle = {
-      backgroundColor: isHoveredAssignment && isActiveOrCompleted ? '#FBFEFF' : 'white',
-      fontSize: '30px',
-      color: 'black',
-      marginLeft: '-4%',
+     
+      color: isUpcoming ? 'grey' : 'black',
       height: '70px',
       display: 'flex',
       alignItems: 'center',
       fontFamily: "'montserrat', sans-serif",
       transition: '.3s',
       listStyleType: 'none',
+      width: '92%', 
       textAlign: 'center',
       position: "relative",
-      borderBottom: `1px solid #EDEDED ` ,
-      cursor: isActiveOrCompleted ? 'pointer' : 'default'
+     
+           padding: '0px 2%',
+      borderBottom: `1px solid #ddd ` ,
+      cursor: isClickable ? 'pointer' : 'default'
     };
    
       const progressIndicatorStyle = {
@@ -695,7 +1479,7 @@ const renderAssignments = (assignments) => {
         color: 'blue',
         transform: 'translateY(-50%)',
         paddingLeft: '15px',
-        fontWeight: 'bold',
+        fontWeight: '500',
         fontFamily: "'montserrat', sans-serif",
         fontSize: '15px',
         borderRadius: '5px',
@@ -713,7 +1497,7 @@ const renderAssignments = (assignments) => {
         left: '20px',
         backgroundColor: '#FFA500',
         paddingLeft: '15px',
-        fontWeight: 'bold',
+        fontWeight: '500',
         color: 'white',
         paddingRight: '15px',
         fontFamily: "'montserrat', sans-serif",
@@ -726,18 +1510,17 @@ const renderAssignments = (assignments) => {
         display: 'flex',
         alignItems: 'center',
         textAlign: 'left',
-        marginLeft: '4%',
+        marginLeft: '0%',
         height: '30px',
         width: '40%',
         overflow: 'hidden',
-        maxWidth: '280px',
-        fontWeight: '600',
-        fontSize: '18px'
+        maxWidth: '320px',
+        fontWeight: '500', fontSize: '1rem',
       };
     
       const dateDisplayStyle = {
-        color: activeTab === 'active' ? 'grey' : (activeTab === 'upcoming' ? '#FC8518' : '#F59999'),
-        fontSize: '14px',
+        color: 'grey',
+        fontSize: '12px',
         fontWeight: '500',
         fontFamily: "'montserrat', sans-serif",
        
@@ -750,12 +1533,11 @@ const renderAssignments = (assignments) => {
       };
     
       const formatDisplayStyle = {
-        marginLeft: 'auto',
-        marginTop: '10px',
+        marginLeft: '10px',
         width: '120px',
-
+fontWeight: '500',
         textAlign: 'left',
-        fontSize: '16px',
+        fontSize: '.8rem',
       };
       return (
         <li 
@@ -791,170 +1573,204 @@ const renderAssignments = (assignments) => {
 
           <div style={assignmentNameStyle}>
           {assignment.assignmentName}
-          </div>
-          <h1 style={dateDisplayStyle}>
-   {formatDate(assignment.assignDate)}</h1>
-          <h1 style={dateDisplayStyle}>
-   {formatDate(assignment.dueDate)}</h1>
-
+          
           <h1 style={formatDisplayStyle}>
             {formatDisplay}
           </h1>
+          </div>
+          <h1 style={dateDisplayStyle}>
+   Assigned: {formatDate(assignment.assignDate)}</h1>
+          <h1 style={dateDisplayStyle}>
+   Due: {formatDate(assignment.dueDate)}
+   </h1>
 
 
-          <h1 style={{fontSize: '14px', color: 'lightgrey', textAlign: 'right', fontWeight: '600', width: '150px', marginRight: '4%',
-            
-          }}>
-       {status.text}
-            
-          </h1>
+
+          <StatusIcon status={status} />
         </li>
     );
   });
 };
 
+
+const getGradeColors = (grade) => {
+  if (grade === undefined || grade === null || grade === 0) return { color: '#858585', variant: 'clear' };
+  if (grade < 50) return { color: '#c63e3e', variant: 'red' };
+  if (grade < 60) return { color: '#ff8800', variant: 'orange' };
+  if (grade < 70) return { color: '#ffc300', variant: 'yellow' };
+  if (grade < 80) return { color: '#29c60f', variant: 'green' };
+  if (grade < 90) return { color: '#006400', variant: 'darkgreen' };
+  return { color: '#f198ff', variant: 'pink' };
+};
+
+const calculateLetterGrade = (percentage) => {
+  if (percentage >= 90) return 'A';
+  if (percentage >= 80) return 'B';
+  if (percentage >= 70) return 'C';
+  if (percentage >= 60) return 'D';
+  return 'F';
+};
+
+const gradeColors = getGradeColors(calculatedAverage);
   return (
-    <div style={{    minHeight: '100vh',
+    <div style={{
+      minHeight: '100vh',
       width: '100%',
       backgroundColor: 'white',
       display: 'flex',
       flexDirection: 'column',
-      position: 'relative' }}>
+      position: 'relative'
+    }}>
       <Navbar userType="student" />
-  
- {showConfirm && (
- <RetroConfirm 
- onConfirm={() => {
-   setShowConfirm(false);
-   // Get the format from the assignment ID
-   const format = confirmAssignment.id.split('+')[2];
-   
-   let path = '';
-   if (format === 'AMCQ') {
-     path = `/TakeAmcq/${confirmAssignment.id}`;
-   } else if (format === 'ASAQ') {
-     path = `/TakeAsaq/${confirmAssignment.id}`;
-   } else if (format === 'MCQ') {
-     path = `/TakeMcq/${confirmAssignment.id}`;
-   } else if (format === 'SAQ') {
-     path = `/taketests/${confirmAssignment.id}`;
-   }
 
-   // Navigate with state
-   navigate(path, { state: { allowAccess: true }, replace: true });
- }}
- onCancel={() => setShowConfirm(false)}
- assignmentName={confirmAssignment ? confirmAssignment.assignmentName : ''}
- saveAndExit={confirmAssignment ? confirmAssignment.saveAndExit : false}
- lockdown={confirmAssignment ? confirmAssignment.lockdown : false}
-/>
+      {showConfirm && (
+        <RetroConfirm 
+          onConfirm={() => {
+            setShowConfirm(false);
+            const format = confirmAssignment.id.split('+')[2];
+            
+            let path = '';
+            if (format === 'AMCQ') {
+              path = `/TakeAmcq/${confirmAssignment.id}`;
+            } else if (format === 'ASAQ') {
+              path = `/TakeAsaq/${confirmAssignment.id}`;
+            } else if (format === 'MCQ') {
+              path = `/TakeMcq/${confirmAssignment.id}`;
+            } else if (format === 'OE') {
+              path = `/taketests/${confirmAssignment.id}`;
+            }
 
-)}
+            navigate(path, { state: { allowAccess: true }, replace: true });
+          }}
+          onCancel={() => setShowConfirm(false)}
+          assignmentName={confirmAssignment ? confirmAssignment.assignmentName : ''}
+          saveAndExit={confirmAssignment ? confirmAssignment.saveAndExit : false}
+          lockdown={confirmAssignment ? confirmAssignment.lockdown : false}
+        />
+      )}
 
-
-          <div style={{  width: 'calc(100% - 200px)', marginLeft: '200px' }}>
-          <div style={{ display: 'flex',  }}>
-          <div style={{   height: '120px',   background: 'white',  borderBottom: '1px solid lightgrey', width: '100%',  position: 'relative'}}> 
-          <h1 style={{ 
-        fontSize: '30px',
-        marginLeft: '4%',
-          fontFamily: '"montserrat", sans-serif',
-          fontWeight: '700',
-          marginBottom: '10px',
-          transition: 'font-size 0.3s ease',
-          textAlign: 'left',
-          color: '#2c2c2c'
-        }}>
-           {activeTab.charAt(0).toUpperCase() + activeTab.slice(1)} Assignments
-        </h1>
-      
-   
-        <div style={{height: '80px ', position: 'absolute', marginLeft:'auto',  borderRadius: '15px', width: '80px ',  top:'20px' ,background: 'white', right: '4%', }}>
-       <img style={{ width: '80px',   }} src="/Score.svg" alt="logo" />
-     
-       <div style={{fontSize: '25px', fontWeight: 'bold', width: '80px', height: '80px',position: 'absolute', background: 'transparent',  borderRadius:  '10px', top: '-35px', left: '0px', textAlign: 'center', lineHeight: '150px'}}> 
-       {calculatedAverage}
-          </div>    
-           </div>
-
-
+      <div style={{ width: 'calc(100% - 200px)', marginLeft: '200px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
+          {/* Fixed Header */}
+          <div style={{
+            height: '70px',
+            background: 'white',
+            borderBottom: `1px solid ${isScrolled ? '#ddd' : 'transparent'}`,
+            width: 'calc(100% - 200px)',
+            position: 'fixed',
+            top: 0,
+            left: '200px',
+            display: 'flex',
+            alignItems: 'center',
+            transition: 'border-color 0.3s ease',
+            zIndex: 10,
+            backdropFilter: 'blur(5px)',
+            backgroundColor: 'rgba(255, 255, 255, 0.9)'
+          }}> 
+            <h1 style={{ 
+              fontSize: '1.3rem',
+              marginLeft: '5%',
+              fontFamily: '"montserrat", sans-serif',
+              fontWeight: '400',
+              transition: 'font-size 0.3s ease',
+              textAlign: 'left',
+              color: '#2c2c2c'
+            }}>
+              {classChoice}
+            </h1>
+         
+            <div style={{marginLeft:' 20px', marginRight: '4%'}}>
+              <GlassContainer
+                size={0}
+                
+          enableRotation={true}
+                style={{
+                  zIndex: '2',
+                  cursor: "pointer"
+                }}
+                variant={calculatedAverage ? getGradeColors(calculatedAverage).variant : 'clear'}
+                contentStyle={{
+                  padding: '5px 10px',
+                  textAlign: 'center',
+                  display: 'flex',
+                  height: '.9rem',
+                  userSelect: 'none',
+                  WebkitUserSelect: 'none',
+                  msUserSelect: 'none',
+                }}
+                onClick={() => activeTab === 'completed' && setIsGradeExpanded(!isGradeExpanded)}
+              >
+                <div style={{display: 'flex', marginTop: '-12px'}}>
+                  <h1 style={{
+                    color: calculatedAverage ? getGradeColors(calculatedAverage).color : '#858585',
+                    fontWeight: '500',
+                    fontSize: '.9rem',
+                    fontFamily: "'Montserrat', sans-serif",
+                    userSelect: 'none',
+                    WebkitUserSelect: 'none',
+                    msUserSelect: 'none',
+                  }}>
+                    {calculatedAverage ? `${calculatedAverage}%` : '-'}
+                  </h1>
+                  {activeTab === 'completed' && (
+                    <ChevronDown 
+                      size={20} 
+                      strokeWidth={1.5}
+                      style={{
+                        transform: isGradeExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
+                        transition: 'transform 0.3s ease',
+                        color: calculatedAverage ? getGradeColors(calculatedAverage).color : '#858585',
+                        marginTop: '10px',
+                        marginLeft: '5px',
+                        userSelect: 'none',
+                        WebkitUserSelect: 'none',
+                        msUserSelect: 'none',
+                      }}
+                    />
+                  )}
+                </div>
+              </GlassContainer>
+            </div>
           </div>
-        
 
-          
-          </div>
- 
+          {/* Spacer to prevent content from going under fixed header */}
+          <div style={{ height: '50px' }} />
 
+          {/* Graph Section */}
+          {activeTab === 'completed' && (
+            <div style={{
+              height: isGradeExpanded ? '220px' : '0',
+              overflow: 'hidden',
+              transition: 'height 0.3s ease',
+              opacity: isGradeExpanded ? 1 : 0,
+            }}>
+              {isGradeExpanded && (
+                <GradeProgressionChart grades={completedAssignments} period={classPeriod} />
+              )}
+            </div>
+          )}
 
-
-        
-          <ul style={{ listStyleType: 'none', marginTop: '0px',  }}>
+          {/* Content Section */}
+          <ul style={{ listStyleType: 'none', width: '92%' }}>
             {activeTab === 'completed' ? (
               completedAssignments.length === 0 ? (
                 <div style={{ textAlign: 'center', fontSize: '20px', fontFamily: "'montserrat', sans-serif", color: 'grey', marginTop: '20px' }}>
                   No completed assignments
                 </div>
               ) : (
-                <div style={{width: '100%',  }}>
-                {renderCompletedAssignments()}
-                </div>
+                renderCompletedAssignments()
               )
             ) : (
-              filteredAssignments[activeTab].length === 0 ? (
-                <div style={{ textAlign: 'left', fontSize: '20px', fontFamily: "'montserrat', sans-serif", color: 'grey', marginTop: '20px',}}>
-                  No {activeTab} assignments
+              filteredAssignments.active.length === 0 ? (
+                <div style={{ textAlign: 'left', fontSize: '20px', fontFamily: "'montserrat', sans-serif", color: 'grey', marginTop: '20px' }}>
+                  No active or upcoming assignments
                 </div>
               ) : (
-                <div style={{width: '100%' }} >
-              
-
-              <div style={{ marginTop: '-30px',
-      color: 'grey', display: 'flex', position: 'relative', bottom: '10px', zIndex: '10',   width: '100%',
- 
- alignItems: 'center',
-        marginLeft: '0%',}}>
-      <h1 style={{fontWeight: '600' ,
-         fontSize: '14px', width: '40%', maxWidth: '285px',
-         }}> Assignment Name</h1>
-
-      <h1 style={{fontWeight: '600' , fontSize: '14px', 
-      marginLeft: '5%', marginRight: '5%',
-      width: '270px',
-      }}>Date Assigned</h1>
-
-<h1 style={{fontWeight: '600' , fontSize: '14px', 
-       marginLeft: '5%', marginRight: '5%',
-      width: '270px',
-      }}>Date Due</h1>
-
-
-<h1 style={{fontWeight: '600' , fontSize: '14px', 
-      marginLeft: 'auto',
-      width: '270px',
-      marginRight: '4%'
-      
-      }}>Format</h1>
-
-
-
-
-
-
-
-
-      </div>
-
-
-
-
-
-
-              {renderAssignments(filteredAssignments[activeTab])}
-</div>
+                renderAssignments(filteredAssignments.active)
               )
             )}
           </ul>
-        
+        </div>
       </div>
     </div>
   );

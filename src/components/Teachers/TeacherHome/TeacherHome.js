@@ -1,8 +1,9 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { db, auth } from '../../Universal/firebase';
-import { collection, query, where, doc, getDoc, getDocs, updateDoc, arrayUnion, addDoc } from "firebase/firestore";
-import { CalendarClock, SquareX, ChevronDown, ChevronUp , Shapes} from 'lucide-react';
+import { collection, query, where, doc, getDoc, getDocs, addDoc } from "firebase/firestore";
+import { CalendarClock, SquareX, ChevronDown, ChevronUp , Shapes, CheckSquare, UserPlus} from 'lucide-react';
+import { glassStyles, GlassContainer } from '../../../styles';
 
 import { useState, useEffect } from 'react';
 import {  useNavigate, useLocation } from 'react-router-dom';
@@ -17,106 +18,104 @@ import Loader from '../../Universal/Loader';
 import { safeClassUpdate} from '../../teacherDataHelpers';
 import { v4 as uuidv4 } from 'uuid';
 import HomeNav from '../../Universal/HomeNavbar';
+import TabButtons from '../../Universal/TabButtons';
+import { createClassWithGrouping,updateExistingClassGroups } from './FunctionsGC';
+import Tutorials from './Tutorials';
 const TeacherHome = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [user] = useAuthState(auth);
   const [teacherData, setTeacherData] = useState(null);
-  const [modalOpen, setModalOpen] = useState(false);
-  const [schoolCode, setSchoolCode] = useState('');
- 
   const [successMessage, setSuccessMessage] = useState('');
   const [newClassId, setNewClassId] = useState('');
 
   const [showCreateClassModal, setShowCreateClassModal] = useState(false); // Add this line
+  useEffect(() => {
+    const updateGroups = async () => {
+      if (user && !localStorage.getItem('groupsUpdated')) {
+        try {
+          await updateExistingClassGroups(user.uid);
+          localStorage.setItem('groupsUpdated', 'true');
+        } catch (error) {
+          console.error('Error updating class groups:', error);
+        }
+      }
+    };
+    updateGroups();
+  }, [user]);
 
-  const handleCreateClass = async (e, period, classChoice) => {
+  // Modify your existing handleCreateClass function
+  const handleCreateClass = async (e, period, classChoice, classData) => {
     e.preventDefault();
     
     try {
-      const className = `Period ${period}`;
       const classId = uuidv4();
-      const classCode = Math.random().toString(36).substr(2, 6).toUpperCase();
       const teacherUID = auth.currentUser.uid;
-      const periodStyle = periodStyles[period];
   
-      const classData = {
-        teacherUID: teacherUID,
+      const result = await createClassWithGrouping({
+        teacherUID,
         classId,
-        classCode,
-        className,
+        period,
         classChoice,
-        background: periodStyle.background,
-        color: periodStyle.color,
-        period
-      };
-  
-      const result = await safeClassUpdate('createClass', classData);
+        classCode: classData.classCode
+      }, teacherUID);
       
-      if (result.data && result.data.success) {
-        setSuccessMessage(`${classChoice}, ${className}, was successfully added to your roster`);
+      if (result.success) {
+        setSuccessMessage(`Period ${period}, ${classChoice} Created Successfully`);
         setNewClassId(classId);
-        setShowCreateClassModal(false);  // Close modal immediately after successful creation
-        return true;  // Indicate success to the modal
+        setActiveTab('Classes'); // Switch back to Classes tab
+        return true;
       } else {
         throw new Error('Class creation failed');
       }
     } catch (err) {
       console.error('Error creating class:', err);
       alert(`Error creating class: ${err.message}. Please try again.`);
-      throw err;  // Propagate error to modal
+      throw err;
     }
   };
-
-
   useEffect(() => {
     const fetchTeacherData = async () => {
-      if (user) {
+      if (!user) return;
+
+      try {
+        // First get the teacher document
         const teacherRef = doc(db, 'teachers', user.uid);
         const teacherSnap = await getDoc(teacherRef);
+        
         if (teacherSnap.exists()) {
-          setTeacherData(teacherSnap.data());
+          const teacherData = teacherSnap.data();
+          
+          // Then fetch all classes where this teacher is the owner
+          const classesQuery = query(
+            collection(db, 'classes'),
+            where('teacherUID', '==', user.uid)
+          );
+          
+          const classesSnap = await getDocs(classesQuery);
+          const classes = [];
+          
+          classesSnap.forEach((doc) => {
+            classes.push({
+              classId: doc.id,
+              ...doc.data()
+            });
+          });
+          
+          setTeacherData({
+            ...teacherData,
+            classes: classes
+          });
         }
+      } catch (error) {
+        console.error("Error fetching teacher data:", error);
       }
     };
+
     fetchTeacherData();
   }, [user]);
 
-  const handleJoinOrganization = async () => {
-    try {
-      const schoolsQuery = query(collection(db, 'schools'), where('joinCode', '==', schoolCode));
-      const schoolsSnap = await getDocs(schoolsQuery);
 
-      if (!schoolsSnap.empty) {
-        const schoolDoc = schoolsSnap.docs[0];
-        const schoolData = schoolDoc.data();
-        const schoolRef = doc(db, 'schools', schoolDoc.id);
-
-        // Update teacher's document
-        const teacherRef = doc(db, 'teachers', user.uid);
-        await updateDoc(teacherRef, { 
-          school: schoolData.schoolName, 
-          schoolCode
-        });
-
-        // Add teacher UID to school's teachers array
-        await updateDoc(schoolRef, { teachers: arrayUnion(user.uid) });
-
-        // Update state
-        setTeacherData(prevData => ({ 
-          ...prevData, 
-          school: schoolData.schoolName,
-          schoolCode: schoolData.schoolCode
-        }));
-        setModalOpen(false);
-        setSchoolCode('');
-      } else {
-        alert('Invalid school code.');
-      }
-    } catch (error) {
-      console.error('Error joining organization:', error);
-    }
-  };
   useEffect(() => {
     if (location.state?.successMessage) {
       setSuccessMessage(location.state.successMessage);
@@ -145,9 +144,7 @@ const TeacherHome = () => {
     }
   };
 
-  const handleButtonLeave = (e) => {
-    e.currentTarget.style.boxShadow = 'none';
-  };
+  
   const hoverColors = [
     { background: '#F8CFFF', border: '#E01FFF' },
     { background: '#A3F2ED', border: '#4BD682' },
@@ -157,484 +154,245 @@ const TeacherHome = () => {
   ];
   
   const periodStyles = {
-    1: { background: "#D4FFFD", color: "#1CC7BC", borderColor: "#1CC7BC" },
-    2: { background: "#FCEDFF", color: "#E01FFF", borderColor: "#E01FFF" },
-    3: { background: "#FFCEB2", color: "#FD772C", borderColor: "#FD772C" },
-    4: { background: "#FFECA9", color: "#F0BC6E", borderColor: "#F0BC6E" },
-    5: { background: "#DBFFD6", color: "#4BD682", borderColor: "#4BD682" },
-    6: { background: "#F0EDFF", color: "#8364FF", borderColor: "#8364FF" },
-    7: { background: "#8296FF", color: "#3D44EA", borderColor: "#3D44EA" },
-    8: { background: "#FF8E8E", color: "#D23F3F", borderColor: "#D23F3F" },
+    1: { variant: 'teal', color: "#1EC8bc", borderColor: "#83E2F5" },
+    2: { variant: 'purple', color: "#8324e1", borderColor: "#cf9eff" },
+    3: { variant: 'orange', color: "#ff8800", borderColor: "#f1ab5a" },
+    4: { variant: 'yellow', color: "#ffc300", borderColor: "#Ecca5a" },
+    5: { variant: 'green', color: "#29c60f", borderColor: "#aef2a3" },
+    6: { variant: 'blue', color: "#1651d4", borderColor: "#b5ccff" },
+    7: { variant: 'pink', color: "#d138e9", borderColor: "#f198ff" },
+    8: { variant: 'red', color: "#c63e3e", borderColor: "#ffa3a3" },
   };
 
 
   const classesRef = collection(db, 'classes');
-  const teacherUID = auth.currentUser.uid;
-  const classQuery = query(classesRef, where('teacherUID', '==', teacherUID));
-  const [querySnapshot, loading, error] = useCollection(classQuery);
+  const [activeTab, setActiveTab] = useState('Classes'); // State for active tab
 
-  const classes = querySnapshot?.docs.map(doc => ({
-    id: doc.id,
-    ...doc.data(),
-  }));
  
-  const getOrdinalSuffix = (num) => {
-    const number = parseInt(num);
-    if (number === 1) return "st";
-    if (number === 2) return "nd";
-    if (number === 3) return "rd";
-    return "th";
+ 
+  const handleTabClick = (tab) => {
+    setActiveTab(tab);
   };
 
-  return (
-    <div style={{  display: 'flex', flexDirection: 'column', backgroundColor: '#white', flexWrap: 'wrap' }}>
-     <HomeNav userType="teacher" />
+   return (
+    <div style={{ display: 'flex', flexDirection: 'column', backgroundColor: '#white', flexWrap: 'wrap' }}>
+      <HomeNav userType="teacher" />
       <main style={{ flexGrow: 1, display: 'flex', flexDirection: 'column', alignItems: 'left', marginTop: '10px', backgroundColor: '#white', marginBottom: '230px' }}>
-
-      {successMessage && (
-  <div style={{
-    position: 'fixed',
-    bottom: '20px',
-    zIndex: '10000',
-    right: '4%',
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center'
-  }}>
-   
-   
-
-    <div style={{
-      backgroundColor: '#CCFFC3',
-      marginLeft: '0%',
-      marginRight: 'auto',
-      border: '1px solid #4BD682',
-      borderRadius: '10px',
-      padding: '0px 20px',
-      height: '50px',
-      display: 'flex',
-      alignItems: 'left',
-      marginTop: '0px',
-      marginBottom: '20px',
-      whiteSpace: 'nowrap'
-    }}>
-      <p style={{ color: '#45B434', fontWeight: '600', marginRight: '20px' }}>{successMessage}</p>
-      <button
-        onClick={handleAddStudents}
-        style={{
-          backgroundColor: '#FFF5D2',
-          color: '#FFAE00',
-          fontSize: '16px',
-          marginTop: '10px',
-          fontFamily: "'montserrat', sans-serif",
-          fontWeight: '500',
-          height: '30px',
-          border: '1px solid #FFAE00',
-          borderRadius: '5px',
-          marginRight: '10px',
-          cursor: 'pointer'
-        }}
-      >
-        Add Students
-      </button>
-      <button
-        onClick={handleDismiss}
-        style={{
-          backgroundColor: '#FFFFFF',
-          color: 'lightgrey',
-          marginTop: '10px',
-          fontSize: '16px',
-          fontFamily: "'montserrat', sans-serif",
-          fontWeight: '500',
-          height: '30px',
-          border: '1px solid lightgrey',
-          borderRadius: '5px',
-          cursor: 'pointer'
-        }}
-      >
-        Dismiss
-      </button>
-    </div>
-  </div>
-)}
-        {loading && <p>Loading...</p>}
-        {error && <p>Error: {error.message}</p>}
-
-
-        <div style={{width: '100%', borderBottom: '1px solid lightgrey',  marginBottom: '-40px'}}>
-            <h1 style={{
-fontSize: '30px',
-marginLeft: 'calc(4% + 200px)',
-fontWeight: '600'
-
-
-            }}>
-Home    </h1>
-
-<button
-           
-            style={{
-              background: 'none',
-              border: 'none',
-              fontSize: '14px',
-              cursor: 'pointer',
-              
-marginLeft: 'calc(4% + 200px)',
-              fontWeight: "600",
-              padding: '12px 10px',
-              fontFamily: "'Montserrat', sans-serif",
-              borderBottom:  '2px solid #E01FFF',
-              color:  '#E01FFF' ,
-            }}
-          >
-            Classes
-          </button>
-      
-          <button
-           
-           style={{
-             background: 'none',
-             border: 'none',
-             fontSize: '14px',
-             cursor: 'pointer',
-             marginLeft: '50px',
-
-             fontWeight: "600",
-             padding: '12px 10px',
-             fontFamily: "'Montserrat', sans-serif",
-             borderBottom:  '2px solid transparent',
-             color:  'grey' ,
-           }}
-         >
-           Tutorials
-         </button>
-
-            </div>
-
-
-
-
-
-
-
-
-
-
-        <div style={{
-          marginTop: '40px',
-          display: 'flex',
-         flexWrap:'wrap', 
-         width: 'calc(92% - 200px)',
-         marginLeft: 'calc(200px + 4%)',
-         fontFamily: "'montserrat', sans-serif",
-          backgroundColor: 'white',
-          
-          }}>
-
-           
-         
-
-<div style={{ fontFamily: "'montserrat', sans-serif",width: '100%', display: 'flex', height: '30px',
-  marginBottom: '10px', marginTop: '30px',
-
-}}>
-            <h4 style={{
-              fontSize: '25px', 
-              marginTop: '10px',
-             fontWeight: '600'
-            }}>Your Classes</h4>
-
-<button
-            onClick={() => setShowCreateClassModal(true)}
-            style={{
-              marginRight: '4%', 
-              backgroundColor: 'white',
-              border: '1px solid lightgrey',
-              marginLeft: 'auto',
-              fontSize: '16px', 
-              width: '140px',
-              marginTop: '0px',
-              transition: '.3s', 
-              color: 'grey',
-              borderRadius: '5px',
-              padding: '10px 5px', 
-              fontWeight: '600',
-              fontFamily: "'montserrat', sans-serif",
-              textAlign: 'center', 
-              lineHeight: '20px',
-              cursor: 'pointer',
-              height: '40px',
-            }}
-            onMouseEnter={(e) => {
-              e.target.style.color = '#45B434';
-            }}
-            onMouseLeave={(e) => {
-              e.target.style.color = 'grey';
-            }}
-          >
-          
-            Create Class +
-          </button>
-          
-            </div>
-           
-       
-
-            {modalOpen && (
+        
+        {/* Success Message */}
+        {successMessage && (
           <div style={{
             position: 'fixed',
-            top: '0',
-            left: '0',
-            right: '0',
-            bottom: '0',
-            backdropFilter: 'blur(15px)',
-            backgroundColor: 'rgba(255, 255, 255, 0.8)',
+            bottom: '20px',
+            zIndex: '10000',
+            right: '4%',
             display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-zIndex: '100'
+            flexDirection: 'column',
+            alignItems: 'center'
           }}>
+            <GlassContainer
+            variant={"green"}
+            
+            size={1}
+            >
             <div style={{
-              backgroundColor: 'transparent',
-              padding: '20px',
-              borderRadius: '10px',
-              textAlign: 'center',
+           
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              backgroundColor: 'transparent', // green-500
+              color: 'green',
+              padding: '0px 16px',
+              borderRadius: '8px',
+              animation: 'fadeIn 0.3s ease-in-out',
+              zIndex: 50,
+              fontFamily: "'Montserrat', sans-serif"
             }}>
-              <h3
-             
-              style={{ fontSize: '80px', fontFamily: '"montserrat", sans-serif', marginTop:' -50px', marginBottom: '0px'}}
-              >School Code</h3>
-              <input
-                type="text"
-                value={schoolCode}
-                onChange={(e) => setSchoolCode(e.target.value)}
-              style={{  fontFamily: "'montserrat', sans-serif", fontSize: '100px',background: "white", borderRadius: '20px', border: '4px solid lightgrey',
-                width: '440px',paddingLeft: '60px',paddingRight: '60px', paddingTop: '10px', paddingBottom: '10px', fontWeight: 'bold',
-                 textAlign: 'Left', 
-                  outline: 'none', }} />  
-              <br />
+              <CheckSquare style={{ width: '20px', height: '20px' }} />
+              <p style={{ color: 'green', fontWeight: '500', marginRight: '20px' }}>{successMessage}</p>
               <button
-                onClick={handleJoinOrganization}
-                style={{ 
-                  padding: '10px 20px', 
-                  backgroundColor: '#AEF2A3',
-              border: '5px solid #45B434',
-              color: '#45B434',
-                    borderRadius: '15px',
-                     cursor: 'pointer', 
-                    marginTop: '30px',
-                     fontFamily: "'montserrat', sans-serif",
-                     fontWeight: 'bold',
-                     fontSize: '30px',
-                     width: '45%',
-                     marginRight: '10px' }}
+                onClick={handleAddStudents}
+                style={{
+                  backgroundColor: 'transparent',
+                  color: 'grey',
+                  fontSize: '14px',
+                  fontFamily: "'montserrat', sans-serif",
+                  fontWeight: '500',
+                  height: '30px',
+                  border: 'none',
+                  opacity: '90%',
+                  borderRadius: '5px',
+                  marginRight: '10px',
+                  cursor: 'pointer'
+                }}
               >
-                Join
+              Add Students  <UserPlus size={14}/> 
               </button>
               <button
-                onClick={() => setModalOpen(false)}
-                style={{ 
-
-                  padding: '10px 20px', 
-                  backgroundColor: '#f4f4f4',
-              border: '5px solid lightgrey',
-              color: 'grey',
-                    borderRadius: '15px',
-                     cursor: 'pointer', 
-                    marginTop: '30px',
-                     fontFamily: "'montserrat', sans-serif",
-                     fontWeight: 'bold',
-                     fontSize: '30px',
-                     width: '45%',
-                     marginRight: '10px'
-                 }}
+                onClick={handleDismiss}
+                style={{
+                  backgroundColor: 'transparent',
+                  opacity: '100%',
+                  color: 'grey',
+                  fontSize: '14px',
+                  fontFamily: "'montserrat', sans-serif",
+                  fontWeight: '500',
+                  height: '30px',
+                  border: 'none',
+                  borderRadius: '5px',
+                  cursor: 'pointer'
+                }}
               >
-                Cancel
+                Dismiss
               </button>
             </div>
+            </GlassContainer>
           </div>
         )}
 
-
-   
-            {classes && classes
-          .sort((a, b) => a.className.localeCompare(b.className)) // Sort alphabetically by className
-          .map((classItem, index) => {
-            const periodNumber = parseInt(classItem.className.split(' ')[1]);
-            const periodStyle = periodStyles[periodNumber] || { background: '#F4F4F4', color: 'grey' };
-            const suffix = getOrdinalSuffix(periodNumber);
-            return (
-             
-             
-            
-                <button 
-                key={classItem.id}
-                    onClick={() => navigate(`/class/${classItem.id}/`)} 
-                    style={{ 
-                      marginRight: '3%',
-                      flex: 1,
-                      width: "30%",
-                      maxWidth: '30%',
-                      marginTop: '20px', 
-                      height: '150px',
-                      display: 'flex',
-                      backgroundColor: 'transparent',  
-                      color: 'grey', 
-                      cursor: 'pointer',
-                      
-                      border: '1px solid #ededed',
-                      boxShadow: 'rgba(50, 50, 205, 0.05) 0px 2px 5px 0px, rgba(0, 0, 0, 0.05) 0px 1px 1px 0px',
-                      borderRadius: '15px', 
-                      textAlign: 'left',
-                      flexDirection: 'column',
-                      alignItems: 'left',
-                      transition: '.2s', 
-                      position: 'relative',
-                      zIndex: '1',
-                      fontFamily: "'montserrat', sans-serif",
-                      transform: 'scale(1)',
-                    }}
-                    onMouseEnter={(e) => {
-                      e.target.style.borderColor = '#dddddd';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.target.style.borderColor = '#ededed';
-                    }}
-                    className="hoverableButton"
-                  >
-                 <div style={{display: 'flex', padding: '20px'}}>
-                   <h1 style={{
-                    fontSize: '30px',
-                    borderRadius: '5px',
-                    backgroundColor: periodStyle.background,
-                    
-                    color: periodStyle.color,
-                    height: '40px',
-                    marginTop: '6px',
-                    lineHeight: '40px',
-                    fontWeight: '600',
-                   
-                    padding: '0px 10px',
-                  }}>
-                    {periodNumber}
-                    <span style={{
-                    fontSize: '30px',
-                    fontWeight: '600',
-                    marginLeft: '2px',
-                  }}>
-                    {suffix}
-                  </span>
-                  </h1>
-                
-                  <h1 style={{
-                    fontSize: '40px',
-                    
-                    color: periodStyle.color,
-                    margin: 0,
-                    fontWeight: '600',
-                    marginLeft: '10px',
-                  }}>
-                    Period
-                  </h1>
-                  </div>
-
-
-                <p style={{ overflow: 'hidden',
-                    textOverflow: 'ellipsis', marginLeft: '20px',
-                    textAlign: 'left',color: 'lightgrey', fontWeight: '600', 
-                    marginTop: '0px',fontSize: '16px',
-                    whiteSpace: 'nowrap',width: '268px', background: 'tranparent',   }}>{classItem.classChoice} </p>
-                    
-                
-                
-                  </button>
-            
-               );
-              })
-            }
-</div>
-
-
-
-
-
-<div style={{width: '1000px', marginRight: 'auto', marginLeft: 'auto', marginTop: '30px', display: 'flex'}}>
-
-          {teacherData && teacherData.school ? (
-         <div
-         style={{ 
-            
-          
-
-          marginTop: '10px', marginLeft: 'auto',
-          marginRight: 'auto',
-           fontSize: '30px',  color: 'lightgrey' }}>
-            
-         <h4 style={{ 
-            marginLeft: '-400px',
-            fontFamily: "'montserrat', sans-serif",
-            marginTop: '0px', 
-             fontSize: '30px',  color: 'lightgrey' }}> {teacherData.school}</h4>
-             </div>
-        ) : (
-          <button
-            onClick={() => setModalOpen(true)}
-            style={{
-              marginRight: 'auto',
-              backgroundColor: 'white',
-              border: '4px solid white',
-              fontWeight: '600',
-              color: 'grey',
-              borderRadius: '10px',
-              padding: '20px 20px',
-              fontFamily: "'montserrat', sans-serif",
-              height: '45px',
-              cursor: 'pointer',
-             marginTop: '0px',
-             lineHeight: '0px',  boxShadow: '1px 1px 5px 1px rgb(0,0,155,.1)',
-             
-             marginLeft: '-570px',
-              fontSize: '20px',
-              transition: '.3s',
-            }}
-            onMouseEnter={(e) => {
-              e.target.style.color = '#020CFF';
-            }}
-            onMouseLeave={(e) => {
-              e.target.style.color = 'grey';
-            }}
-          >
-            Join School
-          </button>
-        )}
-
-
-        </div>
+        {/* Loading and Error States */}
        
+        {/* Tab Navigation */}
+        <div style={{ width: '100%', marginBottom: '-40px', alignItems: 'center', display: 'flex' }}>
+          <h1 style={{
+            fontSize: '1.5rem',
+            marginLeft: 'calc(4% + 200px)',
+            fontWeight: '400'
+          }}>
+            Welcome, {teacherData?.firstName}
+          </h1>
+
+          <div style={{
+            marginLeft: 'auto',
+            display: 'flex',
+            gap: '20px',
+            marginRight: 'calc(4% )',
+            alignItems: 'center'
+          }}>
+            <TabButtons
+              tabs={[
+                { id: 'Classes', label: 'Classes' },
+                { id: 'Tutorials', label: 'Tutorials' },
+                { id: 'Create Class', label: 'Create Class +' }
+              ]}
+              activeTab={activeTab}
+              onTabClick={handleTabClick}
+              variant="teal"
+              color="#00BBFF"
+             
+            />
+          </div>
+        </div>
+
+        {/* Content Area */}
+        <div style={{
+          marginTop: '100px',
+          display: 'flex',
+          flexWrap: 'wrap',
+          width: 'calc(92% - 200px)',
+          marginLeft: 'calc(200px + 4%)',
+          fontFamily: "'montserrat', sans-serif", 
+          backgroundColor: 'white',
+        }}>
+          {activeTab === 'Classes' ? (
+            <>
+              {/* Classes List */}
+              {teacherData && teacherData.classes && teacherData.classes
+                .sort((a, b) => a.period - b.period)
+                .map((classItem, index) => {
+                  const periodNumber = classItem.period;
+                  const periodStyle = periodStyles[periodNumber] || { background: '#F4F4F4', color: 'grey' };
+                 return (
+                    <GlassContainer
+                      key={classItem.classId}
+                      variant={periodStyle.variant}
+                      
+          enableRotation={true}
+                      size={3}
+                      onClick={() => navigate(`/class/${classItem.classId}/`)} 
+                      style={{ 
+                        marginRight: '3%',
+                        width: "20rem",
+                        marginTop: '40px', 
+                        height: '120px',
+                        cursor: 'pointer',
+                        transition: '.2s', 
+                        alignContent: 'center',
+                        fontFamily: "'montserrat', sans-serif",
+                        transform: 'scale(1)',
+                      }}
+                      contentStyle={{
+                        padding: '20px 50px',
+                        margin: '0',
+                        height: '100%',
+                        boxSizing: 'border-box',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        justifyContent: 'center',
+                      }}
+                      className="hoverableButton"
+                    >
+                      <div style={{ display: 'flex' }}>
+                      <h1 style={{
+                        fontSize: '2rem',
+                        color: periodStyle.color,
+                        margin: '0',
+                        fontWeight: '500',
+                        textShadow: '0px 2px 3px rgba(255, 255, 255, 0.8)',
+                        WebkitBackgroundClip: 'text',
+                        MozBackgroundClip: 'text',
+                        backgroundClip: 'text'
+                      }}>
+                        Period {periodNumber}
+                      </h1>
+                      </div>
+
+                      <p style={{
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        textAlign: 'left',
+                        color: periodStyle.borderColor,
+                        fontWeight: '500', 
+                        fontSize: '1.3rem',
+                        whiteSpace: 'nowrap',
+                        background: 'transparent',
+                        margin: '0',
+                        marginTop: '10px',
+                        textShadow: '0px 2px 3px rgba(255, 255, 255, 0.8)',
+                        WebkitBackgroundClip: 'text',
+                        MozBackgroundClip: 'text',
+                        backgroundClip: 'text'
+                      }}>
+                        {classItem.classChoice}
+                      </p>
+                    </GlassContainer>
+                  );
+                })
+              }
+            </>
+          ) : activeTab === 'Tutorials' ? (
+            // Render Tutorials Component
+            <Tutorials />
+          ) : activeTab === 'Create Class' ? (
+            // Render Create Class Component
+            <CreateClassModal 
+              handleCreateClass={handleCreateClass}
+              setShowCreateClassModal={() => setActiveTab('Classes')}
+              isInline={true}
+            />
+          ) : null}
+        </div>
 
 
 
 
 
 
-
-        
-
-        {showCreateClassModal && (
-  <CreateClassModal 
-    handleCreateClass={handleCreateClass}
-    setShowCreateClassModal={setShowCreateClassModal}
-  />
-)}
 
       </main>
-
-      <FooterAuth style={{marginTop: '100px'}}/>
-      
+      <FooterAuth style={{ marginTop: '100px' }}/>
     </div>
-    
   );
-  
 };
 
 export default TeacherHome;

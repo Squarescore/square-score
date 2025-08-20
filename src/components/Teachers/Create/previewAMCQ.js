@@ -1,573 +1,456 @@
-import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import {
-  SquareArrowLeft,
-  Pencil,
-  Check,
-  Square,
-  CheckSquare,
-  X,
-  SquareX,
-  PencilOff,
-  SquareCheck,
-  Eye,
-  YoutubeIcon,
-} from 'lucide-react';
-import { doc, updateDoc } from 'firebase/firestore';
-import { db } from '../../Universal/firebase';
+import React, { useState, useEffect, useRef } from 'react';
+import { GlassContainer } from '../../../styles';
+import { Eye, ChevronLeft, ChevronRight, Check, HelpCircle } from 'lucide-react';
 
-const PreviewAMCQ = ({ questions, onBack, onSave, assignmentId, showCloseButton = false }) => {
+const DifficultyTooltip = ({ difficulty }) => {
+  const numDifficulty = parseFloat(difficulty);
+  const level = numDifficulty <= 0.9 ? 'Easy' : numDifficulty <= 1.9 ? 'Medium' : 'Hard';
+  
+  return (
+    <div className="tooltip" style={{
+      position: 'absolute',
+      top: '50%',
+      left: 'calc(100% + 15px)', // Position to the right with some spacing
+      transform: 'translateY(-50%)',
+      backgroundColor: 'rgb(255,255,255,.6)', 
+      backdropFilter: 'blur(5px)',
+      padding: '12px 15px',
+      borderRadius: '6px',
 
-  const [hoveredChoice, setHoveredChoice] = useState(null);
-  const [editingQuestionIndex, setEditingQuestionIndex] = useState(null);
-  const [editedQuestions, setEditedQuestions] = useState(questions);
+      boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+      width: '180px',
+      zIndex: 1000,
+      border: '1px solid #ddd'
+    }}>
+      <div style={{ 
+        marginBottom: '12px', 
+        fontSize: '12px', 
+        fontWeight: '500',
+        color: '#666'
+      }}>
+        {level} ({numDifficulty.toFixed(1)})
+      </div>
+      <div style={{ 
+        position: 'relative',
+        height: '3px',
+        backgroundColor: '#f5f5f5',
+        borderRadius: '2px',
+        marginBottom: '15px'
+      }}>
+        {[0, 1, 2, 3].map(mark => (
+          <div key={mark} style={{
+            position: 'absolute',
+            left: `${(mark / 3) * 100}%`,
+            bottom: '-15px',
+            transform: 'translateX(-50%)',
+            fontSize: '10px',
+            color: '#999'
+          }}>
+            {mark}
+          </div>
+        ))}
+        <div style={{
+          position: 'absolute',
+          left: '0',
+          width: `${Math.min((numDifficulty / 3) * 100, 100)}%`,
+          height: '100%',
+          backgroundColor: getDifficultyColor(difficulty),
+          borderRadius: '2px'
+        }} />
+      </div>
+      {/* Arrow pointing left */}
+      <div style={{
+        position: 'absolute',
+        left: '-6px',
+        top: '50%',
+        transform: 'translateY(-50%) rotate(45deg)',
+        width: '10px',
+        height: '10px',
+        backgroundColor: 'white',
+        border: '1px solid #eee',
+        borderRight: 'none',
+        borderBottom: 'none'
+      }} />
+    </div>
+  );
+};
 
-  const choiceStyles = {
-    a: { background: '#C7CFFF', color: '#020CFF' },
-    c: { background: '#D6FFCF', color: '#2BB514' },
-    b: { background: '#F6C1FF', color: '#E441FF' },
-    d: { background: '#FFEFCC', color: '#FFAE00' },
-    e: { background: '#CAFFF4', color: '#00F1C2' },
-    f: { background: '#C2FBFF', color: '#CC0000' },
-    g: { background: '#E3BFFF', color: '#8364FF' },
-    h: { background: '#9E9E9E', color: '#000000' },
+const getDifficultyLabel = (difficulty) => {
+  const numDifficulty = parseFloat(difficulty);
+  const level = numDifficulty <= 0.9 ? 'E' : numDifficulty <= 1.9 ? 'M' : 'H';
+  return `${level}(${numDifficulty.toFixed(1)})`;
+};
+
+const getDifficultyColor = (difficulty) => {
+  const numDifficulty = parseFloat(difficulty);
+  if (numDifficulty <= 0.9) return '#2BB514';
+  if (numDifficulty <= 1.9) return '#FF8800';
+  return '#FF2D2D';
+};
+
+const PreviewAMCQ = ({ questions, sectors, onBack, onSave, showCloseButton = true }) => {
+  const [currentSector, setCurrentSector] = useState(1);
+  const [currentDifficulty, setCurrentDifficulty] = useState('all');
+  const [selectedChoices, setSelectedChoices] = useState(new Map());
+  const containerRef = useRef(null);
+
+  // Initialize selectedChoices with correct answers expanded
+  useEffect(() => {
+    const initialSelectedChoices = new Map();
+    getAllQuestions().forEach(question => {
+      initialSelectedChoices.set(question.question, question.correctChoice);
+    });
+    setSelectedChoices(initialSelectedChoices);
+  }, [currentDifficulty]);
+
+  const getQuestionsForSector = (sectorNumber) => {
+    const sectorQuestions = questions.reduce((acc, question) => {
+      if (question.sectorNumber === sectorNumber) {
+        if (currentDifficulty === 'all' || 
+            (currentDifficulty === 'easy' && question.difficultyScore <= 0.9) ||
+            (currentDifficulty === 'medium' && question.difficultyScore > 0.9 && question.difficultyScore <= 1.9) ||
+            (currentDifficulty === 'hard' && question.difficultyScore > 1.9)) {
+          acc.push(question);
+        }
+      }
+      return acc;
+    }, []);
+    return sectorQuestions;
   };
 
-  const difficultyStyles = {
-    Easy: { background: '#FDFFC1', color: '#FFD13B' },
-    Medium: { background: '#FFE2AC', color: '#FFAE00' },
-    Hard: { background: '#FFB764', color: '#E07800' },
-  };
-
-  const difficultyOrder = ['Easy', 'Medium', 'Difficult'];
-
-  const handleDifficultyClick = (questionIndex) => {
-    if (editingQuestionIndex === questionIndex) {
-      const currentIndex = difficultyOrder.indexOf(
-        editedQuestions[questionIndex].difficulty
-      );
-      const nextIndex = (currentIndex + 1) % difficultyOrder.length;
-      const nextDifficulty = difficultyOrder[nextIndex];
-      handleDifficultyChange(questionIndex, nextDifficulty);
-    }
-  };
-
-  const getChoiceStyle = (choice) => {
-    return (
-      choiceStyles[choice.toLowerCase()] || { background: '#E0E0E0', color: '#000000' }
+  const getAllQuestions = () => {
+    return sectors.flatMap((sector, index) => 
+      getQuestionsForSector(index + 1)
     );
   };
 
-
-  const handleEdit = (index) => {
-    setEditingQuestionIndex(index === editingQuestionIndex ? null : index);
+  const getChoiceStyle = (choice) => {
+    const styles = {
+      a: { background: '#B6C2FF', color: '#020CFF', variant: 'blue' },
+      b: { background: '#B4F9BC', color: '#2BB514', variant: 'green' },
+      c: { background: '#FFECAF', color: '#F4A700', variant: 'yellow' },
+      d: { background: '#F6C0FF', color: '#E01FFF', variant: 'pink' },
+      e: { background: '#ADFFFB', color: '#00AAB7', variant: 'teal' },
+    };
+    return styles[choice.toLowerCase()] || { background: '#E0E0E0', color: '#000000', variant: 'clear' };
   };
 
-  const handleQuestionChange = (index, field, value) => {
-    const updatedQuestions = [...editedQuestions];
-    updatedQuestions[index][field] = value;
-    setEditedQuestions(updatedQuestions);
-  };
-
-  const handleChoiceChange = (questionIndex, choice, value) => {
-    const updatedQuestions = [...editedQuestions];
-    updatedQuestions[questionIndex][choice] = value;
-    setEditedQuestions(updatedQuestions);
-  };
-
-  const handleExplanationChange = (questionIndex, choice, value) => {
-    const updatedQuestions = [...editedQuestions];
-    updatedQuestions[questionIndex][`explanation_${choice}`] = value;
-    setEditedQuestions(updatedQuestions);
-  };
-
-  const handleCorrectAnswerChange = (questionIndex, newCorrectChoice) => {
-    const updatedQuestions = [...editedQuestions];
-    updatedQuestions[questionIndex].correct = newCorrectChoice;
-    setEditedQuestions(updatedQuestions);
-  };
-
-  const handleDifficultyChange = (questionIndex, newDifficulty) => {
-    const updatedQuestions = [...editedQuestions];
-    updatedQuestions[questionIndex].difficulty = newDifficulty;
-    setEditedQuestions(updatedQuestions);
-  };
-
-  const handleDeleteChoice = (questionIndex, choiceToDelete) => {
-    if (window.confirm('Are you sure you want to delete this choice?')) {
-      const updatedQuestions = [...editedQuestions];
-      const question = updatedQuestions[questionIndex];
-
-      // Remove the choice and its explanation
-      delete question[choiceToDelete];
-      delete question[`explanation_${choiceToDelete}`];
-
-      // If the deleted choice was the correct answer, assign a new correct answer
-      if (question.correct.toLowerCase() === choiceToDelete) {
-        const remainingChoices = Object.keys(question).filter((key) =>
-          key.match(/^[a-z]$/)
-        );
-        if (remainingChoices.length > 0) {
-          question.correct = remainingChoices[0];
-        } else {
-          question.correct = '';
-        }
+  const toggleChoiceExplanation = (questionId, choiceLetter) => {
+    setSelectedChoices(prev => {
+      const newMap = new Map(prev);
+      if (newMap.get(questionId) === choiceLetter) {
+        newMap.delete(questionId);
+      } else {
+        newMap.set(questionId, choiceLetter);
       }
-
-      setEditedQuestions(updatedQuestions);
-      saveChanges();
-    }
+      return newMap;
+    });
   };
-
-  const saveChanges = async () => {
-    try {
-      const assignmentRef = doc(db, 'assignments', assignmentId);
-      await updateDoc(assignmentRef, { questions: editedQuestions });
-      console.log('Changes saved successfully');
-    } catch (error) {
-      console.error('Error saving changes:', error);
-    }
-  };
-
-  useEffect(() => {
-    if (editingQuestionIndex === null) {
-      saveChanges();
-    }
-  }, [editingQuestionIndex]);
 
   return (
-
-    <div
-      style={{
-        width: '800px',
-        position: 'absolute', 
-        top:'-140px',  left:' 50%', transform: 'translatex(-50%) ',
-      height: '530px',
-      background:" white",
-        boxShadow: '1px 1px 10px 1px rgb(0,0,155,.1)',
-        borderRadius: '30px',
-        marginLeft: 'auto',
-        marginRight: 'auto',
-        fontFamily: "'montserrat', sans-serif",
-        zIndex: 100,
-      }}
-    >
-      <div
+    <div style={{ zIndex: '10', position: 'absolute', top: '-220px', left: '50%', transform: 'translatex(-50%)' }}>
+      <GlassContainer
+        variant="clear"
+        size={2}
         style={{
-          display: 'flex',
-          marginTop: '10px',
-          width: '780px',
-          height: '70px',
-          marginBottom: '10px',
-          position: 'relative',
+          width: '800px',
+          marginTop: '20px'
+        }}
+        contentStyle={{
+          padding: '30px'
         }}
       >
-
-        <h1
-          style={{
-            marginLeft: '40px',
-            fontFamily: "'montserrat', sans-serif",
-            color: 'black',
-            fontSize: '35px',
-            fontWeight: '600',
+        <div style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '20px'
+        }}>
+          {/* Header with Preview text and filters */}
+          <div style={{
             display: 'flex',
-            marginTop: '10px',
-          }}
-        >
-         <Eye size={40} style={{marginLeft: '-10px', marginRight: "20px", marginTop: '5px'}}/> Question Preview{' '}
-        </h1>
-      </div>
-      <div style={{ display: 'flex', marginBottom: '0px', marginTop: '-20px'}}>
-        <h1
-          style={{
-            fontSize: '14px',
-            fontWeight: '600',
-            marginLeft: '30px',
-            color:'lightgrey',
-            marginTop: '17px',
-          }}
-        >
-          {' '}
-          Click on Pencil to edit , hover over choice for explanation{' '}
-        </h1>
-        <h1
-          style={{
-            fontSize: '14px',
-            fontWeight: '600',
-            background: '#FDFFC1',
-            color: '#FFD13B',
-            padding: '5px 10px',
-            borderRadius: '5px',
-            marginLeft: '110px',
-          }}
-        >
-          {' '}
-          Easy
-        </h1>
-        <h1
-          style={{
-            fontSize: '14px',
-            fontWeight: '600',
-            background: '#FFE2AC',
-            color: '#FFAE00',
-            padding: '5px 10px',
-            borderRadius: '5px',
-            marginLeft: '10px',
-          }}
-        >
-          {' '}
-          Medium
-        </h1>
-        <h1
-          style={{
-            fontSize: '14px',
-            fontWeight: '600',
-            background: '#FFB764',
-            color: '#E07800',
-            padding: '5px 10px',
-            borderRadius: '5px',
-            marginLeft: '10px',
-          }}
-        >
-          {' '}
-          Hard
-        </h1>
-      </div>
-<div style={{height: '400px', overflowY: 'auto',}}>
-      {editedQuestions.map((question, questionIndex) => (
-        <div
-          key={questionIndex}
-          style={{
-            padding: '20px',
-            marginBottom: '20px',
-          }}
-        >
-          <div
-            style={{
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            marginBottom: '10px'
+          }}>
+            <div style={{
               display: 'flex',
               alignItems: 'center',
-              position: 'relative',
-              width: '95%',marginLeft: 'auto', marginRight: 'auto',
-              marginBottom: '30px',
+              gap: '10px'
+            }}>
+              <Eye size={25} 
+              strokeWidth={1.5} color="#666" />
+              <span style={{
+                fontSize: '1.5rem',
+                fontWeight: '400',
+                color: '#333',
+                fontFamily: "'Montserrat', sans-serif"
+              }}>
+                Question Preview
+              </span>
+            </div>
+
+            {/* Difficulty Filter */}
+            <div style={{
+              display: 'flex',
+              gap: '10px'
+            }}>
+              {['all', 'easy', 'medium', 'hard'].map(difficulty => {
+                const isSelected = currentDifficulty === difficulty;
+                
+                return isSelected ? (
+                  <div key={difficulty}>
+                    <GlassContainer
+                      variant="green"
+                      size={0}
+                      onClick={() => setCurrentDifficulty(difficulty)}
+                      contentStyle={{
+                        padding: '5px 15px',
+                        fontFamily: "'Montserrat', sans-serif",
+                        fontSize: '0.9rem',
+                        fontWeight: "500",
+                        color: '#16a34a',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '4px',
+                        cursor: 'pointer',
+                        textTransform: 'capitalize'
+                      }}
+                    >
+                      {difficulty}
+                    </GlassContainer>
+                  </div>
+                ) : (
+                  <button
+                    key={difficulty}
+                    onClick={() => setCurrentDifficulty(difficulty)}
+                    style={{
+                      padding: '5px 15px',
+                      borderRadius: '50px',
+                      border: '1px solid #ddd',
+                      background: 'white',
+                      color: '#666',
+                      cursor: 'pointer',
+                      fontFamily: "'Montserrat', sans-serif",
+                      fontSize: '0.9rem',
+                      textTransform: 'capitalize'
+                    }}
+                  >
+                    {difficulty}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Questions Display */}
+          <div 
+            ref={containerRef}
+            style={{ 
+              maxHeight: '600px', 
+              overflowY: 'auto',
+              paddingRight: '10px'
             }}
           >
-            <div
-              onClick={() => handleDifficultyClick(questionIndex)}
-              style={{
-                width: '20px',
-                height: '20px',
-                background: difficultyStyles[question.difficulty]?.background,
-                border: `5px ${
-                  editingQuestionIndex === questionIndex ? 'dashed' : 'solid'
-                } ${difficultyStyles[question.difficulty]?.color}`,
-                borderRadius: '5px',
-                cursor: editingQuestionIndex === questionIndex ? 'pointer' : 'default',
-                transition: 'all 0.2s',
-                marginRight: '10px',
-              }}
-            />
-            {editingQuestionIndex === questionIndex ? (
-              <textarea
-                value={question.question}
-                onChange={(e) =>
-                  handleQuestionChange(questionIndex, 'question', e.target.value)
-                }
-                style={{
-                  flex: '1',
-                  fontSize: '25px',
-                  fontWeight: 'bold',
-                  marginLeft: '20px',
-                  overflow: 'hidden',
-                  border: '1px solid white',
-                  outline: '1px solid white',
-                  resize: 'vertical',
-                  minHeight: '1em',
-                  marginRight: '10px',
-                }}
-                rows="1"
-                onInput={(e) => {
-                  e.target.style.height = 'auto';
-                  e.target.style.height = e.target.scrollHeight + 'px';
-                }}
-              />
-            ) : (
-              <p
-                style={{
-                  flex: '1',
-                  fontSize: '20px',
-                  marginLeft: '30px',
-                  fontWeight: '600',
-                  margin: '0 10px 0 0',
-                }}
-              >
-                {question.question}
-              </p>
-            )}
-            <button
-              onClick={() => handleEdit(questionIndex)}
-              style={{   cursor: 'pointer', background: 'white ', border: '1px solid #ddd', borderRadius: '5px',  padding: '5px 6px'}}
-            >
-              {editingQuestionIndex === questionIndex ? (
-                <PencilOff size={20} color="#757575" strokeWidth={2} />
-              ) : (
-                <Pencil strokeWidth={2} size={20} color="#757575" />
-              )}
-            </button>
-          </div>
-          {editingQuestionIndex === questionIndex ? (
-            <div style={{ display: 'flex', flexDirection: 'column', width: '95%',marginLeft: 'auto', marginRight: 'auto', }}>
-              {Object.keys(question)
-                .filter((key) => key.match(/^[a-z]$/))
-                .map((choice) => {
-                  const style = getChoiceStyle(choice);
-                  const explanationKey = `explanation_${choice.toLowerCase()}`;
-                  const isCorrect = question.correct.toLowerCase() === choice;
-                  return (
-                    <div
-                      key={choice}
+            {sectors.map((sector, sectorIndex) => {
+              const sectorQuestions = getQuestionsForSector(sectorIndex + 1);
+              if (sectorQuestions.length === 0) return null;
+
+              const scrollToSection = (targetIndex) => {
+                const sections = document.querySelectorAll('[data-section]');
+                sections[targetIndex]?.scrollIntoView({ behavior: 'smooth' });
+              };
+
+              return (
+                <div key={sectorIndex} style={{ marginBottom: '40px' }} data-section>
+                  <div style={{ 
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    margin: '0 0 20px',
+                    padding: '10px 0',
+                    borderBottom: '1px solid #eee'
+                  }}>
+                    <button
+                      onClick={() => scrollToSection(sectorIndex - 1)}
+                      disabled={sectorIndex === 0}
                       style={{
-                        display: 'flex',width: '100%',
-                        alignItems: 'stretch',
-                        marginBottom: '10px',
+                        background: 'none',
+                        border: 'none',
+                        cursor: sectorIndex === 0 ? 'default' : 'pointer',
+                        opacity: sectorIndex === 0 ? 0.5 : 1,
+                        padding: '5px 10px'
                       }}
                     >
-                      {/* Choice area */}
-                      <div style={{ width: '85%', marginBottom: '10px'}}>
-                      <div
-                        style={{
-                          background: style.background,
-                          color: style.color,
-                          width: 'calc(100% - 10px)',
-                          padding: '5px',
-                          borderRadius: '5px',
-                          borderLeft: `4px solid ${style.color}`,
-                          display: 'flex',
-                          alignItems: 'center',
-                          position: 'relative',
-                        }}
-                      >
-                        {/* Choice text area */}
-                        <textarea
-                          value={question[choice]}
-                          onChange={(e) =>
-                            handleChoiceChange(questionIndex, choice, e.target.value)
-                          }
-                          style={{
-                            flex: 1,
-                            fontWeight: '600',
-                            fontSize: '16px',
-                            textAlign: 'left',
-                            width: '95%',
-                            background: 'transparent',
-                            border: 'none',
-                            resize: 'vertical',
-                            minHeight: '1em',
-                            overflow: 'hidden',
-                            color: style.color,
-                          }}
-                          rows="1"
-                          onInput={(e) => {
-                            e.target.style.height = 'auto';
-                            e.target.style.height = e.target.scrollHeight + 'px';
-                          }}
-                        />
-                      </div>
-                      {/* Explanation area */}
-                      <div
-                        style={{
-                          flex: 1,
-                          border: '1px solid lightgrey',
-                          padding: '5px',
-                          borderRadius: '5px',
-                          display: 'flex',
-                          alignItems: 'center',
-                          marginTop: '10px',
-                          marginLeft: '20px',
-                          position: 'relative',
-                        }}
-                      >
-                        {/* Explanation text area */}
-                        <textarea
-                          value={question[explanationKey]}
-                          onChange={(e) =>
-                            handleExplanationChange(
-                              questionIndex,
-                              choice,
-                              e.target.value
-                            )
-                          }
-                          style={{
-                            flex: 1,
-                            color: 'black',
-                            fontWeight: '500',
-                            margin: 0,
-                            width: '100%',
-                            fontSize: '14px',
-                            border: 'none',
-                            resize: 'vertical',
-                            minHeight: '1em',
-                            overflow: 'hidden',
-                          }}
-                          rows="1"
-                          onInput={(e) => {
-                            e.target.style.height = 'auto';
-                            e.target.style.height = e.target.scrollHeight + 'px';
-                          }}
-                        />
-                     
-                     </div>
-                      </div>
-                         {/* Correct answer checkbox and delete icon */}
-                         <div
-                          style={{
-                            display: 'flex',
-                            marginLeft: '20px',
-                            marginTop: '-50px',
-                            alignItems: 'center',
-                          }}
-                        >
-                          {/* Correct answer checkbox */}
-                          <div
-                            style={{
-                              cursor: 'pointer',
-                              marginBottom: '0px',
-                              marginRight: '10px',
-                            }}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleCorrectAnswerChange(questionIndex, choice);
-                            }}
-                          >
-                            {isCorrect ? (
-                              <SquareCheck size={30} color={'#2BB514'} />
-                            ) : (
-                              <Square size={30} color={'lightgrey'} />
-                            )}
-                          </div>
-                          {/* Delete icon */}
-                          <div
-                            style={{
-                              cursor: 'pointer',
-                              marginTop: '',
-                              
-                            marginLeft: '20px',
-                            }}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleDeleteChoice(questionIndex, choice);
-                            }}
-                          >
-                            <SquareX size={30} color={'red'} />
-                          </div>
-                        </div>
-                    </div>
-                  );
-                })}
-            </div>
-          ) : (
-            <div
-              style={{
-                display: 'flex',
-                flexWrap: 'wrap',
-                justifyContent: 'center',
-                marginBottom: '0px',
-                marginTop: '0px',
-              }}
-            >
-              {Object.keys(question)
-                .filter((key) => key.match(/^[a-z]$/))
-                .map((choice, index, array) => {
-                  const style = getChoiceStyle(choice);
-                  const isLastRow = array.length === 5 && index >= 3;
-                  const explanationKey = `explanation_${choice.toLowerCase()}`;
-                  const isHovered = hoveredChoice === `${questionIndex}-${choice}`;
-                  const isCorrect = question.correct.toLowerCase() === choice;
+                      <ChevronLeft size={15} color="grey" />
+                    </button>
 
-                  return (
-                    <div
-                      key={choice}
+                    <h3 style={{ 
+                      margin: 0,
+                      color: 'grey',
+                      fontWeight: '400',
+                      fontSize: '1rem',
+                      flex: 1,
+                      textAlign: 'center'
+                    }}>
+                      Module {sectorIndex + 1} of {sectors.length} : {sector.sectorName || `Sector ${sectorIndex + 1}`}
+                    </h3>
+
+                    <button
+                      onClick={() => scrollToSection(sectorIndex + 1)}
+                      disabled={sectorIndex === sectors.length - 1}
                       style={{
-                        width: '100%',
-                        margin: '10px 1%',
-                        padding: '5px',
-                        background: style.background,
-                        color: style.color,
-                        borderRadius:  '3px',
-                        cursor: 'pointer',
+                        background: 'none',
+                        border: 'none',
+                        cursor: sectorIndex === sectors.length - 1 ? 'default' : 'pointer',
+                        opacity: sectorIndex === sectors.length - 1 ? 0.5 : 1,
+                        padding: '5px 10px'
+                      }}
+                    >
+                      <ChevronRight size={15} color="grey" />
+                    </button>
+                  </div>
+
+                  {sectorQuestions.map((question, questionIndex) => (
+                    <div key={questionIndex} style={{ marginTop: '40px ',}}>
+                      <div style={{ 
                         display: 'flex',
-                        flexDirection: 'column',
-                        justifyContent: 'left',
-                        alignItems: 'left',
-                        position: 'relative',
-                        transition: 'all 0.2s',
-                        borderLeft: `4px solid ${style.color}`,
-                        boxShadow:
-                          isCorrect && editingQuestionIndex !== questionIndex
-                            ? '0 0 0 4px white, 0 0 0 6px #AEF2A3'
-                            : 'none',
-                        ...(isLastRow && { marginLeft: 'auto', marginRight: 'auto' }),
-                      }}
-                      onMouseEnter={() => setHoveredChoice(`${questionIndex}-${choice}`)}
-                      onMouseLeave={() => setHoveredChoice(null)}
-                    >
-                      <p
-                        style={{
-                          fontWeight: '600',
-                          fontSize: '16px',
-                          textAlign: 'left',
+                        alignItems: 'center',
+                        gap: '10px',
+                        marginBottom: '35px'
+                      }}>
+                        <p style={{ 
+                          margin: 0,
+                          fontSize: '1.1rem',
+                          color: '#333',
+                          flex: 1,
+                          alignItems: 'center',
+                          gap: '8px'
+                        }}>
+                          <span 
+                            className="tooltip-container"
+                            style={{
+                              fontSize: '0.9rem',
+                              color: '#666',
+                              cursor: 'help',
+                            }}
+                          >
+                            {getDifficultyLabel(question.difficultyScore)}
+                            <DifficultyTooltip difficulty={question.difficultyScore}/>
+                          </span>  {question.question}
+                        </p>
+                      </div>
 
-                          margin: 0,  width: '95%', paddingLeft: '2%'
-                        }}
-                      >
-                        {question[choice]}
-                      </p>
-                      <AnimatePresence>
-                        {(isHovered || editingQuestionIndex === questionIndex) &&
-                          question[explanationKey] && (
-                            <motion.div
-                              initial={{ opacity: 0, y: -10 }}
-                              animate={{ opacity: 1, y: 0 }}
-                              exit={{ opacity: 0, y: -10 }}
-                              transition={{ duration: 0.2 }}
-                              style={{
-                                position: 'absolute',
-                                top: '114%',
-                                left: '-4px',
-                                width: '95.5%',
-                                padding: '10px',
-                                background: 'rgb(255,255,255)',
-                                border: `4px solid white`,
-                                borderTop: 'none',
-                                borderRadius: '0 0 10px 10px',
-                                zIndex: 1000,
-                                boxShadow: `0 4px 8px rgba(0, 0, 0, 0.1)`,
-                              }}
-                            >
-                              <p
-                                style={{
-                                  color: 'black',
-                                  fontWeight: '500',
-                                  margin: 0,
-                                }}
-                              >
-                                {question[explanationKey]}
-                              </p>
-                            </motion.div>
-                          )}
-                      </AnimatePresence>
-                   
+                      <div style={{ marginLeft: '20px' }}>
+                        {question.choices.map((choice, choiceIndex) => {
+                          const choiceLetter = String.fromCharCode(97 + choiceIndex);
+                          const isCorrect = choiceLetter === question.correctChoice;
+                          const style = getChoiceStyle(choiceLetter);
+                          const isSelected = selectedChoices.get(question.question) === choiceLetter;
+                          
+                          return (
+                            <div key={choiceIndex} style={{ marginBottom: '10px' }}>
+                              {isSelected ? (
+                                <GlassContainer
+                                  variant={style.variant}
+                                  size={0}
+                                  onClick={() => toggleChoiceExplanation(question.question, choiceLetter)}
+                                  style={{
+                                    cursor: 'pointer',
+                                    width: '100%',
+                                    position: 'relative'
+                                  }}
+                                  contentStyle={{
+                                    padding: '8px 15px',
+                                    display: 'flex',
+                                    alignItems: 'center'
+                                  }}
+                                >
+                                  <div
+                                  style={{display: 'flex', width: '100%',
+                                    justifyContent: 'space-between'
+                                  }}>
+                                  <p style={{ 
+                                    margin: 0, 
+                                    color: style.color,
+                                    fontSize: '0.9rem',
+                                    fontWeight: '400',
+                                    textAlign: 'left', 
+                                    width: '100%'
+                                  }}>
+                                    {choice}
+                                  </p>
+                                  {isCorrect && (
+                                    <Check size={18} color={style.color} style={{ marginLeft: 'auto' }} />
+                                  )}
+                                  </div>
+                                </GlassContainer>
+                              ) : (
+                                <div
+                                  onClick={() => toggleChoiceExplanation(question.question, choiceLetter)}
+                                  style={{
+                                    cursor: 'pointer',
+                                    width: 'calc(100% - 30px)',
+                                    border: '1px solid #ddd',
+                                    borderRadius: '100px',
+                                    padding: '8px 15px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'space-between'
+                                  }}
+                                >
+                                  <span style={{ 
+                                    color: '#666',
+                                    fontSize: '0.9rem',
+                                    fontWeight: '400'
+                                  }}>
+                                    {choice}
+                                  </span>
+                                  {isCorrect && <Check size={18} color="#666" />}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                        {/* Explanation section below all choices */}
+                        {selectedChoices.has(question.question) && (
+                          <div style={{
+                            marginTop: '15px',
+                            padding: '15px',
+                            fontSize: '0.9rem',
+                            color: getChoiceStyle(selectedChoices.get(question.question)).color,
+                            fontStyle: 'italic',
+                            borderLeft: `2px solid ${getChoiceStyle(selectedChoices.get(question.question)).color}`,
+                            backgroundColor: `${getChoiceStyle(selectedChoices.get(question.question)).background}33`,
+                            borderRadius: '0 8px 8px 0'
+                          }}>
+                            {question.explanations[selectedChoices.get(question.question).charCodeAt(0) - 97]}
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  );
-                })}
-                   <div style={{height: '4px', background: '#f4f4f4', width: '920px', marginBottom: '-20px', marginTop: '50px'}}></div>
-            </div>
-          )}
-      
+                  ))}
+                </div>
+              );
+            })}
+          </div>
         </div>
-      ))}
+      </GlassContainer>
+
+      <style>
+        {`
+          .tooltip-container {
+            position: relative;
+          }
+          .tooltip-container:hover .tooltip {
+            display: block !important; /* Added !important to override inline styles */
+          }
+          .tooltip {
+            display: none; /* This will be overridden on hover */
+          }
+        `}
+      </style>
     </div>
-    </div>
-    
   );
 };
 

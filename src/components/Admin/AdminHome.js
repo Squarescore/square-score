@@ -144,7 +144,7 @@ const AdminHome = () => {
           style={{
             ...inputStyle,
             ...customStyle.input,
-            borderColor: focusedField === name ? '#45B434' : '#ccc',
+            borderColor: focusedField === name ? '#45B434' : '#ddd',
           }}
         />
         <label
@@ -182,7 +182,7 @@ const AdminHome = () => {
                   required
                   style={{
                     ...selectStyle,
-                    borderColor: focusedField === 'schoolLevel' ? '#45B434' : '#ccc',
+                    borderColor: focusedField === 'schoolLevel' ? '#45B434' : '#ddd',
                   }}
                 >
                   <option value="elementary">Elementary</option>
@@ -300,7 +300,7 @@ const inputStyle = {
   padding: '10px',
   paddingTop: '10px',
   borderRadius: '5px',
-  border: '1px solid #ccc',
+  border: '1px solid #ddd',
   fontSize: '16px',
   transition: 'all 0.3s ease',
 };

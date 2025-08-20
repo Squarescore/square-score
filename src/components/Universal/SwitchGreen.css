@@ -5,7 +5,7 @@
   cursor: pointer;
   appearance: none;
   -webkit-appearance: none;
-  border-radius: 5px;
+  border-radius: 50px;
   background-color: #f4f4f4;
   transition: all .9s ease;
 }
@@ -22,7 +22,7 @@
   height: 20px;
   width: 47px;
   cursor: pointer;
-  border-radius: 3px;
+  border-radius: 100px;
   background-color: rgba(255, 255, 255, 1);
 
   box-shadow: 1px 1px 5px 1px rgb(0,0,155,.07);

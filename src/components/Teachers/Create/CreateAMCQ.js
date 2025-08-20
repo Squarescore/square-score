@@ -7,13 +7,22 @@ import CustomDateTimePicker from './CustomDateTimePicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import PreviewAMCQ from './previewAMCQ';
 import axios from 'axios';
-import { auth,db } from '../../Universal/firebase';
+import { auth, db } from '../../Universal/firebase';
 import { CalendarCog, SquareDashedMousePointer, Sparkles, GlobeLock, Eye, PencilRuler, SendHorizonal, ChevronDown, ChevronUp, CircleHelp, FileText, Landmark, SquareX, Settings, Sparkle, ChevronLast, ChevronLeft, ChevronRight  } from 'lucide-react';
 import CustomExpandingFormatSelector from './ExpandingFormatSelector';
 import SelectStudentsDW from './SelectStudentsDW';
 import SecuritySettings from './SecuritySettings';
 import DateSettings from './DateSettings';
-import { AssignmentName, ChoicesPerQuestion, FormatSection, PreferencesSection, TimerSection, } from './Elements';
+import { 
+  AssignmentName, 
+  ChoicesPerQuestion, 
+  FormatSection, 
+  PreferencesSection, 
+  TimerSection,
+  FeedbackSelector,
+  DateSettingsElement,
+  SecuritySettingsElement
+} from './Elements';
 import { AssignmentActionButtons, usePublishState } from './AssignmentActionButtons';
 import { safeClassUpdate } from '../../teacherDataHelpers';
 import { v4 as uuidv4 } from 'uuid';
@@ -22,6 +31,9 @@ import StepPreviewCards from './StepPreviewCards';
 import { StepContainer } from './ContainerPost';
 import SourcePreviewToggle from './SourcePreviewToggle';
 import LoaderScreen from './LoaderScreen';
+import { getFunctions, httpsCallable } from 'firebase/functions';
+import SectorGenerationProgress from './SectorGenerationProgress';
+import { GlassContainer } from '../../../styles';
 
 
 
@@ -57,12 +69,17 @@ const MCQA = () => {
   const [selectedStudents, setSelectedStudents] = useState(new Set());
   const [generatedQuestions, setGeneratedQuestions] = useState([]);
   const [generating, setGenerating] = useState(false);
+  const [sectors, setSectors] = useState([]);
+  const [currentSectorProgress, setCurrentSectorProgress] = useState(0);
+  const [totalSectors, setTotalSectors] = useState(0);
   const [showPreview, setShowPreview] = useState(false);
   const { classId, assignmentId } = useParams();
   const [progress, setProgress] = useState(0);
 const [progressText, setProgressText] = useState('');
   const navigate = useNavigate();
   const [isSaving, setIsSaving] = useState(false);
+  const [completedSectors, setCompletedSectors] = useState(new Set());
+  const [showSectorProgress, setShowSectorProgress] = useState(false);
 
   useEffect(() => {
     // Set due date to 48 hours after assign date whenever assign date changes
@@ -141,87 +158,212 @@ const [progressText, setProgressText] = useState('');
 
 
 
-const generateQuestions = async () => {
-  const baseUrl = 'https://us-central1-square-score-ai.cloudfunctions.net';
-  const maxRetries = 3;
-  const progressIncrement = 0.5;
-
+const identifySectors = async (text) => {
   try {
+    const wordCount = text.trim().split(/\s+/).length;
+    const functions = getFunctions();
+    const identifySectorsFunction = httpsCallable(functions, 'identifySectors');
+    
+    const response = await identifySectorsFunction({
+      text: text,
+      wordCount: wordCount
+    });
+
+    console.log('Raw sectors response:', response);
+    
+    // The response.data might contain a nested structure from OpenAI
+    let sectors;
+    if (response.data.sectors) {
+      sectors = response.data.sectors;
+    } else if (Array.isArray(response.data)) {
+      sectors = response.data;
+    } else {
+      // If the response contains a single object with sector information
+      sectors = Object.values(response.data).filter(item => 
+        item && typeof item === 'object' && 
+        'sectorNumber' in item && 
+        'sectorName' in item && 
+        'sectorStart' in item && 
+        'sectorEnd' in item
+      );
+    }
+
+    if (!sectors || !Array.isArray(sectors) || sectors.length === 0) {
+      throw new Error('Invalid sectors format in response');
+    }
+
+    // Validate each sector has required properties
+    sectors = sectors.map((sector, index) => ({
+      sectorNumber: sector.sectorNumber || index + 1,
+      sectorName: sector.sectorName || `Sector ${index + 1}`,
+      sectorStart: sector.sectorStart || 0,
+      sectorEnd: sector.sectorEnd || 0
+    }));
+
+    console.log('Processed sectors:', sectors);
+
+    // Update states and wait for them to complete
+    await Promise.all([
+      new Promise(resolve => {
+        setSectors(sectors);
+        setTimeout(resolve, 0);
+      }),
+      new Promise(resolve => {
+        setTotalSectors(sectors.length);
+        setTimeout(resolve, 0);
+      })
+    ]);
+
+    return sectors;
+  } catch (error) {
+    console.error('Error identifying sectors:', error);
+    console.error('Error details:', error.message);
+    alert('Error identifying sectors. Please try again.');
+    throw error;
+  }
+};
+
+const generateQuestionsForSector = async (sectorText, sectorNumber) => {
+  try {
+    const functions = getFunctions();
+    const generateSectorQuestionsFunction = httpsCallable(functions, 'generateSectorQuestions');
+    
+    // Convert selectedOptions to array of numbers if they're not already
+    const choiceCounts = selectedOptions.map(opt => 
+      typeof opt === 'number' ? opt : parseInt(opt.value || opt, 10)
+    ).filter(count => !isNaN(count) && count >= 2 && count <= 5);
+
+    if (choiceCounts.length === 0) {
+      throw new Error('No valid choice counts selected');
+    }
+    
+    const response = await generateSectorQuestionsFunction({
+      sectorText: sectorText,
+      sectorNumber: sectorNumber,
+      choiceCounts: choiceCounts,
+      minQuestionsPerDifficulty: 1 // At least one question per difficulty level
+    });
+
+    if (!response.data || !response.data.questions || !Array.isArray(response.data.questions)) {
+      throw new Error('Invalid response format from question generation');
+    }
+
+    return response.data.questions;
+  } catch (error) {
+    console.error(`Error generating questions for sector ${sectorNumber}:`, error);
+    alert(`Error generating questions for sector ${sectorNumber}. Please try again.`);
+    throw error;
+  }
+};
+
+const generateQuestions = async () => {
+  try {
+    if (!sourceText.trim()) {
+      alert('Please enter source text before generating questions.');
+      return;
+    }
+
+    if (selectedOptions.length === 0) {
+      alert('Please select at least one choice count option.');
+      return;
+    }
+
+    // Reset all states first
     setGenerating(true);
     setProgress(0);
     setProgressText('0%');
     setGeneratedQuestions([]);
+    setShowPreview(false);
+    setCompletedSectors(new Set());
+    setShowSectorProgress(false); // Start with progress screen hidden
 
-    // Function to update progress (unchanged)
-    const updateProgress = (start, end) => {
-      let currentProgress = start;
-      const interval = setInterval(() => {
-        if (currentProgress < end) {
-          currentProgress += progressIncrement;
-          setProgress(currentProgress);
-          setProgressText(`${Math.round(currentProgress)}%`);
-        } else {
-          clearInterval(interval);
-        }
-      }, 100);
-      return interval;
-    };
-    const generateQuestionsForDifficulty = async (difficulty) => {
-      let attempt = 1;
-      const endpoint = `${baseUrl}/GenerateAMCQ${difficulty}`;
-      
-      while (attempt <= maxRetries) {
-        try {
-          const response = await axios.post(endpoint, {
-            sourceText,
-            selectedOptions,
-            additionalInstructions,
-            classId,
-            teacherId,
-          });
-          console.log(`${difficulty} Questions Response:`, response.data);
-          
-          // Extract questions from the nested structure
-          const questions = response.data.questions.questions;
-          
-          if (!Array.isArray(questions) || questions.length === 0) {
-            throw new Error('Invalid API response: No questions generated');
-          }
-          return questions; // Return the array of questions
-        } catch (error) {
-          console.error(`Error in generate${difficulty}Questions, attempt ${attempt}:`, error);
-          if (attempt === maxRetries) {
-            throw new Error(`Failed to generate ${difficulty.toLowerCase()} questions after ${maxRetries} attempts`);
-          } else {
-            attempt++;
-            await new Promise(resolve => setTimeout(resolve, 1000));
-          }
-        }
+    // Wait for state updates to complete
+    await new Promise(resolve => setTimeout(resolve, 0));
+
+    console.log('Starting sector identification...');
+    // First identify sectors
+    const identifiedSectors = await identifySectors(sourceText);
+    if (!Array.isArray(identifiedSectors)) {
+      throw new Error('Invalid sectors response');
+    }
+
+    console.log('Sectors identified, showing progress screen...');
+    // Show sector progress screen AFTER sectors are identified
+    setShowSectorProgress(true);
+    // Give time for the progress screen to appear
+    await new Promise(resolve => setTimeout(resolve, 100));
+
+    console.log('Processing sectors...');
+    // Process all sectors in parallel
+    const sectorPromises = identifiedSectors.map((sector, index) => {
+      const words = sourceText.trim().split(/\s+/);
+      const sectorText = words.slice(
+        Math.max(0, sector.sectorStart - 1), 
+        Math.min(words.length, sector.sectorEnd)
+      ).join(' ');
+
+      return generateQuestionsForSector(sectorText, sector.sectorNumber)
+        .then(questions => {
+          // Update progress after each sector completes
+          const progress = ((index + 1) / identifiedSectors.length) * 100;
+          setProgress(progress);
+          setProgressText(`${Math.round(progress)}%`);
+          setCurrentSectorProgress(index + 1);
+          // Mark this sector as completed
+          setCompletedSectors(prev => new Set([...prev, sector.sectorNumber]));
+          return questions;
+        })
+        .catch(error => {
+          console.error(`Error processing sector ${index + 1}:`, error);
+          return []; // Return empty array for failed sectors
+        });
+    });
+
+    // Wait for all sectors to complete
+    const sectorResults = await Promise.all(sectorPromises);
+    
+    // Combine all questions
+    const allQuestions = sectorResults.flat();
+
+    if (allQuestions.length === 0) {
+      throw new Error('No questions were successfully generated');
+    }
+    
+    // Sort questions by sector and then by difficulty score
+    const sortedQuestions = allQuestions.sort((a, b) => {
+      if (a.sectorNumber !== b.sectorNumber) {
+        return a.sectorNumber - b.sectorNumber;
       }
-    };
+      return a.difficultyScore - b.difficultyScore;
+    });
 
-    const progressInterval = updateProgress(0, 90);
-
-    const [easyQuestions, mediumQuestions, hardQuestions] = await Promise.all([
-      generateQuestionsForDifficulty('Easy'),
-      generateQuestionsForDifficulty('Medium'),
-      generateQuestionsForDifficulty('Hard'),
+    // Ensure we show the progress screen for at least 1 second after completion
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    console.log('Generation complete, transitioning to preview...');
+    // Final state updates
+    await Promise.all([
+      new Promise(resolve => {
+        setGeneratedQuestions(sortedQuestions);
+        setTimeout(resolve, 0);
+      }),
+      new Promise(resolve => {
+        setShowSectorProgress(false);
+        setTimeout(resolve, 0);
+      }),
+      new Promise(resolve => {
+        setShowPreview(true);
+        setTimeout(resolve, 0);
+      }),
+      new Promise(resolve => {
+        setCurrentStep(4);
+        setTimeout(resolve, 0);
+      })
     ]);
-
-    clearInterval(progressInterval);
-    setProgress(100);
-    setProgressText('100%');
-
-    // Combine all questions into a single flattened array
-    const allQuestions = [...easyQuestions, ...mediumQuestions, ...hardQuestions];
-
-    // Shuffle the combined array
-
-    setGeneratedQuestions(allQuestions);
-    setShowPreview(true);
   } catch (error) {
     console.error('Error in generateQuestions:', error);
-    alert('An error occurred while generating questions. Please try again.');
+    alert(`Error generating questions: ${error.message}. Please try again.`);
+    setShowSectorProgress(false);
   } finally {
     setGenerating(false);
   }
@@ -328,7 +470,7 @@ const generateQuestions = async () => {
         lockdown,
         onViolation: lockdown ? onViolation : null,
         createdAt: serverTimestamp(),
-        questions: generatedQuestions,
+        questions: generatedQuestions.map(formatQuestion),
         sourceOption,
         sourceText,
         youtubeLink,
@@ -392,57 +534,66 @@ const generateQuestions = async () => {
       .replace(' AM', ' AM '); // Add space before timezone
   };
 
-  const saveAssignment = async () => {
-    if (isSaving) return; // Prevent multiple clicks
-    setIsSaving(true);
-    // Remove 'DRAFT' prefix from assignmentId if it exists
-    const batch = writeBatch(db);
-    const finalAssignmentId = assignmentId.startsWith('DRAFT') ? assignmentId.slice(5) : assignmentId;
+  // Format questions consistently
+  const formatQuestion = (question) => {
+    const formattedQuestion = {
+      questionId: question.questionId || uuidv4(),
+      question: question.question || '',
+      difficultyScore: question.difficultyScore || 1.0,
+      sectorNumber: question.sectorNumber || 1,
+      correctChoice: question.correctChoice || '', // Use correctChoice consistently
+      choices: question.choices || [],
+      explanations: question.explanations || [], // Keep explanations array as is
+    };
+    
+    // Ensure we have the correct choice
+    if (!formattedQuestion.correctChoice && question.correct) {
+      formattedQuestion.correctChoice = question.correct;
+    }
+    
+    // Ensure explanations array exists and matches choices length
+    if (!formattedQuestion.explanations.length && formattedQuestion.choices.length) {
+      formattedQuestion.explanations = formattedQuestion.choices.map(() => '');
+    }
+    
+    // Remove any legacy fields that aren't needed
+    delete formattedQuestion.difficulty; // We use difficultyScore instead
+    delete formattedQuestion.correct; // We use correctChoice consistently
+    
+    return formattedQuestion;
+  };
 
-    const formatQuestion = (question) => {
-      const choiceKeys = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
-      const formattedQuestion = {
-        questionId: question.questionId ||  uuidv4(),
-        question: question.question || question.question || '',
-        difficulty: question.difficulty || 'medium',
-        correct: question.correct || '',
-        choices: question.choices || choiceKeys.filter(key => question[key]).length
+  const saveAssignment = async () => {
+    if (isSaving) return;
+    setIsSaving(true);
+    
+    try {
+      const finalAssignmentId = assignmentId.startsWith('DRAFT') ? assignmentId.slice(5) : assignmentId;
+      const batch = writeBatch(db);
+  
+      // Create assignment data
+      const assignmentData = {
+        classId,
+        lockdown,
+        onViolation: lockdown ? onViolation : null,
+        format: 'AMCQ',
+        assignmentName,
+        timer: timerOn ? Number(timer) : 0,
+        assignDate: formatDate(assignDate),
+        dueDate: formatDate(dueDate),
+        selectedOptions: selectedOptions.map(option => typeof option === 'object' ? option.value : option),
+        selectedStudents: Array.from(selectedStudents),
+        feedback,
+        saveAndExit,
+        createdAt: serverTimestamp(),
+        questions: generatedQuestions.map(formatQuestion)
       };
   
-      // Add individual choice texts and explanations
-      choiceKeys.forEach(key => {
-        if (question[key]) {
-          formattedQuestion[key] = question[key];
-          formattedQuestion[`explanation_${key}`] = question[`explanation_${key}`] || '';
-        }
-      });
-  
-      return formattedQuestion;
-    };
-  
-    const assignmentData = {
-      classId,
-      lockdown,
-      onViolation: lockdown ? onViolation : null, 
-      format: 'AMCQ',
-      assignmentName,
-      timer: timerOn ? Number(timer) : 0,
-      assignDate: formatDate(assignDate),
-      dueDate: formatDate(dueDate),
-      selectedOptions: selectedOptions.map(option => typeof option === 'object' ? option.value : option),
-      selectedStudents: Array.from(selectedStudents),
-      feedback,
-      saveAndExit,
-      createdAt: serverTimestamp(),
-      questions: generatedQuestions.map(formatQuestion)
-    };
-  
-    try {
- 
+      // Save assignment document
       const assignmentRef = doc(db, 'assignments', finalAssignmentId);
-      await setDoc(assignmentRef, assignmentData);
-
-      // Add assignment to class via Cloud Function
+      batch.set(assignmentRef, assignmentData);
+  
+      // Add assignment to class document - matching CreateAssignment.js pattern
       const classRef = doc(db, 'classes', classId);
       batch.update(classRef, {
         assignments: arrayUnion({
@@ -450,8 +601,8 @@ const generateQuestions = async () => {
           name: assignmentName
         })
       });
-
-      // If publishing from a draft, remove the draft
+  
+      // If publishing from a draft, handle draft cleanup
       if (draftId) {
         // Remove from drafts array
         batch.update(classRef, {
@@ -466,10 +617,18 @@ const generateQuestions = async () => {
         batch.delete(draftRef);
       }
   
-      // Assign to students
-      await assignToStudents(finalAssignmentId);
-
-      // Navigate with success message
+      // Assign to selected students
+      const selectedStudentIds = Array.from(selectedStudents);
+      selectedStudentIds.forEach(studentUid => {
+        const studentRef = doc(db, 'students', studentUid);
+        batch.update(studentRef, {
+          assignmentsToTake: arrayUnion(finalAssignmentId)
+        });
+      });
+  
+      // Commit all operations in a single batch
+      await batch.commit();
+  
       navigate(`/class/${classId}`, {
         state: {
           successMessage: `Success: ${assignmentName} published`,
@@ -478,14 +637,12 @@ const generateQuestions = async () => {
         }
       });
     } catch (error) {
-      console.error("Error saving draft:", error);
-      alert(`Error saving draft: ${error.message}. Please try again.`);
+      console.error("Error saving assignment:", error);
+      alert(`Error saving assignment: ${error.message}. Please try again.`);
     } finally {
       setIsSaving(false);
     }
   };
-
-
 
   const isFormValid = () => {
     return assignmentName !== '' && assignDate !== '' && dueDate !== '';
@@ -514,7 +671,7 @@ const generateQuestions = async () => {
       name: 'Select Students',
       
       backgroundColor: '#FFECA8',
-      borderColor: '#FFD13B',
+      borderColor: '#FF8800',
       textColor: '#CE7C00',
       condition: selectedStudents.size > -1, // Example condition
 
@@ -628,100 +785,36 @@ const generateQuestions = async () => {
         >
         
    <PreferencesSection>
-   <AssignmentName
-     value={assignmentName}
-     onChange={setAssignmentName}
-   />
-   
+     <AssignmentName
+       value={assignmentName}
+       onChange={setAssignmentName}
+     />
 
-   <DateSettings
-          assignDate={assignDate}
-          setAssignDate={setAssignDate}
-          dueDate={dueDate}
-          setDueDate={setDueDate}
-        />
+     <DateSettingsElement
+       assignDate={assignDate}
+       setAssignDate={setAssignDate}
+       dueDate={dueDate}
+       setDueDate={setDueDate}
+     />
 
-   <TimerSection
-     timerOn={timerOn}
-     timer={timer}
-     onTimerChange={setTimer}
-     onToggle={() => setTimerOn(!timerOn)}
-   />
-   
- 
-  
-   
-   <div style={{ display: 'flex', alignItems: 'center', height: '30px', width: '502px', position: 'relative', marginTop: '0px', paddingBottom: '30px', marginLeft: 'auto',  }}>
-               <label style={{ fontSize: '16px', color: 'grey',  marginRight: '38px', marginTop: '18px', fontFamily: "'montserrat', sans-serif", fontWeight: '600', marginLeft: '0px' }}>Feedback: </label>
-             
-             
-             
-          
-             
-             
-             
-             
-             
-               <div style={{ display: 'flex', borderRadius: '5px', justifyContent: 'space-around', width: '210px', marginLeft: 'auto', alignItems: 'center', marginTop: '20px', marginRight: '15px', background:'#f4f4f4', height: '28px' }}>
-                 <div
-                   style={{
-                    
-                    marginLeft: '4px',
-                    height: '20px',
-                    lineHeight: '20px',
-                    fontSize: '12px',
-                     width: '80px',
-                     textAlign: 'center',
-                     transition: '.3s',
-                     borderRadius: '3px',
-                     fontWeight: feedback === 'instant' ? '600' : '500',
-                     backgroundColor: feedback === 'instant' ? 'white' : '#f4f4f4',
-                     color: feedback === 'instant' ? 'black' : 'grey',
-                     cursor: 'pointer',
-                     
-                     boxShadow:feedback === 'instant' ? '1px 1px 5px 1px rgb(0,0,155,.03)': 'none' ,
-                   }}
-                   onClick={() => setFeedback('instant')}
-                 >
-                   Instant
-                 </div>
-                 <div
-                   style={{
-                     height: '20px',
-                     lineHeight: '20px',
-                     fontSize: '12px',
-                     marginLeft: 'auto',
-                    
-                     marginRight: '4px',
-                     width: '120px',
-                     textAlign: 'center',
-                     transition: '.3s',
-                     borderRadius: '3px',
-                     backgroundColor: feedback === 'at_completion' ? 'white' : 'transparent',
-                     fontWeight: feedback === 'at_completion' ? '600' : '500',
-                     color: feedback === 'at_completion' ? 'black' : 'grey',
-                     cursor: 'pointer',
-                     boxShadow:feedback === 'at_completion' ? '1px 1px 5px 1px rgb(0,0,155,.03)': 'none' ,
-                   }}
-                   onClick={() => setFeedback('at_completion')}
-                 >
-                   At Completion
-                 </div>
-               </div>
-             </div>
+     <TimerSection
+       timerOn={timerOn}
+       timer={timer}
+       onTimerChange={setTimer}
+       onToggle={() => setTimerOn(!timerOn)}
+     />
 
-             <ChoicesPerQuestion
-    selectedOptions={selectedOptions}
-    onChange={setSelectedOptions}
-  />
- </PreferencesSection>
+     <FeedbackSelector
+       value={feedback}
+       onChange={setFeedback}
+     />
 
-
-           
-        
-
-
- <SecuritySettings
+     <ChoicesPerQuestion
+       selectedOptions={selectedOptions}
+       onChange={setSelectedOptions}
+     />
+     
+ <SecuritySettingsElement
   saveAndExit={saveAndExit}
   setSaveAndExit={setSaveAndExit}
   lockdown={lockdown}
@@ -729,6 +822,13 @@ const generateQuestions = async () => {
   onViolation={onViolation}
   setOnViolation={setOnViolation}
 />
+
+   </PreferencesSection>
+
+
+           
+        
+
 
 </StepContainer>
 
@@ -782,6 +882,36 @@ onPrevStep={handlePrevious}
 assignmentName={assignmentName}
 hasGeneratedQuestions={generatedQuestions.length > 0}
 />
+
+    {generating && showSectorProgress && (
+      <>
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(255, 255, 255, 0.9)',
+          backdropFilter: 'blur(5px)',
+          zIndex: 999
+        }} />
+        <div style={{
+          position: 'fixed',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          width: '100%',
+          maxWidth: '800px',
+          zIndex: 1000,
+        }}>
+          <SectorGenerationProgress
+            sectors={sectors}
+            completedSectors={completedSectors}
+          />
+        </div>
+      </>
+    )}
+
 <StepContainer 
           title="Generate Questions" 
           icon={Sparkles}
@@ -835,6 +965,7 @@ progressText={progressText}
      {/* Step 4: Preview */}
      <PreviewAMCQ
        questions={generatedQuestions}
+       sectors={sectors}
        onBack={() => setCurrentStep(3)} // Navigate back to Generate Questions
        onSave={handleSaveQuestions}
        assignmentId={draftId || assignmentId} // Pass assignmentId for saving

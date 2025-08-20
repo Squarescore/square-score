@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "../Universal/firebase";
@@ -5,7 +6,8 @@ import { useNavigate } from 'react-router-dom';
 import { getAuth, setPersistence, signInWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth';
 import { browserLocalPersistence } from 'firebase/auth';
 import { Link } from 'react-router-dom';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Eye, EyeOff } from 'lucide-react';
+import { GlassContainer } from '../../styles';
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -13,6 +15,7 @@ const Login = () => {
   const navigate = useNavigate();
   const [navbarBg, setNavbarBg] = useState('rgba(255,255,255,0.7)');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleScroll = () => {
     if (window.scrollY > 0) {
@@ -157,69 +160,90 @@ const Login = () => {
    
 
    <div style={{ 
-          position: 'fixed', top: 0, width: '100%', display: 'flex',borderBottom: '1px solid lightgrey',
-          padding: '0px 0', alignItems: 'center', height: '70px', color: 'grey', zIndex: 1000,
-          backgroundColor: navbarBg, transition: 'background-color 0.3s ease',
-          backdropFilter: 'blur(7px)',
-        }}>
-          <div style={{ marginLeft: 'auto', marginRight: 'auto', display: 'flex'}}>
-            <div style={{ width: '1280px', display: 'flex', backgroundColor: 'transparent', padding: '0px 0', alignItems: 'center', height: '70px', color: 'grey', marginRight: 'auto', marginLeft: 'auto' }}>
+             position: 'fixed', top: 0, width: '100%', display: 'flex',borderBottom: '1px solid lightgrey',
+             padding: '0px 0', alignItems: 'center', height: '60px', color: 'grey', zIndex: 1000,
+             backgroundColor: navbarBg, transition: 'background-color 0.3s ease',
+             backdropFilter: 'blur(7px)',
+           }}>
+             <div style={{ marginLeft: 'auto', marginRight: 'auto', display: 'flex'}}>
+               <div style={{ width: '1280px', display: 'flex', backgroundColor: 'transparent', padding: '0px 0', alignItems: 'center', height: '70px', color: 'grey', marginRight: 'auto', marginLeft: 'auto' }}>
+                 
+               <div style={{display: 'flex',  position: 'absolute',
+         left: '30px',
+         top: '50%',
+         transform: 'translateY( -50%)'}}>
+                 <Link to="/">
+                   <img style={{width: '35px'}} src="/favicon.svg" alt="logo" />
+                 </Link>
+                 </div>
+   
+                 
               
-              <div style={{display: 'flex',  position: 'absolute',
-      left: '30px',
-      top: '50%',
-      transform: 'translateY( -50%)'}}>
-              <img style={{width: '25px',  }} src="/favicon.svg" alt="logo" />
-              <h1 style={{fontWeight: '600', color: 'black', paddingLeft: '10px', borderLeft: '4px solid #f4f4f4', marginLeft: '10px', fontSize: '20px'}}>SquareScore</h1>
-              </div>
-            </div>
-            <div style={{ width: '250px', display: 'flex', position: 'fixed', right: '20px' }}>
-              <Link to="/signup" style={{
-                height: '30px', marginTop: '20px', lineHeight: '30px', borderRadius: '8px',
-                fontWeight: '600', background: 'transparent',  color: 'black',
-
-                textDecoration: 'none', width: '160px', marginLeft: 'auto',
-               textAlign: 'center', transition: '.2s',
-                fontFamily: "'montserrat', sans-serif", fontSize: '16px'
-              }}
-              onMouseEnter={(e) => {     e.target.style.background = '#f4f4f4';
-                e.target.style.border = '3px solid lightgrey';
-                
-                e.target.style.color = 'grey';
-              }}
-              onMouseLeave={(e) => {
-                e.target.style.background = 'transparent';
-                
-                e.target.style.color = 'black';
-                e.target.style.border = '3px solid transparent';
-          
-              }}>Create Account</Link>
-            
-            </div>
-          </div>
-        </div>
-
-      <div  style={{width: '450px', marginLeft: 'auto', height: '380px', marginTop: '190px', marginRight: 'auto',  backgroundColor: 'white',padding: '20px', borderRadius: '30px', }}>
-        
+   
+               </div>
+   
+   
+<h1 style={{position: 'absolute'
+  ,
+  left: '50%',
+  top: '5px',
+  transform: 'translate(-50%)',
+  fontWeight:'400',
+  color: 'black',
+  fontSize: '1.3rem',
+}}>Login</h1>
+   
+               <div style={{ width: '700px', display: 'flex', position: 'fixed', right: '20px' }}>
+   
+   
        
-        <form onSubmit={handleLogin} style={{ width: '450px' }}>
-        <div style={{background: 'white ', border: '4px solid white', margin: '-20px -20px 10px -20px', height: '70px', borderRadius: '30px 30px 0px 0px', display: 'flex' }}>
-        <h1 style={{ fontWeight: '600',
-           color: 'black', fontSize: '40px', fontFamily: "'montserrat', sans-serif", 
-            padding: '0px', backgroundColor: 'transparent', 
-             marginLeft: '30px',width: '370px', marginTop: '10px'}}>Login</h1>
-      
+               <Link to="/signup" style={{
+                   height: '30px', marginTop: '20px', lineHeight: '30px', borderRadius: '5px',
+                   fontWeight: '400', marginLeft:'auto',
+                     color: 'grey',
+   width: '10rem',
+                   textDecoration: 'none', 
+                  textAlign: 'center', transition: '.2s',
+                   fontFamily: "'montserrat', sans-serif", 
+                   fontSize: '1rem',
+   
+   
+                   transition: 'color 0.3s, box-shadow 0.3s',
+                
+                 }}
+                
+                 onMouseEnter={(e) => {
+                   e.currentTarget.style.color = 'darkgrey';
+                 }}
+                 onMouseLeave={(e) => {
+                   e.currentTarget.style.color = 'grey';
+                 }}
+                 
+                 
+                 
+                 >Create Account</Link>
+               
+                
+               </div>
+             </div>
       </div>
-          
-
-
-
-
-
-
-
-
-<div style={{marginLeft :'15px', width: '400px', marginTop: '50px'}}>
+      <div  style={{width: '400px', marginLeft: 'auto', height: '380px', marginTop: '190px', marginRight: 'auto', padding: '20px', borderRadius: '30px'}}>
+        <GlassContainer
+          variant="clear"
+          style={{
+            width: '107%',
+            borderRadius: '12px',
+          }}
+          contentStyle={{
+            padding: '10px 30px', 
+        
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center'
+          }}
+        >
+        <form onSubmit={handleLogin} style={{ width: '350px', marginRight: '1rem' }}>
+          <div style={{marginTop: '50px'}}>
           <div style={{  marginBottom: '20px', position: 'relative', }}>
             
             <input
@@ -237,7 +261,7 @@ const Login = () => {
                 fontWeight: '500',
                 border: '1px solid lightgrey', 
                 color: 'black',
-                borderRadius: '5px', 
+                borderRadius: '50px', 
                 outline: 'none', 
                 backdropFilter: 'blur(7px)',
                 fontSize: '20px',
@@ -245,15 +269,15 @@ const Login = () => {
                 fontFamily: "'montserrat', sans-serif"
               }}
             />
-             <div style={{ position: 'absolute', top: '-30px', left: '-10px', backgroundColor: 'white', padding: '0 10px', borderTopRightRadius: '3px', borderTopLeftRadius: '3px', zIndex: '20', fontFamily: "'montserrat', sans-serif", fontWeight: '600', height: '13px', fontSize: '20px', display: 'flex' }}>
+             <div style={{ position: 'absolute', top: '-30px', left: '-10px', padding: '0 10px', borderTopRightRadius: '3px', borderTopLeftRadius: '3px', zIndex: '20', fontFamily: "'montserrat', sans-serif", height: '13px', fontSize: '20px', display: 'flex' }}>
             
-          <h1 style={{fontFamily: "'montserrat', sans-serif", fontWeight: '600', fontSize: '20px', marginTop: '0px'}}>Email</h1>
+          <h1 style={{fontFamily: "'montserrat', sans-serif", fontWeight: '500', fontSize: '16px', color: 'grey', marginTop: '0px'}}>Email</h1>
           
           </div></div>
 
           <div style={{ marginBottom: '40px', position: 'relative' }}>
               <input
-                type="password"
+                type={showPassword ? "text" : "password"}
                 value={password}
                 onFocus={() => handleInputFocus('password')}
                 onBlur={(e) => handleInputBlur('password', e.target.value)}
@@ -265,25 +289,43 @@ const Login = () => {
                   width: '97%',
                   padding: ' 10px 15px ', 
                   marginTop: '30px',
-                  fontWeight: 'bold',
+                  fontWeight: '500',
                   border: '1px solid lightgrey',
                   color: 'black',
-                  borderRadius: '5px',
+                  borderRadius: '50px',
                   outline: 'none',
                   backdropFilter: 'blur(7px)',
-                  fontSize: '20px',
+                  fontSize: '1rem',
                   backgroundColor: 'rgb(250,250,250,.5)',
                   fontFamily: "'montserrat', sans-serif",
                 }}
               />
-              <div style={{ position: 'absolute', top: '0px', left: '-10px', backgroundColor: 'white', padding: '0 10px', borderTopRightRadius: '3px', borderTopLeftRadius: '3px', zIndex: '20', fontFamily: "'montserrat', sans-serif", fontWeight: '600', height: '13px', fontSize: '20px', display: 'flex' }}>
-                <h1 style={{fontFamily: "'montserrat', sans-serif", fontWeight: '600', fontSize: '20px', marginTop: '0px'}}>Password</h1>
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                style={{
+                  position: 'absolute',
+                  right: '0px',
+                  top: '35px',
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  padding: '5px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  color: 'grey'
+                }}
+              >
+                {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+              </button>
+              <div style={{ position: 'absolute', top: '0px', left: '-10px',  padding: '0 10px', borderTopRightRadius: '3px', borderTopLeftRadius: '3px', zIndex: '20', fontFamily: "'montserrat', sans-serif", height: '13px', fontSize: '20px', display: 'flex' }}>
+                <h1 style={{fontFamily: "'montserrat', sans-serif", fontWeight: '500', fontSize: '16px', color: 'grey', marginTop: '0px'}}>Password</h1>
                 <button
                   type="button" // Prevent form submission
                   onClick={handleForgotPassword}
                   style={{
                     marginLeft: '-10px',
-                    marginTop: '-5px',
+                    marginTop: '-7px',
                     zIndex: '1000',
                     backgroundColor: 'transparent',
                     border: 'none',
@@ -300,57 +342,56 @@ const Login = () => {
               </div>
             </div>
 
-            <div style={{ display: 'flex', width: '430px' }}>
-              <button
-                type="submit"
-                disabled={isSubmitting}
+            <div style={{ display: 'flex', width: '100%', justifyContent: 'center' }}>
+              <GlassContainer
+                        enableRotation={true}
+              size={1}
+                variant={isSubmitting || !email || !password ? "grey" : "teal"}
+                onClick={(e) => {
+                  if (!isSubmitting && email && password) {
+                    handleLogin(e);
+                  }
+                }}
                 style={{
                   width: '98%',
-                  marginLeft: '0px',
-                  color: isSubmitting ? 'black' : 'white',
-                  background: isSubmitting ? 'white' : 'black',
-                  fontWeight: '600',
-                  padding: '8px',
-                  border: '1px solid lightgrey',
-                  zIndex: '1000',
-                  height: '40px',
-                  borderRadius: '8px',
-                  cursor: isSubmitting ? 'not-allowed' : 'pointer',
-                  fontFamily: "'montserrat', sans-serif",
+                  cursor: (!email || !password) ? 'not-allowed' : (isSubmitting ? 'not-allowed' : 'pointer'),
+                  opacity: 1,
                   transition: '.2s',
-                  opacity: isSubmitting ? 0.7 : 1,
                 }}
-                onMouseEnter={(e) => {
-                  if (!isSubmitting) {
-                    e.target.style.background = '#3D3D3D';
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (!isSubmitting) {
-                    e.target.style.background = 'black';
-                  }
+                contentStyle={{
+                  display: 'flex',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  padding: '8px'
                 }}
               >
                 <h1 style={{ 
-                  marginTop:  '0px'  ,
-                  fontSize: isSubmitting ? '12px' : '20px',
-              
+                  margin: 0,
+                  fontSize: '1.3rem',
                   pointerEvents: 'none',
-                  color: isSubmitting ? 'black' : 'white',
-                  fontWeight: '600'
+                  color: isSubmitting || !email || !password ? '#808080' : '#008080',
+                  fontWeight: '500',
+                  fontFamily: "'montserrat', sans-serif"
                 }}>
                   {isSubmitting ? 'Logging in...' : 'Login'}
                 </h1>
-              </button>
-             
+              </GlassContainer>
             </div>
 
-            <p style={{ fontFamily: "'montserrat', sans-serif", color: 'grey', marginLeft: '0px', fontSize: '12px', width: '280px', marginTop: '20px'}}>
-                By Logging in you agree to SquareScore's <a href="/TermsofService" style={{ color: 'blue' }}>Terms of Service</a> and <a href="/PrivacyPolicy" style={{ color: 'blue' }}>Privacy Policy</a>
+            <p style={{ 
+              fontFamily: "'montserrat', sans-serif", 
+              color: 'grey', 
+              fontSize: '12px', 
+              marginTop: '20px',
+              textAlign: 'left'
+            }}>
+                By Logging in you agree to Amoeba's <a href="/TermsofService" style={{ color: 'blue' }}>Terms of Service</a> and <a href="/PrivacyPolicy" style={{ color: 'blue' }}>Privacy Policy</a>
               </p>
+              
           </div>
+          
         </form>
-
+</GlassContainer>
         {error && <p style={{ color: 'red', marginTop: '40px' }}>{error}</p>}
       </div>
     </div>

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { ChevronDown, Repeat } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { v4 as uuidv4 } from 'uuid';
+import { GlassContainer } from '../../../styles';
 
 const FormatOption = ({ format, onClick, isSelected }) => {
   const [isHovered, setIsHovered] = useState(false);
@@ -11,24 +12,33 @@ const FormatOption = ({ format, onClick, isSelected }) => {
   return (
     <div
       style={{
-        padding: '5px 15px',
+        padding: '8px 10px',
         display: 'flex',
-        alignItems: 'center',fontFamily: "'montserrat', sans-serif",
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontFamily: "'montserrat', sans-serif",
         cursor: 'pointer',
-        backgroundColor: isSelected ? '#f0f0f0' : isHovered ? '#f4f4f4' : 'white',
+        backgroundColor: 'transparent',
         color: format.color,
         fontSize: '14px',
-        fontWeight: isSelected ? '700' : '500',
-        transition: 'background-color 0.2s ease',
+        fontWeight: isSelected ? '600' : '400',
+        transition: 'all 0.2s ease',
+        textAlign: 'center',
+        width: '40px',
+        transform: isSelected ? 'scale(1.1)' : isHovered ? 'scale(1.05)' : 'scale(1)',
+        position: 'relative',
+        zIndex: isSelected || isHovered ? 2 : 1
       }}
       onClick={() => onClick(format.value)}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      {format.label}
-      {format.hasAsterisk && (
-        <span style={{ marginLeft: '5px', color: '#FCCA18', fontWeight: 'bold' }}>*</span>
-      )}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+        {format.label}
+        {format.hasAsterisk && (
+          <span style={{ color: '#FCCA18', fontWeight: 'bold' }}>*</span>
+        )}
+      </div>
     </div>
   );
 };
@@ -41,10 +51,8 @@ const CustomDropdownFormatSelector = ({ classId, selectedFormat, onFormatChange 
   const dropdownRef = useRef(null);
 
   const formatOptions = [
-    { label: 'SAQ', color: '#020CFF', hasAsterisk: true, value: 'ASAQ' },
-    { label: 'SAQ', color: '#020CFF', hasAsterisk: false, value: 'SAQ' },
-    { label: 'MCQ', color: '#2BB514', hasAsterisk: true, value: 'AMCQ' },
-    { label: 'MCQ', color: '#2BB514', hasAsterisk: false, value: 'MCQ' }
+    { label: 'MC', color: '#7D00EA', hasAsterisk: true, value: 'AMCQ' },
+    { label: 'OE', color: '#00CCB4', hasAsterisk: false, value: 'OE' }
   ];
 
   const handleFormatSelect = (newFormat) => {
@@ -55,10 +63,10 @@ const CustomDropdownFormatSelector = ({ classId, selectedFormat, onFormatChange 
     let navigationPath = '';
 
     switch (newFormat) {
-      case 'SAQ':
+      case 'OE':
         navigationPath = `/class/${classId}/createassignment/${fullNewAssignmentId}`;
         break;
-      case 'ASAQ':
+      case 'AOE':
         navigationPath = `/class/${classId}/SAQA/${fullNewAssignmentId}`;
         break;
       case 'MCQ':
@@ -76,7 +84,7 @@ const CustomDropdownFormatSelector = ({ classId, selectedFormat, onFormatChange 
     navigate(navigationPath, {
       state: {
         assignmentType: newFormat,
-        isAdaptive: newFormat === 'ASAQ' || newFormat === 'AMCQ',
+        isAdaptive: newFormat === 'AOE' || newFormat === 'AMCQ',
         assignmentId: fullNewAssignmentId,
         classId
       }
@@ -127,16 +135,16 @@ const CustomDropdownFormatSelector = ({ classId, selectedFormat, onFormatChange 
           display: 'flex',
           alignItems: 'center',
           padding: '5px 10px',
-          border: '1px solid #ccc',
-          borderRadius: '5px',
-          backgroundColor: 'white',
+          border: '1px solid #ddd',
+          borderRadius: '50px',
+          backgroundColor: 'transparent',
           cursor: 'pointer',
           minWidth: '80px',
           justifyContent: 'space-between',
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center' }}>
-          <span style={{ color: selectedFormatObject.color, fontWeight: '600',fontFamily: "'montserrat', sans-serif", }}>
+          <span style={{ color: selectedFormatObject.color, fontWeight: '500',fontFamily: "'montserrat', sans-serif", }}>
             {selectedFormatObject.label}
           </span>
           {selectedFormatObject.hasAsterisk && (
@@ -157,26 +165,47 @@ const CustomDropdownFormatSelector = ({ classId, selectedFormat, onFormatChange 
         <div
           style={{
             position: 'absolute',
-            top: '100%',
-            left: '0',
+            top: '120%',
+            left: '-20px',
             zIndex: 1000,
-            backgroundColor: 'white',
             borderRadius: '8px',
             marginTop: '5px',
-            boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
-            width: '100%',
+            width: '160px',
             maxHeight: '300px',
-            overflowY: 'auto',
           }}
         >
-          {allFormats.map((format) => (
-            <FormatOption
-              key={format.value}
-              format={format}
-              onClick={handleFormatSelect}
-              isSelected={format.value === selectedFormat}
-            />
-          ))}
+          <GlassContainer variant='clear'
+          size={0}
+                    enableRotation={true}
+          contentStyle={{ padding: '5px 10px'}}>
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(2, 1fr)',
+              gap: '5px',
+              width: '100%',
+              position: 'relative'
+            }}>
+              {/* Vertical Divider */}
+              <div style={{
+                position: 'absolute',
+                top: '0',
+                bottom: '0',
+                left: '50%',
+                width: '1px',
+                background: '#ededed',
+                transform: 'translateX(-50%)',
+                zIndex: 1
+              }} />
+              {allFormats.map((format, index) => (
+                <FormatOption
+                  key={format.value}
+                  format={format}
+                  onClick={handleFormatSelect}
+                  isSelected={format.value === selectedFormat}
+                />
+              ))}
+            </div>
+          </GlassContainer>
         </div>
       )}
     </div>

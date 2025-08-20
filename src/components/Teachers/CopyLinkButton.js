@@ -1,13 +1,18 @@
 import React, { useState } from 'react';
 import { Link, Check } from 'lucide-react';
 
-const CopyLinkButton = ({ classCode, className, classChoice }) => {
+const CopyLinkButton = ({ classCode, period, classChoice, color }) => {
   const [showSuccess, setShowSuccess] = useState(false);
 
   const handleCopy = async () => {
     // Create the signup URL with class info encoded
-    const baseUrl = 'https://square-score-ai.web.app/signup';
-    const signupUrl = `${baseUrl}/${classCode}+${className}+${classChoice}`;
+    const baseUrl = 'https://amoeba-education.web.app/signup';
+    
+    // Encode period and class choice
+    const encodedPeriod = encodeURIComponent(`Period ${period}`);
+    const encodedClassChoice = encodeURIComponent(classChoice);
+    
+    const signupUrl = `${baseUrl}/${classCode}+${encodedPeriod}+${encodedClassChoice}`;
 
     try {
       await navigator.clipboard.writeText(signupUrl);
@@ -17,13 +22,12 @@ const CopyLinkButton = ({ classCode, className, classChoice }) => {
       console.error('Failed to copy:', err);
     }
   };
-
+  
   return (
     <button 
       onClick={handleCopy}
       style={{ 
         background: 'transparent', 
-        color: '#FFAE00', 
         border: 'none', 
         cursor: 'pointer',
         position: 'relative',
@@ -32,9 +36,9 @@ const CopyLinkButton = ({ classCode, className, classChoice }) => {
       }}
     >
       {showSuccess ? (
-        <Check size={20} strokeWidth={2.5} />
+        <Check size={20} strokeWidth={2.5} color={color} />
       ) : (
-        <Link size={20} strokeWidth={2.5} />
+        <Link size={20} strokeWidth={2.5} color={color} />
       )}
       {showSuccess && (
         <div style={{
@@ -42,7 +46,7 @@ const CopyLinkButton = ({ classCode, className, classChoice }) => {
           top: '-30px',
           left: '50%',
           transform: 'translateX(-50%)',
-          backgroundColor: '#FFAE00',
+          backgroundColor: color,
           color: 'white',
           padding: '4px 8px',
           borderRadius: '4px',

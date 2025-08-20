@@ -12,7 +12,7 @@
     "buffer": "^6.0.3",
     "emailjs-com": "^3.2.0",
     "firebase": "^10.12.2",
-    "framer-motion": "^11.3.17",
+    "framer-motion": "^11.18.2",
     "lucide-react": "^0.445.0",
     "motion": "^10.18.0",
     "process": "^0.11.10",
@@ -28,8 +28,10 @@
     "react-textarea-autosize": "^8.5.3",
     "recharts": "^2.13.3",
     "stream-browserify": "^3.0.0",
+    "styled-components": "^6.1.14",
     "util": "^0.12.5",
-    "web-vitals": "^2.1.4"
+    "web-vitals": "^2.1.4",
+    "xlsx": "^0.18.5"
   },
   "scripts": {
     "start": "react-scripts start",

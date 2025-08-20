@@ -8,6 +8,8 @@ import {
   query,
   where,
   getDocs,
+  updateDoc,
+  arrayUnion,
 } from "firebase/firestore";
 import { signOut } from "firebase/auth";
 import {
@@ -16,72 +18,77 @@ import {
   MessageSquare,
   Clapperboard,
   LayoutGrid,
+  School,
+  Building,
+  MessageSquareReply,
+  DoorOpen,
 } from "lucide-react";
-import TeacherAssignmentHome from "../Teachers/TeacherAssignments/TeacherAssignmentHome";
-import { motion, AnimatePresence } from "framer-motion";
+import { GlassContainer } from "../../styles";
 
 const HomeNav = ({ userType }) => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const [showCreateDropdown, setShowCreateDropdown] = useState(false);
   const [userFullName, setUserFullName] = useState("");
-  const [currentClass, setCurrentClass] = useState("Squarescore");
-  const [currentClassChoice, setCurrentClassChoice] = useState("Select a class");
-  const [showClassDropdown, setShowClassDropdown] = useState(false);
-  const [classes, setClasses] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [schoolCode, setSchoolCode] = useState('');
+  const [modalOpen, setModalOpen] = useState(false);
+  const [teacherData, setTeacherData] = useState(null);
 
-  // Fetch classes based on user type
+  // Fetch teacher data for school info
   useEffect(() => {
-    const fetchClasses = async () => {
-      setIsLoading(true);
-      let classQuery;
-      if (userType === "teacher") {
-        const teacherUID = auth.currentUser.uid;
-        classQuery = query(
-          collection(db, "classes"),
-          where("teacherUID", "==", teacherUID)
-        );
-      } else {
-        const studentUID = auth.currentUser.uid;
-        classQuery = query(
-          collection(db, "classes"),
-          where("students", "array-contains", studentUID)
-        );
+    const fetchTeacherData = async () => {
+      if (userType === "teacher" && auth.currentUser) {
+        try {
+          const teacherRef = doc(db, 'teachers', auth.currentUser.uid);
+          const teacherSnap = await getDoc(teacherRef);
+          
+          if (teacherSnap.exists()) {
+            setTeacherData(teacherSnap.data());
+          }
+        } catch (error) {
+          console.error("Error fetching teacher data:", error);
+        }
       }
-
-      try {
-        const classesSnapshot = await getDocs(classQuery);
-        const classesData = classesSnapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
-        setClasses(classesData);
-      } catch (error) {
-        console.error("Error fetching classes:", error);
-      }
-      setIsLoading(false);
     };
 
-    fetchClasses();
+    fetchTeacherData();
   }, [userType]);
 
-  // Handle class change
-  const handleClassChange = (newClassId, e) => {
-    e.stopPropagation();
-    let newPath =
-      userType === "teacher"
-        ? `/class/${newClassId}/`
-        : `/studentassignments/${newClassId}/active`;
-    navigate(newPath);
-    setShowClassDropdown(false);
-  };
+  // Handle join organization
+  const handleJoinOrganization = async () => {
+    try {
+      const schoolsQuery = query(collection(db, 'schools'), where('joinCode', '==', schoolCode));
+      const schoolsSnap = await getDocs(schoolsQuery);
 
-  // Toggle class dropdown
-  const toggleClassDropdown = (e) => {
-    if (e) e.preventDefault();
-    setShowClassDropdown((prev) => !prev);
+      if (!schoolsSnap.empty) {
+        const schoolDoc = schoolsSnap.docs[0];
+        const schoolData = schoolDoc.data();
+        const schoolRef = doc(db, 'schools', schoolDoc.id);
+
+        // Update teacher's document
+        const teacherRef = doc(db, 'teachers', auth.currentUser.uid);
+        await updateDoc(teacherRef, { 
+          school: schoolData.schoolName, 
+          schoolCode
+        });
+
+        // Add teacher UID to school's teachers array
+        await updateDoc(schoolRef, { teachers: arrayUnion(auth.currentUser.uid) });
+
+        // Update state
+        setTeacherData(prevData => ({ 
+          ...prevData, 
+          school: schoolData.schoolName,
+          schoolCode: schoolData.schoolCode
+        }));
+        setModalOpen(false);
+        setSchoolCode('');
+      } else {
+        alert('Invalid school code.');
+      }
+    } catch (error) {
+      console.error('Error joining organization:', error);
+    }
   };
 
   // Fetch user full name
@@ -114,289 +121,130 @@ const HomeNav = ({ userType }) => {
     }
   };
 
-  // Determine the current active page
-  const getCurrentPage = () => {
-    const path = location.pathname;
-    if (path === "/teacherhome" || path === "/studenthome") return "Home";
-    return "";
-  };
-  const periodStyles = {
-    1: { background: "#D4FFFD", color: "#1CC7BC", borderColor: "#1CC7BC" },
-    2: { background: "#FCEDFF", color: "#E01FFF", borderColor: "#E01FFF" },
-    3: { background: "#FFCEB2", color: "#FD772C", borderColor: "#FD772C" },
-    4: { background: "#FFECA9", color: "#F0BC6E", borderColor: "#F0BC6E" },
-    5: { background: "#DBFFD6", color: "#4BD682", borderColor: "#4BD682" },
-    6: { background: "#F0EDFF", color: "#8364FF", borderColor: "#8364FF" },
-    7: { background: "#8296FF", color: "#3D44EA", borderColor: "#3D44EA" },
-    8: { background: "#FF8E8E", color: "#D23F3F", borderColor: "#D23F3F" },
-  };
-
-  // Get period number from class name
-  const getPeriodNumber = (className) => {
-    const match = className.match(/Period (\d)/);
-    return match ? parseInt(match[1]) : null;
-  };
-  const periodNumber = getPeriodNumber(currentClass);
-  const periodStyle =
-    periodStyles[periodNumber] || {
-      background: "#F4F4F4",
-      color: "grey",
-      borderColor: "grey",
-    };
   return (
     <div style={{ position: "relative" }}>
-      {/* Navbar */}
-      <div
-        style={{
-          position: "fixed",
-          top: 0,
-          left: 0,
-          width: "200px",
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "flex-start",
-          height: "100%",
-          color: "grey",
-          zIndex: "1000",
-          backgroundColor: "#fcfcfc",
-          transition: "background-color 0.3s ease",
-          backdropFilter: "blur(7px)",
-          borderRight: "1px solid #DFDFDF",
-          paddingTop: "20px",
-          overflowY: "auto",
-        }}
-      >
-        {/* Class Selector */}
-        <div
-          style={{ width: "100%", padding: "10px 10px", marginBottom: "20px" }}
-        >
-          <div
-            onClick={toggleClassDropdown}
+      <div style={{
+        position: "fixed",
+        top: 0,
+        left: 0,
+        width: "200px",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "flex-start",
+        height: "100%",
+        color: "grey",
+        zIndex: "1000",
+        backgroundColor: "#fcfcfc",
+        transition: "background-color 0.3s ease",
+        backdropFilter: "blur(7px)",
+        borderRight: '1px solid #DFDFDF',
+      }}>
+        {/* Logo */}
+        <div style={{
+          width: '170px',
+          borderBottom: '1px solid #ddd',
+          justifyContent: 'center',
+          padding: '20px 15px',
+          paddingBottom: '20px',
+          marginBottom: '20px',
+          display: 'flex'
+        }}>
+          <img 
+            src="/favicon.svg" 
+            alt="Logo" 
             style={{
+              width: '50px',
+              height: '50px'
+            }}
+          />
+          <h1 style={{fontSize: '1rem', fontWeight: '400', color: 'grey', lineHeight: '1.2', marginTop: '10px', marginLeft: '10px', borderLeft: '1px solid #ddd', 
+            paddingLeft: '10px'
+          }}>Amoeba. Education</h1>
+      
+      
+        </div>
+
+   
+
+
+
+   <div style={{
+          width: "170px",
+          display: "flex",
+          marginTop: 'auto',
+          marginBottom: '10px', 
+          padding: "0 15px", // Reduced padding
+          gap: "15px",
+        }}>
+          {/* Join School Button - Only for teachers */}
+          {userType === "teacher" && !teacherData?.school && (
+            <button
+              onClick={() => setModalOpen(true)}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                padding: "8px 12px",
+                backgroundColor: "transparent",
+                border: "none",
+                borderRadius: "5px",
+                cursor: "pointer",
+                color: "grey",
+                width: '170px',
+                fontSize: "0.85rem",
+                fontFamily: "'montserrat', sans-serif",
+                fontWeight: "500",
+                transition: "background-color 0.2s"
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f8f8f8'}
+              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+            >
+              <Building size={16} strokeWidth={1.5} style={{marginRight: '8px'}} />
+              <p>Join School</p>
+            </button>
+          )}
+        </div>
+          {/* Show school name if teacher has joined */}
+          {userType === "teacher" && teacherData?.school && (
+            <div style={{
+              display: "flex",
               alignItems: "center",
               justifyContent: "space-between",
-              cursor: "pointer",
-              marginBottom: "20px",
-              width: "180px",
-              backgroundColor: "white",
+              padding: "8px 12px",
+              backgroundColor: "transparent",
               borderRadius: "5px",
-              position: "relative",
-            }}
-          >
-            <div
-              style={{
-                fontFamily: "'montserrat', sans-serif",
-                fontWeight: "600",
-                background: "white",
-                height: "12px",
-                lineHeight: "10px",
-                width: "170px",
-                paddingLeft: "4px",
-                marginBottom: "15px",
-                color: "grey",
-                fontSize: "25px",
-                whiteSpace: "nowrap",
-                flex: 1,
-                marginRight: "10px",
-              }}
-            >
-              {currentClass}
-            </div>
-
-            <div
-              style={{
-                fontFamily: "'montserrat', sans-serif",
-                fontWeight: "600",
-                color: "lightgrey",
+              color: "#00BBFF",
+              
+          marginTop: 'auto',
+              fontSize: "0.85rem",
+              fontFamily: "'montserrat', sans-serif",
+              fontWeight: "500",
+              marginBottom: "12px",
+              borderBottom: "1px solid #EDEDED",
+              paddingBottom: "20px"
+            }}>
+              <School size={16} strokeWidth={1.5} color="#00BBFF" style={{marginRight: '8px'}} />
+              <span style={{
                 overflow: "hidden",
                 textOverflow: "ellipsis",
                 whiteSpace: "nowrap",
-                flex: 1,
-                marginRight: "10px",
-                fontSize: "14px",
-              }}
-            >
-              {currentClassChoice}
+                maxWidth: "110px"
+              }}>
+                {teacherData.school}
+              </span>
             </div>
-            <ChevronDown
-              size={20}
-              style={{ position: "absolute", right: "10px", top: "25px" }}
-            />
-          </div>
-          {/* Dropdown Menu for Classes */}
-          <AnimatePresence>
-            {showClassDropdown && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: "auto" }}
-                exit={{ opacity: 0, height: 0 }}
-                transition={{ duration: 0.3 }}
-                style={{
-                  overflow: "hidden",
-                  backgroundColor: "white",
-                  borderRadius: "5px",
-                  marginTop: "0px",
-                  zIndex: 1000,
-                }}
-              >
-                {classes
-                  .filter((cls) => cls.id !== cls.classId)
-                  .sort((a, b) => a.className.localeCompare(b.className))
-                  .map((cls, index) => {
-                    const periodNumber = getPeriodNumber(cls.className);
-                    const periodStyle =
-                      periodStyles[periodNumber] || {
-                        background: "#F4F4F4",
-                        color: "grey",
-                        borderColor: "grey",
-                      };
+          )}
 
-                    return (
-                      <div
-                        key={cls.id}
-                        onClick={(e) => handleClassChange(cls.id, e)}
-                        style={{
-                          padding: "10px 10px",
-                          cursor: "pointer",
-                          marginTop: '0px',  
-                          display: "flex",
-                          alignItems: "center",
-                          borderTop:
-                            index !== classes.length - 1
-                              ? "1px solid #eee"
-                              : "none",
-                        }}
-                      >
-                    
-                        {/* Class Name */}
-                        <span
-                          style={{
-                            fontFamily: "'montserrat', sans-serif",
-                            fontWeight: "600",
-                            lineHeight: '4px',
-                            margin: '10px 0px',
-                            padding: '0px 5px 0px 2px',
-                            height:'6px',
-                            fontSize: '20px',
-                            color: periodStyle.color,
-                            backgroundColor: periodStyle.background,
-                           
-                          }}
-                        >
-                          {cls.className}
-                        </span>
-                      </div>
-                    );
-                  })}
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-        <div
-          style={{
-            width: "90%",
-            background: "#f4f4f4",
-            height: "2px",
-            marginLeft: "auto",
-            marginRight: "auto",
-            marginTop: "-20px",
-          }}
-        />
-        {/* Navigation Links */}
-      
-
-        {/* Bottom Navigation Section */}
-        <div
-          style={{
-            width: "100%",
-            marginTop: '20px',
-            paddingLeft: "20px",
-            marginBottom: "20px",
-          }}
-        >
-          {/* Home Link */}
-          <Link
-            to="/home"
-            style={{
-              display: "flex",
-              alignItems: "center",
-              padding: "1% 0",
-              width: "89%",
-              textDecoration: "none",
-              color:
-                getCurrentPage() === "Home" ? "#000000" : "#A1A1A1",
-              borderRight:
-                getCurrentPage() === "Home"
-                  ? `2px solid #000000`
-                  : "2px solid transparent",
-              marginBottom: "15px",
-              transition: "border-right 0.3s, color 0.3s",
-              cursor: "pointer",
-            }}
-          >
-            <div style={{ marginRight: "10px" }}>
-              <Home
-                size={20}
-                strokeWidth={getCurrentPage() === "Home" ? 2.5 : 2}
-                color={
-                  getCurrentPage() === "Home" ? "#000000" : "#A1A1A1"
-                }
-              />
-            </div>
-            <span
-              style={{
-                fontFamily: "'montserrat', sans-serif",
-                fontWeight: "600",
-                fontSize: "15px",
-                color: "inherit",
-              }}
-            >
-              Home
-            </span>
-          </Link>
-
-          {/* Divider Line */}
-          <div
-            style={{
-              width: "90%",
-              padding: "10px",
-              position: 'absolute', 
-              bottom: '110px',
-              marginLeft: "-10px",
-              boxSizing: "border-box",
-              borderTop: "1px solid #ddd",
-            }}
-          />
-
-          {/* Tutorials Link */}
-          <Link
-            to="/tutorials"
-            style={{
-              display: "flex",
-              position: 'absolute', 
-              bottom: '80px',
-              alignItems: "center",
-              width: "90%",
-              textDecoration: "none",
-              color: "#A1A1A1",
-              marginBottom: "15px",
-              cursor: "pointer",
-            }}
-          >
-            <div style={{ marginRight: "10px" }}>
-              <Clapperboard size={15} strokeWidth={2} color="#A1A1A1" />
-            </div>
-            <span
-              style={{
-                fontFamily: "'montserrat', sans-serif",
-                fontWeight: "600",
-                fontSize: "12px",
-                color: "inherit",
-              }}
-            >
-              Tutorials
-            </span>
-          </Link>
+          
+        {/* Bottom Section */}
+        <div style={{
+          width: "170px",
+          padding: "15px", // Reduced padding
+          borderTop: "1px solid #EDEDED",
+          display: "flex",
+          flexDirection: "column",
+          gap: "12px" // Reduced gap
+        }}>
+           
 
           {/* Feedback Link */}
           <Link
@@ -404,100 +252,150 @@ const HomeNav = ({ userType }) => {
             style={{
               display: "flex",
               alignItems: "center",
-              width: "90%",
-              position: 'absolute', 
-              bottom: '50px',
               textDecoration: "none",
-              color: "#A1A1A1",
-              marginBottom: "15px",
-              cursor: "pointer",
-            }}
-          >
-            <div style={{ marginRight: "10px" }}>
-              <MessageSquare size={15} strokeWidth={2} color="#A1A1A1" />
-            </div>
-            <span
-              style={{
-                fontFamily: "'montserrat', sans-serif",
-                fontWeight: "600",
-                fontSize: "12px",
-                color: "inherit",
-              }}
-            >
-              Feedback
-            </span>
-          </Link>
-        </div>
-
-        {/* Spacer to push profile to bottom */}
-        <div style={{ flexGrow: 1 }}></div>
-
-        {/* User Profile */}
-        <div
-          style={{
-            width: "90%",
-            padding: "10px",
-            marginLeft: "5%",
-            boxSizing: "border-box",
-            borderTop: "1px solid #ddd",
-            display: "flex",
-            alignItems: "center",
-            gap: "10px",
-          }}
-        >
-          {/* Initials Box */}
-          <div
-            style={{
-              width: "32px",
-              height: "32px",
-              backgroundColor: "#f4f4f4",
-              borderRadius: "6px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
+              padding: "8px 12px",
+              color: "grey",
+              transition: "color 0.2s",
+              borderRadius: "5px",
+              fontSize: "0.85rem",
               fontFamily: "'montserrat', sans-serif",
-              fontWeight: "600",
-              fontSize: "14px",
-              color: "#666",
+              fontWeight: "500"
             }}
+            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f8f8f8'}
+            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
           >
-            {userFullName
-              .split(" ")
-              .map((name) => name[0])
-              .join("")
-              .toUpperCase()
-              .slice(0, 2)}
-          </div>
+            <MessageSquareReply size={16} strokeWidth={1.5} style={{marginRight: '8px'}} />
+            Feedback
+          </Link>
 
           {/* Sign Out Button */}
           <button
             onClick={handleLogout}
             style={{
-              flex: 1,
-              padding: "10px",
-              backgroundColor: "white",
+              display: "flex",
+              alignItems: "center",
+              padding: "8px 12px",
+              backgroundColor: "transparent",
               border: "none",
-              textAlign: "left",
               borderRadius: "5px",
               cursor: "pointer",
+              color: "grey",
+              fontSize: "0.85rem",
               fontFamily: "'montserrat', sans-serif",
-              fontWeight: "600",
-              color: "lightgrey",
+              fontWeight: "500",
+              transition: "background-color 0.2s"
             }}
+            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f8f8f8'}
+            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
           >
+            <DoorOpen size={16} strokeWidth={1.5} style={{marginRight: '8px'}} />
             Sign Out
           </button>
         </div>
       </div>
 
-      {/* Create Dropdown Modal */}
-      <AnimatePresence>
-        {showCreateDropdown && (
-          <TeacherAssignmentHome
-            onClose={() => setShowCreateDropdown(false)}
-          />
-        )}
-      </AnimatePresence>
+      {/* Join School Modal */}
+      {modalOpen && (
+        <div style={{
+          position: 'fixed',
+          top: '0',
+          left: '0',
+          right: '0',
+          bottom: '0',
+          backdropFilter: 'blur(15px)',
+          backgroundColor: 'rgba(255, 255, 255, 0.8)',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          zIndex: '100'
+        }}>
+          <GlassContainer
+            variant="clear"
+            size={0}
+            style={{
+
+            }}
+            contentStyle={{
+              padding: '40px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '20px'
+            }}
+          >
+            <h3 style={{ 
+              fontSize: '1.5rem', 
+              fontFamily: "'montserrat', sans-serif", 
+              fontWeight: '400',
+              color: 'black',
+              margin: 0
+            }}>
+              School Code
+            </h3>
+            <input
+              type="text"
+              value={schoolCode}
+              onChange={(e) => setSchoolCode(e.target.value)}
+              style={{
+                fontFamily: "'montserrat', sans-serif",
+                fontSize: '1rem',
+                background: "white",
+                letterSpacing: '4px', 
+                fontWeight: '600',
+                borderRadius: '100px',
+                border: '1px solid #ddd',
+                width: '180px',
+                padding: '10px 20px',
+                outline: 'none',
+              }}
+            />
+            <div style={{
+              display: 'flex',
+              gap: '10px',
+              marginTop: '10px'
+            }}>
+              <GlassContainer
+                variant="green"
+                size={0}
+                          enableRotation={true}
+                onClick={handleJoinOrganization}
+                style={{
+                  flex: 1,
+                  cursor: 'pointer'
+                }}
+                contentStyle={{
+                  padding: '10px',
+                  width: '80px',
+                  height: '15px',
+                  textAlign: 'center',
+                  fontSize: '1rem',
+                  fontFamily: "'montserrat', sans-serif",
+                  fontWeight: '500'
+                }}
+              >
+               <p style={{fontSize: '1rem', color: 'green', textAlign: 'center', width: '80px', marginTop: '-3px' }}>Join</p>
+              </GlassContainer>
+              <button
+                onClick={() => setModalOpen(false)}
+                style={{
+                  flex: 1,
+                  padding: '5px 15px',
+                  width: '100px', 
+                  backgroundColor: 'white',
+                  border: '1px solid #ddd',
+                  borderRadius: '50px',
+                  cursor: 'pointer',
+                  fontWeight: '500',
+                  fontFamily: "'montserrat', sans-serif",
+                  fontSize: '1rem',
+                  color: 'grey',
+                }}
+              >
+                Cancel
+              </button>
+            </div>
+          </GlassContainer>
+        </div>
+      )}
     </div>
   );
 };

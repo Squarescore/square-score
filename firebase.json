@@ -20,6 +20,9 @@
     }
   ],
   "hosting": {
+    
+  "site": "amoeba-education",
+
     "public": "build",
     "ignore": [
       "firebase.json",
@@ -28,8 +31,35 @@
     ],
     "rewrites": [
       {
+        "source": "/api/identifySectors",
+        "function": "identifySectors"
+      },
+      {
+        "source": "/api/generateSectorQuestions",
+        "function": "generateSectorQuestions"
+      },
+      {
         "source": "**",
         "destination": "/index.html"
+      }
+    ],
+    "headers": [
+      {
+        "source": "/api/**",
+        "headers": [
+          {
+            "key": "Access-Control-Allow-Origin",
+            "value": "*"
+          },
+          {
+            "key": "Access-Control-Allow-Methods",
+            "value": "GET,POST,PUT,DELETE,OPTIONS"
+          },
+          {
+            "key": "Access-Control-Allow-Headers",
+            "value": "Content-Type"
+          }
+        ]
       }
     ]
   },

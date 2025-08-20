@@ -1,29 +1,28 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { doc, collection, updateDoc, where, query, getDocs, writeBatch } from 'firebase/firestore';
+import { doc, collection, updateDoc, where, query, getDocs, writeBatch, deleteField } from 'firebase/firestore';
 import { db } from '../../Universal/firebase';
 import { arrayUnion, arrayRemove, deleteDoc, getDoc, onSnapshot, documentId  } from 'firebase/firestore';
 import Navbar from '../../Universal/Navbar';
 import { useRef } from 'react';
 import { auth } from '../../Universal/firebase';
-import { motion, AnimatePresence } from 'framer-motion';
 import { useCallback } from 'react';
 import Tooltip from './ToolTip';
 import axios from 'axios';
 import { serverTimestamp } from 'firebase/firestore';
-import CustomDateTimePicker from './CustomDateTimePickerResults';
 import Exports from './Exports';
 import { debounce } from 'lodash';
-import DeleteConfirmationModal from './DeleteConfirmationModal';
 import { Settings, ArrowRight, SquareArrowOutUpRight,  SquareDashedMousePointer, SquareX, SquareMinus, SquareCheck, Landmark, Eye, EyeOff, Flag, YoutubeIcon, Trash2 } from 'lucide-react';
 import 'react-datepicker/dist/react-datepicker.css';
-import TeacherPreview from '../Create/PreviewSAQ';
-import QuestionBankSAQ from './QuesntionBankSAQ';
-import StudentResultsList from './StudentResultList';
+import QuestionBankSAQ from './QuestionBank/QuesntionBankSAQ';
+import StudentResultsList from './StudentList/StudentResultList';
 import TeacherReview from './TeacherReview';
-import SettingsSection from './SettingsSection';// At the top of your component
+import SettingsSection from './Settings/SettingsSection';// At the top of your component
+import ResultsHeader from './TabButton';
+
 
 const TeacherResults = () => {
+  const [classData, setClassData] = useState(null);
   const [students, setStudents] = useState([]);
   const [grades, setGrades] = useState({});
   const [resetStudent, setResetStudent] = useState(null);
@@ -35,6 +34,7 @@ const TeacherResults = () => {
   const [dueDate, setDueDate] = useState(null);
   const { classId, assignmentId } = useParams();
   const [isHovered, setIsHovered] = useState(false);
+  const [hasScrolled, setHasScrolled] = useState(false);
   const [assignmentData, setAssignmentData] = useState(null);
   const [submissionCount, setSubmissionCount] = useState(0);
   const [assignedCount, setAssignedCount] = useState(0);
@@ -47,7 +47,51 @@ const TeacherResults = () => {
   const [assignmentName, setAssignmentName] = useState('');
   const chunkSize = 10; // Limit to 10 based on Firebase's 'in' query limit
   const [allViewable, setAllViewable] = useState(false); // New state for the global viewable switch
-  const [hoveredStudent, setHoveredStudent] = useState(null);
+// In TeacherResults component
+const [gradingStudentUid, setGradingStudentUid] = useState(null);
+
+  // Period styles definition
+  const periodStyles = {
+    1: { variant: 'teal', color: "#1EC8bc", borderColor: "#83E2F5" },
+    2: { variant: 'purple', color: "#8324e1", borderColor: "#cf9eff" },
+    3: { variant: 'orange', color: "#ff8800", borderColor: "#f1ab5a" },
+    4: { variant: 'yellow', color: "#ffc300", borderColor: "#Ecca5a" },
+    5: { variant: 'green', color: "#29c60f", borderColor: "#aef2a3" },
+    6: { variant: 'blue', color: "#1651d4", borderColor: "#b5ccff" },
+    7: { variant: 'pink', color: "#d138e9", borderColor: "#f198ff" },
+    8: { variant: 'red', color: "#c63e3e", borderColor: "#ffa3a3" },
+  };
+
+  // Get current period style function
+  const getCurrentPeriodStyle = useCallback(() => {
+    try {
+      // First try to get period from classData
+      if (classData?.period) {
+        return periodStyles[classData.period] || periodStyles[1];
+      }
+      
+      // Then try to extract from className (e.g. "Period 3")
+      if (classData?.className) {
+        const periodFromName = parseInt(classData.className.split(' ')[1]);
+        if (!isNaN(periodFromName)) {
+          return periodStyles[periodFromName] || periodStyles[1];
+        }
+      }
+      
+      // Finally try to get from classId
+      const periodFromId = parseInt(classId.split('+')[1]);
+      if (!isNaN(periodFromId)) {
+        return periodStyles[periodFromId] || periodStyles[1];
+      }
+
+      // Default fallback
+      return periodStyles[1];
+    } catch (error) {
+      console.error('Error getting period style:', error);
+      return periodStyles[1]; // Safely default to period 1 style
+    }
+  }, [classId, classData]);
+
   const [assignmentStatuses, setAssignmentStatuses] = useState({});
   const [hoveredStatus, setHoveredStatus] = useState(null);
   const [showQuestionBank, setShowQuestionBank] = useState(false);
@@ -58,15 +102,20 @@ const TeacherResults = () => {
   const [timer, setTimer] = useState('0');
   const [questionBank, setQuestionBank] = useState('10');
   const [questionStudent, setQuestionStudent] = useState('5');
-  const [additionalInstructions, setAdditionalInstructions] = useState('');
   const [teacherId, setTeacherId] = useState(null);
-  const [showMissingAssignmentsModal, setShowMissingAssignmentsModal] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [studentsWithoutAssignment, setStudentsWithoutAssignment] = useState([]);
   const [activeTab, setActiveTab] = useState('submissions');
   const studentDataCache = useRef({});
 
-  
+  const [isRegrading, setIsRegrading] = useState(false);
+  const [results, setResults] = useState(null);
+  const [correctCount, setCorrectCount] = useState(0);
+  const [partialCount, setPartialCount] = useState(0);
+  const [incorrectCount, setIncorrectCount] = useState(0);
+
+  // If halfCredit state is needed for other logic, declare it
+  const [halfCredit, setHalfCredit] = useState(false);
   const [autoOpenQuestionId, setAutoOpenQuestionId] = useState(null);
 
   // In the useEffect that handles initial load, add:
@@ -80,6 +129,14 @@ const TeacherResults = () => {
       setShowSettings(true);
     }
   };
+  useEffect(() => {
+    const handleScroll = () => {
+      setHasScrolled(window.scrollY > 0);
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   const updateClassAssignmentAverage = useCallback(
     debounce(async (newAverage) => {
@@ -205,21 +262,24 @@ const TeacherResults = () => {
         style={{
           fontSize: `${fontSize}px`,
           color: 'black',
-          width: '90%',
+
+        
+          width: '800px',
           fontFamily: "'montserrat', sans-serif",
           wordWrap: 'break-word',
           overflowWrap: 'break-word',
           hyphens: 'auto',
           lineHeight: '1.2',
-          margin: 0,
-          marginBottom: '0px',
+          margin: 0,marginLeft: '4%',marginBottom:'23px', marginTop: '10px' ,
+       
           padding: '10px 0',
+          fontWeight: '500',
           whiteSpace: 'nowrap',
           textOverflow: 'ellipsis',
           overflow: 'hidden'
         }}
       >
-        {text}
+        {text} <span style={{fontSize: '16px', fontWeight: '600', color: '#00CCB4'}}>OE</span>
       </h1>
     );
   };
@@ -256,10 +316,6 @@ const TeacherResults = () => {
 
 
 
-  const handleCloseQuestionBank = () => {
-    setShowQuestionBank(false);
-    setShowOverlay(false);
-  };
   useEffect(() => {
     fetchAssignmentQuestions();
   }, [fetchAssignmentQuestions]);
@@ -495,37 +551,7 @@ const TeacherResults = () => {
         }
       }
   
-      // 3. Update all relevant grade documents
-      for (const student of students) {
-        const gradeRef = doc(db, 'grades', `${assignmentId}_${student.uid}`);
-        const gradeDoc = await getDoc(gradeRef);
-        
-        if (gradeDoc.exists()) {
-          const gradeData = gradeDoc.data();
-          const updatedData = {
-            viewable: newViewableStatus,
-          };
-  
-          if (gradeData.questions && Array.isArray(gradeData.questions)) {
-            updatedData.questions = gradeData.questions.map(question => ({
-              ...question,
-              flagged: question.flagged || false,
-            }));
-          }
-  
-          batch.update(gradeRef, updatedData);
-  
-          // Update local state
-          setGrades(prevGrades => ({
-            ...prevGrades,
-            [student.uid]: {
-              ...prevGrades[student.uid],
-              viewable: newViewableStatus,
-              questions: updatedData.questions || [],
-            }
-          }));
-        }
-      }
+ 
   
       await batch.commit();
       console.log("Successfully updated viewable status across all documents");
@@ -654,7 +680,225 @@ const TeacherResults = () => {
   
     fetchAssignmentName();
   }, [assignmentId]);
+  const handleSubmitAssignment = async (studentUid) => {
+    if (window.confirm("Are you sure you want to submit this assignment for the student?")) {
+      setGradingStudentUid(studentUid); 
+      try {
+        // Get references to needed documents
+        const gradeRef = doc(db, 'grades', `${assignmentId}_${studentUid}`);
+        const progressRef = doc(db, 'assignments(progress)', `${assignmentId}_${studentUid}`);
+        const studentRef = doc(db, 'students', studentUid);
+  
+        // First get the student doc to check if it's a failed grading case
+        const studentDoc = await getDoc(studentRef);
+        const studentData = studentDoc.data();
+        const isFailedGrading = studentData[`class_${classId}`]?.grades?.[assignmentId]?.gradedUnsuccessfully;
+  
+        // Get the progress document to access student's work
+        const progressDoc = await getDoc(progressRef);
+        if (!progressDoc.exists()) {
+          throw new Error("No progress document found");
+        }
+        const progressData = progressDoc.data();
+  
+        // Get the assignment settings
+        const assignmentRef = doc(db, 'assignments', assignmentId);
+        const assignmentSnap = await getDoc(assignmentRef);
+        const assignmentData = assignmentSnap.data();
+        const halfCreditValue = assignmentData?.halfCredit || false;
+  
+        // Calculate scores based on progress data
+        const totalQuestions = progressData.questions.length;
+        const maxRawScore = totalQuestions * (progressData.scaleMax - progressData.scaleMin);
+  
+        // Create initial grade document structure
+        const initialGradeData = {
+          assignmentId,
+          studentUid,
+          assignmentName,
+          firstName: progressData.firstName,
+          lastName: progressData.lastName,
+          classId,
+          halfCreditEnabled: halfCreditValue,
+          submittedAt: serverTimestamp(),
+          questions: progressData.questions.map(q => ({
+            questionId: q.questionId,
+            question: q.text,
+            studentResponse: q.studentResponse || '',
+            rubric: q.rubric,
+            feedback: 'Response not yet graded',
+            score: 0,
+            flagged: false
+          })),
+          viewable: false,
+          rawTotalScore: 0,
+          maxRawScore,
+          scaledScore: 0,
+          scaleMin: progressData.scaleMin || 0,
+          scaleMax: progressData.scaleMax || 2,
+          percentageScore: 0
+        };
+  
+        // Start batch write for atomic operations
+        const batch = writeBatch(db);
+  
+        if (isFailedGrading) {
+          // For failed grading cases, update the student document first
+          batch.update(studentRef, {
+            [`class_${classId}.grades.${assignmentId}.gradedUnsuccessfully`]: deleteField()
+          });
+        }
+        
+        // Check if grade document already exists
+        const existingGradeDoc = await getDoc(gradeRef);
+        if (existingGradeDoc.exists()) {
+          // If it exists, delete it first
+          batch.delete(gradeRef);
+        }
+        
+        // Set new grade document
+        batch.set(gradeRef, initialGradeData);
+  
+        // Update progress status
+        batch.update(progressRef, {
+          status: 'submitted',
+          submittedAt: serverTimestamp(),
+          replacedAt: existingGradeDoc.exists() ? serverTimestamp() : null
+        });
+  
+        // Update student's assignment status
+        const studentUpdates = {
+          assignmentsTaken: arrayUnion(assignmentId),
+          assignmentsInProgress: arrayRemove(assignmentId),
+          assignmentsPaused: arrayRemove(assignmentId)
+        };
+  
+        // Only update the grade info if not a failed grading case (since we handled that separately above)
+        if (!isFailedGrading) {
+          studentUpdates[`class_${classId}.grades.${assignmentId}`] = {
+            score: 0,
+            submittedAt: serverTimestamp(),
+            assignmentId,
+            assignmentName
+          };
+        }
+  
+        batch.update(studentRef, studentUpdates);
+  
+        await batch.commit();
+  
+        // Format questions for grading API
+        const questionsToGrade = progressData.questions.map(q => ({
+          questionId: q.questionId,
+          question: q.text,
+          rubric: q.rubric,
+          studentResponse: q.studentResponse || ''
+        }));
+  
+        // Make grading request
+        const response = await axios.post('https://us-central1-square-score-ai.cloudfunctions.net/GradeSAQ', {
+          questions: questionsToGrade,
+          halfCreditEnabled: halfCreditValue,
+          classId: classId
+        });
+  
+        if (response.status === 200) {
+          const gradingResults = response.data;
+          
+          // Calculate scores
+          const newTotalScore = gradingResults.reduce((sum, grade) => sum + grade.score, 0);
+          const newPercentageScore = (newTotalScore / maxRawScore) * 100;
+  
+          // Create graded questions array
+          const gradedQuestions = progressData.questions.map((q, index) => ({
+            questionId: q.questionId,
+            question: q.text,
+            studentResponse: q.studentResponse || '',
+            rubric: q.rubric,
+            feedback: gradingResults[index].feedback,
+            score: gradingResults[index].score,
+            flagged: false
+          }));
+  
+          // Update grade document with final results
+          await updateDoc(gradeRef, {
+            questions: gradedQuestions,
+            rawTotalScore: newTotalScore,
+            scaledScore: newTotalScore / maxRawScore,
+            percentageScore: newPercentageScore,
+            viewable: true,
+            gradedAt: serverTimestamp()
+          });
+  
+          // Update student's final grade
+          await updateDoc(studentRef, {
+            [`class_${classId}.grades.${assignmentId}`]: {
+              score: newPercentageScore,
+              submittedAt: serverTimestamp(),
+              assignmentId,
+              assignmentName
+            }
+          });
+  
+          // Refresh the UI
+          window.location.reload();
+        }
+      } catch (error) {
+        console.error("Error in handleSubmitAssignment:", error);
+        alert("An error occurred while submitting the assignment. Please try again.");
+      } finally {
+        setGradingStudentUid(null); 
+      }
+    }
+  };
+  const handleRenewAccess = async (studentUid) => {
+    try {
+      if (!classId) {
+        console.error('No classId available');
+        return;
+      }
+  
+      // References to all documents we need to modify for this studentUid
+      const progressRef = doc(db, 'assignments(progress)', `${assignmentId}_${studentUid}`);
+      const gradeRef = doc(db, 'grades', `${assignmentId}_${studentUid}`);
+      const studentRef = doc(db, 'students', studentUid);
+  
+      const batch = writeBatch(db);
+  
+      // Update progress doc status back to in_progress
+      batch.update(progressRef, {
+        status: 'in_progress',
+        lastUpdated: serverTimestamp(),
+        submittedAt: null,
+        replacedAt: null
+      });
+  
+      // Delete the grade document completely
+      batch.delete(gradeRef);
+  
+      // Update student's assignment statuses and remove grade information
+      batch.update(studentRef, {
+        assignmentsTaken: arrayRemove(assignmentId),
+        assignmentsInProgress: arrayUnion(assignmentId),
+        assignmentsPaused: arrayRemove(assignmentId),
+        [`class_${classId}.grades.${assignmentId}`]: deleteField(),
+        [`grades.${assignmentId}`]: deleteField()
+      });
+  
+      await batch.commit();
+      // Further operations or navigation can be handled here if needed.
+      console.log(`Renew access completed for student ${studentUid}`);
+    } catch (error) {
+      console.error('Error renewing access:', error);
+      alert('Error renewing access. Please try again.');
+    }
+  };
+  
 
+
+  const handleDelete = () => {
+    setShowDeleteModal(true);
+  };
   const handleReset = async (studentUid) => {
     if (window.confirm("Are you sure you want to reset this student's assignment? This action cannot be undone.")) {
       try {
@@ -674,55 +918,73 @@ const TeacherResults = () => {
   
         // Update student's assignment status
         const studentRef = doc(db, 'students', studentUid);
-        await updateDoc(studentRef, {
+        
+        // Create batch for atomic updates
+        const batch = writeBatch(db);
+        
+        // Remove from all possible status arrays and add back to toTake
+        batch.update(studentRef, {
           assignmentsTaken: arrayRemove(assignmentId),
-          assignmentsToTake: arrayUnion(assignmentId),
-          assignmentsInProgress: arrayRemove(assignmentId)
+          assignmentsToTake: arrayRemove(assignmentId),
+          assignmentsInProgress: arrayRemove(assignmentId),
+          assignmentsPaused: arrayRemove(assignmentId),
+          assignmentsToTake: arrayUnion(assignmentId)
         });
   
-        // Fetch updated student data
+        // Remove the grade from the student's class grades
         const studentDoc = await getDoc(studentRef);
         if (studentDoc.exists()) {
           const studentData = studentDoc.data();
-          // Update the studentDataCache
-          studentDataCache.current[studentUid] = {
-            data: studentData,
-            lastUpdate: Date.now()
-          };
-          // Update the students array
-          setStudents(prevStudents => {
-            return prevStudents.map(student => {
-              if (student.uid === studentUid) {
-                return {
-                  ...student,
-                  firstName: studentData.firstName.trim(),
-                  lastName: studentData.lastName.trim(),
-                  name: `${studentData.firstName.trim()} ${studentData.lastName.trim()}`,
-                  isAssigned: studentData.assignmentsToTake?.includes(assignmentId) ||
-                  studentData.assignmentsInProgress?.includes(assignmentId) ||
-                  studentData.assignmentsTaken?.includes(assignmentId) ||
-                  studentData.assignmentsPaused?.includes(assignmentId),
-                  isPaused: studentData.assignmentsPaused?.includes(assignmentId)
-                };
-              }
-              return student;
-            });
-            
+          
+          // Get the class ID from the assignmentId (assuming format: classId+timestamp+type)
+          const classId = assignmentId.split('+')[0];
+          
+          // Path to the grade in the class grades
+          const classGradesPath = `class_${classId}.grades.${assignmentId}`;
+          
+          // Remove the grade entry
+          batch.update(studentRef, {
+            [classGradesPath]: deleteField()
           });
+  
+          // Also remove any special dates if they exist
+          if (studentData.specialDates && studentData.specialDates[assignmentId]) {
+            const updatedSpecialDates = { ...studentData.specialDates };
+            delete updatedSpecialDates[assignmentId];
+            batch.update(studentRef, {
+              specialDates: updatedSpecialDates
+            });
+          }
         }
   
-        // Update local grades state
+        // Commit all the batch operations
+        await batch.commit();
+  
+        // Update local states
         setGrades(prevGrades => {
           const newGrades = { ...prevGrades };
           delete newGrades[studentUid];
           return newGrades;
         });
   
-        // Update assignment status in local state
         setAssignmentStatuses(prevStatuses => ({
           ...prevStatuses,
           [studentUid]: 'not_started'
         }));
+  
+        // Update the students array
+        setStudents(prevStudents => {
+          return prevStudents.map(student => {
+            if (student.uid === studentUid) {
+              return {
+                ...student,
+                isAssigned: true,
+                isPaused: false
+              };
+            }
+            return student;
+          });
+        });
   
         console.log(`Assignment reset for student ${studentUid}`);
       } catch (error) {
@@ -788,7 +1050,12 @@ const TeacherResults = () => {
   };
   
 
-
+  const tabs = [
+    { id: 'submissions', label: 'Submissions' },
+    { id: 'questionBank', label: 'Question Bank' },
+    { id: 'settings', label: 'Settings' },
+    { id: 'flagged', label: 'Flagged Responses', count: reviewCount }
+  ];
 
 
 
@@ -876,168 +1143,231 @@ const TeacherResults = () => {
 
 
 
-
-
-
 useEffect(() => {
   let unsubscribeClass;
-  let unsubscribeGrades;
   let unsubscribeAssignment;
+  let unsubscribeFlags;
   let lastFetch = 0;
-  const FETCH_COOLDOWN = 5000; // 5 seconds cooldown between fetches
+  const FETCH_COOLDOWN = 5000; // 5 seconds cooldown
 
   const setupRealtimeListeners = async () => {
     setLoading(true);
     try {
-      // 1. Single listener for assignment data
-      unsubscribeAssignment = onSnapshot(doc(db, 'assignments', assignmentId), (doc) => {
-        if (doc.exists()) {
-          const data = doc.data();
+      // Initialize empty states to prevent null access
+      setStudents([]);
+      setGrades({});
+      setAssignmentStatuses({});
+      // 1) Listen for assignment data (assignment name, viewable, dueDate, etc.)
+      unsubscribeAssignment = onSnapshot(doc(db, 'assignments', assignmentId), (docSnap) => {
+        if (docSnap.exists()) {
+          const data = docSnap.data();
           setAssignmentData(data);
           setAssignmentName(data.assignmentName);
           setAssignDate(data.assignDate ? new Date(data.assignDate) : null);
           setDueDate(data.dueDate ? new Date(data.dueDate) : null);
           setAllViewable(data.viewable || false);
+
           if (data.questions) {
-            setQuestions(Object.entries(data.questions).map(([id, questionData]) => ({
+            const qArray = Object.entries(data.questions).map(([id, questionData]) => ({
               questionId: id,
               ...questionData
-            })));
+            }));
+            setQuestions(qArray);
           }
         }
       });
 
-      // 2. Combined listener for class and student data with throttling
+      // 2) Listen for changes in the class doc, then fetch/update participants in batches
       unsubscribeClass = onSnapshot(doc(db, 'classes', classId), async (classDoc) => {
-        if (!classDoc.exists()) return;
+        if (!classDoc.exists()) {
+        console.error("Class document does not exist");
+        return;
+      }
 
-        const classData = classDoc.data();
-        if (!classData.participants?.length) return;
+      const fetchedClassData = classDoc.data();
+      if (!fetchedClassData) {
+        console.error("No data in class document");
+        return;
+      }
+
+      setClassData(fetchedClassData);
+      
+      if (!fetchedClassData.participants) {
+        console.error("No participants array in class data");
+        return;
+      }
+
+      if (!fetchedClassData.participants.length) {
+        console.log("Class has no participants");
+        return;
+      }
 
         const now = Date.now();
-        if (now - lastFetch < FETCH_COOLDOWN) return; // Throttle fetches
+        if (now - lastFetch < FETCH_COOLDOWN) return; // throttle
         lastFetch = now;
 
-        // Only fetch data for new or updated students
-        const studentsToFetch = classData.participants.filter(
-          p => !studentDataCache[p.uid] || studentDataCache[p.uid].lastUpdate < now - 60000
+        // Determine which students to fetch from Firestore
+        const studentsToFetch = (fetchedClassData.participants || []).filter(
+          (p) =>
+            p && p.uid && // Ensure participant is valid
+            (!studentDataCache[p.uid] ||
+            studentDataCache[p.uid].lastUpdate < now - 60000)
         );
 
+        // Fetch student documents in chunks of 10
         if (studentsToFetch.length > 0) {
-          // Batch student docs into chunks of 10 (Firestore limit)
           const chunkSize = 10;
           for (let i = 0; i < studentsToFetch.length; i += chunkSize) {
             const chunk = studentsToFetch.slice(i, i + chunkSize);
-            const studentDocs = await getDocs(query(
+            const studentQuery = query(
               collection(db, 'students'),
-              where(documentId(), 'in', chunk.map(s => s.uid))
-            ));
+              where(documentId(), 'in', chunk.map((s) => s.uid))
+            );
+            const studentDocs = await getDocs(studentQuery);
 
-            studentDocs.forEach(doc => {
-              const data = doc.data();
-              studentDataCache[doc.id] = {
-                data,
+            studentDocs.forEach((docSnap) => {
+              const studentData = docSnap.data();
+              const classGrades = studentData[`class_${classId}`]?.grades || {};
+              const assignmentGrade = classGrades[assignmentId];
+
+              studentDataCache[docSnap.id] = {
+                data: studentData,
+                grade: assignmentGrade,
                 lastUpdate: now
               };
             });
           }
         }
 
-        // Process all students using cache
-        const updatedParticipants = classData.participants
-          .map(participant => {
-            const studentData = studentDataCache[participant.uid]?.data;
-            if (studentData) {
-              return {
-                ...participant,
-                firstName: studentData.firstName.trim(),
-                lastName: studentData.lastName.trim(),
-                name: `${studentData.firstName.trim()} ${studentData.lastName.trim()}`,
-                isAssigned: studentData.assignmentsToTake?.includes(assignmentId) ||
+        // We'll accumulate submission stats here
+        let totalScore = 0;
+        let validGradesCount = 0;
+        let submissionsCount = 0;
+
+        // Build an updated list of participants
+        const updatedParticipants = (fetchedClassData.participants || [])
+          .filter(participant => participant && participant.uid) // Ensure valid participant objects
+          .map((participant) => {
+            const cachedData = studentDataCache[participant.uid];
+            const studentData = cachedData?.data;
+            const gradeData =
+              studentData?.[`class_${classId}`]?.grades?.[assignmentId];
+
+            if (!studentData) {
+              // If we don’t have student data yet, just return the raw participant
+              return participant;
+            }
+
+            // Count submissions + valid scores
+            if (gradeData?.score) {
+              submissionsCount++;
+              if (typeof gradeData.score === 'number' && !isNaN(gradeData.score)) {
+                totalScore += gradeData.score;
+                validGradesCount++;
+              }
+            }
+
+            // Convert Firestore timestamp -> JS Date
+            let submittedAtDate = null;
+            if (gradeData?.submittedAt) {
+              submittedAtDate = new Date(gradeData.submittedAt.seconds * 1000);
+            }
+
+            // If there's a special date for this assignment, store it
+            let specialDueDate = null;
+            if (studentData.specialDates && studentData.specialDates[assignmentId]) {
+              specialDueDate = new Date(studentData.specialDates[assignmentId]);
+            }
+
+            // Construct the studentInfo object
+            const studentInfo = {
+              ...participant,
+              uid: participant.uid,
+              ref: doc(db, 'students', participant.uid),
+              firstName: studentData.firstName.trim(),
+              lastName: studentData.lastName.trim(),
+              name: `${studentData.firstName.trim()} ${studentData.lastName.trim()}`,
+              isAssigned:
+                studentData.assignmentsToTake?.includes(assignmentId) ||
                 studentData.assignmentsInProgress?.includes(assignmentId) ||
                 studentData.assignmentsTaken?.includes(assignmentId) ||
-                studentData.assignmentsPaused?.includes(assignmentId), // Add this line
-      isPaused: studentData.assignmentsPaused?.includes(assignmentId) // Add this line
-    };
+                studentData.assignmentsPaused?.includes(assignmentId),
+              isPaused: studentData.assignmentsPaused?.includes(assignmentId),
+              specialDueDate, // <-- already tracked
+            
+              // NEW: Include gradedUnsuccessfully flag
+              gradedUnsuccessfully: gradeData?.gradedUnsuccessfully === true
+            };
+            // Update the local "grades" object for this student
+            if (gradeData) {
+              grades[participant.uid] = {
+                percentageScore: gradeData.score || 0,
+                submittedAt:
+                  submittedAtDate && !isNaN(submittedAtDate.getTime())
+                    ? {
+                        toDate: () => submittedAtDate,
+                        seconds: submittedAtDate.getTime() / 1000
+                      }
+                    : null,
+                viewable: false
+              };
             }
-            return participant;
+
+            return studentInfo;
           })
           .sort((a, b) => a.lastName.localeCompare(b.lastName));
 
+        // Update React states
         setStudents(updatedParticipants);
+        setGrades(grades);
+        setSubmissionCount(submissionsCount);
+
+        // Determine assignment status for each student
         const statuses = {};
-        updatedParticipants.forEach(student => {
-          const studentData = studentDataCache[student.uid]?.data;
-          if (studentData) {
-            let status = 'not_started';
-    
-            if (studentData.assignmentsPaused?.includes(assignmentId)) {
-              status = 'Paused';
-            } else if (studentData.assignmentsInProgress?.includes(assignmentId)) {
-              status = 'In Progress';
-            } else if (studentData.assignmentsTaken?.includes(assignmentId)) {
-              status = 'completed';
-            } else if (studentData.assignmentsToTake?.includes(assignmentId)) {
-              status = 'not_started';
-            }
-            statuses[student.uid] = status;
+        updatedParticipants.forEach((student) => {
+          const sData = studentDataCache[student.uid]?.data;
+          if (!sData) return;
+
+          let status = 'not_started';
+          if (sData.assignmentsPaused?.includes(assignmentId)) {
+            status = 'Paused';
+          } else if (sData.assignmentsInProgress?.includes(assignmentId)) {
+            status = 'In Progress';
+          } else if (sData.assignmentsTaken?.includes(assignmentId)) {
+            status = 'completed';
+          } else if (sData.assignmentsToTake?.includes(assignmentId)) {
+            status = 'not_started';
           }
+          statuses[student.uid] = status;
         });
-    
         setAssignmentStatuses(statuses);
-        setAssignedCount(updatedParticipants.filter(s => s.isAssigned).length);
+
+        // Compute average if we have valid scores
+        if (validGradesCount > 0) {
+          const calculatedAverage = (totalScore / validGradesCount).toFixed(0);
+          setAverageGrade(calculatedAverage);
+          updateClassAssignmentAverage(parseFloat(calculatedAverage));
+        } else {
+          setAverageGrade(null);
+        }
+
+        // Count how many are assigned
+        setAssignedCount(updatedParticipants.filter((s) => s.isAssigned).length);
       });
 
-      // 3. Single listener for all grades
-      unsubscribeGrades = onSnapshot(
+      // 3) Listen for changes in flagged questions
+      unsubscribeFlags = onSnapshot(
         query(collection(db, 'grades'), where('assignmentId', '==', assignmentId)),
         (snapshot) => {
-          const gradesData = snapshot.docs.reduce((acc, doc) => {
-            const gradeData = doc.data();
-            acc.grades[gradeData.studentUid] = {
-              totalScore: gradeData.totalScore,
-              maxScore: gradeData.maxScore,
-              submittedAt: gradeData.submittedAt,
-              percentageScore: gradeData.percentageScore,
-              viewable: gradeData.viewable || false,
-              questions: gradeData.questions?.map(q => ({
-                ...q,
-                flagged: q.flagged || false,
-              })) || [],
-            };
-            
-            if (gradeData.submittedAt) acc.submissionsCount++;
-            if (typeof gradeData.percentageScore === 'number' && !isNaN(gradeData.percentageScore)) {
-              acc.totalScore += gradeData.percentageScore;
-              acc.validGradesCount++;
-            }
-            acc.reviewCount += (gradeData.questions || []).filter(q => q.flagged).length;
-            
-            return acc;
-          }, { grades: {}, totalScore: 0, validGradesCount: 0, submissionsCount: 0, reviewCount: 0 });
-
-          setGrades(gradesData.grades);
-          setSubmissionCount(gradesData.submissionsCount);
-          
-          setReviewCount(gradesData.reviewCount);
-
-          if (gradesData.validGradesCount > 0) {
-            const calculatedAverage = (gradesData.totalScore / gradesData.validGradesCount).toFixed(0);
-            setAverageGrade(calculatedAverage);
-          
-
-
-         
-            updateDoc(doc(db, 'assignments', assignmentId), {
-              classAverage: parseFloat(calculatedAverage)
-            });
-            updateClassAssignmentAverage(parseFloat(calculatedAverage));
-          }
+          const flaggedCount = snapshot.docs.reduce((count, docSnap) => {
+            const gradeData = docSnap.data();
+            return count + (gradeData.questions || []).filter((q) => q.flagged).length;
+          }, 0);
+          setReviewCount(flaggedCount);
         }
       );
-
     } catch (error) {
-      console.error("Error setting up listeners:", error);
+      console.error('Error setting up listeners:', error);
     } finally {
       setLoading(false);
     }
@@ -1045,11 +1375,12 @@ useEffect(() => {
 
   setupRealtimeListeners();
 
+  // Cleanup
   return () => {
     if (unsubscribeClass) unsubscribeClass();
-    if (unsubscribeGrades) unsubscribeGrades();
     if (unsubscribeAssignment) unsubscribeAssignment();
-    updateClassAssignmentAverage.cancel(); // Cancel any pending updates
+    if (unsubscribeFlags) unsubscribeFlags();
+    updateClassAssignmentAverage.cancel?.();
     studentDataCache.current = {};
   };
 }, [classId, assignmentId, updateClassAssignmentAverage]);
@@ -1060,8 +1391,11 @@ useEffect(() => {
 
 
 
-
-
+// Right before you render <StudentResultsList />, compute these:
+const pausedCount = students.filter((s) => assignmentStatuses[s.uid] === 'Paused').length;
+const inProgressCount = students.filter((s) => assignmentStatuses[s.uid] === 'In Progress').length;
+const notStartedCount = students.filter((s) => assignmentStatuses[s.uid] === 'not_started').length;
+const unassignedCount = students.filter((s) => !s.isAssigned).length;
 
 
 
@@ -1073,32 +1407,42 @@ const renderTabContent = () => {
     case 'submissions':
       return (
         <>
-          <div style={{width: 'calc(100% - 200px)', marginLeft: '200px', marginTop: '-100px',
-                height: '40px', marginBottom: '0px'}}>
-
-                
-
-
-
-          </div>
-          <StudentResultsList
-            students={students}
-            grades={grades}
-            assignmentStatuses={assignmentStatuses}
-            navigateToStudentGrades={navigateToStudentGrades}
-            navigateToStudentResults={navigateToStudentResults}
-            getStatusIcon={getStatusIcon}
-            getStatusColor={getStatusColor}
-            calculateLetterGrade={calculateLetterGrade}
-            hoveredStatus={hoveredStatus}
-            setHoveredStatus={setHoveredStatus}
-            togglePauseAssignment={togglePauseAssignment}
-            handleReset={handleReset}
-            resetStatus={resetStatus}
-            handleAssign={handleAssign}
-            gradeField="percentageScore"
-            navigateToResultsPath="/teacherStudentResults/"
-          />
+    
+     <StudentResultsList
+          students={students}
+          grades={grades}
+          assignmentStatuses={assignmentStatuses}
+          navigateToStudentGrades={navigateToStudentGrades}
+          navigateToStudentResults={navigateToStudentResults}
+          getStatusColor={getStatusColor}
+          calculateLetterGrade={calculateLetterGrade}
+          hoveredStatus={hoveredStatus}
+          setHoveredStatus={setHoveredStatus}
+          togglePauseAssignment={togglePauseAssignment}
+          handleReset={handleReset}
+          resetStatus={resetStatus}
+          handleAssign={handleAssign}
+          gradeField="percentageScore"
+          assignmentId={assignmentId}
+          onTabChange={handleTabClick} 
+          submissionCount={submissionCount}
+          averageGrade={averageGrade}
+          allViewable={allViewable}
+          toggleAllViewable={toggleAllViewable}
+          getGradeColors={getGradeColors}
+          assignmentType="OE"
+          handleSubmitAssignment={handleSubmitAssignment}
+          handleRenewAccess={handleRenewAccess}
+          pausedCount={pausedCount}
+          unassignedCount={unassignedCount}
+          inProgressCount={inProgressCount}
+          notStartedCount={notStartedCount}
+          assignDate={assignDate}
+          isRegrading={isRegrading}
+          gradingStudentUid={gradingStudentUid}
+          dueDate={dueDate}
+          periodStyle={getCurrentPeriodStyle()}
+        />
         </>
       );
     
@@ -1133,6 +1477,7 @@ const renderTabContent = () => {
               timer={timer}
               setTimer={setTimer}
               timerOn={timerOn}
+              onDelete={handleDelete} 
               handleTimerToggle={handleTimerToggle}
               handleTimerChange={handleTimerChange}
             />
@@ -1237,249 +1582,19 @@ const renderTabContent = () => {
   }]}
 />
 
-      
+    <ResultsHeader 
+      assignmentName={assignmentName}
+      format={{ label: 'OE', color: '#00CCB4' }}
+      tabs={tabs}
+      activeTab={activeTab}
+      onTabClick={handleTabClick}
+      periodStyle={getCurrentPeriodStyle()}
+      hasScrolled={hasScrolled}
+    />
 
-
-      <div style={{             width: 'calc(100% - 200px)', justifyContent: 'align', marginTop: '0px', marginLeft: 'auto', borderBottom:"1px solid lightgrey", height: '160px', position:'fixed',zIndex:'50', top: '0px', left: '200px',
-        background: 'rgb(255,255,255,.9)', backdropFilter: 'blur(5px)'
-       }}>
-        <div style={{ display: 'flex', marginRight: 'auto', marginLeft: '4%', height: ' auto', lineHeight:'0px', paddingBottom: '15px', marginBottom:'0px', marginTop: '20px' }}>
-
-
-         <div style={{position: 'relative', width: '800px', backgroundColor: 'white',   
-               borderRadius: '20px', }}>
-        <AdaptiveHeading text={assignmentName} />
-
-<div style={{display: 'flex', marginBottom: '-25px', color: 'lightgrey', marginTop: '5px'}}>
-        <h1 style={{  
-              fontWeight: '600', fontSize: '16px', 
-            }}>
-              {submissionCount} Submissions 
-            </h1>
-            <button
-       
-       onClick={toggleAllViewable}
-       style={{
-         width: '30px',
-         height: '20px',
-        marginTop: '-5px',
-         borderRadius: '5px',
-         cursor: 'pointer',
-         marginLeft: '10px', fontFamily: "'montserrat', sans-serif",
-         transition: '.3s',
-         display: 'flex',
-         padding: '0px',
-         border: `1px solid white`,
-         background: 'transparent',
-         color: allViewable ? '#020CFF' : 'lightgrey',
-       
-       }}
-     >
-
-{allViewable ? (
-         <Eye size={20} style={{marginTop:'4px', marginLeft: '5px', marginRight: '5px'}}/>
-       ) : (
-         <EyeOff size={20}  style={{marginTop:'4px', marginLeft: '5px', marginRight: '5px'}} />
-       )}
-      
-     </button>
-     </div>
-
-
-
-
-
+      <div style={{marginTop:'150px', width: '100%',}}>
+        {renderTabContent()}
       </div>
-      
-  <div style={{height: '80px', backgroundColor: 'white',  width: '90px', 
-              borderRadius: '20px', position: 'absolute', right: '4%' }}>
-      <Tooltip text="Class Average">
-      
-    <div style={{fontSize: '30px', fontWeight: '500', width: '90px', position: 'absolute',  height: '50px', 
-    borderRadius:  '10px', top: '3px', left: '5px', textAlign: 'center', lineHeight: '50px',
-
-background: averageGrade ? getGradeColors(averageGrade).background : 'white',
-
-  color: averageGrade ? getGradeColors(averageGrade).color : '#858585',
-
-    }}> 
-      {averageGrade !== null ? averageGrade : '-'}%
-     
-        </div>
-</Tooltip>
-</div>
-        </div>
-        
-
-
-
-
-
-        <div style={{ 
-        width: '92%', 
-          height: '40px',
-        marginLeft: '4%' , 
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        paddingBottom: '0px'
-
-      }}>
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          marginBottom: '-58px',
-          gap: '20px'
-        }}>
-          <button
-            onClick={() => handleTabClick('submissions')}
-            style={{
-              background: 'none',
-              border: 'none',
-              fontSize: '14px',
-              cursor: 'pointer',
-              fontWeight: "600",
-              padding: '12px 10px',
-              fontFamily: "'Montserrat', sans-serif",
-              borderBottom: activeTab === 'submissions' ? '2px solid #020CFF' : '2px solid transparent',
-              color: activeTab === 'submissions' ? '#020CFF' : 'grey',
-            }}
-          >
-            Submissions
-          </button>
-          <button
-            onClick={() => handleTabClick('questionBank')}
-            style={{
-              background: 'none',
-              border: 'none',
-              fontSize: '14px',
-              cursor: 'pointer',
-              fontWeight: "600",
-              padding: '10px 10px',
-              fontFamily: "'Montserrat', sans-serif",
-              borderBottom: activeTab === 'questionBank' ? '2px solid #020CFF' : '2px solid transparent',
-              color: activeTab === 'questionBank' ? '#020CFF' : 'grey',
-            }}
-          >
-            Question Bank
-          </button>
-          <button
-            onClick={() => handleTabClick('settings')}
-            style={{
-              background: 'none',
-              border: 'none',
-              fontSize: '14px',
-              cursor: 'pointer',
-              fontWeight: "600",
-              padding: '10px 10px',
-              fontFamily: "'Montserrat', sans-serif",
-              borderBottom: activeTab === 'settings' ? '2px solid #020CFF' : '2px solid transparent',
-              color: activeTab === 'settings' ? '#020CFF' : 'grey',
-            }}
-          >
-            Settings
-          </button>
-          <button
-            onClick={() => handleTabClick('flagged')}
-            style={{
-              background: 'none',
-              border: 'none',
-              fontSize: '14px',
-              cursor: 'pointer',
-              fontWeight: "600",
-              padding: '10px 10px',
-              fontFamily: "'Montserrat', sans-serif",
-              borderBottom: activeTab === 'flagged' ? '2px solid #020CFF' : '2px solid transparent',
-              color: activeTab === 'flagged' ? '#020CFF' : 'grey',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '5px'
-            }}
-          >
-            Flagged Responses
-            {reviewCount > 0 && (
-              <span style={{
-                background: 'red',
-                color: 'white',
-                padding: '0px 4px',
-                borderRadius: '2px',
-                marginBottom: '-2px',
-                fontSize: '12px'
-              }}>
-                {reviewCount}
-              </span>
-            )}
-          </button>
-        </div>
-    
-      
-        <Exports assignmentId={assignmentId} style={{ marginLeft: 'auto', }} />
-      </div>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-      </div>
-
-
-
- 
-      <button
-  onClick={() => setShowDeleteModal(true)}
-  style={{
-    width: '75px',
-        height: '75px',
-        borderRadius: '10px',
-        fontWeight: 'bold',
-        border: '4px solid transparent',
-        background: 'transparent',
-        cursor: 'pointer',
-        color: 'grey',
-        position: 'absolute',
-        bottom: '10px',
-        left: '5px',
-        transition: '.3s',
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'center',
-        alignItems: 'center',
-        textAlign: 'left',
-        padding: '5px',
-        fontFamily: "'montserrat', sans-serif",
-
-  }}
->
-<Tooltip text="Delete Assignment">
-  <Trash2 size={30} color="grey" />
-  </Tooltip>
-</button>
-
- {showDeleteModal && (
-  <DeleteConfirmationModal
-    onClose={() => setShowDeleteModal(false)}
-    assignmentId={assignmentId}
-    classId={classId}
-    assignmentName={assignmentName}
-    onDeleteSuccess={handleDeleteSuccess}
-  />
-)}
-
-<div style={{marginTop:'200px'}}>
-{renderTabContent()}
-</div>
 
         
     </div>

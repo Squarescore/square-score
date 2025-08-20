@@ -3,6 +3,10 @@ const { Anthropic } = require('@anthropic-ai/sdk');
 const { OpenAI } = require('openai');
 const cors = require('cors')({origin: true});
 const admin = require('firebase-admin');
+const express = require('express');
+const multer = require('multer');
+const { PDFDocument } = require('pdf-lib');
+const { getYouTubeInfo } = require('./youtubeInfo.js');
 
 // Initialize admin if not already initialized
 if (!admin.apps.length) {
@@ -11,8 +15,60 @@ if (!admin.apps.length) {
 
 const db = admin.firestore();
 
+const app = express();
+app.use(express.json());
 
-// admin.initializeApp(); took this out, function were working before extracted
+// Configure multer for PDF uploads
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 10 * 1024 * 1024 // 10MB limit
+  }
+});
+
+// YouTube processing endpoint
+app.post('/api/getYouTubeInfo', async (req, res) => {
+  try {
+    const result = await getYouTubeInfo(req.body);
+    res.json(result);
+  } catch (error) {
+    console.error('Error processing YouTube video:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// PDF processing endpoint
+app.post('/api/processPDF', upload.single('pdf'), async (req, res) => {
+  try {
+    if (!req.file) {
+      throw new Error('No PDF file uploaded');
+    }
+
+    // Load the PDF document
+    const pdfDoc = await PDFDocument.load(req.file.buffer);
+    
+    // Extract text from all pages
+    let text = '';
+    const pages = pdfDoc.getPages();
+    for (const page of pages) {
+      text += await page.getText();
+    }
+
+    // Check document length
+    const wordCount = text.split(/\s+/).length;
+    if (wordCount > 10000) {
+      throw new Error('PDF is too long. Please upload a document with fewer than 10,000 words.');
+    }
+
+    res.json({ text });
+  } catch (error) {
+    console.error('Error processing PDF:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Export the Express app as a Firebase Function
+exports.api = functions.https.onRequest(app);
 
 exports.GenerateSAQ = functions.https.onRequest((req, res) => {
   return cors(req, res, async () => {
@@ -60,7 +116,7 @@ Be consistent and clear about the level of specificity required in answers.
 If semi-exact wording is necessary (such as a name), state this clearly and provide acceptable synonyms or alternative phrasings.
 Don't focus on correct spelling or full names unless absolutely necessary.
 When determining acceptable responses, consider both the source and the general concept of the question.
-
+    
 Provide the output as a valid JSON array where each object has "question" and "rubric" fields. The entire response should be parseable as JSON. Here's the exact format to use:
 [
 {
@@ -713,7 +769,7 @@ IMPORTANT: Return ONLY the JSON array of question objects in absolutely perfect 
               messages: [
                   {
                       role: "system",
-                      content: "You are a software teacher that generates multiple-choice questions based on given instructions. Your responses should always be in valid JSON format."
+                      content: "You are a professional adaptive test maker generates multiple-choice adaptive assessments based on given instructions. Your responses should always be in valid JSON format."
                   },
                   {
                       role: "user",
@@ -785,305 +841,6 @@ IMPORTANT: Return ONLY the JSON array of question objects in absolutely perfect 
           res.status(500).json({ error: error.message });
       }
   });
-});
-
-
-
-exports.GenerateAMCQstep1 = functions.https.onRequest((req, res) => {
-    return cors(req, res, async () => {
-        if (req.method !== "POST") {
-            return res.status(400).send("Please send a POST request");
-        }
-
-        const { sourceText, selectedOptions, additionalInstructions, classId, teacherId } = req.body;
-
-        const ANTHROPIC_API_KEY = functions.config().anthropic.key;
-
-        const anthropic = new Anthropic({
-            apiKey: ANTHROPIC_API_KEY,
-        });
-
-        try {
-            let prompt = `
-           
-Generate 10 multiple-choice questions based on the provided source. Each question should have a number of choices randomly selected from ${selectedOptions.join(', ')}. 
-Only 1 answer per question should be correct. 
-Provide a concise 1-2 sentence explanation for each choice that explains why it is correct or incorrect, offering specific insights from the source material. 
-Explanations should directly state facts or analyze information rather than referencing the source document. 
-Therefore NEVER include the words source or passage in explanations rather explain it as if you were the source
-
-Questions should be clearly differentiated by difficulty:
-- 3 Easy questions: basic recall found exactly in source - should be able to "fill in the blank" exactly as in the source. Easy question choices should be less than 6 words.
-- 3 Medium questions: Recall of information not word for word as in the source but rephrased. Medium  question choices should be less than 6 words.
-- 4 Hard questions: analysis - cause and effect, causation, general concepts etc. Hard question Choices should be less than 10 words.
-
-IMPORTANT: Return ONLY the JSON array of question objects in absolutely perfect format. Never include an introductory phrase like "here are 10 multiple choice questions.." as this will break my code.
-[
-  {
-    "difficulty": "Easy|Medium|Hard",
-    "choices": 0,
-    "correct": "a",
-    "question": "Question text here",
-    "a": "Choice A text",
-    "b": "Choice B text",
-    "c": "Choice C text",
-    "d": "Choice D text",
-    "explanation_a": "Explanation for choice A",
-    "explanation_b": "Explanation for choice B",
-    "explanation_c": "Explanation for choice C",
-    "explanation_d": "Explanation for choice D"
-  },
-  ...
-]
-Note that this format example includes 4 choices and explanations but you are allowed to have  2,3,4,5 choices, 
-simply remember that the last choice shouldn't have a comma after it as it would break proper json formatting, 
-the 10th question section should also not have a comma after it as this would too break json format, remember proper placement of {}
-
-Guidelines:
-- Therefore NEVER include the words source or passage in explanations rather explain it as if you were the source
-- Each choice must be 12 words or less, this is important that you do for all difficulties of question
-- Choose number of choices randomly from: ${selectedOptions.join(', ')}
-- Only 1 correct answer per question
-- All choices must be less than 15 words, easy questions should have the shortest choices, make sure the correct answer is not always the longest
-- don't include "" within explanations
-- Provide 1-2 sentence explanation for each choice
-- Base all content strictly on the source material
-- No phrases like "The source states" in choices/explanations
-- No external information or assumptions
-- Use proper JSON formatting (quotes, commas)
-- Do not exceed 2096 tokens
-- Therefore NEVER include the words source or passage in explanations rather explain it as if you were the source
-- Never mention the "passage" or "source" in explanations
-
-Source: ${sourceText}
-${additionalInstructions ? `Additional instructions: ${additionalInstructions}` : ''}
-
-IMPORTANT: Return ONLY the JSON array of question objects in absolutely perfect format. You must Never include an introductory phrase like "here are 10 multiple choice questions.." as this will break my code.
-
-`
-const response = await anthropic.messages.create({
-    model: "claude-3-haiku-20240307",
-    max_tokens: 4096,
-    temperature: 0.7,
-    messages: [
-        {
-            role: "user",
-            content: prompt
-        }
-    ]
-});
-
-const inputTokens = response.usage.input_tokens;
-const outputTokens = response.usage.output_tokens;
-
-// Get current timestamp
-const timestamp = admin.firestore.Timestamp.now();
-
-// Get current month and year
-const currentDate = new Date();
-const monthYear = `${currentDate.getMonth() + 1}${currentDate.getFullYear()}`;
-
-// Create a batch write
-const batch = admin.firestore().batch();
-
-// Update class document
-const classRef = admin.firestore().collection('classes').doc(classId);
-batch.update(classRef, {
-  geninput: admin.firestore.FieldValue.increment(inputTokens),
-  genoutput: admin.firestore.FieldValue.increment(outputTokens),
-  [`${monthYear}Input`]: admin.firestore.FieldValue.increment(inputTokens),
-  [`${monthYear}Output`]: admin.firestore.FieldValue.increment(outputTokens),
-  usageHistory: admin.firestore.FieldValue.arrayUnion({
-    timestamp: timestamp,
-    inputTokens: inputTokens,
-    outputTokens: outputTokens,
-    function: 'GenerateAMCQ1.1',
-    teacherId: teacherId
-  })
-});
-
-// Update teacher document
-const teacherRef = admin.firestore().collection('teachers').doc(teacherId);
-batch.update(teacherRef, {
-  geninput: admin.firestore.FieldValue.increment(inputTokens),
-  genoutput: admin.firestore.FieldValue.increment(outputTokens),
-  [`${monthYear}Input`]: admin.firestore.FieldValue.increment(inputTokens),
-  [`${monthYear}Output`]: admin.firestore.FieldValue.increment(outputTokens),
-  usageHistory: admin.firestore.FieldValue.arrayUnion({
-    timestamp: timestamp,
-    inputTokens: inputTokens,
-    outputTokens: outputTokens,
-    function: 'GenerateAMCQ1.1',
-    classId: classId
-  })
-});
-
-// Commit the batch
-await batch.commit();
-
-res.status(200).json({ 
-    questions: response.content[0].text,
-    inputTokens: inputTokens,
-    outputTokens: outputTokens
-});
-} catch (error) {
-console.error("Error generating questions:", error);
-res.status(500).json({ error: error.message });
-}
-});
-});
-
-
-
-
-exports.GenerateAMCQstep2 = functions.https.onRequest((req, res) => {
-    return cors(req, res, async () => {
-        if (req.method !== "POST") {
-            return res.status(400).send("Please send a POST request");
-        }
-
-        const { sourceText, selectedOptions, additionalInstructions, previousQuestions, classId, teacherId } = req.body;
-
-        const ANTHROPIC_API_KEY = functions.config().anthropic.key;
-
-        const anthropic = new Anthropic({
-            apiKey: ANTHROPIC_API_KEY,
-        });
-
-        try {
-            let prompt = ` 
-           Generate 10 multiple-choice questions based on the provided source. Each question should have a number of choices randomly selected from ${selectedOptions.join(', ')}. 
-Only 1 answer per question should be correct. 
-Provide a concise 1-2 sentence explanation for each choice that explains why it is correct or incorrect, offering specific insights from the source material. 
-Explanations should directly state facts or analyze information rather than referencing the source document. 
-Therefore NEVER include the words source or passage in explanations rather explain it as if you were the source
-
-Questions should be clearly differentiated by difficulty:
-- 3 Easy questions: basic recall found exactly in source - should be able to "fill in the blank" exactly as in the source. Easy question choices should be less than 6 words.
-- 3 Medium questions: Recall of information not word for word as in the source but rephrased. Medium  question choices should be less than 6 words.
-- 4 Hard questions: analysis - cause and effect, causation, general concepts etc. Hard question Choices should be less than 10 words.
-
-IMPORTANT: Return ONLY the JSON array of question objects in absolutely perfect format. Never include an introductory phrase like "here are 10 multiple choice questions.." as this will break my code.
-[
-  {
-    "difficulty": "Easy|Medium|Hard",
-    "choices": 0,
-    "correct": "a",
-    "question": "Question text here",
-    "a": "Choice A text",
-    "b": "Choice B text",
-    "c": "Choice C text",
-    "d": "Choice D text",
-    "explanation_a": "Explanation for choice A",
-    "explanation_b": "Explanation for choice B",
-    "explanation_c": "Explanation for choice C",
-    "explanation_d": "Explanation for choice D"
-  },
-  ...
-]
-Note that this format example includes 4 choices and explanations but you are allowed to have  2,3,4,5 choices, 
-simply remember that the last choice shouldn't have a comma after it as it would break proper json formatting, 
-the 10th question section should also not have a comma after it as this would too break json format, remember proper placement of {}
-
-Guidelines:
-- Therefore NEVER include the words source or passage in explanations rather explain it as if you were the source
-- Each choice must be 12 words or less, this is important that you do for all difficulties of question
-- Choose number of choices randomly from: ${selectedOptions.join(', ')}
-- Only 1 correct answer per question
-- All choices must be less than 15 words, easy questions should have the shortest choices, make sure the correct answer is not always the longest
-- don't include "" within explanations
-- Provide 1-2 sentence explanation for each choice
-- Base all content strictly on the source material
-- No phrases like "The source states" in choices/explanations
-- No external information or assumptions
-- Use proper JSON formatting (quotes, commas)
-- Follow Choice word limits - 5 words for easy, 10 words for medium, 15 words for hard
-- Do not repeat questions that were already generated, each question should be unique
-- Do not exceed 2096 tokens
-- Follow Choice word limits - 5 words for easy, 10 words for medium, 15 words for hard
-- Do not repeat questions that were already generated, each question should be unique
-- Therefore NEVER include the words source or passage in explanations rather explain it as if you were the source
-- Never mention the "passage" or "source" in explanations
-
-
-Source: ${sourceText}
-${additionalInstructions ? `Additional instructions: ${additionalInstructions}` : ''}
-
-Note that some questions have already been generated, be sure not to repeat a question here are the questions that have been generated so far
-- Do not repeat questions that were already generated, each question should be unique${JSON.stringify(previousQuestions)}
-
-- Do not repeat questions that were already generated, each question should be unique`;
-
-const response = await anthropic.messages.create({
-    model: "claude-3-haiku-20240307",
-    max_tokens: 4096,
-    temperature: 0.7,
-    messages: [
-        {
-            role: "user",
-            content: prompt
-        }
-    ]
-});
-
-const inputTokens = response.usage.input_tokens;
-const outputTokens = response.usage.output_tokens;
-
-// Get current timestamp
-const timestamp = admin.firestore.Timestamp.now();
-
-// Get current month and year
-const currentDate = new Date();
-const monthYear = `${currentDate.getMonth() + 1}${currentDate.getFullYear()}`;
-
-// Create a batch write
-const batch = admin.firestore().batch();
-
-// Update class document
-const classRef = admin.firestore().collection('classes').doc(classId);
-batch.update(classRef, {
-  geninput: admin.firestore.FieldValue.increment(inputTokens),
-  genoutput: admin.firestore.FieldValue.increment(outputTokens),
-  [`${monthYear}Input`]: admin.firestore.FieldValue.increment(inputTokens),
-  [`${monthYear}Output`]: admin.firestore.FieldValue.increment(outputTokens),
-  usageHistory: admin.firestore.FieldValue.arrayUnion({
-    timestamp: timestamp,
-    inputTokens: inputTokens,
-    outputTokens: outputTokens,
-    function: 'GenerateAMCQ1x',
-    teacherId: teacherId
-  })
-});
-
-// Update teacher document
-const teacherRef = admin.firestore().collection('teachers').doc(teacherId);
-batch.update(teacherRef, {
-  geninput: admin.firestore.FieldValue.increment(inputTokens),
-  genoutput: admin.firestore.FieldValue.increment(outputTokens),
-  [`${monthYear}Input`]: admin.firestore.FieldValue.increment(inputTokens),
-  [`${monthYear}Output`]: admin.firestore.FieldValue.increment(outputTokens),
-  usageHistory: admin.firestore.FieldValue.arrayUnion({
-    timestamp: timestamp,
-    inputTokens: inputTokens,
-    outputTokens: outputTokens,
-    function: 'GenerateAMCQ1x',
-    classId: classId
-  })
-});
-
-// Commit the batch
-await batch.commit();
-
-res.status(200).json({ 
-    questions: response.content[0].text,
-    inputTokens: inputTokens,
-    outputTokens: outputTokens
-});
-} catch (error) {
-console.error("Error generating questions:", error);
-res.status(500).json({ error: error.message });
-}
-});
 });
 
 
@@ -1590,9 +1347,34 @@ exports.RegenerateSAQ = functions.https.onRequest((req, res) => {
           Frame questions to reflect the level of detail provided in the source material.
           Include some questions that examine broader concepts or themes, not just individual facts.
           Provide the output as a valid JSON array where each object has "question" and "rubric" fields. The entire response should be parseable as JSON. Here's the exact format to use:
-          [ { "question": "string", "rubric": "string" }, { "question": "string", "rubric": "string" }, ... ]
-          Remember to only include the JSON array in your response, with no additional text. 
-          
+       
+Provide the output as a valid JSON array where each object has "question" and "rubric" fields. The entire response should be parseable as JSON. Here's the exact format to use:
+[
+{
+"question": "string",
+"rubric": "string containing all rubric information"
+},
+...
+]
+Examples of good questions and rubrics:
+[
+{
+"question": "Name three organelles found in eukaryotic cells.",
+"rubric": "Expect 3 items. Acceptable answers include: Nucleus, mitochondria, endoplasmic reticulum, Golgi apparatus, chloroplasts, lysosomes, vacuoles. Other correct answers like ribosomes or peroxisomes are possible. must name specific organelles, not just their functions."
+},
+{
+"question": "List 1 key difference between mitosis and meiosis.",
+"rubric": "Expect 1 item. Acceptable answers include: Number of divisions, number of daughter cells produced, genetic variation in daughter cells, purpose (growth vs. reproduction), chromosome number in daughter cells. Other correct answers possible if they show a clear difference between the two processes.  must show a clear difference."
+},
+{
+"question": "What were two major consequences of the Holocaust?",
+"rubric": "Expect 2 items. Acceptable answers include: Genocide of millions of Jews and other groups, establishment of Israel, increased awareness of human rights, changes in international law. Other correct answers possible if they relate to long-term impacts of the Holocaust.  must give general consequences that are factually provable."
+}
+]
+Remember to only include the JSON array in your response, with no additional text.
+Generate questions and their rubrics based on the source
+INCLUDE NOTHING ELSE IN YOUR RESPONSE OTHER THAN THE CORRECTLY FORMATTED ARRAY.
+  
 
 Generate questions and their expected responses based on this source: ${sourceText}
 
@@ -1992,6 +1774,9 @@ Student Response: ${q.studentResponse}
     });
   });
 
+
+
+
   exports.GradeSAQ = functions.https.onRequest((req, res) => {
     return cors(req, res, async () => {
       if (req.method !== 'POST') {
@@ -1999,110 +1784,91 @@ Student Response: ${q.studentResponse}
       }
   
       const { questions, halfCreditEnabled, classId } = req.body;
-      const OPENAI_API_KEY = functions.config().openai.key;
+      // Retrieve the DeepSeek API key from configuration
+      const DEEPSEEK_API_KEY = functions.config().deepseek.key;
   
+      // Configure the OpenAI SDK to point to DeepSeek
       const openai = new OpenAI({
-        apiKey: OPENAI_API_KEY,
+        baseURL: 'https://api.deepseek.com', // or 'https://api.deepseek.com/v1'
+        apiKey: DEEPSEEK_API_KEY,
       });
   
       try {
-        // Fetch training data from the class document
-        let trainingDataPrompt = '';
-        try {
-          const classDoc = await admin.firestore().collection('classes').doc(classId).get();
-          if (classDoc.exists) {
-            const classData = classDoc.data();
-            if (classData.aiTrainingData && classData.aiTrainingData.length > 0) {
-              trainingDataPrompt = '\n\nUse these example grades as reference:\n';
-              classData.aiTrainingData.forEach(example => {
-                trainingDataPrompt += `
-  Example:
-  Question: ${example.question}
-  Rubric: ${example.rubric}
-  Student Response: ${example.studentResponse}
-  Score Given: ${example.score}
-  Feedback Given: ${example.feedback}
+        // Build your prompt
+        let prompt = `
+  You are an experienced and encouraging teacher grading short answer questions.
+  Grade each question on a scale of 0-2, where:
+  - 0: Incorrect
+  - ${halfCreditEnabled ? '1: Partially correct (if enabled)' : '(No partial credit, only 0 or 2)'}
+  - 2: Fully correct
+  
+  For each question, provide a score and concise feedback (around 20-30 words) explaining why the answer is correct or not. Use the rubric provided in each question.
+  for the feedback structure it as if you are talking to the student
+  
+  Format your response as a JSON array of objects, each with:
+  {
+    "feedback": "string",
+    "score": number
+  }
+  
+  Do not include any extra text. Here are the questions to grade:
   `;
-              });
-            }
-          }
-        } catch (error) {
-          console.warn('Error fetching training data:', error);
-          // Continue without training data if fetch fails
-        }
-  
-        let prompt = `Grade the following short answer questions using these guidelines:
-  
-  Scoring:
-  - 2 points: Answer contains the correct number of valid items/concepts and meets rubric requirements
-  - ${halfCreditEnabled ? '1 point: Answer contains some correct elements but is incomplete OR provides more information than requested' : 'Only use 0 or 2 for grades'}
-  - 0 points: Answer is incorrect or completely off-topic
-  
-  Grading Principles:
-  1. Focus on CONTENT ACCURACY:
-     - If the required number of correct items is present, award full points
-     - Extra information beyond what's asked should not reduce points
-     - Ignore spelling, grammar, and formatting
-     - Accept any clear way of expressing the correct concept
-  
-  2. For Multiple-Item Questions:
-     - Award full points if the required number of correct items is present
-     - ${halfCreditEnabled ? 'Award 1 point if at least one correct item is provided' : 'No partial credit for incomplete answers'}
-     - Additional correct items beyond the requested number don't affect scoring
-  
-  3. For Single-Answer Questions:
-     - Award full points if the core concept is correct
-     - Additional context or elaboration should not reduce points
-     - Accept any phrasing that demonstrates understanding
-  
-  4. Feedback Guidelines:
-     - For 2 points: "Correct! [Brief restatement of key points]"
-     - For 1 point: "Partially correct. [What was right + what was missing]"
-     - For 0 points: "Incorrect. [Brief explanation of major error]"
-  
-  Format your response as:
-  [
-    {
-      "feedback": "string",
-      "score": number
-    }
-  ]${trainingDataPrompt}`;
-  
-        let studentResponses = questions.map((q, index) => 
-          `Question: ${q.question}
+        questions.forEach((q, index) => {
+          prompt += `
+  Question ${index + 1}:
+  Question: ${q.question}
   Rubric: ${q.rubric}
   Student Response: ${q.studentResponse}
-  `).join('\n\n');
-  
-        prompt += '\n\nNow grade these responses:\n\n' + studentResponses;
-  
-        const response = await openai.chat.completions.create({
-          model: 'gpt-4-1106-preview',
-          messages: [
-            { role: 'system', content: prompt },
-          ],
-          temperature: 0.7,
-          max_tokens: 2048,
-          top_p: 0.7,
-          frequency_penalty: 0.2,
-          presence_penalty: 0.2,
+  `;
         });
+  
+        // Call DeepSeek using the OpenAI SDK configured above
+        const response = await openai.chat.completions.create({
+          model: 'deepseek-chat', // or 'deepseek-reasoner'
+          messages: [
+            { role: 'system', content: 'You are a helpful assistant.' },
+            { role: 'user', content: prompt }
+          ],
+          temperature: 0.5,
+          max_tokens: 8096, // Safe value within [1, 8192]
+          top_p: 0.8,
+          frequency_penalty: 0.3,
+          presence_penalty: 0.3,
+        });
+  
+        // Retrieve and sanitize the response content
+        let content = response.choices[0].message.content;
+        console.log("Raw API response:", content);
+        content = content.trim();
+  
+        // Remove markdown wrappers if present
+        if (content.startsWith("```json")) {
+          content = content.replace(/```json/, "").trim();
+          if (content.endsWith("```")) {
+            content = content.substring(0, content.length - 3).trim();
+          }
+        } else if (content.startsWith("`")) {
+          // Remove any leading and trailing backticks
+          content = content.replace(/^`+|`+$/g, "").trim();
+        }
   
         let gradingResults;
         try {
-          gradingResults = JSON.parse(response.choices[0].message.content);
+          gradingResults = JSON.parse(content);
         } catch (parseError) {
           console.error('Error parsing JSON:', parseError);
+          console.error('Sanitized response content:', content);
           throw new Error('Failed to parse API response as JSON');
         }
   
         res.status(200).json(gradingResults);
       } catch (error) {
         console.error('Error grading SAQ:', error);
-        res.status(500).send('Internal Server Error');
+        res.status(500).send(error.message);
       }
     });
   });
+  
   exports.updateAllAssignmentStats = functions.pubsub.schedule('every 1 hours').onRun(async (context) => {
     const assignmentsSnapshot = await admin.firestore().collection('assignments(saq)').get();
 
@@ -2494,6 +2260,335 @@ exports.moveDraftToAssignment = functions.https.onCall(async (data, context) => 
     await batch.commit();
     return { success: true };
   } catch (error) {
+    throw new functions.https.HttpsError('internal', error.message);
+  }
+});
+
+// Export the YouTube function
+exports.getYouTubeInfo = getYouTubeInfo;
+
+// Sector identification schema
+const sectorSchema = {
+  type: "object",
+  properties: {
+    sectors: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          sectorNumber: {
+            type: "integer",
+            description: "Sequential number of the sector"
+          },
+          sectorName: {
+            type: "string",
+            description: "Descriptive name for the sector"
+          },
+          sectorStart: {
+            type: "integer",
+            description: "Starting word index of the sector"
+          },
+          sectorEnd: {
+            type: "integer",
+            description: "Ending word index of the sector"
+          }
+        },
+        required: ["sectorNumber", "sectorName", "sectorStart", "sectorEnd"],
+        additionalProperties: false
+      }
+    }
+  },
+  required: ["sectors"],
+  additionalProperties: false
+};
+
+// Question generation schema
+const getQuestionSchema = (choiceCount) => ({
+  type: "object",
+  properties: {
+    sectorNumber: {
+      type: "integer",
+      description: "The sector number this question belongs to"
+    },
+    question: {
+      type: "string",
+      description: "The question text"
+    },
+    correctChoice: {
+      type: "string",
+      description: `Letter of the correct answer (${Array.from({length: choiceCount}, (_, i) => String.fromCharCode(97 + i)).join(", ")})`,
+      enum: Array.from({length: choiceCount}, (_, i) => String.fromCharCode(97 + i))
+    },
+    choices: {
+      type: "array",
+      items: {
+        type: "string",
+        description: "Answer choice text"
+      },
+      minItems: choiceCount,
+      maxItems: choiceCount
+    },
+    explanations: {
+      type: "array",
+      items: {
+        type: "string",
+        description: "Explanation for each answer choice"
+      },
+      minItems: choiceCount,
+      maxItems: choiceCount
+    }
+  },
+  required: ["sectorNumber", "question", "correctChoice", "choices", "explanations"],
+  additionalProperties: false
+});
+
+exports.identifySectors = functions.https.onCall(async (data, context) => {
+  const { text, wordCount } = data;
+  
+  if (!text || typeof text !== 'string') {
+    throw new functions.https.HttpsError('invalid-argument', 'Text must be a non-empty string');
+  }
+  
+  if (!wordCount || typeof wordCount !== 'number') {
+    throw new functions.https.HttpsError('invalid-argument', 'Word count must be a number');
+  }
+
+  const OPENAI_API_KEY = functions.config().openai.key;
+  const openai = new OpenAI({ apiKey: OPENAI_API_KEY });
+
+  try {
+    const prompt = `Take the following content and identify its content sectors. The content has ${wordCount} total words. Split this into 5-7 sectors, ensuring all content is covered.
+    all sectors must have start and end values including the rfirst and the last sectors
+
+Required JSON format:
+{
+  "sectors": [
+    {
+      "sectorNumber": (integer starting from 1),
+      "sectorName": "descriptive name",
+      "sectorStart": (word index start),
+      "sectorEnd": (word index end)
+    },
+    ...
+  ]
+}`;
+
+    const response = await openai.chat.completions.create({
+      model: "gpt-4-1106-preview",
+      messages: [
+        {
+          role: "system",
+          content: prompt
+        },
+        {
+          role: "user",
+          content: text
+        }
+      ],
+      temperature: 0.7,
+      max_tokens: 2000,
+      response_format: { type: "json_object" }
+    });
+
+    const parsedResponse = JSON.parse(response.choices[0].message.content);
+    
+    // Validate response against our schema
+    if (!parsedResponse.sectors || !Array.isArray(parsedResponse.sectors)) {
+      throw new Error('Response missing sectors array');
+    }
+
+    // Validate each sector
+    parsedResponse.sectors.forEach((sector, index) => {
+      if (!sector.sectorNumber || typeof sector.sectorNumber !== 'number') {
+        throw new Error(`Sector ${index + 1} missing valid sectorNumber`);
+      }
+      if (!sector.sectorName || typeof sector.sectorName !== 'string') {
+        throw new Error(`Sector ${index + 1} missing valid sectorName`);
+      }
+      if (!sector.sectorStart || typeof sector.sectorStart !== 'number') {
+        throw new Error(`Sector ${index + 1} missing valid sectorStart`);
+      }
+      if (!sector.sectorEnd || typeof sector.sectorEnd !== 'number') {
+        throw new Error(`Sector ${index + 1} missing valid sectorEnd`);
+      }
+    });
+
+    return parsedResponse;
+  } catch (error) {
+    console.error("Error identifying sectors:", error);
+    throw new functions.https.HttpsError('internal', error.message);
+  }
+});
+
+exports.generateSectorQuestions = functions.https.onCall(async (data, context) => {
+  const { sectorText, sectorNumber, choiceCounts, minQuestionsPerDifficulty = 1 } = data;
+  
+  if (!sectorText || typeof sectorText !== 'string') {
+    throw new functions.https.HttpsError('invalid-argument', 'Sector text must be a non-empty string');
+  }
+  
+  if (!sectorNumber || typeof sectorNumber !== 'number') {
+    throw new functions.https.HttpsError('invalid-argument', 'Sector number must be a number');
+  }
+
+  if (!Array.isArray(choiceCounts) || choiceCounts.length === 0 || 
+      !choiceCounts.every(count => typeof count === 'number' && count >= 2 && count <= 5)) {
+    throw new functions.https.HttpsError('invalid-argument', 'Choice counts must be an array of numbers between 2 and 5');
+  }
+
+  const OPENAI_API_KEY = functions.config().openai.key;
+  const openai = new OpenAI({ apiKey: OPENAI_API_KEY });
+
+  try {
+    const prompt = `
+    You are an expert educational assessment designer and question writer with extensive experience in creating high-quality multiple choice questions for adaptive learning platforms. Your specialty is crafting questions that accurately measure student understanding across different content understanding levels.
+    .Your task is to generate a comprehensive set of multiple choice questions for sector ${sectorNumber}. Create questions across all difficulty levels (easy, medium, hard), with at least ${minQuestionsPerDifficulty} question(s) at each level.
+
+DIFFICULTY LEVEL SPECIFICATIONS:
+
+EASY (0.1-0.9): Focus on basic knowledge and foundational concepts
+- Test direct facts, definitions, and key terminology
+- Cover fundamental principles and core information
+- Use straightforward vocabulary and clear examples
+- Example questions: "What is X?" or "Which of these defines Y?"
+
+MEDIUM (1.0-1.9): Focus on deeper understanding and connections
+- Test knowledge of relationships between concepts
+- Include scenario-based questions requiring understanding
+- Cover more detailed information and explanations
+- Example questions: "How does X relate to Y?" or "What happens when Z occurs?"
+
+HARD (2.0-3.0): Focus on comprehensive knowledge and complex details
+- Test understanding of intricate details and nuanced information
+- Include questions about exceptions, edge cases, and advanced concepts
+- Cover specialized knowledge and complex relationships
+- Example questions: "What are the implications of..." or "How do multiple factors interact..."
+
+QUESTION CONSTRUCTION RULES:
+
+1. NEVER reference the source material directly ("according to the text", "as mentioned", "the passage states", etc.)
+2. Frame questions as standalone knowledge assessments
+3. Use active, engaging language that feels natural
+4. Vary question stems: "What happens when...", "Why does...", "Which factor...", "How might..."
+
+DISTRACTOR GUIDELINES:
+- Include plausible incorrect answers that test common misconceptions
+- Use similar terminology or concepts that could confuse students
+- Create choices that are factually incorrect but logically appealing
+- Avoid obviously wrong answers (like completely unrelated terms)
+- For numerical questions, include common calculation errors
+- Use partial truths that miss key nuances
+
+For each question, use one of the following numbers of choices: ${choiceCounts.join(', ')}. Distribute choice counts evenly across questions.
+
+Required JSON format:
+{
+  "questions": [
+    {
+      "sectorNumber": ${sectorNumber},
+      "question": "question text (standalone, no source references)",
+      "correctChoice": "letter corresponding to correct answer (a, b, c, etc.)",
+      "choices": ["array of answer choices with strategic distractors"],
+      "choiceCount": "number of choices for this question (one of: ${choiceCounts.join(', ')})",
+      "explanations": ["array of explanations for each choice, explaining why it's correct/incorrect"],
+      "difficultyLevel": "easy|medium|hard",
+      "difficultyScore": "numerical score within the appropriate range"
+    }
+  ]
+}
+
+QUALITY CHECKLIST for each question:
+✓ Tests knowledge at the specified difficulty level
+✓ Contains at least 2-3 plausible distractors
+✓ Reads naturally without source references
+✓ Difficulty matches both information complexity AND detail level
+✓ Explanations clearly justify each choice
+
+Remember: You are creating assessment questions for an adaptive learning system. Focus on precision, clarity, and educational value. Each question should provide meaningful data about student understanding.`
+;
+
+    const response = await openai.chat.completions.create({
+      model: "gpt-4-1106-preview",
+      messages: [
+        {
+          role: "system",
+          content: prompt
+        },
+        {
+          role: "user",
+          content: `Sector ${sectorNumber}: ${sectorText}`
+        }
+      ],
+      temperature: 0.8,
+      max_tokens: 2500,
+      response_format: { type: "json_object" }
+    });
+
+    const parsedResponse = JSON.parse(response.choices[0].message.content);
+    
+    // Validate response against our schema
+    if (!parsedResponse.questions || !Array.isArray(parsedResponse.questions)) {
+      throw new Error('Invalid response format - missing questions array');
+    }
+
+    // Count questions per difficulty level
+    const difficultyCount = {
+      easy: 0,
+      medium: 0,
+      hard: 0
+    };
+
+    // Validate each question and count difficulties
+    parsedResponse.questions.forEach((question, index) => {
+      if (!question.sectorNumber || question.sectorNumber !== sectorNumber) {
+        throw new Error(`Invalid or missing sectorNumber in question ${index + 1}`);
+      }
+      if (!question.question || typeof question.question !== 'string') {
+        throw new Error(`Missing question text in question ${index + 1}`);
+      }
+      if (!question.choiceCount || !choiceCounts.includes(question.choiceCount)) {
+        throw new Error(`Invalid choice count in question ${index + 1}`);
+      }
+      if (!question.correctChoice || 
+          !Array.from({length: question.choiceCount}, (_, i) => String.fromCharCode(97 + i)).includes(question.correctChoice)) {
+        throw new Error(`Invalid correctChoice in question ${index + 1}`);
+      }
+      if (!question.choices || !Array.isArray(question.choices) || 
+          question.choices.length !== question.choiceCount) {
+        throw new Error(`Must have exactly ${question.choiceCount} choices in question ${index + 1}`);
+      }
+      if (!question.explanations || !Array.isArray(question.explanations) || 
+          question.explanations.length !== question.choiceCount) {
+        throw new Error(`Must have exactly ${question.choiceCount} explanations in question ${index + 1}`);
+      }
+      if (!question.difficultyScore || 
+          typeof question.difficultyScore !== 'number' ||
+          question.difficultyScore < 0 ||
+          question.difficultyScore > 3) {
+        throw new Error(`Invalid difficulty score in question ${index + 1}`);
+      }
+      if (!question.difficultyLevel || !['easy', 'medium', 'hard'].includes(question.difficultyLevel)) {
+        throw new Error(`Invalid difficulty level in question ${index + 1}`);
+      }
+
+      difficultyCount[question.difficultyLevel]++;
+    });
+
+    // Verify minimum questions per difficulty
+    if (Object.values(difficultyCount).some(count => count < minQuestionsPerDifficulty)) {
+      throw new Error(`Must have at least ${minQuestionsPerDifficulty} question(s) for each difficulty level. Current counts: Easy: ${difficultyCount.easy}, Medium: ${difficultyCount.medium}, Hard: ${difficultyCount.hard}`);
+    }
+
+    // Verify all choice counts are used
+    const usedChoiceCounts = new Set(parsedResponse.questions.map(q => q.choiceCount));
+    const unusedChoiceCounts = choiceCounts.filter(count => !usedChoiceCounts.has(count));
+    if (unusedChoiceCounts.length > 0) {
+      throw new Error(`Not all choice counts were used. Unused counts: ${unusedChoiceCounts.join(', ')}`);
+    }
+
+    return parsedResponse;
+  } catch (error) {
+    console.error("Error generating sector questions:", error);
     throw new functions.https.HttpsError('internal', error.message);
   }
 });

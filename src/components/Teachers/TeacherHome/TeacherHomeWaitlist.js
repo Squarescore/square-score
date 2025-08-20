@@ -9,6 +9,7 @@ import { useAuthState } from 'react-firebase-hooks/auth';
 import { useCollection } from 'react-firebase-hooks/firestore';
 import HomeNavbar from '../../Universal/HomeNavbar';
 import Footer from '../../Universal/Footer'; // Make sure this file exists in the same directory
+import { CheckSquare } from 'lucide-react';
 const TeacherHomeWaitlist = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -71,7 +72,7 @@ const TeacherHomeWaitlist = () => {
 
       // Set success state and message
       setValidationSuccess(true);
-      setSuccessMessage('Your key has been validated. Refresh the page to start your SquareScore journey!');
+      setSuccessMessage('Key Validated. Refresh the page to get started');
       
       // Close the modal after a short delay
       setTimeout(() => {
@@ -149,30 +150,34 @@ const TeacherHomeWaitlist = () => {
       {successMessage && (
   <div style={{
     position: 'fixed',
-    top: '70px',
-    zIndex: '10000',
-    left: '0',
-    right: '0',
+    bottom: '40px',
+    zIndex: '100',
+    right: '20px',
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center'
   }}>
-    <div style={{width: '100%', background: '#4BD682', height: '6px'}}></div>
+  
     <div style={{
-      backgroundColor: '#AEF2A3',
-      border: '6px solid #4BD682',
-      borderBottomLeftRadius: '20px',
-      borderTop: '0px',
-      borderBottomRightRadius: '20px',
-      padding: '0px 20px',
-      height: '40px',
-      display: 'flex',
-      alignItems: 'center',
-      marginTop: '-6px',
-      marginBottom: '20px',
-      whiteSpace: 'nowrap'
+        position: 'fixed',
+        bottom: '16px',
+        right: '16px',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '8px',
+        backgroundColor: '#22C55E', // green-500
+        color: 'white',
+        padding: '5px 16px',
+        borderRadius: '8px',
+        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+        animation: 'fadeIn 0.3s ease-in-out',
+        zIndex: 50,
+        fontFamily: "'Montserrat', sans-serif"
     }}>
-      <p style={{ color: '#45B434', fontWeight: 'bold', marginRight: '20px' }}>{successMessage}</p>
+   
+   <CheckSquare style={{width: '20px',
+    height: '20px'}} />
+      <p style={{ fontWeight: '500', marginRight: '20px', color: 'white' }}>{successMessage}</p>
     
     </div>
   </div>

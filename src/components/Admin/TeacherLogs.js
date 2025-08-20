@@ -32,7 +32,7 @@ const TeacherLogs = () => {
       <HomeNavbar userType="admin" />
       <main style={{ flexGrow: 1, padding: '20px' }}>
         <h2 style={{ textAlign: 'center', marginBottom: '20px' }}>Usage Logs for Teacher {teacherId}</h2>
-        <div style={{ border: '1px solid #ccc', borderRadius: '10px', padding: '20px' }}>
+        <div style={{ border: '1px solid #ddd', borderRadius: '10px', padding: '20px' }}>
           <h3>Usage History</h3>
           <ul>
             {usageLogs.map((log, index) => (
