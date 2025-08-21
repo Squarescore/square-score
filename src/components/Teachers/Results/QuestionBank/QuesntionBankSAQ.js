@@ -329,30 +329,9 @@ const QuestionBankSAQ = ({
 }) => {
   const containerRef = useRef(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [editingQuestions, setEditingQuestions] = useState(() => {
-    // Initialize with all questions set to not editing
-    return questionsWithIds.reduce((acc, q) => {
-      acc[q.questionId] = false;
-      return acc;
-    }, {});
-  });
-  
-  // Keep track of the pending sorted order
-  const [pendingSortedQuestions, setPendingSortedQuestions] = useState([]);
+  const [editingQuestions, setEditingQuestions] = useState({});
   const [hasScrolled, setHasScrolled] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-
-  // Keep editingQuestions in sync with questionsWithIds
-  useEffect(() => {
-    setEditingQuestions(prev => {
-      const newState = {};
-      // Preserve existing edit states
-      questionsWithIds.forEach(q => {
-        newState[q.questionId] = prev[q.questionId] || false;
-      });
-      return newState;
-    });
-  }, [questionsWithIds]);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -436,35 +415,15 @@ const QuestionBankSAQ = ({
   const handleEditQuestionToggle = async (qId) => {
     const isCurrentlyEditing = editingQuestions[qId];
     
-    // Save any current edits
-    await handleBlur();
+    // If we're exiting edit mode, save the changes first
+    if (isCurrentlyEditing) {
+      await handleBlur();
+    }
 
-    // If there's any question being edited (including this one)
-    const currentlyEditingId = Object.entries(editingQuestions).find(([_, isEditing]) => isEditing)?.[0];
-    
-    setEditingQuestions((prev) => {
-      // First, create a new object with all questions set to not editing
-      const newState = Object.keys(prev).reduce((acc, key) => {
-        acc[key] = false;
-        return acc;
-      }, {});
-      
-      // Then, only set the clicked question to editing if:
-      // 1. It wasn't being edited before, or
-      // 2. It's not the same question that was already being edited
-      if (!isCurrentlyEditing && currentlyEditingId !== qId) {
-        newState[qId] = true;
-      }
-
-      // If we're exiting all edit modes and there were actual changes, update with sorted order
-      const willBeEditing = Object.values(newState).some(editing => editing);
-      if (!willBeEditing && currentlyEditingId) {
-        // Only update if we're actually exiting edit mode and there were changes
-        setQuestionsWithIds([...pendingSortedQuestions]);
-      }
-      
-      return newState;
-    });
+    setEditingQuestions((prev) => ({
+      ...prev,
+      [qId]: !prev[qId],
+    }));
   };
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -746,42 +705,23 @@ const renderStatsBadge = (questionId) => {
     setSelectedQuestionId(qId);
   };
 
-  // Calculate the alphabetically sorted order
-  useEffect(() => {
-    const sorted = [...questionsWithIds].sort((a, b) => 
-      a.question.toLowerCase().localeCompare(b.question.toLowerCase())
-    );
-    setPendingSortedQuestions(sorted);
-  }, [questionsWithIds]);
-
-  // Filter questions and maintain position during edit
-  const filteredQuestions = (() => {
-    // Start with the original list to maintain positions
-    const filtered = questionsWithIds.filter((q) => {
+  // Filter and sort questions
+  const filteredQuestions = questionsWithIds
+    .filter((q) => {
       const lowerQ = q.question.toLowerCase();
       const lowerR = q.rubric.toLowerCase();
       const term = searchTerm.toLowerCase();
       return lowerQ.includes(term) || lowerR.includes(term);
+    })
+    // Only sort if no questions are being edited
+    .sort((a, b) => {
+      const isAnyEditing = Object.values(editingQuestions).some(isEditing => isEditing);
+      if (isAnyEditing) {
+        // Maintain current order during editing
+        return 0;
+      }
+      return a.question.toLowerCase().localeCompare(b.question.toLowerCase());
     });
-
-    // If not editing, use the sorted order
-    const isEditing = Object.values(editingQuestions).some(editing => editing);
-    if (!isEditing) {
-      // Create a map of sorted positions
-      const sortedOrder = new Map(
-        pendingSortedQuestions.map((q, index) => [q.questionId, index])
-      );
-      
-      // Sort using the pre-calculated positions
-      filtered.sort((a, b) => {
-        const posA = sortedOrder.get(a.questionId);
-        const posB = sortedOrder.get(b.questionId);
-        return posA - posB;
-      });
-    }
-
-    return filtered;
-  })();
 
   // If a question is auto-opened (e.g., user clicked from somewhere else)
   useEffect(() => {
@@ -1135,7 +1075,6 @@ const renderStatsBadge = (questionId) => {
               gap: '8px',
               padding: '10px 40px',
               cursor: 'pointer',
-              zIndex: '10',
               fontSize: '0.9rem',
               color: 'darkgreen',
               transition: 'all 0.2s ease',

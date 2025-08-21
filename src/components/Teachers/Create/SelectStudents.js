@@ -81,7 +81,7 @@ const SelectStudents = ({ classId, selectedStudents, setSelectedStudents }) => {
               width: 'calc(31.5% - 12px)',
               padding: '10px',
               border: `1px solid ${selectedStudents.has(student.uid) ? '#2BB514' : '#fcfcfc'}`,
-              borderRadius: '5px',
+              borderRadius: '20px',
               height: '35px',
               alignItems: 'center',
               cursor: 'pointer',

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { arrayRemove, arrayUnion, doc, getDoc, setDoc, updateDoc, serverTimestamp, deleteDoc } from 'firebase/firestore';
+import { arrayRemove, arrayUnion, doc, getDoc, setDoc, updateDoc, serverTimestamp, deleteDoc, collection, query, where, orderBy, limit, getDocs } from 'firebase/firestore';
 import { useParams, useNavigate } from 'react-router-dom';
 import { db, auth } from '../../Universal/firebase';
 import Loader from '../../Universal/Loader';
@@ -143,19 +143,42 @@ const [scaleMax, setScaleMax] = useState(2);
 
   
   const saveProgress = async (status = 'in_progress', currentAnswers = answers) => {
-    
-    
-    
     const progressRef = doc(db, 'assignments(progress)', `${assignmentId}_${studentUid}`);
     const currentProgress = await getDoc(progressRef);
-  
-    // If the document exists and is already submitted, prevent overwriting with in_progress
+
+    // If the document exists and is already submitted or paused, prevent overwriting with in_progress
     if (currentProgress.exists() && 
-    (currentProgress.data().status === 'submitted' || currentProgress.data().status === 'paused') && 
-    status === 'in_progress') {
-  console.log('Assignment already submitted or paused, skipping in_progress update');
-  return;
-}
+      (currentProgress.data().status === 'submitted' || currentProgress.data().status === 'paused') && 
+      status === 'in_progress') {
+      console.log('Assignment already submitted or paused, skipping in_progress update');
+      return;
+    }
+
+    // Data loss prevention checks
+    if (currentProgress.exists()) {
+      const existingData = currentProgress.data();
+      const existingAnswers = existingData.questions || [];
+      
+      // Count non-empty responses in existing and new data
+      const existingResponseCount = existingAnswers.filter(q => q.studentResponse?.trim()).length;
+      const newResponseCount = currentAnswers.filter(a => a.answer?.trim()).length;
+      
+      // Calculate how many responses would be lost
+      const responseLoss = existingResponseCount - newResponseCount;
+
+      // If we would lose 2 or more responses, prevent the update
+      if (responseLoss >= 2 && status !== 'submitted') {
+        console.error('Prevented potential data loss - attempted to clear multiple existing responses');
+        throw new Error('Update prevented to protect your previous answers. Please refresh the page and try again.');
+      }
+
+      // Create backup of existing data
+      const backupRef = doc(db, 'assignments(progress)_backup', `${assignmentId}_${studentUid}_${Date.now()}`);
+      await setDoc(backupRef, {
+        ...existingData,
+        backupCreatedAt: serverTimestamp()
+      });
+    }
   
     try {
       // Create a local copy of the current answers to ensure we're working with the latest data
@@ -227,9 +250,39 @@ const [scaleMax, setScaleMax] = useState(2);
       console.log('Progress saved successfully with status:', status);
     } catch (error) {
       console.error("Error saving progress:", error);
+
+      // If this was a data protection error, show specific message
+      if (error.message.includes('Update prevented to protect your previous answers')) {
+        // Try to recover the latest valid state
+        const backupQuery = query(
+          collection(db, 'assignments(progress)_backup'),
+          where('assignmentId', '==', assignmentId),
+          where('studentUid', '==', studentUid),
+          orderBy('backupCreatedAt', 'desc'),
+          limit(1)
+        );
+
+        try {
+          const backupSnapshot = await getDocs(backupQuery);
+          if (!backupSnapshot.empty) {
+            const latestBackup = backupSnapshot.docs[0].data();
+            // Update answers state with backup data
+            const recoveredAnswers = latestBackup.questions.map(q => ({
+              questionId: q.questionId,
+              answer: q.studentResponse || ''
+            }));
+            setAnswers(recoveredAnswers);
+          }
+        } catch (recoveryError) {
+          console.error("Error recovering backup:", recoveryError);
+        }
+      }
+      
       throw error; // Propagate error to caller
     }
-  };const handleSubmit = async (currentAnswers = answers) => {
+  };
+  
+  const handleSubmit = async (currentAnswers = answers) => {
     const timeSpent = timeLimit ? (timeLimit - secondsLeft) : 0;
     setIsSubmitting(true);
     try {
@@ -640,14 +693,7 @@ const [scaleMax, setScaleMax] = useState(2);
   }, [saveAndExit, loading, questions, isSubmitted, answers]);
   
 
-  const handleAnswerChange = (e, index) => {
-    const updatedAnswers = answers.map((answer, i) => 
-      i === index
-        ? { ...answer, answer: e.target.value }
-        : answer
-    );
-    setAnswers(updatedAnswers);
-  };
+  
 
 
   const loadingModalStyle = {
@@ -914,8 +960,16 @@ const [scaleMax, setScaleMax] = useState(2);
                 color: 'grey',
                 cursor: 'pointer',
               }} onClick={toggleTimer}>
-                {showTimer ? <Eye size={16} /> : <Hourglass size={16} />}
-                <span style={{ fontSize: '.9rem', fontWeight: '500' }}>
+                {showTimer ? 
+                  <Eye size={16} style={{ color: secondsLeft <= 180 ? '#ff4444' : 'grey', transition: 'color 0.3s ease' }} /> : 
+                  <Hourglass size={16} style={{ color: secondsLeft <= 180 ? '#ff4444' : 'grey', transition: 'color 0.3s ease' }} />
+                }
+                <span style={{ 
+                  fontSize: '1.3rem', 
+                  fontWeight: '500',
+                  color: secondsLeft <= 180 ? '#ff4444' : 'grey',
+                  transition: 'color 0.3s ease'
+                }}>
                   {showTimer ? formatTime(secondsLeft) : ''}
                 </span>
               </div>
@@ -1031,7 +1085,15 @@ const [scaleMax, setScaleMax] = useState(2);
                isLockdownSaving ? 'Saving Progress' : 
                'Loading Assignment'}
             </p>
+            <div style={{
+              position: 'absolute',
+
+              left: '50%',
+              top: '35%',
+              transform: 'translate(-50%, -50%)'
+            }}>
             <Loader/>
+            </div>
             <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
               <div className="lds-ripple"><div></div><div></div></div>
             </div>
@@ -1050,12 +1112,12 @@ const [scaleMax, setScaleMax] = useState(2);
           zIndex: 2
         }}>
           {isListView ? (
-            <div style={{ width: '800px', maxWidth: '90%', margin: '0 auto' }}>
+            <div style={{ width: '800px', maxWidth: '90%', margin: '0 auto', position: 'relative' }}>
               {questions.map((question, index) => (
                 <div key={index} style={{ position: 'relative', marginBottom: '40px' }}>
                   {/* Watermark container for question */}
                   <div style={{
-                    position: 'absolute',
+                   position: 'absolute',
                     top: -10,
                     left: 0,
                     right: 0,
@@ -1067,25 +1129,29 @@ const [scaleMax, setScaleMax] = useState(2);
                     alignContent: 'start',
                     pointerEvents: 'none',
                     zIndex: 0,
-                    padding: '10px 0'
+                    padding: '10px 0' ,
+                    gap: '0px',
                   }}>
                     {Array(15).fill("AI ASSISTANCE PROHIBITED - ACADEMIC INTEGRITY  - NO BYPASS -").map((text, i) => (
                       <div
                         key={i}
                         style={{
-                          color: '#ddd',
-                          fontSize: '9px',
-                          padding: '2px',
-                          whiteSpace: 'nowrap',
-                          fontFamily: 'monospace',
-                          userSelect: 'none',
-                          fontWeight: '600',
-                          WebkitUserSelect: 'none',
-                          msUserSelect: 'none',
-                          textAlign: 'center',
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          letterSpacing: '0.5px'
+                                                 color: '#ddd',
+                       fontSize: '9px',
+                       padding: '0',
+                       margin: '0',
+                       lineHeight: '10px',
+                       height: '10px',
+                       whiteSpace: 'nowrap',
+                       fontFamily: 'monospace',
+                       userSelect: 'none',
+                       fontWeight: '600',
+                       WebkitUserSelect: 'none',
+                       msUserSelect: 'none',
+                       textAlign: 'center',
+                       overflow: 'hidden',
+                       textOverflow: 'ellipsis',
+                       letterSpacing: '0.5px'
                         }}
                       >
                         {text}
@@ -1145,40 +1211,48 @@ const [scaleMax, setScaleMax] = useState(2);
             </div>
           ) : (
             // Paginated View
-            <div style={{ width: '800px', maxWidth: '90%', marginTop: '50px' }}>
+            <div style={{ width: '800px', maxWidth: '90%', marginTop: '50px', position: 'relative' }}>
               {/* Watermark container for question */}
-              <div style={{
-                position: 'absolute',
-                top: 25,
-                left: '15%',  // Start at 15% from left
-                right: '15%', // End at 15% from right
-                height: 'fit-content', // Adapt to content
-                minHeight: '50px',
-                display: 'grid',
-                gridTemplateColumns: 'repeat(3, 1fr)', // Fixed 3 columns
-                gridAutoRows: '14px',
-                alignContent: 'start',
-                pointerEvents: 'none',
-                zIndex: 0,
-                padding: '10px 0'
+                             <div style={{
+                 position: 'absolute',
+                  width: '800px',
+                 top: '-10px',
+                 
+                 bottom: '-20px',
+                 left: '-10px',  // Start at 15% from left
+                 right: '-10px', // End at 15% from right
+                 height: 'fit-content', // Adapt to content
+                 minHeight: '60px',
+                 display: 'grid',
+                 gridTemplateColumns: 'repeat(3, 1fr)', // Fixed 3 columns
+                 gridAutoRows: 'min-content',
+                 gap: '0',
+                 rowGap: '0',
+                 alignContent: 'start',
+                 pointerEvents: 'none',
+                 zIndex: 0,
+                 padding: '10px 0'
               }}>
                 {Array(15).fill("AI ASSISTANCE PROHIBITED - ACADEMIC INTEGRITY  - NO BYPASS -").map((text, i) => (
                   <div
                     key={i}
                     style={{
-                      color: '#ddd',
-                      fontSize: '9px',
-                      padding: '2px',
-                      whiteSpace: 'nowrap',
-                      fontFamily: 'monospace',
-                      userSelect: 'none',
-                      fontWeight: '600',
-                      WebkitUserSelect: 'none',
-                      msUserSelect: 'none',
-                      textAlign: 'center',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      letterSpacing: '0.5px'
+                                             color: '#ddd',
+                       fontSize: '9px',
+                       padding: '0',
+                       margin: '0',
+                       lineHeight: '10px',
+                       height: '10px',
+                       whiteSpace: 'nowrap',
+                       fontFamily: 'monospace',
+                       userSelect: 'none',
+                       fontWeight: '600',
+                       WebkitUserSelect: 'none',
+                       msUserSelect: 'none',
+                       textAlign: 'center',
+                       overflow: 'hidden',
+                       textOverflow: 'ellipsis',
+                       letterSpacing: '0.5px'
                     }}
                   >
                     {text}
@@ -1210,7 +1284,7 @@ const [scaleMax, setScaleMax] = useState(2);
                   width: '100%',
                   marginTop: '170px',
                   minHeight: '100px',
-                  borderRadius: '10px',
+                  borderRadius: '20px',
                   border: '1px solid lightgrey',
                   padding: '20px',
                   outline: 'none',
@@ -1224,7 +1298,14 @@ const [scaleMax, setScaleMax] = useState(2);
                 type="text"
                 placeholder='Type your response here'
                 value={answers.find(a => a.questionId === questions[currentQuestionIndex]?.questionId)?.answer || ''}
-                onChange={handleAnswerChange}
+                onChange={(e) => {
+                  const updatedAnswers = answers.map(answer => 
+                    answer.questionId === questions[currentQuestionIndex].questionId
+                      ? { ...answer, answer: e.target.value }
+                      : answer
+                  );
+                  setAnswers(updatedAnswers);
+                }}
               />
 
               <div style={{

@@ -136,7 +136,7 @@ const StudentHome = () => {
         const classInfo = {
           classId: classDoc.id,
           classChoice: freshClassData.classChoice || freshClassData.className,
-          period: parseInt(freshClassData.className.split(' ')[1])
+          period: freshClassData.period || (freshClassData.className && freshClassData.className.includes(' ') ? parseInt(freshClassData.className.split(' ')[1]) : 1)
         };
 
         // Get existing classes array or create new one
@@ -160,7 +160,7 @@ const StudentHome = () => {
       const newClass = {
         classId: classDoc.id,
         classChoice: classData.classChoice || classData.className,
-        period: parseInt(classData.className.split(' ')[1])
+        period: classData.period || (classData.className && classData.className.includes(' ') ? parseInt(classData.className.split(' ')[1]) : 1)
       };
       setClasses(prevClasses => [...prevClasses, newClass]);
 

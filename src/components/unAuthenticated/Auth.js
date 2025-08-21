@@ -484,13 +484,13 @@ const Auth = () => {
                 }
               }
             }}
-            style={{ width: '45rem', zIndex: '200',
+            style={{ width: '45rem', zIndex: '20',
             maxWidth: '100%', fontFamily: "'montserrat', sans-serif", color: 'black', marginTop: '0rem', marginLeft: '0rem', fontSize: '3rem', lineHeight: '1.4', display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '1.5rem', position: 'relative', boxShadow: '0 0 50px 20px rgba(255,255,255,1)', background: 'rgb(255,255,255,.5)', backdropFilter: 'blur(2px)' }}>
             <motion.div variants={{
               hidden: { opacity: 0, y: 20 },
               visible: { 
                 opacity: 1, 
-                y: 0,
+                y: 0,   
                 transition: {
                   duration: 0.5,
                   ease: "easeOut"

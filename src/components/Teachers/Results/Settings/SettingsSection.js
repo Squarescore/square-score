@@ -184,12 +184,6 @@ const SettingsSection = ({
           })}
         />
 
-        <GradingScale
-          minValue={assignmentSettings.scale?.min || '0'}
-          maxValue={assignmentSettings.scale?.max || '2'}
-          onMinChange={(value) => updateAssignmentSetting('scaleMin', value)}
-          onMaxChange={(value) => updateAssignmentSetting('scaleMax', value)}
-        />
 
         <SecuritySettingsElement
           saveAndExit={assignmentSettings.saveAndExit}

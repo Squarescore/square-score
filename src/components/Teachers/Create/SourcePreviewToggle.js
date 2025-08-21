@@ -190,10 +190,10 @@ const SourcePreviewToggle = ({
             <div style={{
               backgroundColor: 'white',
               border: '1px solid lightgrey',
-              padding: '10px',
+              padding: '15px',
               height: '300px',
               width: '600px',
-              borderRadius: '5px',
+              borderRadius: '20px',
               marginTop: '5px',
               overflowY: 'auto'
             }}>

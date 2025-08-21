@@ -560,19 +560,27 @@ const QuestionResults = ({ assignmentId, questionId, inModal = false, onClose })
       </div>
 
       {/* Average score */}
-      <div style={{
-        height: '30px',
-        borderRadius: '5px',
-        padding: '0 10px',
-        display: 'flex',
-        alignItems: 'center',
-        fontSize: '16px',
-        fontWeight: '600',
-        color: getGradeColors(questionData?.averageScore).color,
-        background: getGradeColors(questionData?.averageScore).background
-      }}>
-        {questionData?.averageScore.toFixed(0)}%
-      </div>
+      <GlassContainer
+        variant={getGradeColors(questionData?.averageScore).variant}
+        size={0}
+        style={{
+          marginLeft: '10px'
+        }}
+        contentStyle={{
+          padding: '3px 10px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center'
+        }}
+      >
+        <span style={{
+          fontSize: '16px',
+          fontWeight: '500',
+          color: getGradeColors(questionData?.averageScore).color
+        }}>
+          {questionData?.averageScore.toFixed(0)}%
+        </span>
+      </GlassContainer>
 
       {/* Expand/Collapse button */}
       <button onClick={handleExpandAll} style={{
@@ -631,67 +639,80 @@ const QuestionResults = ({ assignmentId, questionId, inModal = false, onClose })
         {students.map((student, index) => (
           <div key={student.id} style={{
             padding: '10px 2%',
-            margin: '0% 2%',
-          width: '100%',
-            borderBottom: '1px solid lightgrey',
+            margin: '0%',
+          width: '106%',
+            borderBottom: '1px solid #ddd',
             marginBottom: '0px'
           }}>
             {/* Student Header */}
             <div style={{
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'space-between',
               width: '100%',
               gap: '20px'
             }}>
-              <div style={{
+                              <div style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: '16px',
-                minWidth: '200px'
+                gap: '30px'
               }}>
-                {/* Score Icon */}
-             
                 <h3 
-                         onClick={() => handleStudentClick(student.studentUid)}
-                style={{
-                  fontWeight: '500',
-                  cursor: 'pointer',
-                  fontSize: '16px',
-                  fontFamily: "'montserrat', sans-serif"
-                }}
-                
-                
-                onMouseEnter={(e) => {
+                  onClick={() => handleStudentClick(student.studentUid)}
+                  style={{
+                    fontWeight: '500',
+                    cursor: 'pointer',
+                    fontSize: '16px',
+                    fontFamily: "'montserrat', sans-serif",
+                    minWidth: '200px'
+                  }}
+                  onMouseEnter={(e) => {
                     e.target.style.textDecoration = 'underline';
                   }}
                   onMouseLeave={(e) => {
                     e.target.style.textDecoration = 'none';
-                  }}>{`${student.lastName}, ${student.firstName}`}</h3>
-
-
+                  }}
+                >{`${student.lastName}, ${student.firstName}`}</h3>
               </div>
-             
-{!showResponseMap[student.id] && (
-                    <div style={{
-                      overflow: 'hidden',
-                      padding: '5px 10px',
-                      zIndex: '0',
-                      maxWidth: '300px',
-marginLeft: '0px',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
-                      background: student.score === 2 ? '#CCFFC380' : student.score === 1 ? '#FFF5D280' : '#FFCDCD50',
-                      color: student.score === 2 ? '#20BF00' : student.score === 1 ? '#E76F00' : '#FF0000',
-                     borderRadius:'20px', 
-                      fontSize: '14px'
-                    }}>
-                      {student.response || "No response provided"}
+
+              {!showResponseMap[student.id] && (
+                <div>
+                    <GlassContainer
+                      variant={student.score === 2 ? 'green' : student.score === 1 ? 'yellow' : 'red'}
+                      size={0}
+                      style={{
+                        zIndex: '1',
+                        display: 'inline-block',
+                        maxWidth: '400px'
+                      }}
+                      contentStyle={{
+                        padding: '5px 10px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'flex-start'
+                      }}
+                    >
+                      <p style={{
+                        fontSize: '14px',
+                        fontWeight: '500',
+                        textAlign: 'left',
+                        width: 'auto',
+                        
+                        margin: 0,
+                        whiteSpace: 'nowrap',
+                        maxWidth: '380px',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        color: student.score === 2 ? '#16a34a' : student.score === 1 ? '#FF8800' : '#dc2626'
+                      }}>
+                        {student.response || "No response provided"}
+                      </p>
+                    </GlassContainer>
                     </div>
                   )}
               <div style={{
                 display: 'flex',
                 alignItems: 'center',
+                marginLeft: 'auto',
                 width: '300px',
                 gap: '16px', 
               }}>
@@ -877,7 +898,7 @@ marginLeft: '0px',
                     }}
                     contentStyle={{
                         padding: '2px 8px',
-                        display: 'flex',
+                        display: 'flex',   fontWeight: '500',
                         alignItems: 'center',
                         justifyContent: 'center'
                     }}
@@ -921,31 +942,39 @@ marginLeft: '0px',
     gap: '16px'
   }}>
     <div style={{
-      display: 'inline-block', // Changed to inline-block
+      display: 'inline-block',
       maxWidth: 'calc(100% - 360px)',
       marginLeft: '4%',
     }}>
-      <div style={{
-        padding: '5px 10px',
-        width: 'fit-content', // Added to fit content
-        backgroundColor: student.score === 2 ? '#CCFFC3' : 
-                        student.score === 1 ? '#FFF5D2' : '#FFCDCD',
-        borderLeft: `4px solid ${
-          student.score === 2 ? '#20BF00' : 
-          student.score === 1 ? '#F4C10A' : '#FF0000'
-        }`,
-      }}>
+      <GlassContainer
+        variant={student.score === 2 ? 'green' : student.score === 1 ? 'yellow' : 'red'}
+        size={0}
+        style={{
+          marginLeft: '0px',
+          zIndex: '1',
+          display: 'inline-block',
+          maxWidth: '100%'
+        }}
+        contentStyle={{
+          padding: '10px 20px',
+          display: 'flex',
+          alignItems: 'center'
+        }}
+      >
         <p style={{
-          margin: 0,
-          color: student.score === 2 ? '#20BF00' : 
-                 student.score === 1 ? '#E76F00' : '#FF0000',
+          fontSize: '1rem',
           fontWeight: '500',
-          whiteSpace: 'pre-wrap', // Added to preserve formatting
-          overflowWrap: 'break-word' // Added to handle long words
+          textAlign: 'left',
+          margin: 0,
+          width: 'auto',
+          padding: '0px',
+          whiteSpace: 'pre-wrap',
+          overflowWrap: 'break-word',
+          color: student.score === 2 ? '#16a34a' : student.score === 1 ? '#FF8800' : '#dc2626'
         }}>
           {student.response || "No response provided"}
         </p>
-      </div>
+      </GlassContainer>
     </div>
 
 

@@ -498,31 +498,13 @@ const saveDraft = async () => {
 
     console.log("Draft saved successfully, preparing for navigation");
     
-    // Return a promise that resolves when navigation is complete
-    return new Promise((resolve, reject) => {
-      try {
-        // Use window.location for more reliable navigation
-        const assignmentsPath = `/class/${classId}/Assignments`;
-        console.log("Redirecting to:", assignmentsPath);
-        
-        // Add state parameters to URL
-        const params = new URLSearchParams({
-          showDrafts: 'true',
-          newDraftId: finalDraftId,
-          format: 'OE'
-        });
-        
-        const fullPath = `${assignmentsPath}?${params.toString()}`;
-        window.location.href = fullPath;
-        
-        // Resolve after a short delay to allow for state updates
-        setTimeout(() => {
-          console.log("Navigation completed");
-          resolve();
-        }, 100);
-      } catch (error) {
-        console.error("Navigation failed:", error);
-        reject(error);
+    // Navigate using React Router
+    navigate(`/class/${classId}/`, {
+      state: {
+        showDrafts: true,
+        newDraftId: finalDraftId,
+        format: 'OE',
+        successMessage: `Draft saved: ${assignmentName}`
       }
     });
   } catch (error) {
@@ -791,12 +773,7 @@ const GenerateSAQ = async (sourceText, questionCount, additionalInstructions, cl
         onStudentChange={setQuestionStudent}
       />
       
-      <GradingScale
-        minValue={scaleMin}
-        maxValue={scaleMax}
-        onMinChange={setScaleMin}
-        onMaxChange={setScaleMax}
-      />
+    
 
 
         <TimerSection

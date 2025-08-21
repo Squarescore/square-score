@@ -8,7 +8,7 @@ const JoinClassTab = ({ onSubmit, error }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (code.length !== 6) {
+    if (!code || code.length !== 6) {
       setLocalError('Please enter a complete class code');
       return;
     }
@@ -16,11 +16,19 @@ const JoinClassTab = ({ onSubmit, error }) => {
     setIsSubmitting(true);
     setLocalError('');
     try {
-      await onSubmit(code);
+      // Sanitize the code by removing any whitespace and special characters
+      const sanitizedCode = code.trim().replace(/[^A-Za-z0-9_]/g, '');
+      
+      if (!sanitizedCode || sanitizedCode.length !== 6) {
+        throw new Error('Invalid class code format');
+      }
+
+      await onSubmit(sanitizedCode);
       // Reset form after successful submission
       setCode('');
     } catch (err) {
-      setLocalError(err.message);
+      console.error('Join class error:', err);
+      setLocalError(err.message || 'Failed to join class. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -56,7 +64,11 @@ const JoinClassTab = ({ onSubmit, error }) => {
         <input
           type="text"
           value={code}
-          onChange={(e) => setCode(e.target.value.slice(0, 6))}
+          onChange={(e) => {
+            // Only allow alphanumeric characters and underscore
+            const sanitizedInput = e.target.value.replace(/[^A-Za-z0-9_]/g, '').toUpperCase();
+            setCode(sanitizedInput.slice(0, 6));
+          }}
           maxLength={6}
           style={{
             fontFamily: "'montserrat', sans-serif",

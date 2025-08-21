@@ -93,8 +93,11 @@ const ActionButtons = ({ onSaveDraft, onPublish, isPublishDisabled }) => {
     e.stopPropagation();
     try {
       await onSaveDraft();
+      // No need to handle navigation here as it's now handled in the saveDraft function
     } catch (error) {
       console.error("Error in save draft action:", error);
+      // Optionally show an error message to the user
+      alert('Failed to save draft. Please try again.');
     }
   };
 

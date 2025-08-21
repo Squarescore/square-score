@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import TextareaAutosize from 'react-textarea-autosize';
 import axios from 'axios';
+import ConfirmationModal from '../../Universal/ConfirmationModal';
 
 import { v4 as uuidv4 } from 'uuid'; // Add this import at the top
 
@@ -11,13 +12,23 @@ const TeacherPreview = ({ questionsWithIds, setQuestionsWithIds, sourceText, que
   const [showRegenerateDropdown, setShowRegenerateDropdown] = useState(false);
   const [regenerateInput, setRegenerateInput] = useState('');
   const [isRegenerating, setIsRegenerating] = useState(false);
+  const [deleteConfirmation, setDeleteConfirmation] = useState({ show: false, index: null });
 
-  const handleDeleteQuestion = (indexToDelete) => {
-    const newQuestions = questionsWithIds.filter((_, index) => index !== indexToDelete);
-    setQuestionsWithIds(newQuestions);
+  const handleDeleteQuestion = (index) => {
+    setDeleteConfirmation({ show: true, index });
   };
-  const [showRubrics, setShowRubrics] = useState({});
 
+  const confirmDelete = () => {
+    if (deleteConfirmation.index !== null) {
+      const newQuestions = questionsWithIds.filter((_, index) => index !== deleteConfirmation.index);
+      setQuestionsWithIds(newQuestions);
+      setDeleteConfirmation({ show: false, index: null });
+    }
+  };
+
+  const cancelDelete = () => {
+    setDeleteConfirmation({ show: false, index: null });
+  };
   const regenerateQuestionsFirebase = async (questions, additionalInstructions) => {
     setIsRegenerating(true);
     try {
@@ -90,12 +101,7 @@ const TeacherPreview = ({ questionsWithIds, setQuestionsWithIds, sourceText, que
       }
     }, 0);
   };
-  const toggleRubric = (index) => {
-    setShowRubrics(prev => ({
-      ...prev,
-      [index]: !prev[index]
-    }));
-  };
+
   const handleEditQuestion = (index, field, value) => {
     const newQuestions = [...questionsWithIds];
     newQuestions[index] = { ...newQuestions[index], [field]: value };
@@ -109,13 +115,23 @@ const TeacherPreview = ({ questionsWithIds, setQuestionsWithIds, sourceText, que
 
   return (
     <>
+
     <div style={{
   
       zIndex: '10',
       position: 'absolute',  top:'-120px',  left:' 50%', transform: 'translatex(-50%) ',fontFamily: "'montserrat', sans-serif",
 
     }}>
-      
+          {deleteConfirmation.show && (
+      <ConfirmationModal
+        title="Delete Question"
+        message={`Are you sure you want to delete question ${deleteConfirmation.index + 1}? This action cannot be undone.`}
+        onConfirm={confirmDelete}
+        onCancel={cancelDelete}
+        confirmText="Delete"
+        confirmVariant="red"
+      />
+    )}
     <GlassContainer
     
     contentStyle={{    width: '700px',
@@ -366,29 +382,7 @@ const TeacherPreview = ({ questionsWithIds, setQuestionsWithIds, sourceText, que
                 minRows={1}
               />
 
-      <button
-        onClick={() => toggleRubric(index)}
-        style={{
-          position: 'absolute',
-          right: '0px',
-          top: '50%',
-          transform: 'translateY(-50%)',
-          fontSize: '20px', 
-          background: 'white',
-          border: 'none',
-          borderRadius: '8px',
-          height: '40px',
-          width: '40px',
-          color: 'grey',
-          cursor: 'pointer'
-        }}
-      >
-        {showRubrics[index] ? (
-          <ClipboardMinus strokeWidth={1.5} style={{marginLeft: '-2px', marginTop: '2px'}}/>
-        ) : (
-          <ClipboardList strokeWidth={1.5} style={{marginLeft: '-2px', marginTop: '2px'}}/>
-        )}
-      </button>
+      
       <button 
                 onClick={() => handleDeleteQuestion(index)}
                 style={{position: 'absolute', right: '-40px', 
@@ -413,7 +407,7 @@ const TeacherPreview = ({ questionsWithIds, setQuestionsWithIds, sourceText, que
             </div>
         
             
-            {showRubrics[index] && (
+            {(
               <div style={{display: 'flex', alignItems: 'center', marginLeft: '-80px', position: 'relative', marginBottom: '20px'}}>
                 <div style={{marginLeft: '100px'}}>
                   <CornerDownRight size={40} color="#c9c9c9" strokeWidth={1} />

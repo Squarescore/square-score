@@ -1698,7 +1698,10 @@ const gradeColors = getGradeColors(calculatedAverage);
                   WebkitUserSelect: 'none',
                   msUserSelect: 'none',
                 }}
-                onClick={() => activeTab === 'completed' && setIsGradeExpanded(!isGradeExpanded)}
+                onClick={() => activeTab === 'completed' && completedAssignments.length >= 2 && setIsGradeExpanded(!isGradeExpanded)}
+                style={{
+                  cursor: activeTab === 'completed' && completedAssignments.length >= 2 ? 'pointer' : 'default'
+                }}
               >
                 <div style={{display: 'flex', marginTop: '-12px'}}>
                   <h1 style={{
@@ -1712,7 +1715,7 @@ const gradeColors = getGradeColors(calculatedAverage);
                   }}>
                     {calculatedAverage ? `${calculatedAverage}%` : '-'}
                   </h1>
-                  {activeTab === 'completed' && (
+                  {activeTab === 'completed' && completedAssignments.length >= 2 && (
                     <ChevronDown 
                       size={20} 
                       strokeWidth={1.5}
@@ -1737,7 +1740,7 @@ const gradeColors = getGradeColors(calculatedAverage);
           <div style={{ height: '50px' }} />
 
           {/* Graph Section */}
-          {activeTab === 'completed' && (
+          {activeTab === 'completed' && completedAssignments.length >= 2 && (
             <div style={{
               height: isGradeExpanded ? '220px' : '0',
               overflow: 'hidden',

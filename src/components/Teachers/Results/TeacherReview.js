@@ -436,32 +436,38 @@ const TeacherReview = () => {
     gap: '20px'
   }}>
     {trainingCount < 50 && (
-      <GlassContainer
-        variant={isTrainingAI ? 'green' : 'clear'}
-        size={0}
+      <button
         onClick={() => setIsTrainingAI(!isTrainingAI)}
         style={{
           cursor: 'pointer',
-        }}
-        contentStyle={{
+          border: '1px solid #ddd',
+          background: 'white',
+          borderRadius: '20px',
           display: 'flex',
           alignItems: 'center',
+          color: isTrainingAI ? '#D81BCB' : '#9ca3af',
           gap: '10px',
           padding: '5px 15px',
           fontFamily: "'montserrat', sans-serif",
           fontSize: '.9rem',
           fontWeight: "500",
         }}
+       
       >
+        <div
+        style={{ display:"flex", gap: '10px'}}
+        >
         <Brain
           size={20} 
           strokeWidth={1.5}
-          color={isTrainingAI ? '#22c55e' : '#9ca3af'}
+          color={isTrainingAI ? '#D81BCB' : '#9ca3af'}
         />
         <span>
+
           Train AI Grader ({trainingCount}/50)
         </span>
-      </GlassContainer>
+        </div>
+      </button>
     )}
 
     
