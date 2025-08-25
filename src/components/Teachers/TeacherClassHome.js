@@ -12,8 +12,10 @@ import {
   query,
   where,
   getCountFromServer,
+  getDocs,
+  writeBatch,
 } from 'firebase/firestore';
-import { db } from '../Universal/firebase';
+import { auth, db } from '../Universal/firebase';
 import Navbar from '../Universal/Navbar';
 import TeacherAssignmentHome from './TeacherAssignments/TeacherAssignmentHome'; // Ensure this component handles creating assignments
 
@@ -23,6 +25,7 @@ import {
   PencilRuler,
   Search,
   Eye,
+  EyeOff,
   SquareArrowLeft,
   SquareX,
   Folder,
@@ -40,11 +43,14 @@ import {
   ArrowDown01,
   ArrowUp,
   ListFilter,
+  MoreHorizontal,
+  SquareArrowOutUpRight,
+  ArrowLeft,
+  Check,
 } from 'lucide-react';
 import CreateFolder from './TeacherAssignments/CreateFolder';
 
 import Folders from './TeacherAssignments/Folders';
-import FolderModal from './TeacherAssignments/FolderModal';
 import FolderView from './TeacherAssignments/FolderView';
 
 import AddAssignmentsView from './TeacherAssignments/AddAssignmentsModal';
@@ -52,7 +58,9 @@ import FolderHeader from './TeacherAssignments/FolderHeader';
 
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
 
-import { GlassContainer } from '../../styles';
+import { GlassContainer, CustomSwitch } from '../../styles';
+import { useAuthState } from 'react-firebase-hooks/auth';
+import { serverTimestamp, arrayUnion } from 'firebase/firestore';
 import TabButtons from '../Universal/TabButtons';
 
 const pastelColors = [
@@ -65,11 +73,792 @@ const pastelColors = [
   { bg: '#9EADFF', text: '#020CFF' },
   { bg: '#C1FFC7', text: '#48E758' },
 ];
+  const periodStyles = {
+    1: { variant: 'teal', color: "#1EC8bc", borderColor: "#83E2F5" },
+    2: { variant: 'purple', color: "#8324e1", borderColor: "#cf9eff" },
+    3: { variant: 'orange', color: "#ff8800", borderColor: "#f1ab5a" },
+    4: { variant: 'yellow', color: "#ffc300", borderColor: "#Ecca5a" },
+    5: { variant: 'green', color: "#29c60f", borderColor: "#aef2a3" },
+    6: { variant: 'blue', color: "#1651d4", borderColor: "#b5ccff" },
+    7: { variant: 'pink', color: "#d138e9", borderColor: "#f198ff" },
+    8: { variant: 'red', color: "#c63e3e", borderColor: "#ffa3a3" }
+  };
+
+// Action menu for each assignment
+const ExportModal = ({ onClose, assignmentId }) => {
+  const [user] = useAuthState(auth);
+  const [teacherData, setTeacherData] = useState(null);
+  const [exportSuccess, setExportSuccess] = useState(false);
+  const [selectedClasses, setSelectedClasses] = useState([]);
+
+  useEffect(() => {
+    const fetchTeacherData = async () => {
+      if (!user) return;
+
+      try {
+        const teacherRef = doc(db, 'teachers', user.uid);
+        const teacherSnap = await getDoc(teacherRef);
+        
+        if (teacherSnap.exists()) {
+          const teacherData = teacherSnap.data();
+          
+          const classesQuery = query(
+            collection(db, 'classes'),
+            where('teacherUID', '==', user.uid)
+          );
+          
+          const classesSnap = await getDocs(classesQuery);
+          const classes = [];
+          
+          classesSnap.forEach((doc) => {
+            classes.push({
+              id: doc.id,
+              ...doc.data()
+            });
+          });
+          
+          setTeacherData({
+            ...teacherData,
+            classes: classes
+          });
+        }
+      } catch (error) {
+        console.error("Error fetching teacher data:", error);
+      }
+    };
+
+    fetchTeacherData();
+  }, [user]);
+
+  const handleClassSelect = (classId) => {
+    setSelectedClasses(prev => {
+      if (prev.includes(classId)) {
+        return prev.filter(id => id !== classId);
+      } else {
+        return [...prev, classId];
+      }
+    });
+  };
+
+  const handleExport = async () => {
+    if (selectedClasses.length === 0) return;
+
+    try {
+      // Export to each selected class
+      for (const classId of selectedClasses) {
+        const batch = writeBatch(db);
+        
+        const assignmentRef = doc(db, 'assignments', assignmentId);
+        const assignmentDoc = await getDoc(assignmentRef);
+        
+        if (!assignmentDoc.exists()) {
+          console.error("Assignment not found");
+          return;
+        }
+
+        const timestamp = Date.now();
+        const assignmentData = assignmentDoc.data();
+        const format = assignmentId.split('+').pop();
+        const newDraftId = `${classId}+${timestamp}+${format}`;
+        
+        const draftRef = doc(db, 'drafts', newDraftId);
+        const draftData = {
+          ...assignmentData,
+          classId: classId,
+          selectedStudents: [],
+          createdAt: serverTimestamp(),
+          questions: assignmentData.questions || {},
+        };
+        delete draftData.id;
+        
+        batch.set(draftRef, draftData);
+
+        const classRef = doc(db, 'classes', classId);
+        batch.update(classRef, {
+          drafts: arrayUnion({
+            id: newDraftId,
+            name: assignmentData.assignmentName || 'Untitled Assignment'
+          })
+        });
+        
+        await batch.commit();
+      }
+
+      setExportSuccess(true);
+      setTimeout(() => {
+        setExportSuccess(false);
+        onClose();
+      }, 1000);
+    } catch (error) {
+      console.error("Error during export:", error);
+    }
+  };
+
+  return (
+    <div style={{
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      width: '100%',
+      height: '100%',
+      backgroundColor: 'rgba(255, 255, 255, 0.8)',
+      backdropFilter: 'blur(5px)',
+      zIndex: 1000,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center'
+    }}>
+      <GlassContainer
+        variant="clear"
+        size={2}
+        style={{
+          width: '620px',
+          backgroundColor: 'white'
+        }}
+        contentStyle={{
+          padding: '20px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '20px'
+        }}
+      >
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '15px'
+        }}>
+      
+          <h2 style={{
+            margin: 0,
+            fontSize: '1.2rem',
+            fontWeight: '400',
+            marginLeft: '10px',
+            color: 'black',
+            fontFamily: "'Montserrat', sans-serif"
+          }}>
+            Export Assignment
+          </h2>
+        </div>
+
+        <h1 style={{
+          fontWeight: '500', 
+          fontSize: '.8rem', 
+          marginLeft: '10px',
+          marginBottom: '-10px',
+          fontFamily: "'montserrat', sans-serif",
+          color: 'lightgrey'
+        }}>
+          Click on Class to Export -
+              The assignment will appear in drafts
+        </h1>
+
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(3, 1fr)',
+          gap: '15px',
+          padding: '10px'
+        }}>
+          {teacherData?.classes
+            ?.sort((a, b) => (a.period || 0) - (b.period || 0))
+            .map((classItem) => {
+              const periodNumber = classItem.period || 1;
+              const periodStyle = periodStyles[periodNumber] || { variant: 'clear', color: 'grey', borderColor: '#ddd' };
+              
+              return (
+                <GlassContainer
+                  key={classItem.id}
+                  variant={selectedClasses.includes(classItem.id) ? periodStyle.variant : 'clear'}
+                  size={1}
+                  onClick={() => handleClassSelect(classItem.id)}
+                  style={{
+                    width: '180px',
+                    cursor: 'pointer',
+                    transition: 'all 0.3s',
+                  }}
+                  contentStyle={{
+                    padding: '10px 20px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <div style={{display: 'flex', alignItems: 'center'}}>
+                    <h1 style={{
+                      fontSize: '20px',
+                      color: selectedClasses.includes(classItem.id) ? periodStyle.color : 'grey',
+                      fontWeight: '600',
+                      margin: 0,
+                    }}>
+                      Period {periodNumber}
+                    </h1>
+                  </div>
+
+                  <div style={{
+                    fontFamily: "'montserrat', sans-serif",
+                    fontWeight: "500",
+                    color: selectedClasses.includes(classItem.id) ? periodStyle.borderColor : '#E5E7EB',
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                    fontSize: '.7rem',
+                    marginTop: '5px'
+                  }}>
+                    {classItem.classChoice}
+                  </div>
+                </GlassContainer>
+              );
+            })}
+        </div>
+
+        <div style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '20px',
+        }}>
+
+
+          <div style={{
+            display: 'flex',
+            gap: '10px',
+            justifyContent: 'space-between',
+          }}>
+            <GlassContainer
+              variant={selectedClasses.length > 0 ? 'green' : 'clear'}
+              size={0}
+              onClick={selectedClasses.length > 0 ? handleExport : undefined}
+              style={{
+                cursor: selectedClasses.length > 0 ? 'pointer' : 'default',
+                opacity: selectedClasses.length > 0 ? 1 : 0.5,
+              }}
+              contentStyle={{
+                padding: '5px 30px',
+              }}
+            >
+              <span style={{
+                color: selectedClasses.length > 0 ? '#2BB514' : 'grey',
+                fontSize: '14px',
+                fontWeight: '500',
+                fontFamily: "'montserrat', sans-serif"
+              }}>
+                Export to {selectedClasses.length === 1 ? '1 class' : `${selectedClasses.length} classes`}
+              </span>
+            </GlassContainer>
+
+            <button
+              onClick={onClose}
+              style={{
+                padding: '5px 30px',
+                border: '1px solid #ddd',
+                borderRadius: '81px',
+                background: 'white',
+                color: 'grey',
+                cursor: 'pointer',
+                fontFamily: "'montserrat', sans-serif",
+                fontSize: '14px',
+                fontWeight: '500',
+              }}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      </GlassContainer>
+
+      {exportSuccess && (
+        <GlassContainer
+          variant="green"
+          size={0}
+          style={{
+            position: 'fixed',
+            bottom: '20px',
+            right: '20px',
+            zIndex: 1000,
+          }}
+          contentStyle={{
+            padding: '6px 24px',
+            display: 'flex',
+            color: 'green',
+            alignItems: 'center',
+            gap: '8px',
+          }}
+        >
+          <div style={{display: 'flex'}}>
+            <span style={{
+              fontFamily: "'montserrat', sans-serif",
+              fontWeight: '400',
+              marginRight: '10px'
+            }}>
+              Successfully exported
+            </span>
+            <Check size={20} />
+          </div>
+        </GlassContainer>
+      )}
+    </div>
+  );
+};
+
+
+const FolderModal = ({ onClose, assignmentId, classId, assignmentName }) => {
+  const [folders, setFolders] = useState([]);
+  const [addSuccess, setAddSuccess] = useState(false);
+  const [selectedFolder, setSelectedFolder] = useState(null);
+
+  useEffect(() => {
+    const fetchFolders = async () => {
+      if (!classId) return;
+
+      try {
+        const classRef = doc(db, 'classes', classId);
+        const classDoc = await getDoc(classRef);
+        
+        if (classDoc.exists()) {
+          const classData = classDoc.data();
+          setFolders(classData.folders || []);
+        }
+      } catch (error) {
+        console.error("Error fetching folders:", error);
+      }
+    };
+
+    fetchFolders();
+  }, [classId]);
+
+  const handleAddToFolder = async (folder) => {
+    try {
+      const batch = writeBatch(db);
+      
+      const classRef = doc(db, 'classes', classId);
+      const classDoc = await getDoc(classRef);
+      
+      if (classDoc.exists()) {
+        const classData = classDoc.data();
+        const updatedFolders = classData.folders.map(f => {
+          if (f.id === folder.id) {
+            return {
+              ...f,
+              assignments: [...(f.assignments || []), assignmentId]
+            };
+          }
+          return f;
+        });
+
+        batch.update(classRef, { folders: updatedFolders });
+        await batch.commit();
+        
+        setAddSuccess(true);
+        setTimeout(() => {
+          setAddSuccess(false);
+          onClose();
+        }, 1000);
+      }
+    } catch (error) {
+      console.error("Error adding to folder:", error);
+    }
+  };
+
+  return (
+    <div style={{
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      width: '100%',
+      height: '100%',
+      backgroundColor: 'rgba(255, 255, 255, 0.8)',
+      backdropFilter: 'blur(5px)',
+      zIndex: 1000,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center'
+    }}>
+      <GlassContainer
+        variant="clear"
+        size={2}
+        style={{
+          width: '620px',
+          backgroundColor: 'white'
+        }}
+        contentStyle={{
+          padding: '20px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '20px'
+        }}
+      >
+        <div style={{
+          padding: '20px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '20px'
+        }}>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '15px'
+          }}>
+            <h2 style={{
+              margin: 0,
+              fontSize: '1.2rem',
+              fontWeight: '400',
+              marginLeft: '10px',
+              color: 'black',
+              fontFamily: "'Montserrat', sans-serif"
+            }}>
+              Add to Folder
+            </h2>
+          </div>
+
+          <h1 style={{
+            fontWeight: '500', 
+            fontSize: '.8rem', 
+            marginLeft: '10px',
+            marginBottom: '-10px',
+            fontFamily: "'montserrat', sans-serif",
+            color: 'lightgrey'
+          }}>
+            Click on Folder to Add - The assignment will appear in the selected folder
+          </h1>
+
+          <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            width: 'calc(100% - 30px)',
+            gap: '15px',
+            maxHeight: '300px',
+            overflowY: 'auto',
+            margin: '20px 15px'
+          }}>
+            {folders.map((folder) => (
+              <GlassContainer
+                key={folder.id}
+                variant={selectedFolder === folder.id ? periodStyles[folder.period || 1]?.variant : 'clear'}
+                size={1}
+                onClick={() => setSelectedFolder(folder.id)}
+                style={{
+                  cursor: 'pointer',
+                  transition: 'all 0.3s',
+                }}
+                contentStyle={{
+                  padding: '10px 20px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '15px'
+                }}
+              >
+                <Folder 
+                  size={20} 
+                  color={selectedFolder === folder.id ? periodStyles[folder.period || 1]?.color : 'grey'}
+                />
+                <h1 style={{
+                  fontSize: '1rem',
+                  fontFamily: "'Montserrat', sans-serif",
+                  color: selectedFolder === folder.id ? periodStyles[folder.period || 1]?.color : 'grey',
+                  fontWeight: '500',
+                  margin: 0,
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                }}>
+                  {folder.name}
+                </h1>
+              </GlassContainer>
+            ))}
+          </div>
+
+          <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '20px',
+          }}>
+            <div style={{
+              display: 'flex',
+              gap: '10px',
+              justifyContent: 'space-between',
+            }}>
+              <GlassContainer
+                variant={selectedFolder ? 'green' : 'clear'}
+                size={0}
+                onClick={selectedFolder ? () => handleAddToFolder(folders.find(f => f.id === selectedFolder)) : undefined}
+                style={{
+                  cursor: selectedFolder ? 'pointer' : 'default',
+                  opacity: selectedFolder ? 1 : 0.5,
+                }}
+                contentStyle={{
+                  padding: '5px 30px',
+                }}
+              >
+                <span style={{
+                  color: selectedFolder ? '#2BB514' : 'grey',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  fontFamily: "'montserrat', sans-serif"
+                }}>
+                  Add to Folder
+                </span>
+              </GlassContainer>
+
+              <button
+                onClick={onClose}
+                style={{
+                  padding: '5px 30px',
+                  border: '1px solid #ddd',
+                  borderRadius: '81px',
+                  background: 'white',
+                  color: 'grey',
+                  cursor: 'pointer',
+                  fontFamily: "'montserrat', sans-serif",
+                  fontSize: '14px',
+                  fontWeight: '500',
+                }}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      </GlassContainer>
+
+      {addSuccess && (
+        <GlassContainer
+          variant="green"
+          size={0}
+          style={{
+            position: 'fixed',
+            bottom: '20px',
+            right: '20px',
+            zIndex: 1000,
+          }}
+          contentStyle={{
+            padding: '6px 24px',
+            display: 'flex',
+            color: 'green',
+            alignItems: 'center',
+            gap: '8px',
+          }}
+        >
+          <div style={{display: 'flex'}}>
+            <span style={{
+              fontFamily: "'montserrat', sans-serif",
+              fontWeight: '400',
+              marginRight: '10px'
+            }}>
+              Successfully added to folder
+            </span>
+            <Check size={20} />
+          </div>
+        </GlassContainer>
+      )}
+    </div>
+  );
+};
+
+const ActionMenu = ({
+  assignmentId,
+  onClose,
+  classId,
+  isViewable,
+  onToggleViewable,
+  assignmentName, // Add this prop
+}) => {
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [showFolderModal, setShowFolderModal] = useState(false);
+  const menuRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        onClose();
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [onClose]);
+
+  return (
+    <>
+      <div 
+        style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0)',
+          zIndex: 9,
+          cursor: 'default'
+        }}
+        onClick={onClose}
+      />
+      <GlassContainer
+      ref={menuRef}
+      variant="clear"
+      size={0}
+      style={{
+        position: 'absolute',
+        right: '30px',
+        top: '0px',
+        zIndex: 10,
+        boxShadow: '0 8px 16px rgba(0,0,0,0.1)',
+      }}
+      contentStyle={{
+        padding: '15px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '10px'
+      }}
+      onClick={(e) => e.stopPropagation()}
+    >
+      {/* Assignment Name Header */}
+      <div style={{
+        borderBottom: '1px solid #E5E7EB',
+        marginBottom: '5px',
+        width: '100%',
+        paddingBottom: '10px',
+      }}>
+        <h3 style={{
+          margin: 0,
+          fontSize: '1rem',
+          padding: '0rem 1rem',
+          fontWeight: '500',
+          color: '#6B7280',
+          textAlign: 'left',
+        }}>
+          {assignmentName}
+        </h3>
+      </div>
+      <div style={{
+        display: 'flex',
+        gap: '10px', width: "300px"
+      }}>
+        <button
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setShowExportModal(true);
+          }}
+          style={{
+            padding: '5px 15px',
+            textAlign: 'left',
+            border: '1px solid #ddd',
+            borderRadius: '20px',
+            background: 'white',
+            color: 'grey',
+            width: '110px',
+            cursor: 'pointer',
+            fontFamily: "'montserrat', sans-serif",
+            fontSize: '14px',
+            fontWeight: '500',
+            transition: 'all 0.2s ease',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px'
+          }}
+        >
+          <SquareArrowOutUpRight size={16} strokeWidth={1.5}/> Export
+        </button>
+
+        <button
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setShowFolderModal(true);
+          }}
+          style={{
+            padding: '8px 16px',
+            textAlign: 'left',
+            border: '1px solid #ddd',
+            borderRadius: '20px',
+            background: 'white',
+            color: 'grey',
+            cursor: 'pointer',
+            width: '170px',
+            fontFamily: "'montserrat', sans-serif",
+            fontSize: '14px',
+            fontWeight: '500',
+            transition: 'all 0.2s ease',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px'
+          }}
+        >
+          <Folder size={16} strokeWidth={1.5}/> Add to Folder
+        </button>
+      </div>
+
+      <div 
+        style={{
+          width: 'calc(100% - 32px)',
+          padding: '5px 15px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          background: 'white',
+        }}
+      >
+        <span style={{
+          color: 'grey',
+          fontFamily: "'montserrat', sans-serif",
+          fontSize: '14px',
+          fontWeight: '500',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '10px'
+        }}>
+          {isViewable ? (
+            <Eye size={16} strokeWidth={1.5} color="#020CFF"/>
+          ) : (
+            <EyeOff size={16} strokeWidth={1.5} color="grey"/>
+          )}
+          Student Review
+        </span>
+        <div onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+        }}>
+          <CustomSwitch
+            checked={isViewable}
+            onChange={() => {
+              onToggleViewable();
+            }}
+            variant="blue"
+          />
+        </div>
+      </div>
+    </GlassContainer>
+
+    {showExportModal && (
+      <ExportModal
+        assignmentId={assignmentId}
+        onClose={() => {
+          setShowExportModal(false);
+          onClose();
+        }}
+      />
+    )}
+
+    {showFolderModal && (
+      <FolderModal
+        assignmentId={assignmentId}
+        assignmentName={assignmentName}
+        classId={classId}
+        onClose={() => {
+          setShowFolderModal(false);
+          onClose();
+        }}
+      />
+    )}
+    </>
+  );
+};
 
 function TeacherClassHome() {
   const { classId } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
+  const [activeMenu, setActiveMenu] = useState(null);
 
   const [activeTab, setActiveTab] = useState(() => {
     const savedTab = localStorage.getItem('activeTab');
@@ -796,17 +1585,22 @@ const openFolderModal = (folder) => {
                 alignItems: 'center',
                 justifyContent: 'space-between',
                 position: 'relative',
-                cursor: 'pointer',
+                cursor: activeMenu === item.id ? 'default' : 'pointer',
+                transform: activeMenu === item.id ? 'none' : 'scale(1)',
                 transition: 'transform 0.2s ease',
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.transform = 'scale(1.005)';
+                if (activeMenu !== item.id) {
+                  e.currentTarget.style.transform = 'scale(1.01)';
+                }
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.transform = 'scale(1)';
+                if (activeMenu !== item.id) {
+                  e.currentTarget.style.transform = 'scale(1)';
+                }
               }}
             >
-          <div>
+          <div style={{ pointerEvents: activeMenu === item.id ? 'none' : 'auto' }}>
                 {item.name}
                 </div>
                  <div style={{ marginRight: '10px', height: '26px', width: '50px', position: 'relative', fontSize: '.8rem'}}>
@@ -868,7 +1662,7 @@ const openFolderModal = (folder) => {
                 <span style={{
                   fontSize: '.8rem',
                   color: 'grey',
-                  right: 'calc(4%)',
+                  right: 'calc(4% + 40px)',
                   fontWeight: '400',
                   position: 'absolute',
                   fontFamily: "'Montserrat', sans-serif",
@@ -891,21 +1685,80 @@ const openFolderModal = (folder) => {
                     />
                   )}
                   {item.viewable && (
-             <div style={{position: 'absolute', right: 'calc(4% + 370px)'}}>
-                    <GlassContainer
-                    
-                                          variant='blue'
-                                          size={0}
-                                          contentStyle={{padding: '2px 4px'}}
-                                          style={{zIndex: '1'}}
-                                        > <Eye size={16} color="#020CFF" style={{ verticalAlign: 'middle' }} /> 
-                                        </GlassContainer> 
-                                        </div>
+                    <div style={{position: 'absolute', right: 'calc(4% + 370px)'}}>
+                      <GlassContainer
+                        variant='blue'
+                        size={0}
+                        contentStyle={{padding: '2px 4px'}}
+                        style={{zIndex: '1'}}
+                      > 
+                        <Eye size={16} color="#020CFF" style={{ verticalAlign: 'middle' }} /> 
+                      </GlassContainer> 
+                    </div>
+                  )}
+                  
+                  {/* Action button (3-dots) */}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setActiveMenu(activeMenu === item.id ? null : item.id);
+                    }}
+                    style={{
+                      backgroundColor: 'transparent',
+                      position: 'absolute',
+                      right: 'calc(4%)',
+                      cursor: 'pointer',
+                      border: 'none',
+                      borderRadius: '4px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      padding: '4px',
+                    }}
+                  >
+                    <MoreHorizontal size={20} color="grey" />
+                  </button>
+
+                                     {/* Action Menu */}
+                   {activeMenu === item.id && (
+                     <div onClick={(e) => e.stopPropagation()}>
+                       <ActionMenu
+                      assignmentId={item.id}
+                      assignmentName={item.name}
+                      onClose={() => setActiveMenu(null)}
+                      classId={classId}
+                      isViewable={item.viewable}
+                      onToggleViewable={async () => {
+                        try {
+                          const classRef = doc(db, 'classes', classId);
+                          const classDoc = await getDoc(classRef);
+                          
+                          if (classDoc.exists()) {
+                            const viewableAssignments = classDoc.data().viewableAssignments || [];
+                            const newViewableAssignments = item.viewable
+                              ? viewableAssignments.filter(id => id !== item.id)
+                              : [...viewableAssignments, item.id];
+                            
+                            await updateDoc(classRef, {
+                              viewableAssignments: newViewableAssignments
+                            });
+                            
+                            // Update local state
+                            const updatedAssignments = assignments.map(a => {
+                              if (a.id === item.id) {
+                                return { ...a, viewable: !item.viewable };
+                              }
+                              return a;
+                            });
+                            setAssignments(updatedAssignments);
+                          }
+                        } catch (error) {
+                          console.error('Error toggling viewable status:', error);
+                        }
+                      }}
+                    />
+                    </div>
                   )}
                 </div>
-
-                {/* Format Display */}
-               
               </div>
             </li>
           ))

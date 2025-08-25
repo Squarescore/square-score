@@ -861,6 +861,36 @@ const generateQuestions = async () => {
           width={StepContainerConfig.students.width}
           titleWidth={StepContainerConfig.students.titleWidth}
         >
+          <div
+                    style={{
+          position: 'absolute',
+                        top: '15px',
+          
+                        zIndex: 10,
+                        right: '15px',
+                        borderRadius: '8px',
+                    }}>
+                    <GlassContainer
+                      variant="green"
+                      size={0}
+                      style={{
+                        
+                      }}
+                      contentStyle={{
+                        fontSize: '1.3rem',
+                        fontWeight: '500',
+                        
+                        padding: '5px 5px',
+                        
+                        color: '#2BB514',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}
+                      enableRotation={true}
+                    >
+                      {selectedStudents.size}
+                    </GlassContainer>
+                    </div>
       <SelectStudentsDW
         classId={classId}
         selectedStudents={selectedStudents}

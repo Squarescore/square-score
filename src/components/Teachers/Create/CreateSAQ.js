@@ -625,7 +625,7 @@ const GenerateSAQ = async (sourceText, questionCount, additionalInstructions, cl
       backgroundColor: 'white',
       borderColor: 'white',
       textColor: 'black',
-      condition: selectedStudents.size > -1, // Example condition
+      condition: selectedStudents.size > -1,
 
     },
     {

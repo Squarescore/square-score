@@ -1,6 +1,7 @@
 // StudentResultsList.js
 
 import React, { useEffect, useState } from 'react';
+import ConfirmationModal from '../../../Universal/ConfirmationModal';
 import {
   CalendarClock,
   CalendarX2,
@@ -10,6 +11,8 @@ import {
   Circle,
   Check,  X,
   Pause,
+  Play,
+  RotateCcw,
   Slash,
   AlertTriangle,
   Sparkles,
@@ -91,7 +94,17 @@ const datePickerStyles = `
 
 // Add style tag to head
 const styleTag = document.createElement('style');
-styleTag.textContent = datePickerStyles;
+styleTag.textContent = `
+  ${datePickerStyles}
+  
+  .student-list-item {
+    transition: transform 0.2s ease !important;
+  }
+  
+  .student-list-item:hover:not(.menu-open) {
+    transform: scale(1.01) !important;
+  }
+`;
 document.head.appendChild(styleTag);
 
 // 1) Helper to format the due date:
@@ -175,12 +188,14 @@ const ActionMenu = ({
   position,
   status,
   togglePauseAssignment,
-  studentRef,
-  assignmentId,  studentSpecialDate, 
+  assignmentId,  
+  studentSpecialDate, 
   handleSubmitAssignment, 
-  handleRenewAccess
+  handleRenewAccess,
+  studentName
 }) => {
   const [selectedDate, setSelectedDate] = useState(studentSpecialDate || null);
+  const [showResetConfirmation, setShowResetConfirmation] = useState(false);
 
   const handleDateChange = (date) => {
     setSelectedDate(date);
@@ -189,24 +204,63 @@ const ActionMenu = ({
 
 
   return (
-    <GlassContainer
-      variant="clear"
-      size={0}
-      style={{
-        position: 'absolute',
-        right: '30px',
-        top: '0px',
-        zIndex: 100,
-      }}
-      contentStyle={{
-        padding: '15px',
-        minWidth: '220px',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '10px'
-      }}
-      onClick={(e) => e.stopPropagation()}
-    >
+    <>
+      {/* Overlay */}
+      <div
+        style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          cursor: 'default',
+          bottom: 0,
+          background: 'rgba(0, 0, 0, 0)',
+          zIndex: 10,
+        }}
+        onClick={(e) => {
+          e.stopPropagation();
+          onClose();
+        }}
+      />
+      
+      <GlassContainer
+        variant="clear"
+        size={0}
+        style={{
+          position: 'absolute',
+          right: '30px',
+          top: '0px',
+          zIndex: 20,
+          boxShadow: '0 8px 16px rgba(0,0,0,0.1)',
+        }}
+        contentStyle={{
+          padding: '15px',
+          minWidth: '200px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '10px',
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Student Name Header */}
+        <div style={{
+          borderBottom: '1px solid #E5E7EB',
+          marginBottom: '5px',
+          width: '100%',
+          paddingBottom: '10px',
+        }}>
+          <h3 style={{
+            margin: 0,
+            fontSize: '1rem',
+            padding: '0rem 1rem',
+            fontWeight: '500',
+            color: '#6B7280',
+            textAlign: 'left',
+          }}>
+            {studentName}
+          </h3>
+        </div>
+    
       {/* Custom date picker matching CustomDateTimePicker.js style */}
       <DatePicker
         selected={selectedDate}
@@ -234,21 +288,24 @@ const ActionMenu = ({
           <button 
             style={{
               display: 'flex',
-              border: '1px solid #ddd',
-              borderRadius: '20px',
-              padding: '5px 10px',
+              alignItems: 'center',
+              border: '1px solid #E5E7EB',
+              borderRadius: '81px',
+              padding: '8px 12px',
               background: 'white',
-              height: '30px',
-              width: '100%',
+            width: '100%',
               cursor: 'pointer',
               transition: 'all 0.2s ease',
               fontFamily: "'montserrat', sans-serif",
               fontSize: '14px',
-              color: 'grey'
+              color: '#6B7280',
+              gap: '8px',
+              height: '36px',
             }}
+    
           >
-            <Calendar size={14} strokeWidth={1.5} style={{marginTop: '2px', marginRight: '10px'}}/> 
-            <p style={{marginTop: '1px', marginRight: '5px'}}>Custom Due Date</p>
+            <Calendar size={16} strokeWidth={1.5} /> 
+            <span>Custom Due Date</span>
           </button>
         }
         calendarClassName="custom-datepicker-calendar"
@@ -262,28 +319,25 @@ const ActionMenu = ({
             onClose();
           }}
           style={{
-            width: '100%',
-            padding: '8px 16px',
-            textAlign: 'left',
-            border: '1px solid #ddd',
-            borderRadius: '20px',
+            display: 'flex',
+            alignItems: 'center',
+            padding: '8px 12px',
+            border: '1px solid #E5E7EB',
+            borderRadius: '81px',
             background: 'white',
-            color: '#2BB514',
+            color: 'grey',
+            width: '100%',
             cursor: 'pointer',
             fontFamily: "'montserrat', sans-serif",
             fontSize: '14px',
             fontWeight: '500',
             transition: 'all 0.2s ease',
+            gap: '8px',
+            height: '36px',
           }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.borderColor = '#2BB514';
-            e.currentTarget.style.color = '#2BB514';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.borderColor = '#ddd';
-            e.currentTarget.style.color = '#2BB514';
-          }}
+    
         >
+          <Check size={16} strokeWidth={1.5} />
           Submit Assignment
         </button>
       ) : (
@@ -294,28 +348,25 @@ const ActionMenu = ({
             onClose();
           }}
           style={{
-            width: '100%',
-            padding: '8px 16px',
-            textAlign: 'left',
-            border: '1px solid #ddd',
-            borderRadius: '20px',
+            display: 'flex',
+            alignItems: 'center',
+            padding: '8px 15px',
+            border: '1px solid #E5E7EB',
+            borderRadius: '81px',
             background: 'white',
-            color: '#2BB514',
+            width: '100%',
+            color: 'grey',
             cursor: 'pointer',
             fontFamily: "'montserrat', sans-serif",
             fontSize: '14px',
             fontWeight: '500',
             transition: 'all 0.2s ease',
+            gap: '8px',
+            height: '36px',
           }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.borderColor = '#2BB514';
-            e.currentTarget.style.color = '#2BB514';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.borderColor = '#ddd';
-            e.currentTarget.style.color = '#2BB514';
-          }}
+     
         >
+          <Sparkles size={16} strokeWidth={1.5} />
           Renew Access
         </button>
       )}
@@ -327,63 +378,85 @@ const ActionMenu = ({
           onClose();
         }}
         style={{
-          width: '100%',
-          padding: '8px 16px',
-          textAlign: 'left',
-          border: '1px solid #ddd',
-          borderRadius: '20px',
+          display: 'flex',
+          alignItems: 'center',
+          
+            padding: '8px 15px',
+          border: '1px solid #E5E7EB',
+          borderRadius: '81px',
           background: 'white',
-          color: status === 'Paused' ? '#2BB514' : '#FF4400',
+          color: status === 'Paused' ? 'grey' : 'grey',
           cursor: 'pointer',
+            width: '100%',
           fontFamily: "'montserrat', sans-serif",
           fontSize: '14px',
           fontWeight: '500',
           transition: 'all 0.2s ease',
+          gap: '8px',
+          height: '36px',
         }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.borderColor = status === 'Paused' ? '#2BB514' : '#FF4400';
-          e.currentTarget.style.color = status === 'Paused' ? '#2BB514' : '#FF4400';
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.borderColor = '#ddd';
-          e.currentTarget.style.color = status === 'Paused' ? '#2BB514' : '#FF4400';
-        }}
+    
       >
-        {status === 'Paused' ? 'Unpause Student' : 'Pause Student'}
+        {status === 'Paused' ? (
+          <>
+            <Play size={16} strokeWidth={1.5} />
+            Unpause Student
+          </>
+        ) : (
+          <>
+            <Pause size={16} strokeWidth={1.5} />
+            Pause Student
+          </>
+        )}
       </button>
 
       <button
         onClick={(e) => {
           e.stopPropagation();
-          handleReset(studentUid);
-          onClose();
+          setShowResetConfirmation(true);
         }}
         style={{
-          width: '100%',
-          padding: '8px 16px',
-          textAlign: 'left',
-          border: '1px solid #ddd',
-          borderRadius: '20px',
+          display: 'flex',
+          alignItems: 'center',
+          padding: '8px 15px',
+          border: '1px solid #E5E7EB',
+          borderRadius: '81px',
           background: 'white',
-          color: 'red',
+          color: 'grey',
+          width: '100%',
           cursor: 'pointer',
           fontFamily: "'montserrat', sans-serif",
           fontSize: '14px',
           fontWeight: '500',
           transition: 'all 0.2s ease',
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.borderColor = 'red';
-          e.currentTarget.style.color = 'red';
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.borderColor = '#ddd';
-          e.currentTarget.style.color = 'red';
+          gap: '8px',
+          height: '36px',
         }}
       >
+        <RotateCcw size={16} strokeWidth={1.5} />
         Reset Student
       </button>
     </GlassContainer>
+    
+    {showResetConfirmation && (
+      <ConfirmationModal
+        title="Reset Student Progress"
+        message={`Are you sure you want to reset ${studentName}'s progress? This action cannot be undone and will remove all their answers and progress for this assignment. You can renew access by clicking renew access on the action menu`}
+        onConfirm={() => {
+          handleReset(studentUid);
+          setShowResetConfirmation(false);
+          onClose();
+        }}
+        onCancel={() => {
+          setShowResetConfirmation(false);
+        }}
+        confirmText="Reset"
+        confirmVariant="red"
+        confirmColor="#DC2626"
+        showHoldToConfirm={true}
+      />
+    )}
+    </>
   );
 };
 
@@ -866,18 +939,20 @@ const StudentResultsList = React.memo(
             return (
               <li
                 key={student.uid}
+                className={`student-list-item ${isMenuOpen ? 'menu-open' : ''}`}
                 style={{
                   width: 'calc(92% - 200px)',
                   marginLeft: 'calc(200px + 2%)',
                   alignItems: 'center',
                   display: 'flex',
-
                   padding: '0px 2%',
                   justifyContent: 'space-between',
                   borderBottom: '1px solid #EDEDED',
-
                   position: 'relative',
-                  minHeight: '80px',       cursor: studentGrade?.submittedAt ? 'pointer' : 'default'
+                  minHeight: '80px',
+                  cursor: studentGrade?.submittedAt ? 'pointer' : 'default',
+                  transition: 'transform 0.2s ease',
+                  transform: isMenuOpen ? 'none' : 'scale(1)',
              
                 }}
                 onClick={() => {
@@ -1273,7 +1348,7 @@ const StudentResultsList = React.memo(
     position={menuPosition}
     status={status}
     togglePauseAssignment={togglePauseAssignment}
-    studentRef={student.ref || doc(db, 'students', student.uid)}
+    studentName={`${student.lastName}, ${student.firstName}`}
     assignmentId={assignmentId}
     handleSubmitAssignment={handleSubmitAssignment}
     handleRenewAccess={handleRenewAccess}

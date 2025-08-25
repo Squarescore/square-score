@@ -1700,7 +1700,8 @@ const gradeColors = getGradeColors(calculatedAverage);
                 }}
                 onClick={() => activeTab === 'completed' && completedAssignments.length >= 2 && setIsGradeExpanded(!isGradeExpanded)}
                 style={{
-                  cursor: activeTab === 'completed' && completedAssignments.length >= 2 ? 'pointer' : 'default'
+                  cursor: activeTab === 'completed' && completedAssignments.length >= 2 ? 'pointer' : 'default',
+                  
                 }}
               >
                 <div style={{display: 'flex', marginTop: '-12px'}}>
