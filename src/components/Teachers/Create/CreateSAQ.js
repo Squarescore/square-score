@@ -1,8 +1,10 @@
 import React, { useState, useEffect, Component } from 'react';
-
 import { useParams, useNavigate } from 'react-router-dom';
-import { doc, getDoc, writeBatch, arrayUnion, serverTimestamp, deleteDoc, setDoc, updateDoc, arrayRemove } from 'firebase/firestore';
-import { Settings, CalendarCog, SquareDashedMousePointer, Sparkles, GlobeLock, EyeOff, Landmark, Eye, User, PencilRuler, SendHorizonal, Folder, SquareX, ChevronUp, ChevronDown, FileText, CircleHelp } from 'lucide-react';
+import { Check, Share, Home, PencilRuler } from 'lucide-react';
+import Confetti from 'react-confetti';
+import AnimationAll from '../../Universal/AnimationAll';
+import { doc, getDoc, writeBatch, arrayUnion, serverTimestamp, deleteDoc, setDoc, updateDoc, arrayRemove, collection, query, where, getDocs } from 'firebase/firestore';
+import { Settings, CalendarCog, SquareDashedMousePointer, Sparkles, GlobeLock, EyeOff, Landmark, Eye, User, SendHorizonal, Folder, SquareX, ChevronUp, ChevronDown, FileText, CircleHelp } from 'lucide-react';
 import { db, auth } from '../../Universal/firebase';
 import TeacherPreview from './PreviewSAQ';
 import '../../Universal/SwitchGreen.css';
@@ -18,7 +20,6 @@ import 'react-datepicker/dist/react-datepicker.css';
 import axios from 'axios';
 import { useLocation } from 'react-router-dom';
 import CustomExpandingFormatSelector from './ExpandingFormatSelector';
-import AnimationAll from '../../Universal/AnimationAll';
 import { 
   AssignmentName, 
   FormatSection, 
@@ -36,6 +37,8 @@ import StepPreviewCards from './StepPreviewCards';
 import SourcePreviewToggle from './SourcePreviewToggle';
 import { StepContainer } from './ContainerPost';
 import LoaderScreen from './LoaderScreen';
+import { useAuthState } from 'react-firebase-hooks/auth';
+import { GlassContainer } from '../../../styles.js';
 // Error Boundary Component
 class ErrorBoundary extends Component {
   constructor(props) {
@@ -100,6 +103,28 @@ function CreateAssignment() {
   const [isHovered, setIsHovered] = useState(false);
   const [dueDate, setDueDate] = useState(new Date(new Date().getTime() + 48 * 60 * 60 * 1000)); // 48 hours from now
   const [timerOn, setTimerOn] = useState(false);
+  const [showPublishSuccess, setShowPublishSuccess] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [publishedAssignmentId, setPublishedAssignmentId] = useState(null);
+  const [hasShownConfetti, setHasShownConfetti] = useState(false);
+
+  const handleReturnHome = () => {
+    navigate(`/class/${classId}`, {
+      state: {
+        successMessage: `Success: ${assignmentName} published`,
+        assignmentId: publishedAssignmentId,
+        format: 'OE'
+      }
+    });
+  };
+
+  const handleShare = () => {
+    setShowExportModal(true);
+  };
+
+  const handleExportModalClose = () => {
+    setShowExportModal(false);
+  };
   
   const [assignmentType, setAssignmentType] = useState('');
   const [isAdaptive, setIsAdaptive] = useState(false);
@@ -120,7 +145,17 @@ function CreateAssignment() {
 
   const [isSaving, setIsSaving] = useState(false);
 
-  
+    const periodStyles = {
+    1: { variant: 'teal', color: "#1EC8bc", borderColor: "#83E2F5" },
+    2: { variant: 'purple', color: "#8324e1", borderColor: "#cf9eff" },
+    3: { variant: 'orange', color: "#ff8800", borderColor: "#f1ab5a" },
+    4: { variant: 'yellow', color: "#ffc300", borderColor: "#Ecca5a" },
+    5: { variant: 'green', color: "#29c60f", borderColor: "#aef2a3" },
+    6: { variant: 'blue', color: "#1651d4", borderColor: "#b5ccff" },
+    7: { variant: 'pink', color: "#d138e9", borderColor: "#f198ff" },
+    8: { variant: 'red', color: "#c63e3e", borderColor: "#ffa3a3" }
+  };
+
 
 
   useEffect(() => {
@@ -328,6 +363,517 @@ function CreateAssignment() {
     generatedQuestions
   );
 // In CreateAssignment.js
+// Export Modal Component
+const PublishSuccessScreen = ({ assignmentId, assignmentName, onShare, onReturnHome, assignDate, dueDate, hasShownConfetti, onConfettiComplete }) => {
+  const formatDateString = (date) => {
+    return date.toLocaleDateString('en-US', {
+      month: 'long',
+      day: 'numeric',
+      year: 'numeric',
+      hour: 'numeric',
+      minute: 'numeric',
+      hour12: true
+    });
+  };
+    return (
+    <div style={{
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      width: '100%',
+      height: '100%',
+      backgroundColor: 'rgba(255, 255, 255, 0.95)',
+      backdropFilter: 'blur(5px)',
+      zIndex: 100,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      flexDirection: 'column',
+      gap: '30px'
+    }}>
+      <div>
+        {!hasShownConfetti && (
+          <div style={{
+            position: 'absolute',
+            left: 0,
+            top: 0,
+            width: '100%',
+            height: '100%',
+            overflow: 'hidden'
+          }}>
+            <Confetti
+              width={window.innerWidth}
+              height={window.innerHeight}
+              recycle={false}
+              numberOfPieces={50}
+              initialVelocityY={2}
+              gravity={.15}
+              confettiSource={{
+                x: 0,
+                y: 0,
+                w: window.innerWidth,
+                h: 0
+              }}
+                          tweenDuration={5000}
+            onComplete={onConfettiComplete}
+          />
+          </div>
+        )}
+      </div>
+      <div style={{zIndex: '20'}}>
+        <GlassContainer variant="clear"
+          contentStyle={{padding: '40px',}}>
+          <div style={{
+            textAlign: 'center',
+            marginTop: '0px'
+          }}>
+            <h1 style={{
+              fontSize: '2.2rem',
+              fontWeight: '400',
+              color: 'black',
+              marginBottom: '15px',
+              fontFamily: "'Montserrat', sans-serif",
+              maxWidth: '380px',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+              margin: '0 auto 15px'
+            }}>
+              Published!
+            </h1>
+            <p style={{
+              fontSize: '1rem',
+              color: '#666',
+              fontFamily: "'Montserrat', sans-serif",
+              marginBottom: '30px',
+              width: "380px",
+            }}>
+              Submissions will be open from {formatDateString(assignDate)} to {formatDateString(dueDate)}
+            </p>
+          </div>
+
+          <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '15px',
+            alignItems: 'center'
+          }}>
+            <div style={{
+              display: 'flex',
+              gap: '15px',
+              marginBottom: '5px'
+          }}>
+            <button
+              onClick={onShare}
+              style={{
+                width: '150px',
+                padding: '12px 20px',
+                border: '1px solid #ddd',
+                borderRadius: '50px',
+                background: 'white',
+                color: 'grey',
+                cursor: 'pointer',
+                fontSize: '1rem',
+                fontWeight: '500',
+                fontFamily: "'Montserrat', sans-serif",
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '10px',
+                transition: 'all 0.2s ease'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'scale(1.02)';
+                e.currentTarget.style.borderColor = '#ccc';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'scale(1)';
+                e.currentTarget.style.borderColor = '#ddd';
+              }}
+            >
+              <Share size={18} />
+              Export
+            </button>
+
+            <button
+              onClick={() => navigate(`/class/${classId}/teacherassignmenthome`)}
+              style={{
+                width: '220px',
+                padding: '12px 20px',
+                border: '1px solid #ddd',
+                borderRadius: '50px',
+                background: 'white',
+                color: 'grey',
+                cursor: 'pointer',
+                fontSize: '1rem',
+                fontWeight: '500',
+                fontFamily: "'Montserrat', sans-serif",
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '10px',
+                transition: 'all 0.2s ease'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'scale(1.02)';
+                e.currentTarget.style.borderColor = '#ccc';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'scale(1)';
+                e.currentTarget.style.borderColor = '#ddd';
+              }}
+            >
+              <PencilRuler size={18} />
+              Create Another 
+            </button>
+            </div>
+
+            <button
+              onClick={onReturnHome}
+              style={{
+                width: '380px',
+                padding: '12px 20px',
+                border: '1px solid #ddd',
+                borderRadius: '50px',
+                background: 'white',
+                color: 'grey',
+                cursor: 'pointer',
+                fontSize: '1rem',
+                fontWeight: '500',
+                fontFamily: "'Montserrat', sans-serif",
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '10px',
+                transition: 'all 0.2s ease'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'scale(1.02)';
+                e.currentTarget.style.borderColor = '#ccc';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'scale(1)';
+                e.currentTarget.style.borderColor = '#ddd';
+              }}
+            >
+              <Home size={18} />
+              Return to Class Home
+            </button>
+          </div>
+        </GlassContainer>
+      </div>
+    </div>
+  );
+};
+
+const ExportModal = ({ onClose, assignmentId, assignmentName }) => {
+  const [user] = useAuthState(auth);
+  const [teacherData, setTeacherData] = useState(null);
+  const [exportSuccess, setExportSuccess] = useState(false);
+  const [selectedClasses, setSelectedClasses] = useState([]);
+
+  useEffect(() => {
+    const fetchTeacherData = async () => {
+      if (!user) return;
+
+      try {
+        const teacherRef = doc(db, 'teachers', user.uid);
+        const teacherSnap = await getDoc(teacherRef);
+        
+        if (teacherSnap.exists()) {
+          const teacherData = teacherSnap.data();
+          
+          const classesQuery = query(
+            collection(db, 'classes'),
+            where('teacherUID', '==', user.uid)
+          );
+          
+          const classesSnap = await getDocs(classesQuery);
+          const classes = [];
+          
+          classesSnap.forEach((doc) => {
+            if (doc.id !== classId) { // Don't include current class
+              classes.push({
+                id: doc.id,
+                ...doc.data()
+              });
+            }
+          });
+          
+          setTeacherData({
+            ...teacherData,
+            classes: classes
+          });
+        }
+      } catch (error) {
+        console.error("Error fetching teacher data:", error);
+      }
+    };
+
+    fetchTeacherData();
+  }, [user]);
+
+  const handleClassSelect = (classId) => {
+    setSelectedClasses(prev => {
+      if (prev.includes(classId)) {
+        return prev.filter(id => id !== classId);
+      } else {
+        return [...prev, classId];
+      }
+    });
+  };
+
+  const handleExport = async () => {
+    if (selectedClasses.length === 0) return;
+
+    try {
+      // Export to each selected class
+      for (const classId of selectedClasses) {
+        const batch = writeBatch(db);
+        
+        const assignmentRef = doc(db, 'assignments', assignmentId);
+        const assignmentDoc = await getDoc(assignmentRef);
+        
+        if (!assignmentDoc.exists()) {
+          console.error("Assignment not found");
+          return;
+        }
+
+        const timestamp = Date.now();
+        const assignmentData = assignmentDoc.data();
+        const format = assignmentId.split('+').pop();
+        const newDraftId = `${classId}+${timestamp}+${format}`;
+        
+        const draftRef = doc(db, 'drafts', newDraftId);
+        const draftData = {
+          ...assignmentData,
+          classId: classId,
+          selectedStudents: [],
+          createdAt: serverTimestamp(),
+          questions: assignmentData.questions || {},
+        };
+        delete draftData.id;
+        
+        batch.set(draftRef, draftData);
+
+        const classRef = doc(db, 'classes', classId);
+        batch.update(classRef, {
+          drafts: arrayUnion({
+            id: newDraftId,
+            name: assignmentData.assignmentName || 'Untitled Assignment'
+          })
+        });
+        
+        await batch.commit();
+      }
+
+      setExportSuccess(true);
+      setTimeout(() => {
+        setExportSuccess(false);
+        onClose();
+      }, 1000);
+    } catch (error) {
+      console.error("Error during export:", error);
+    }
+  };
+
+  return (
+    <div style={{
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      width: '100%',
+      height: '100%',
+      backgroundColor: 'rgba(255, 255, 255, 0.8)',
+      backdropFilter: 'blur(5px)',
+      zIndex: 1000,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center'
+    }}>
+      <GlassContainer
+        variant="clear"
+        size={2}
+        style={{
+          width: '620px',
+          backgroundColor: 'white'
+        }}
+        contentStyle={{
+          padding: '20px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '20px'
+        }}
+      >
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '15px'
+        }}>
+          <h2 style={{
+            margin: 0,
+            fontSize: '1.5rem',
+            fontWeight: '400',
+            marginLeft: '10px',
+            color: 'black',
+            fontFamily: "'Montserrat', sans-serif"
+          }}>
+            Export Assessment
+          </h2>
+        </div>
+
+        <h1 style={{
+          fontWeight: '500', 
+          fontSize: '.8rem', 
+          marginLeft: '10px',
+          marginBottom: '-10px',
+          fontFamily: "'montserrat', sans-serif",
+          color: 'lightgrey'
+        }}>
+          Click on Class to Share -
+          The assessment will appear in drafts
+        </h1>
+
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(3, 1fr)',
+          gap: '15px',
+          padding: '10px'
+        }}>
+          {teacherData?.classes
+            ?.sort((a, b) => (a.period || 0) - (b.period || 0))
+            .map((classItem) => {
+              const periodNumber = classItem.period || 1;
+              const periodStyle = periodStyles[periodNumber] || { variant: 'clear', color: 'grey', borderColor: '#ddd' };
+              
+              return (
+                <GlassContainer
+                  key={classItem.id}
+                  variant={selectedClasses.includes(classItem.id) ? periodStyle.variant : 'clear'}
+                  size={1}
+                  onClick={() => handleClassSelect(classItem.id)}
+                  style={{
+                    width: '180px',
+                    cursor: 'pointer',
+                    transition: 'all 0.3s',
+                  }}
+                  contentStyle={{
+                    padding: '10px 20px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <div style={{display: 'flex', alignItems: 'center'}}>
+                    <h1 style={{
+                      fontSize: '20px',
+                      color: selectedClasses.includes(classItem.id) ? periodStyle.color : 'grey',
+                      fontWeight: '500',
+                      margin: 0,
+                    }}>
+                      Period {periodNumber}
+                    </h1>
+                  </div>
+
+                  <div style={{
+                    fontFamily: "'montserrat', sans-serif",
+                    fontWeight: "500",
+                    color: selectedClasses.includes(classItem.id) ? periodStyle.borderColor : '#ddd',
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                    fontSize: '.7rem',
+                    marginTop: '5px'
+                  }}>
+                    {classItem.classChoice}
+                  </div>
+                </GlassContainer>
+              );
+            })}
+        </div>
+
+        <div style={{
+          display: 'flex',
+          gap: '10px',
+          justifyContent: 'space-between',
+        }}>
+          <GlassContainer
+            variant={selectedClasses.length > 0 ? 'green' : 'clear'}
+            size={0}
+            onClick={selectedClasses.length > 0 ? handleExport : undefined}
+            style={{
+              cursor: selectedClasses.length > 0 ? 'pointer' : 'default',
+              opacity: selectedClasses.length > 0 ? 1 : 0.5,
+            }}
+            contentStyle={{
+              padding: '5px 30px',
+            }}
+          >
+            <span style={{
+              color: selectedClasses.length > 0 ? '#2BB514' : 'grey',
+              fontSize: '14px',
+              fontWeight: '500',
+              fontFamily: "'montserrat', sans-serif"
+            }}>
+              Export to {selectedClasses.length === 1 ? '1 class' : `${selectedClasses.length} classes`}
+            </span>
+          </GlassContainer>
+
+          <button
+            onClick={onClose}
+            style={{
+              padding: '5px 30px',
+              border: '1px solid #ddd',
+              borderRadius: '81px',
+              background: 'white',
+              color: 'grey',
+              cursor: 'pointer',
+              fontFamily: "'montserrat', sans-serif",
+              fontSize: '14px',
+              fontWeight: '500',
+            }}
+          >
+            Cancel
+          </button>
+        </div>
+      </GlassContainer>
+
+      {exportSuccess && (
+        <div style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: '100%',
+          backgroundColor: 'rgba(255, 255, 255, 0.95)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1200
+        }}>
+          <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: '15px'
+          }}>
+            <Check size={40} color="#2BB514" />
+            <h2 style={{
+              margin: 0,
+              color: '#2BB514',
+              fontSize: '1.5rem',
+              fontWeight: '500',
+              fontFamily: "'Montserrat', sans-serif"
+            }}>
+              Successfully Exported
+            </h2>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
 const saveAssignment = async () => {
   if (isSaving) return;
   setIsSaving(true);
@@ -406,17 +952,14 @@ const saveAssignment = async () => {
     // Commit all operations in a single batch
     await batch.commit();
 
-    navigate(`/class/${classId}`, {
-      state: {
-        successMessage: `Success: ${assignmentName} published`,
-        assignmentId: finalAssignmentId,
-        format: 'OE'
-      }
-    });
+    // Show success screen
+    setPublishedAssignmentId(finalAssignmentId);
+    setShowPublishSuccess(true);
+    setHasShownConfetti(false); // Reset confetti state for new success
+    setIsSaving(false);
   } catch (error) {
     console.error("Error saving assignment:", error);
     alert(`Error publishing assignment: ${error.message}. Please try again.`);
-  } finally {
     setIsSaving(false);
   }
 };
@@ -686,9 +1229,31 @@ const GenerateSAQ = async (sourceText, questionCount, additionalInstructions, cl
         right: 0,
         bottom: 0,    overflowY: 'auto',
         display: 'flex',
-        flexDirection: 'column',}}>  <Navbar userType="teacher" />
+        flexDirection: 'column',}}>  
+        <Navbar userType="teacher" />
+                       {showPublishSuccess && (
+                        <PublishSuccessScreen
+                assignmentId={publishedAssignmentId}
+                assignmentName={assignmentName}
+                onShare={handleShare}
+                onReturnHome={handleReturnHome}
+                assignDate={assignDate}
+                dueDate={dueDate}
+                hasShownConfetti={hasShownConfetti}
+                onConfettiComplete={() => setHasShownConfetti(true)}
+              />
+  )}
+        {showExportModal && (
+          <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', zIndex: 1100 }}>
+            <ExportModal
+              assignmentId={publishedAssignmentId}
+              assignmentName={assignmentName}
+              onClose={() => setShowExportModal(false)}
+            />
+          </div>
+        )}
    
-        {isSaving && <LoaderScreen />}
+        {isSaving && !showExportModal && !showPublishSuccess && <LoaderScreen />}
 
 
 

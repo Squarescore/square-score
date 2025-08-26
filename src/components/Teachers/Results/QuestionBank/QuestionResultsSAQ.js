@@ -1,17 +1,95 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { collection, getDocs, query, where, updateDoc, doc, getDoc, writeBatch } from 'firebase/firestore';
+import { collection, getDocs, query, where, updateDoc, doc, getDoc, writeBatch, setDoc } from 'firebase/firestore';
 import { db } from '../../../Universal/firebase';
 import { ClipboardList, ClipboardMinus, Flag, Pencil, Square, SquareSlash, SquareX, ChevronDown, ChevronUp, User, ArrowRight, SquareCheck, PencilOff, MessageSquareMore, YoutubeIcon, Users, Check, Slash, X } from 'lucide-react';
 import Navbar from '../../../Universal/Navbar';
 import { GlassContainer } from '../../../../styles';
 import TextareaAutosize from 'react-textarea-autosize';
+import ConfirmationModal from '../../../Universal/ConfirmationModal';
+
+const AddQuestionModal = ({ isOpen, onClose, onAdd }) => {
+  const [question, setQuestion] = useState('');
+  const [rubric, setRubric] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleSubmit = async () => {
+    if (!question.trim() || !rubric.trim()) {
+      return;
+    }
+    setIsSubmitting(true);
+    try {
+      await onAdd({ question, rubric });
+      setQuestion('');
+      setRubric('');
+      onClose();
+    } catch (error) {
+      console.error("Error adding question:", error);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <ConfirmationModal
+      title="Add Question to Bank"
+      message={
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+          <div>
+            <TextareaAutosize
+              placeholder="Enter question..."
+              value={question}
+              onChange={(e) => setQuestion(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '10px',
+                borderRadius: '8px',
+                border: '1px solid #ddd',
+                fontSize: '1rem',
+                fontFamily: "'Montserrat', sans-serif",
+                resize: 'none',
+                minHeight: '60px'
+              }}
+            />
+          </div>
+          <div>
+            <TextareaAutosize
+              placeholder="Enter rubric..."
+              value={rubric}
+              onChange={(e) => setRubric(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '10px',
+                borderRadius: '8px',
+                border: '1px solid #ddd',
+                fontSize: '1rem',
+                fontFamily: "'Montserrat', sans-serif",
+                resize: 'none',
+                minHeight: '60px'
+              }}
+            />
+          </div>
+        </div>
+      }
+      onConfirm={handleSubmit}
+      onCancel={onClose}
+      confirmText="Add Question"
+      confirmVariant="green"
+      confirmColor="#16a34a"
+      isLoading={isSubmitting}
+    />
+  );
+};
 
 const QuestionResults = ({ assignmentId, questionId, inModal = false, onClose }) => {
-  
   const [students, setStudents] = useState([]);
   const [assignmentName, setAssignmentName] = useState('');
+  const [showAddQuestionModal, setShowAddQuestionModal] = useState(false);
+  const [originalOrder, setOriginalOrder] = useState([]);  // Store original order of students
   const [questionData, setQuestionData] = useState(null);
+  const [tempEditData, setTempEditData] = useState(null); // Store temporary edits
   const [showResponseMap, setShowResponseMap] = useState({});
   const [showRubric, setShowRubric] = useState(false); // New state for rubric visibility
   const [loading, setLoading] = useState(true);
@@ -87,7 +165,26 @@ const QuestionResults = ({ assignmentId, questionId, inModal = false, onClose })
     try {
       setLoading(true);
       
-      // Get all grade documents for this assignment
+      // First update the assignment document
+      const assignmentRef = doc(db, 'assignments', assignmentId);
+      const assignmentDoc = await getDoc(assignmentRef);
+      
+      if (assignmentDoc.exists()) {
+        const assignmentData = assignmentDoc.data();
+        const updatedQuestions = { ...assignmentData.questions };
+        
+        updatedQuestions[questionId] = {
+          ...updatedQuestions[questionId],
+          question: newQuestion,
+          rubric: newRubric
+        };
+
+        await updateDoc(assignmentRef, {
+          questions: updatedQuestions
+        });
+      }
+
+      // Then update all grade documents
       const gradesRef = collection(db, 'grades');
       const gradesQuery = query(gradesRef,
         where('assignmentId', '==', assignmentId)
@@ -95,7 +192,9 @@ const QuestionResults = ({ assignmentId, questionId, inModal = false, onClose })
       const gradesSnapshot = await getDocs(gradesQuery);
 
       // Update each grade document
-      const updatePromises = gradesSnapshot.docs.map(async (gradeDoc) => {
+      const batch = writeBatch(db);
+
+      gradesSnapshot.docs.forEach((gradeDoc) => {
         const gradeData = gradeDoc.data();
         const updatedQuestions = gradeData.questions.map(q => {
           if (q.questionId === questionId) {
@@ -108,18 +207,15 @@ const QuestionResults = ({ assignmentId, questionId, inModal = false, onClose })
           return q;
         });
 
-        // Determine if any questions are still flagged after updating question content
         const hasFlaggedQuestions = updatedQuestions.some(q => q.flagged);
-
-        // Update the document
-        return updateDoc(doc(db, 'grades', gradeDoc.id), {
+        batch.update(doc(db, 'grades', gradeDoc.id), {
           questions: updatedQuestions,
           hasFlaggedQuestions: hasFlaggedQuestions
         });
       });
 
-      // Wait for all updates to complete
-      await Promise.all(updatePromises);
+      // Commit all updates
+      await batch.commit();
 
       // Update local state
       setQuestionData(prev => ({
@@ -134,26 +230,55 @@ const QuestionResults = ({ assignmentId, questionId, inModal = false, onClose })
         [questionId]: false
       }));
 
+      console.log('Successfully updated question content');
+
     } catch (error) {
       console.error("Error updating question content:", error);
+      throw error; // Re-throw to handle in the calling function
     } finally {
       setLoading(false);
     }
   };
 
+  // Handle exiting edit mode and saving changes
+  const handleEditComplete = async (newQuestion, newRubric) => {
+    try {
+      await updateQuestionContent(newQuestion, newRubric);
+      
+      // Update questionData to reflect the changes
+      setQuestionData(prev => ({
+        ...prev,
+        question: newQuestion,
+        rubric: newRubric
+      }));
+      
+      setTempEditData(null);
+      setEditingQuestions({});
+      // Maintain current sorted order
+      setStudents(prev => [...prev]);
+    } catch (error) {
+      console.error("Error saving changes:", error);
+    }
+  };
+
   // Update the question blur handler
-  const handleQuestionBlur = async () => {
+  const handleQuestionBlur = async (event) => {
     if (editingQuestions[questionId]) {
-      await updateQuestionContent(questionData.question, questionData.rubric);
+      const newQuestion = event.target.value;
+      const currentRubric = questionData?.rubric || '';
+      await handleEditComplete(newQuestion, currentRubric);
     }
   };
 
   // Update the rubric blur handler
-  const handleRubricBlur = async () => {
+  const handleRubricBlur = async (event) => {
     if (editingQuestions[questionId]) {
-      await updateQuestionContent(questionData.question, questionData.rubric);
+      const currentQuestion = questionData?.question || '';
+      const newRubric = event.target.value;
+      await handleEditComplete(currentQuestion, newRubric);
     }
   };
+
   const getGradeColors = (grade) => {
     if (grade === undefined || grade === null || grade === 0) return { color: '#858585', variant: 'clear' };
     if (grade < 60) return { color: '#c63e3e', variant: 'red' };
@@ -164,14 +289,32 @@ const QuestionResults = ({ assignmentId, questionId, inModal = false, onClose })
     return { color: '#f198ff', variant: 'pink' };
   };
   // Update the edit toggle function
-  const handleEditQuestionToggle = (qId) => {
-    setEditingQuestions(prev => ({
-      ...prev,
-      [qId]: !prev[qId]
-    }));
+  const handleEditQuestionToggle = async (qId) => {
+    const isCurrentlyEditing = editingQuestions[qId];
     
-    if (!editingQuestions[qId]) {
+    if (isCurrentlyEditing) {
+      try {
+        // Get the current values from the textarea
+        const questionElement = document.querySelector('textarea');
+        if (questionElement) {
+          const newQuestion = questionElement.value;
+          const currentRubric = questionData?.rubric || '';
+          await handleEditComplete(newQuestion, currentRubric);
+        }
+      } catch (error) {
+        console.error("Error saving question:", error);
+        // Revert to original value on error
+        setQuestionData(prev => ({...prev}));
+      }
+    } else {
+      // Entering edit mode
+      setEditingQuestions(prev => ({
+        ...prev,
+        [qId]: true
+      }));
       setShowRubric(true);
+      // Maintain current sorted order
+      setStudents(prev => [...prev]);
     }
   };
 
@@ -253,8 +396,9 @@ const QuestionResults = ({ assignmentId, questionId, inModal = false, onClose })
           }
         });
 
-        // Sort students by last name
+        // Always sort students by last name
         studentsData.sort((a, b) => a.lastName.localeCompare(b.lastName));
+        setOriginalOrder(studentsData);
 
         // Calculate average score
         const averageScore = responses > 0 ? (totalScore / responses / 2) * 100 : 0;
@@ -433,13 +577,41 @@ const QuestionResults = ({ assignmentId, questionId, inModal = false, onClose })
 
   
   
-  return (
-    <div>
-  
-      <div style={{
-      }}>
+  const handleAddQuestion = async ({ question, rubric }) => {
+  try {
+    // Add the question to the question bank collection
+    const questionBankRef = collection(db, 'questionBank');
+    const newQuestionRef = doc(questionBankRef);
+    
+    await setDoc(newQuestionRef, {
+      question,
+      rubric,
+      type: 'SAQ',
+      createdAt: new Date(),
+      classId,
+      assignmentId
+    });
 
-<div style={{
+    // Show success confirmation
+    setShowAddQuestionModal(false);
+  } catch (error) {
+    console.error("Error adding question to bank:", error);
+    throw error;
+  }
+};
+
+return (
+    <div>
+      <AddQuestionModal
+        isOpen={showAddQuestionModal}
+        onClose={() => setShowAddQuestionModal(false)}
+        onAdd={handleAddQuestion}
+      />
+      <div style={{
+        width: '100%',
+        height: '100%'
+      }}>
+        <div style={{
     width: 'calc(92% - 200px)',
     padding: '10px 4%',
     position: 'fixed',
@@ -482,9 +654,11 @@ const QuestionResults = ({ assignmentId, questionId, inModal = false, onClose })
                 resize: 'none',
                 padding: '8px 20px'
               }}
-              value={questionData?.question}
-              onChange={(e) => setQuestionData(prev => ({ ...prev, question: e.target.value }))}
-              onBlur={handleQuestionBlur}
+              defaultValue={questionData?.question}
+              onChange={(e) => {
+                e.target.value = e.target.value;  // Let the DOM handle the value
+              }}
+              onBlur={(e) => handleQuestionBlur(e)}
               minRows={1}
             />
           ) : (
@@ -506,6 +680,21 @@ const QuestionResults = ({ assignmentId, questionId, inModal = false, onClose })
         alignItems: 'center',
         gap: '16px'
       }}>
+        <button
+          onClick={() => setShowAddQuestionModal(true)}
+          style={{
+            padding: '8px',
+            background: 'none',
+            border: 'none',
+            cursor: 'pointer',
+            color: '#9ca3af',
+            display: 'flex',
+            alignItems: 'center'
+          }}
+          aria-label="Add to Question Bank"
+        >
+          <ClipboardList size={20} strokeWidth={1} />
+        </button>
         <button
           onClick={toggleRubricVisibility}
           style={{

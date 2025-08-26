@@ -24,6 +24,7 @@ import { db } from '../../../Universal/firebase';
 import { useNavigate, useParams } from 'react-router-dom';
 import QuestionResults from './QuestionResultsSAQ';
 import { GlassContainer } from '../../../../styles';
+import ConfirmationModal from '../../../Universal/ConfirmationModal';
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  QuestionBankHeader (with search + average score + simple styling)
@@ -332,6 +333,7 @@ const QuestionBankSAQ = ({
   const [editingQuestions, setEditingQuestions] = useState({});
   const [hasScrolled, setHasScrolled] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [validationError, setValidationError] = useState({ show: false, message: '' });
 
   useEffect(() => {
     const handleScroll = () => {
@@ -391,6 +393,15 @@ const QuestionBankSAQ = ({
   //  On blur => push the entire question set to Firestore
   // ─────────────────────────────────────────────────────────────────────────
   const handleBlur = async () => {
+    // Validate questions before saving
+    const invalidQuestions = questionsWithIds.filter(q => !q.question || !q.rubric);
+    if (invalidQuestions.length > 0) {
+      setValidationError({
+        show: true,
+        message: "All questions must have both a question and a rubric. Please check your entries and try again."
+      });
+      return;
+    }
     await saveQuestionsToFirestore(questionsWithIds);
   };
 
@@ -735,6 +746,14 @@ const renderStatsBadge = (questionId) => {
   //  Render
   // ─────────────────────────────────────────────────────────────────────────
   const handleAddQuestion = async (newQuestion) => {
+    if (!newQuestion.question || !newQuestion.rubric) {
+      setValidationError({
+        show: true,
+        message: "Please provide both a question and a rubric before adding."
+      });
+      return;
+    }
+
     const questionId = Date.now().toString(); // Simple unique ID generation
     const questionWithId = {
       ...newQuestion,
@@ -748,6 +767,17 @@ const renderStatsBadge = (questionId) => {
 
   return (
     <div ref={containerRef} style={{ width: '100%', marginTop: '-40px', position: 'relative' }}>
+      {validationError.show && (
+        <ConfirmationModal
+          title="Validation Error"
+          message={validationError.message}
+          onConfirm={() => setValidationError({ show: false, message: '' })}
+          onCancel={() => setValidationError({ show: false, message: '' })}
+          confirmText="OK"
+          confirmVariant="red"
+          cancelText="Close"
+        />
+      )}
       <QuestionBankHeader
         questionsCount={questionsWithIds.length}
         averageScore={calculateAverageScore()}
