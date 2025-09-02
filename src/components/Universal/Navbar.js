@@ -32,8 +32,10 @@ import {
   SendHorizonal,
   SquareX,
   Settings,
+  X,
 } from "lucide-react";
 import TeacherAssignmentHome from "../Teachers/TeacherAssignments/TeacherAssignmentHome";
+import Tutorials from "../Teachers/TeacherHome/Tutorials";
 import { GlassContainer } from "../../styles";
 
 const Navbar = ({ userType }) => {
@@ -151,6 +153,7 @@ const Navbar = ({ userType }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [showCopySuccess, setShowCopySuccess] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isTutorialsModalOpen, setIsTutorialsModalOpen] = useState(false);
   const [feedback, setFeedback] = useState({ from_name: '', reply_to: '', message: '' });
   const [isSending, setIsSending] = useState(false);
   const [sendStatus, setSendStatus] = useState(null);
@@ -943,21 +946,21 @@ const handleCopyLink = async (classData) => {
   {/* Home Link */}
   <Link
     to={homeRoute}
-    style={{
-
-              display: "flex",
+   style={{
+    display: "flex",
               alignItems: "center",
               textDecoration: "none",
               padding: "8px 12px",
               color: "grey",
               transition: "color 0.2s",
-              borderRadius: "5px",
+              borderRadius: "50px",
+              border: "1px solid transparent",
               fontSize: "0.85rem",
               fontFamily: "'montserrat', sans-serif",
               fontWeight: "400"
     }}
-    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f8f8f8'}
-    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+       onMouseEnter={(e) => e.currentTarget.style.borderColor = '#ddd'}
+    onMouseLeave={(e) => e.currentTarget.style.borderColor = 'transparent'}
   >
     <Home
       size={16}
@@ -978,26 +981,29 @@ const handleCopyLink = async (classData) => {
   />
 
   {/* Tutorials Link */}
-  <Link
-    to="/tutorials"
+  <button
+    onClick={() => setIsTutorialsModalOpen(true)}
     style={{
-    display: "flex",
-              alignItems: "center",
-              textDecoration: "none",
-              padding: "8px 12px",
-              color: "grey",
-              transition: "color 0.2s",
-              borderRadius: "5px",
-              fontSize: "0.85rem",
-              fontFamily: "'montserrat', sans-serif",
-              fontWeight: "400"
+      display: "flex",
+      alignItems: "center",
+      textDecoration: "none",
+      padding: "8px 12px",
+      color: "grey",
+      transition: "color 0.2s",
+      borderRadius: "50px",
+      border: "1px solid transparent",
+      fontSize: "0.85rem",
+      fontFamily: "'montserrat', sans-serif",
+      fontWeight: "400",
+      background: "transparent",
+      cursor: "pointer"
     }}
-    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f8f8f8'}
-    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+    onMouseEnter={(e) => e.currentTarget.style.borderColor = '#ddd'}
+    onMouseLeave={(e) => e.currentTarget.style.borderColor = 'transparent'}
   >
     <Clapperboard size={16} strokeWidth={1.5} color="grey" style={{marginRight: '8px'}} />
     Tutorials
-  </Link>
+  </button>
 
   {/* Feedback Link */}
   <Link
@@ -1013,13 +1019,14 @@ const handleCopyLink = async (classData) => {
               padding: "8px 12px",
               color: "grey",
               transition: "color 0.2s",
-              borderRadius: "5px",
+              borderRadius: "50px",
+              border: "1px solid transparent",
               fontSize: "0.85rem",
               fontFamily: "'montserrat', sans-serif",
               fontWeight: "400"
     }}
-    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f8f8f8'}
-    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+       onMouseEnter={(e) => e.currentTarget.style.borderColor = '#ddd'}
+    onMouseLeave={(e) => e.currentTarget.style.borderColor = 'transparent'}
   >
     <MessageSquare size={16} strokeWidth={1.5} color="grey" style={{marginRight: '8px'}} />
     Feedback
@@ -1033,8 +1040,8 @@ const handleCopyLink = async (classData) => {
       alignItems: "center",
       padding: "8px 12px",
       backgroundColor: "transparent",
-      border: "none",
-      borderRadius: "5px",
+      border: "1px solid transparent",
+      borderRadius: "50px",
       cursor: "pointer",
       color: "grey",
       fontSize: "0.85rem",
@@ -1043,8 +1050,8 @@ const handleCopyLink = async (classData) => {
       transition: "background-color 0.2s",
       width: "170px"
     }}
-    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f8f8f8'}
-    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+    onMouseEnter={(e) => e.currentTarget.style.borderColor = '#ddd'}
+    onMouseLeave={(e) => e.currentTarget.style.borderColor = 'transparent'}
   >
     <DoorOpen size={16} strokeWidth={1.5} color="grey" style={{marginRight: '8px'}} />
     Sign Out
@@ -1286,6 +1293,85 @@ const handleCopyLink = async (classData) => {
               </p>
             )}
           </GlassContainer>
+        </div>
+      )}
+
+      {/* Tutorials Modal */}
+      {isTutorialsModalOpen && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(250, 250, 250, 0.95)',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            zIndex: 1000,
+          }}
+        >
+
+<div   style={{
+              width: '90vw',
+              maxWidth: '1050px',
+              maxHeight: '85vh',
+           
+            }}> 
+          <GlassContainer
+            variant="clear"
+            size={2}
+          
+            contentStyle={{
+              padding: '20px 30px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '20px',
+            }}
+          >
+            {/* Modal Header */}
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: '20px',
+              paddingRight: '10px'
+            }}>
+              <h2 style={{
+                margin: 0,
+                fontSize: '1.5rem',
+                fontWeight: '400',
+                color: 'black',
+                fontFamily: "'Montserrat', sans-serif"
+              }}>
+                Tutorials
+              </h2>
+              <button
+                onClick={() => setIsTutorialsModalOpen(false)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  padding: '5px',
+                  marginRight: '-10px'
+                }}
+              >
+                <X size={24} color="grey" />
+              </button>
+            </div>
+
+            {/* Tutorial Content */}
+      <div style={{   overflowY: 'auto',
+              msOverflowStyle: 'none',  /* IE and Edge */
+              scrollbarWidth: 'none',  /* Firefox */
+              '&::-webkit-scrollbar': {
+                display: 'none'  /* Chrome, Safari and Opera */
+              }}}>
+              <Tutorials />
+              </div>
+          </GlassContainer>
+          </div>
         </div>
       )}
     </div>

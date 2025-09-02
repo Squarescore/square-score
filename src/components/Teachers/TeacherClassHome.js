@@ -60,8 +60,10 @@ import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tool
 
 import { GlassContainer, CustomSwitch } from '../../styles';
 import { useAuthState } from 'react-firebase-hooks/auth';
-import { serverTimestamp, arrayUnion } from 'firebase/firestore';
+import { serverTimestamp, arrayUnion, deleteDoc } from 'firebase/firestore';
 import TabButtons from '../Universal/TabButtons';
+import ConfirmationModal from '../Universal/ConfirmationModal';
+import { Trash2 } from 'lucide-react';
 
 const pastelColors = [
   { bg: '#FFF2A9', text: '#FFD000' },
@@ -892,6 +894,10 @@ function TeacherClassHome() {
   const [selectedType, setSelectedType] = useState('all');
   const [selectedDateRange, setSelectedDateRange] = useState('all');
   const [selectedGradeRange, setSelectedGradeRange] = useState('all');
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [draftToDelete, setDraftToDelete] = useState(null);
+  const [holdProgress, setHoldProgress] = useState(0);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Add ref for clicking outside detection
   const filtersRef = useRef(null);
@@ -1884,20 +1890,43 @@ const openFolderModal = (folder) => {
                 position: 'relative'
               }}>
                
-                <span style={{
-                  fontSize: '16px',
-                  color: 'grey',
-                  right: 'calc(4% )',
-                  fontWeight: '400',
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '20px',
                   position: 'absolute',
-                  fontFamily: "'Montserrat', sans-serif",
+                  right: 'calc(4%)'
                 }}>
-                  {formatDate(item.id)}
-                </span>
-
-            
-
-              
+                  <span style={{
+                    fontSize: '16px',
+                    color: 'grey',
+                    fontWeight: '400',
+                    fontFamily: "'Montserrat', sans-serif",
+                  }}>
+                    {formatDate(item.id)}
+                  </span>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setDraftToDelete(item);
+                      setShowDeleteModal(true);
+                    }}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      cursor: 'pointer',
+                      padding: '5px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      opacity: 0.6,
+                      transition: 'opacity 0.2s',
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.opacity = 1}
+                    onMouseLeave={(e) => e.currentTarget.style.opacity = 0.6}
+                  >
+                    <Trash2 size={18} color="grey" />
+                  </button>
+                </div>
               </div>
             </li>
           ))
@@ -1955,6 +1984,66 @@ const openFolderModal = (folder) => {
   const getCurrentPeriodStyle = () => {
     const period = classData?.period;
     return periodStyles[period] || periodStyles[1];
+  };
+
+  // Handle draft deletion
+  const handleDeleteDraft = async () => {
+    if (!draftToDelete || !classId) return;
+    
+    setIsDeleting(true);
+    try {
+      // Remove draft from class document
+      const classRef = doc(db, 'classes', classId);
+      const classDoc = await getDoc(classRef);
+      
+      if (classDoc.exists()) {
+        const currentDrafts = classDoc.data().drafts || [];
+        const updatedDrafts = currentDrafts.filter(draft => draft.id !== draftToDelete.id);
+        
+        await updateDoc(classRef, {
+          drafts: updatedDrafts
+        });
+
+        // Delete the draft document
+        const draftRef = doc(db, 'drafts', draftToDelete.id);
+        await deleteDoc(draftRef);
+
+        // Update local state
+        setDrafts(drafts.filter(draft => draft.id !== draftToDelete.id));
+      }
+    } catch (error) {
+      console.error("Error deleting draft:", error);
+    } finally {
+      setIsDeleting(false);
+      setShowDeleteModal(false);
+      setDraftToDelete(null);
+      setHoldProgress(0);
+    }
+  };
+
+  // Handle hold progress
+  const handleHoldStart = () => {
+    let progress = 0;
+    const interval = setInterval(() => {
+      progress += 2;
+      if (progress >= 100) {
+        clearInterval(interval);
+        handleDeleteDraft();
+      }
+      setHoldProgress(progress);
+    }, 20);
+
+    const cleanup = () => {
+      clearInterval(interval);
+      setHoldProgress(0);
+    };
+
+    document.addEventListener('mouseup', cleanup, { once: true });
+    document.addEventListener('mouseleave', cleanup, { once: true });
+  };
+
+  const handleHoldEnd = () => {
+    setHoldProgress(0);
   };
 
   return (
@@ -2631,6 +2720,27 @@ const openFolderModal = (folder) => {
             setShowFolderForm(false);
           }}
           onClose={() => setShowFolderForm(false)}
+        />
+      )}
+
+      {/* Delete Draft Confirmation Modal */}
+      {showDeleteModal && draftToDelete && (
+        <ConfirmationModal
+          title="Delete Draft"
+          message={`Are you sure you want to delete "${draftToDelete.name}"? This action cannot be undone.`}
+          confirmText="Delete"
+          onCancel={() => {
+            setShowDeleteModal(false);
+            setDraftToDelete(null);
+            setHoldProgress(0);
+          }}
+          onConfirm={handleDeleteDraft}
+          confirmVariant="red"
+          isLoading={isDeleting}
+          showHoldToConfirm={true}
+          holdProgress={holdProgress}
+          onHoldStart={handleHoldStart}
+          onHoldEnd={handleHoldEnd}
         />
       )}
 
