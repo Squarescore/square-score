@@ -439,22 +439,42 @@ const ActionMenu = ({
     </GlassContainer>
     
     {showResetConfirmation && (
-      <ConfirmationModal
-        title="Reset Student Progress"
-        message={`Are you sure you want to reset ${studentName}'s progress? This action cannot be undone and will remove all their answers and progress for this assignment. You can renew access by clicking renew access on the action menu`}
-        onConfirm={() => {
-          handleReset(studentUid);
-          setShowResetConfirmation(false);
-          onClose();
+      <div 
+        onClick={(e) => {
+          e.stopPropagation();
         }}
-        onCancel={() => {
-          setShowResetConfirmation(false);
+        style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: '100%',
+          zIndex: 1000,
+          cursor: 'default'
         }}
-        confirmText="Reset"
-        confirmVariant="red"
-        confirmColor="#DC2626"
-        showHoldToConfirm={true}
-      />
+      >
+        <div onClick={e => e.stopPropagation()}>
+          <ConfirmationModal
+          title={`Reset "${studentName}"?`}
+          message="This action cannot be undone. All answers and progress for this assignment will be permanently deleted. You can renew access later by clicking 'Renew Access' in the action menu."
+          onConfirm={(e) => {
+            e?.stopPropagation();
+            handleReset(studentUid);
+            setShowResetConfirmation(false);
+            onClose();
+          }}
+          onCancel={(e) => {
+            e?.stopPropagation();
+            setShowResetConfirmation(false);
+          }}
+          confirmText="Reset"
+          confirmVariant="red"
+                    confirmColor="#ef4444"
+     
+          
+          />
+        </div>
+        </div>
     )}
     </>
   );

@@ -16,6 +16,8 @@ const Participants = () => {
   const [studentToDelete, setStudentToDelete] = useState(null);
   const deleteHoldTimerRef = useRef(null);
 
+  const [isDeleting, setIsDeleting] = useState(false);
+
   const handleDeleteHoldStart = () => {
     if (deleteHoldTimerRef.current) {
       clearInterval(deleteHoldTimerRef.current);
@@ -28,9 +30,12 @@ const Participants = () => {
       
       if (progress >= 100) {
         clearInterval(timer);
-        handleRemoveStudent(studentToDelete);
-        setShowDeleteConfirm(false);
-        setStudentToDelete(null);
+        setIsDeleting(true);
+        handleRemoveStudent(studentToDelete).finally(() => {
+          setIsDeleting(false);
+          setShowDeleteConfirm(false);
+          setStudentToDelete(null);
+        });
       }
     }, 10);
     deleteHoldTimerRef.current = timer;
@@ -688,7 +693,7 @@ const Participants = () => {
         <ConfirmationModal
           title={`Remove ${currentClass.participants.find(p => p.uid === studentToDelete)?.name} from class?`}
           message="This student will lose access to all assignments and their grades in this class."
-          onConfirm={() => handleRemoveStudent(studentToDelete)}
+          onConfirm={() => {}}
           onCancel={() => {
             setShowDeleteConfirm(false);
             setStudentToDelete(null);
@@ -700,6 +705,7 @@ const Participants = () => {
           confirmColor="#29c60f"
           showHoldToConfirm={true}
           holdProgress={deleteHoldProgress}
+          isLoading={isDeleting}
         />
       )}
     </div>

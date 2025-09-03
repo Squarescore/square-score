@@ -1105,11 +1105,10 @@ const [gradingStudentUid, setGradingStudentUid] = useState(null);
   };
   
   
-  const handleTimerChange = (e) => {
-    const newValue = e.target.value;
-    setTimer(newValue);
+  const handleTimerChange = (value) => {
+    setTimer(value);
     if (timerOn) {
-      updateAssignmentSetting('timer', newValue);
+      updateAssignmentSetting('timer', value);
     }
   };
 <style>

@@ -1801,8 +1801,8 @@ Student Response: ${q.studentResponse}
   - 0: Incorrect
   - ${halfCreditEnabled ? '1: Partially correct (if enabled)' : '(No partial credit, only 0 or 2)'}
   - 2: Fully correct
-  
-  For each question, provide a score and concise feedback (around 20-30 words) explaining why the answer is correct or not. Use the rubric provided in each question.
+   (make sure variations on things like united states supreme court vs supreme court dont negatively affect students as its just formatting)
+  For each question, provide a score and concise feedback (around 20-30 words) explaining why the answer is correct or not. Use the rubric provided in each question, should provide student with insight.
   for the feedback structure it as if you are talking to the student
   
   Format your response as a JSON array of objects, each with:

@@ -49,9 +49,9 @@ const AddQuestionModal = ({ isOpen, onClose, onAdd }) => {
                 border: '1px solid #ddd',
                 fontSize: '1rem',
                 fontFamily: "'Montserrat', sans-serif",
-                resize: 'none',
-                minHeight: '60px'
+                resize: 'none'
               }}
+              minRows={3}
             />
           </div>
           <div>
@@ -60,15 +60,16 @@ const AddQuestionModal = ({ isOpen, onClose, onAdd }) => {
               value={rubric}
               onChange={(e) => setRubric(e.target.value)}
               style={{
-                width: '100%',
+                width: 'calc(100%)',
                 padding: '10px',
                 borderRadius: '8px',
+                outline: 'none',
                 border: '1px solid #ddd',
                 fontSize: '1rem',
                 fontFamily: "'Montserrat', sans-serif",
-                resize: 'none',
-                minHeight: '60px'
+                resize: 'none'
               }}
+              minRows={1}
             />
           </div>
         </div>
@@ -85,6 +86,8 @@ const AddQuestionModal = ({ isOpen, onClose, onAdd }) => {
 
 const QuestionResults = ({ assignmentId, questionId, inModal = false, onClose }) => {
   const [students, setStudents] = useState([]);
+  const [showConfirmEdit, setShowConfirmEdit] = useState(false);
+  const [pendingEdit, setPendingEdit] = useState(null);
   const [assignmentName, setAssignmentName] = useState('');
   const [showAddQuestionModal, setShowAddQuestionModal] = useState(false);
   const [originalOrder, setOriginalOrder] = useState([]);  // Store original order of students
@@ -262,11 +265,98 @@ const QuestionResults = ({ assignmentId, questionId, inModal = false, onClose })
   };
 
   // Update the question blur handler
+  const handleQuestionUpdate = async (newQuestion, newRubric, updateStudents = false) => {
+    try {
+      // First update the assignment document
+      const assignmentRef = doc(db, 'assignments', assignmentId);
+      const assignmentDoc = await getDoc(assignmentRef);
+      
+      if (assignmentDoc.exists()) {
+        const assignmentData = assignmentDoc.data();
+        const updatedQuestions = { ...assignmentData.questions };
+        
+        updatedQuestions[questionId] = {
+          ...updatedQuestions[questionId],
+          question: newQuestion,
+          rubric: newRubric
+        };
+
+        await updateDoc(assignmentRef, {
+          questions: updatedQuestions
+        });
+      }
+
+      if (updateStudents) {
+        // Then update all grade documents
+        const gradesRef = collection(db, 'grades');
+        const gradesQuery = query(gradesRef,
+          where('assignmentId', '==', assignmentId)
+        );
+        const gradesSnapshot = await getDocs(gradesQuery);
+
+        const batch = writeBatch(db);
+
+        gradesSnapshot.docs.forEach((gradeDoc) => {
+          const gradeData = gradeDoc.data();
+          const updatedQuestions = gradeData.questions.map(q => {
+            if (q.questionId === questionId) {
+              return {
+                ...q,
+                question: newQuestion,
+                rubric: newRubric
+              };
+            }
+            return q;
+          });
+
+          batch.update(doc(db, 'grades', gradeDoc.id), {
+            questions: updatedQuestions
+          });
+        });
+
+        await batch.commit();
+      }
+
+      // Update local state
+      setQuestionData(prev => ({
+        ...prev,
+        question: newQuestion,
+        rubric: newRubric
+      }));
+
+      // Exit editing mode
+      setEditingQuestions(prev => ({
+        ...prev,
+        [questionId]: false
+      }));
+
+      setShowConfirmEdit(false);
+      setPendingEdit(null);
+    } catch (error) {
+      console.error("Error updating question:", error);
+      alert("Failed to update question. Please try again.");
+    }
+  };
+
+  const checkForStudentResponses = async () => {
+    const gradesRef = collection(db, 'grades');
+    const gradesQuery = query(gradesRef,
+      where('assignmentId', '==', assignmentId)
+    );
+    const snapshot = await getDocs(gradesQuery);
+    return snapshot.size > 0;
+  };
+
   const handleQuestionBlur = async (event) => {
     if (editingQuestions[questionId]) {
       const newQuestion = event.target.value;
       const currentRubric = questionData?.rubric || '';
-      await handleEditComplete(newQuestion, currentRubric);
+      setPendingEdit({ 
+        question: newQuestion, 
+        rubric: currentRubric,
+        hasResponses: await checkForStudentResponses()
+      });
+      setShowConfirmEdit(true);
     }
   };
 
@@ -275,7 +365,12 @@ const QuestionResults = ({ assignmentId, questionId, inModal = false, onClose })
     if (editingQuestions[questionId]) {
       const currentQuestion = questionData?.question || '';
       const newRubric = event.target.value;
-      await handleEditComplete(currentQuestion, newRubric);
+      setPendingEdit({ 
+        question: currentQuestion, 
+        rubric: newRubric,
+        hasResponses: await checkForStudentResponses()
+      });
+      setShowConfirmEdit(true);
     }
   };
 
@@ -600,16 +695,108 @@ const QuestionResults = ({ assignmentId, questionId, inModal = false, onClose })
   }
 };
 
-return (
+  return (
     <div>
+      {showConfirmEdit && pendingEdit && (
+        <ConfirmationModal
+          title="Update Question"
+          message={pendingEdit.hasResponses ? 
+            "Would you like to update this question in existing student responses?" :
+            "This will update the question in the assignment."}
+          onConfirm={() => handleQuestionUpdate(pendingEdit.question, pendingEdit.rubric, true)}
+          onCancel={() => {
+            if (pendingEdit.hasResponses) {
+              // If there are responses, "Cancel" means update only the assignment
+              handleQuestionUpdate(pendingEdit.question, pendingEdit.rubric, false);
+            } else {
+              // If no responses, "Cancel" means cancel the edit
+              setShowConfirmEdit(false);
+              setPendingEdit(null);
+              setEditingQuestions(prev => ({
+                ...prev,
+                [questionId]: false
+              }));
+              // Reset to original values
+              setQuestionData(prev => ({
+                ...prev,
+                question: prev.question,
+                rubric: prev.rubric
+              }));
+            }
+          }}
+          confirmText={pendingEdit.hasResponses ? "Yes, Update All" : "Update"}
+          cancelText={pendingEdit.hasResponses ? "Just New" : "Cancel"}
+          confirmVariant="green"
+          confirmColor="#29c60f"
+        />
+      )}
       <AddQuestionModal
         isOpen={showAddQuestionModal}
         onClose={() => setShowAddQuestionModal(false)}
         onAdd={handleAddQuestion}
       />
+      {showRubric && (
+        <div style={{
+          width: '92%',
+          padding: '20px 4%',
+          backgroundColor: 'rgb(255,255,255,.9)',
+          backdropFilter: 'blur(5px)',
+          borderBottom: showRubric ? '1px solid #ddd' : '1px solid transparent',
+          marginTop: '120px',
+          position: 'fixed',
+          top: '0',
+          display: 'flex',
+          alignItems: 'center',
+          left: '200px',
+          gap: '20px',
+          zIndex: 9
+        }}>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            color: 'grey'
+          }}>
+           <ClipboardList size={26} strokeWidth={1.5}/>
+          </div>
+          <div style={{height: '30px', width: '1px', background: '#ddd'}}/>
+          {editingQuestions[questionId] ? (
+            <TextareaAutosize
+              style={{
+                width: '80%',
+                padding: '10px',
+                borderRadius: '8px',
+                border: '1px solid #ddd',
+                fontSize: '1rem',
+                fontFamily: "'Montserrat', sans-serif",
+                resize: 'none',
+                backgroundColor: 'white',
+                borderBottom: '1px solid #e5e7eb'
+              }}
+              minRows={1}
+              defaultValue={questionData?.rubric}
+              onChange={(e) => {
+                e.target.value = e.target.value;
+              }}
+              onBlur={(e) => handleRubricBlur(e)}
+            />
+          ) : (
+            <p style={{
+              margin: 0,
+              fontSize: '1rem',
+              color: 'grey',
+              whiteSpace: 'pre-wrap',
+              fontFamily: "'Montserrat', sans-serif",
+              padding: '10px',
+            }}>
+              {questionData?.rubric || 'No rubric available'}
+            </p>
+          )}
+        </div>
+      )}
       <div style={{
         width: '100%',
-        height: '100%'
+        height: '100%',
+        marginTop: showRubric ? '40px' : '0'
       }}>
         <div style={{
     width: 'calc(92% - 200px)',
@@ -620,7 +807,7 @@ return (
     top: '60px',
     background: 'rgb(255,255,255,.8)',
     backdropFilter: 'blur(5px)',
-    borderBottom: "1px solid #EDEDED",
+    borderBottom: showRubric ? '0px solid #ddd' : '1px solid #ddd', 
     height: '50px', // Added fixed height
     display: 'flex', // Added flex
     alignItems: 'center' // Added vertical alignment
@@ -681,21 +868,6 @@ return (
         gap: '16px'
       }}>
         <button
-          onClick={() => setShowAddQuestionModal(true)}
-          style={{
-            padding: '8px',
-            background: 'none',
-            border: 'none',
-            cursor: 'pointer',
-            color: '#9ca3af',
-            display: 'flex',
-            alignItems: 'center'
-          }}
-          aria-label="Add to Question Bank"
-        >
-          <ClipboardList size={20} strokeWidth={1} />
-        </button>
-        <button
           onClick={toggleRubricVisibility}
           style={{
             padding: '8px',
@@ -709,9 +881,9 @@ return (
           aria-label={showRubric ? "Hide Rubric" : "Show Rubric"}
         >
           {showRubric ? (
-            <ClipboardMinus size={20} strokeWidth={1}  />
+            <ClipboardMinus size={20} strokeWidth={1} />
           ) : (
-            <ClipboardList size={20} strokeWidth={1}  />
+            <ClipboardList size={20} strokeWidth={1} />
           )}
         </button>
         <button

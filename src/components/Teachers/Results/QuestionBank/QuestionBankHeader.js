@@ -1,9 +1,9 @@
 // QuestionBankHeader.js
 
 import React from 'react';
-import { Search } from 'lucide-react';
+import { Search, ClipboardList, ClipboardMinus } from 'lucide-react';
 
-const QuestionBankHeader = ({ questionsCount, averageScore, onSearchChange, searchTerm, getGradeColors }) => (
+const QuestionBankHeader = ({ questionsCount, averageScore, onSearchChange, searchTerm, getGradeColors, showRubric, onToggleRubric }) => (
   <div style={{ 
     width: '100%',
     height: '60px',
@@ -32,6 +32,26 @@ const QuestionBankHeader = ({ questionsCount, averageScore, onSearchChange, sear
       }}>
         {questionsCount} Questions 
       </h1>
+      <button
+        onClick={onToggleRubric}
+        style={{
+          padding: '8px',
+          background: 'none',
+          border: 'none',
+          cursor: 'pointer',
+          color: '#9ca3af',
+          display: 'flex',
+          alignItems: 'center',
+          marginLeft: '20px'
+        }}
+        aria-label={showRubric ? "Hide Rubric" : "Show Rubric"}
+      >
+        {showRubric ? (
+          <ClipboardMinus size={20} strokeWidth={1} />
+        ) : (
+          <ClipboardList size={20} strokeWidth={1} />
+        )}
+      </button>
     </div>
 
     <div style={{
